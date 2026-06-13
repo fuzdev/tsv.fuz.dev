@@ -481,6 +481,10 @@ body {
 	font-size: var(--font_size_lg);
 }
 
+:where(input, textarea, select) {
+	font: inherit;
+}
+
 :where(:is(input, textarea, select):not(.unstyled)) {
 	appearance: none;
 	line-height: normal;
@@ -931,6 +935,10 @@ body {
 /* like `.box` but uncentered */
 .column { display: flex;
 			flex-direction: column; }
+/* can be used to override the direction of a `.box` */
+.row { display: flex;
+			flex-direction: row;
+			align-items: center; }
 .ellipsis { display: block;
 			white-space: nowrap;
 			overflow: hidden;
@@ -1115,6 +1123,7 @@ These are used as modifiers to buttons.
 .mb_xl9 { margin-bottom: var(--space_xl9); }
 .gap_xs2 { gap: var(--space_xs2); }
 .gap_xs { gap: var(--space_xs); }
+.gap_sm { gap: var(--space_sm); }
 .gap_lg { gap: var(--space_lg); }
 .display\:flex { display: flex; }
 .flex\:1 { flex: 1; }
