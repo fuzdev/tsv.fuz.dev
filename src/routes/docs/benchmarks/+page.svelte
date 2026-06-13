@@ -63,16 +63,13 @@
 		<aside class="mt_xl5">
 			<p>Important notes:</p>
 			<ul>
-				<li>
-					apples-to-apples comparisons are difficult here because of differing scope, but for Svelte
-					users, smaller is better
-				</li>
-				<li>biome includes a parser, formatter, and linter supporting many languages</li>
+				<li>apples-to-apples comparisons are difficult here because of differing scope</li>
+				<li>Biome includes a parser, formatter, and linter supporting many languages</li>
 				<li>tsv and tsv_wasm include a parser and formatter for Svelte, TypeScript/JS, and CSS</li>
 				<li>oxfmt has no wasm build as of June 2026</li>
 				<li>
-					tsv doesn't publish native artifacts yet, but it builds them and benchmarks over FFI with
-					Deno
+					tsv doesn't publish native artifacts yet, but it builds them for benchmarking over FFI
+					with Deno
 				</li>
 			</ul>
 		</aside>
@@ -143,13 +140,13 @@
 
 	<TomeSection>
 		<TomeSectionHeader text="Benchmarking details" />
-		<p class="mb_xl5">
+		<p>
 			All numbers are single-threaded: every library formats or parses one file at a time, measured
 			sequentially with no cross-file parallelism. These are per-file, single-core latency and
 			throughput numbers - not the multi-core batch throughput a CLI gets when it formats many files
 			at once, which most of these tools (tsv included) can do.
 		</p>
-		<p>
+		<p class="mb_xl3">
 			What's measured: around 5,500 files (~15 MB) of
 			<code>.svelte</code>/<code>.html</code>, <code>.ts</code>/<code>.js</code>, and
 			<code>.css</code>, from three sources: the fuz.dev libraries and apps, upstream framework
