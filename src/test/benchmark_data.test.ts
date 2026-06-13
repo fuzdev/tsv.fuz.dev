@@ -17,7 +17,7 @@ describe('benchmarks.json shape', () => {
 
 	test('binary sizes include the ratio anchors', () => {
 		const labels = benchmarks_json.binary_sizes.map((s) => s.label);
-		assert.include(labels, 'tsv'); // native anchor
+		assert.include(labels, 'tsv (native)'); // native anchor
 		assert.include(labels, 'tsv_wasm'); // wasm anchor (the full build)
 	});
 

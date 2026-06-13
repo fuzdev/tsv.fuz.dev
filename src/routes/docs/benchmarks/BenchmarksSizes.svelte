@@ -21,13 +21,13 @@
 		const sorted = items.toSorted((a, b) => a.bytes - b.bytes);
 		const max = Math.max(0, ...items.map((s) => s.bytes));
 		// anchor "vs tsv" ratios on the headline build per kind - `tsv_wasm` (the
-		// flagship full build the bench executes) for wasm, `tsv` for native —
+		// flagship full build the bench executes) for wasm, `tsv (native)` for native —
 		// matching the report.md table; `tsv_format_wasm` covers reports generated
 		// before shape v2 added the third build, then any tsv-prefixed label.
 		// Without this the wasm group anchors on whatever sorts largest and every
 		// ratio disagrees with the report.
 		const tsv =
-			sorted.find((s) => s.label === 'tsv_wasm' || s.label === 'tsv') ??
+			sorted.find((s) => s.label === 'tsv_wasm' || s.label === 'tsv (native)') ??
 			sorted.find((s) => s.label === 'tsv_format_wasm') ??
 			sorted.find((s) => s.label.startsWith('tsv'));
 		return sorted.map((s) => ({

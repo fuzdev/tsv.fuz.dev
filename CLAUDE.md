@@ -31,8 +31,9 @@ IMPORTANT for AI agents: Do NOT run `gro dev` - the developer will manage the de
 - prettier + prettier-plugin-svelte - code formatting
 - zimmerframe - AST traversal
 - `@webref/css` - CSS spec data (used for benchmarks/docs)
+- `@fuzdev/tsv_wasm` - tsv's formatter + parser as WASM; powers the playground, loaded lazily in the browser
 
-Note: the published tsv WASM packages (`@fuzdev/tsv_wasm`, or the format/parse subsets) are not yet dependencies here — will be added when the playground is implemented.
+Note: `@fuzdev/tsv_wasm` is loaded only on `/docs/playground` via a browser-only dynamic `import()`, so the ~900KB WASM never weighs down `/docs` or the prerendered pages.
 
 ## Scope
 
@@ -40,14 +41,15 @@ tsv.fuz.dev is the public face of the tsv tool:
 
 - Landing page (home) with links to benchmarks and docs
 - Benchmarks page with bar charts and summary tables
-- Docs section (introduction, benchmarks)
+- Docs section (introduction, playground, benchmarks)
+- Interactive playground (`/docs/playground`) — edit a Svelte example, format on blur, view the parsed AST; runs `@fuzdev/tsv_wasm` as lazily-loaded WASM
 - About page with ecosystem links and theme controls
-- Shows install instructions for `@fuzdev/tsv_wasm` (full tool + `tsv` CLI; format/parse subsets mentioned in the intro); no playground yet
+- Shows install instructions for `@fuzdev/tsv_wasm` (full tool + `tsv` CLI; format/parse subsets mentioned in the intro)
 
 ### What tsv.fuz.dev does NOT include (yet)
 
-- Interactive playground (planned, requires the tsv WASM packages)
 - Authentication or backend
+- Native-binary downloads (tsv ships WASM-only at v0.1)
 
 ## Routes
 
@@ -65,8 +67,9 @@ src/routes/
 └── docs/
     ├── +layout.svelte    # Docs layout (Docs component wrapper)
     ├── +page.svelte      # Docs index
-    ├── tomes.ts          # Docs structure (introduction, benchmarks)
+    ├── tomes.ts          # Docs structure (introduction, playground, benchmarks)
     ├── introduction/     # Introduction page
+    ├── playground/       # Interactive playground (Playground.svelte + playground_example.ts; lazy @fuzdev/tsv_wasm)
     └── benchmarks/       # Benchmark visualizations (BenchmarksBar, BenchmarksGroup, etc.)
 ```
 
@@ -97,9 +100,10 @@ Key files in `src/routes/docs/benchmarks/`:
 
 - Static SvelteKit app (`adapter-static`), deploys to GitHub Pages
 - Uses fuz_ui tome system for docs navigation
-- `docs/tomes.ts` defines the doc sections: introduction, benchmarks
+- `docs/tomes.ts` defines the doc sections: introduction, playground, benchmarks
 - Benchmark data lives in `src/routes/docs/benchmarks/benchmarks.json` (see [Benchmarks](#benchmarks))
 - `library.ts` builds component metadata at runtime from the `virtual:svelte-docinfo` module (provided by the `svelte-docinfo` Vite plugin); the docs index passes it to `DocsContent`
+- The playground (`/docs/playground`) loads `@fuzdev/tsv_wasm` via a browser-only dynamic `import()` inside `Playground.svelte`, so the WASM code-splits into its own chunk fetched only on that route — the same lazy discipline `library.ts` uses for the heavy svelte-docinfo data, keeping `/docs` and the prerendered pages WASM-free. `@fuzdev/tsv_wasm` is in `vite.config.ts` `optimizeDeps.exclude` (like `blake3_wasm`)
 
 ## Deployment
 
