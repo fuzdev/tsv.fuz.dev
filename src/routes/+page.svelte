@@ -1,40 +1,32 @@
 <script lang="ts">
-	import Svg from '@fuzdev/fuz_ui/Svg.svelte';
-	import {logo_fuz} from '@fuzdev/fuz_ui/logos.js';
 	import {resolve} from '$app/paths';
-	import {random_item} from '@fuzdev/fuz_util/random.js';
-	import ColorSchemeInput from '@fuzdev/fuz_ui/ColorSchemeInput.svelte';
-	import ThemeInput from '@fuzdev/fuz_ui/ThemeInput.svelte';
+	import DocsFooter from '@fuzdev/fuz_ui/DocsFooter.svelte';
+	import {FUZ_DEV_URL} from '@fuzdev/fuz_ui/constants.js';
+	import {site_context} from '@fuzdev/fuz_ui/site.svelte.js';
 
-	import Mreows, {mreow_items} from '$lib/Mreows.svelte';
-
-	let mreows: Array<{glyph: string}> | undefined = $state.raw([
-		random_item(mreow_items),
-		mreow_items[4]!,
-	]);
+	const site = site_context.get();
 </script>
 
 <main>
-	<section class="box">
+	<section>
 		<header class="box pt_xl">
-			<Svg data={logo_fuz} size="var(--icon_size_xl)" />
-			<h1 class="mt_xl2">fuz_template</h1>
+			<h1 class="mt_xl2">tsv</h1>
+			<p class="panel p_md" style:text-align="center">
+				tsv is a formatter, parser, and future linter + more<br />for TypeScript, Svelte, and CSS
+			</p>
 		</header>
+	</section>
+	<section class="box">
 		<div class="column gap_lg">
-			<a href={resolve('/about')} class="panel px_xl py_md font_size_xl2 text-align:center">about</a
+			<a class="font_size_xl chip px_xl py_sm text-align:center" href={resolve('/docs')}>docs</a>
+			<a class="font_size_xl chip px_xl py_sm text-align:center" href={resolve('/docs/benchmarks')}
+				>benchmarks</a
 			>
-			<a href={resolve('/docs')} class="panel px_xl py_md font_size_xl2 text-align:center">docs</a>
 		</div>
 	</section>
-	<section class="box panel">
-		<div class="p_xl box">
-			<h2 class="mt_0">color scheme</h2>
-			<ColorSchemeInput />
-			<h2>theme</h2>
-			<ThemeInput />
-		</div>
+	<section class="box">
+		<DocsFooter repo_url={site.repo_url} root_url={FUZ_DEV_URL} />
 	</section>
-	<Mreows bind:mreows />
 </main>
 
 <style>

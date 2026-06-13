@@ -1,18 +1,10 @@
-# fuz_template
+# tsv.fuz.dev
 
-> SvelteKit starter template with full fuz stack integration
+> website for tsv, a formatter, parser, and future linter + more for TypeScript, Svelte, and CSS
 
-fuz_template (`@fuzdev/fuz_template`) is a production-ready starter template for
-building static web applications with the fuz stack. Clone it to start new
-projects with TypeScript, Svelte 5, SvelteKit, and the complete fuz ecosystem
-pre-configured.
+tsv.fuz.dev is the public website for the tsv tool — landing page, benchmarks, docs, and (eventually) playground. Built with SvelteKit + fuz stack, statically deployed.
 
 For coding conventions, see Skill(fuz-stack).
-
-## Committing
-
-`git add` and `git commit` are denied by `.claude/settings.local.json` in
-this repo — make the edits and stop, the user commits.
 
 ## Gro commands
 
@@ -25,173 +17,110 @@ gro deploy    # build, commit, and push to deploy branch
 gro sync      # regenerate files and run svelte-kit sync
 ```
 
-IMPORTANT for AI agents: Do NOT run `gro dev` - the developer will manage the
-dev server.
+IMPORTANT for AI agents: Do NOT run `gro dev` - the developer will manage the dev server.
 
 ## Key dependencies
 
 - Svelte 5 - component framework with runes
 - SvelteKit - application framework with static adapter
-- Vite - build tool
-- fuz_css (@fuzdev/fuz_css) - CSS framework and design system
-- fuz_ui (@fuzdev/fuz_ui) - UI components, theming, docs system
-- fuz_util (@fuzdev/fuz_util) - utility functions
-- fuz_code (@fuzdev/fuz_code) - syntax highlighting
-- Gro (@fuzdev/gro) - build system and task runner
+- fuz_css (`@fuzdev/fuz_css`) - CSS framework and design system
+- fuz_ui (`@fuzdev/fuz_ui`) - UI components, theming, docs system
+- fuz_util (`@fuzdev/fuz_util`) - utility functions
+- fuz_code (`@fuzdev/fuz_code`) - syntax highlighting
+- Gro (`@fuzdev/gro`) - build system and task runner
+- prettier + prettier-plugin-svelte - code formatting
+- zimmerframe - AST traversal
+- `@webref/css` - CSS spec data (used for benchmarks/docs)
+
+Note: the published tsv WASM packages (`@fuzdev/tsv_wasm`, or the format/parse subsets) are not yet dependencies here — will be added when the playground is implemented.
 
 ## Scope
 
-fuz_template is a **SvelteKit starter template**:
+tsv.fuz.dev is the public face of the tsv tool:
 
-- Pre-configured fuz stack (fuz_css, fuz_ui, fuz_util, fuz_code)
-- Dark/light theme with persistence
-- Documentation system with API generation
-- Static deployment ready (GitHub Pages, Netlify)
+- Landing page (home) with links to benchmarks and docs
+- Benchmarks page with bar charts and summary tables
+- Docs section (introduction, benchmarks)
+- About page with ecosystem links and theme controls
+- Shows install instructions for `@fuzdev/tsv_wasm` (full tool + `tsv` CLI; format/parse subsets mentioned in the intro); no playground yet
 
-### What fuz_template does NOT include
+### What tsv.fuz.dev does NOT include (yet)
 
-- Authentication or user management
-- Database or backend
-- Dynamic server-side content
-- Production-ready components (demos only)
+- Interactive playground (planned, requires the tsv WASM packages)
+- Authentication or backend
 
-## Using the template
+## Routes
 
-Clone with degit or use GitHub's "Use this template" button:
-
-```bash
-npx degit fuzdev/fuz_template myproject
-cd myproject
-npm i
+```
+src/routes/
+├── +page.svelte          # Home: hero, links to benchmarks and docs
+├── +layout.svelte        # Root layout with fuz_css imports
+├── +layout.ts            # prerender: true, ssr: true
+├── style.css             # global styles
+├── library.ts            # builds library metadata at runtime from virtual:svelte-docinfo
+├── sample.ts             # sample TypeScript code for demos
+├── example.test.ts       # test example
+├── about/
+│   └── +page.svelte      # About: description, repo links, theme controls
+└── docs/
+    ├── +layout.svelte    # Docs layout (Docs component wrapper)
+    ├── +page.svelte      # Docs index
+    ├── tomes.ts          # Docs structure (introduction, benchmarks)
+    ├── introduction/     # Introduction page
+    └── benchmarks/       # Benchmark visualizations (BenchmarksBar, BenchmarksGroup, etc.)
 ```
 
-**Files to customize:**
+## Benchmarks
 
-- `package.json` - name, version, description, homepage, repository
-- `svelte.config.js` - update origin URL
-- `src/routes/+layout.svelte` - update `<title>`
-- `src/routes/+page.svelte` - replace demo content
-- `static/CNAME` - update or delete for your domain
-- `.github/FUNDING.yml` - update or delete
+Benchmark data comes from `tsv`. Full workflow to update:
+
+```bash
+# 1. In ~/dev/tsv — run benchmarks (builds ffi + wasm automatically)
+deno task bench
+
+# 2. In ~/dev/tsv.fuz.dev — copy the latest result
+npm run update-benchmarks
+```
+
+Step 1 writes `benches/deno/results/report.json` (committed to tsv).
+Step 2 copies it to `src/routes/docs/benchmarks/benchmarks.json`.
+The JSON format matches `BenchmarkBaseline` in `benchmark_data.ts`.
+
+Key files in `src/routes/docs/benchmarks/`:
+
+- `benchmarks.json` — raw benchmark data (copied from tsv)
+- `benchmark_data.ts` — TypeScript types matching the JSON format
+- `benchmarks.ts` — re-exports the JSON with types
+- `BenchmarksBar.svelte`, `BenchmarksGroup.svelte`, etc. — visualization components
 
 ## Architecture
 
-### Directory structure
+- Static SvelteKit app (`adapter-static`), deploys to GitHub Pages
+- Uses fuz_ui tome system for docs navigation
+- `docs/tomes.ts` defines the doc sections: introduction, benchmarks
+- Benchmark data lives in `src/routes/docs/benchmarks/benchmarks.json` (see [Benchmarks](#benchmarks))
+- `library.ts` builds component metadata at runtime from the `virtual:svelte-docinfo` module (provided by the `svelte-docinfo` Vite plugin); the docs index passes it to `DocsContent`
 
-```
-src/
-├── app.html               # HTML entry with theme detection
-├── lib/                   # your library code
-│   ├── Mreows.svelte      # example component (replace me)
-│   └── Positioned.svelte  # example component (replace me)
-└── routes/
-    ├── +layout.svelte     # root layout with fuz_css imports
-    ├── +layout.ts         # prerender: true, ssr: true
-    ├── +page.svelte       # home page
-    ├── style.css          # custom global styles
-    ├── example.test.ts    # test file example
-    ├── about/+page.svelte
-    └── docs/              # documentation pages
-        ├── +layout.svelte # wraps docs in Docs component
-        ├── +page.svelte   # docs index
-        ├── tomes.ts       # documentation structure
-        ├── library/       # library details page
-        └── api/           # auto-generated API docs
-```
+## Deployment
 
-### Example components (replace these)
-
-The template includes demo components to show Svelte 5 patterns:
-
-**Mreows.svelte** - interactive emoji grid demo showing `$props()`,
-`$bindable()`, `$state()`, `$derived()`. Marked with "don't use this component".
-
-**Positioned.svelte** - CSS transform utility with Snippet children.
-
-Replace these with your actual components.
-
-### SvelteKit configuration
-
-- `+layout.ts` exports `prerender = true` and `ssr = true` for full static
-  generation
-- `svelte.config.js` enables runes mode and configures CSP via
-  `create_csp_directives()` from fuz_ui
-- Uses `@sveltejs/adapter-static` for static output
-
-### Theme detection
-
-`app.html` includes theme detection that runs before render:
-
-1. Reads `localStorage.getItem('fuz:color-scheme')`
-2. Falls back to `matchMedia('(prefers-color-scheme:dark)')`
-3. Sets class on `<html>` element ('dark' or 'light')
-
-This prevents flash of wrong theme on page load.
-
-### Library metadata
-
-Component library metadata (modules, declarations, props, dependencies) is
-provided at runtime by the `svelte-docinfo` Vite plugin via the
-`virtual:svelte-docinfo` module. `src/routes/library.ts` combines it with
-`package.json` through `library_json_from_modules`, and `docs/+layout.svelte`
-sets the `library_context` (only where the docs need it — the root layout sets
-just the lighter `site_context`), powering auto-generated API docs at
-`/docs/api/`.
-
-### CSS utility classes
-
-The `vite_plugin_fuz_css` Vite plugin (wired in `vite.config.ts`) generates
-fuz_css utility classes on demand and exposes them via the `virtual:fuz.css`
-module, imported in the root `+layout.svelte`. No generated `fuz.css` file is
-committed.
-
-### Documentation system
-
-Uses fuz_ui's tome system:
-
-- `docs/tomes.ts` - defines documentation pages
-- `docs/library/` - shows `LibraryDetail` component
-- `docs/api/` - auto-generated API docs from `virtual:svelte-docinfo`
-- `docs/api/[...module_path]/` - dynamic module documentation
-
-## Context system
-
-Uses contexts from fuz_ui:
-
-- `library_context` - provides `Library` class for docs
-- `tomes_context` - provides documentation structure
-- Theme context via `ThemeRoot` component wrapper
-
-## Static deployment
-
-Pre-configured for static hosting (GitHub Pages, Netlify, etc.):
-
-- Uses `@sveltejs/adapter-static`
-- `static/CNAME` for custom domain
-- `static/.nojekyll` for GitHub Pages
-
-Deploy with `gro deploy` (builds and pushes to deploy branch).
-
-## Known limitations
-
-- **Demo components only** - Mreows and Positioned are examples, not for
-  production use
-- **Minimal test coverage** - Only one example test file included
-- **Static only** - No dynamic server-side content
-- **Tests colocated** - Tests in routes (`example.test.ts`) rather than
-  `src/test/` directory
+Deploys to `https://tsv.fuz.dev/` via `gro deploy` (builds and pushes to deploy branch).
 
 ## Project standards
 
 - TypeScript strict mode
 - Svelte 5 with runes API
 - Prettier with tabs, 100 char width
-- Node >= 22.15
+- Node >= 24.14
 - Private package (not published to npm)
 
 ## Related projects
 
+- [`tsv`](../tsv/CLAUDE.md) - the tsv parser/formatter (source of truth)
 - [`fuz_css`](../fuz_css/CLAUDE.md) - CSS framework
 - [`fuz_ui`](../fuz_ui/CLAUDE.md) - UI components and docs system
 - [`fuz_util`](../fuz_util/CLAUDE.md) - utility functions
-- [`fuz_blog`](../fuz_blog/CLAUDE.md) - extends template with blog features
+
+## Committing
+
+`git add` and `git commit` are denied by `.claude/settings.local.json` in
+this repo — make the edits and stop, the user commits.
