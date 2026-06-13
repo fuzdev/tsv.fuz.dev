@@ -1,0 +1,1 @@
+const t="tsv.fuz.dev",e="0.0.1",o="website for tsv, a formatter, parser, and future linter + more for Svelte, TypeScript, and CSS";const s="logo.svg",n="a friendly pixelated spider facing you";const r="https://tsv.fuz.dev/",c="https://github.com/fuzdev/tsv.fuz.dev",p={name:t,version:e,description:o,glyph:"🪶",logo:s,logo_alt:n,license:"MIT",homepage:r,repository:c};export{p};
