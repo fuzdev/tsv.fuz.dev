@@ -149,6 +149,14 @@
 			throughput numbers - not the multi-core batch throughput a CLI gets when it formats many files
 			at once, which most of these tools (tsv included) can do.
 		</p>
+		<p>
+			What's measured: around 5,500 files (~15 MB) of
+			<code>.svelte</code>/<code>.html</code>, <code>.ts</code>/<code>.js</code>, and
+			<code>.css</code>, from three sources: the fuz.dev libraries and apps, upstream framework
+			source (Svelte, SvelteKit, and the svelte.dev site), and formatter conformance fixtures
+			(Prettier's and prettier-plugin-svelte's own test suites - deliberately tricky edge cases, not
+			typical code, so they skew the corpus toward hard cases).
+		</p>
 		<BenchmarksMeta baseline={benchmarks_json} />
 	</TomeSection>
 </TomeContent>
