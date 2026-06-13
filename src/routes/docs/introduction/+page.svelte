@@ -27,7 +27,7 @@ const ast: Root = parse_svelte('<script>const x = 1;<\\/script>');`;
 <TomeContent {tome}>
 	<section>
 		<p>
-			tsv is a formatter, parser, and future linter + more for TypeScript, Svelte, and CSS. This is
+			tsv is a formatter, parser, and future linter + more for Svelte, TypeScript, and CSS. This is
 			an early release, but it's ready for testing and feedback. It probably won't mangle your code!
 		</p>
 		<TomeSection>

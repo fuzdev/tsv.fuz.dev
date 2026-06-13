@@ -12,7 +12,7 @@
 		<header class="box pt_xl">
 			<h1 class="mt_xl2">tsv</h1>
 			<p class="panel p_md" style:text-align="center">
-				tsv is a formatter, parser, and future linter + more<br />for TypeScript, Svelte, and CSS
+				tsv is a formatter, parser, and future linter + more<br />for Svelte, TypeScript, and CSS
 			</p>
 		</header>
 	</section>

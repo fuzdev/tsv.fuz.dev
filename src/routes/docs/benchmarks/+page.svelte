@@ -29,7 +29,7 @@
 
 <TomeContent {tome}>
 	<section>
-		<p>tsv is a formatter, parser, and future linter + more for TypeScript, Svelte, and CSS.</p>
+		<p>tsv is a formatter, parser, and future linter + more for Svelte, TypeScript, and CSS.</p>
 		<p>
 			Please note, this is an early-stage project and these numbers will change, both upwards and
 			downwards.
@@ -86,7 +86,7 @@
 			tsv's formatter is similar to <a href="https://oxc.rs/docs/guide/usage/formatter.html"
 				>Oxfmt</a
 			>
-			and <a href="https://biomejs.dev/">Biome</a>. Today it can format TypeScript, Svelte, and CSS,
+			and <a href="https://biomejs.dev/">Biome</a>. Today it can format Svelte, TypeScript, and CSS,
 			plus JS as strict-mode TypeScript:
 		</p>
 		{#each format_groups as group (group.language)}
