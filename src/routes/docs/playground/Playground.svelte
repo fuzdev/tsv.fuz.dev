@@ -1,5 +1,12 @@
 <script lang="ts">
+	// the Highlight API rules live in theme_highlight.css (not theme.css), and are
+	// only needed here — keep them in the lazy playground bundle, off the other routes
+	import '@fuzdev/fuz_code/theme_highlight.css';
+
 	import Code from '@fuzdev/fuz_code/Code.svelte';
+	import CodeTextarea from '@fuzdev/fuz_code/CodeTextarea.svelte';
+	import {supports_css_highlight_api} from '@fuzdev/fuz_code/highlight_manager.js';
+
 	import {playground_example} from './playground_example.js';
 
 	// `@fuzdev/tsv_wasm` is loaded lazily, in the browser only — a dynamic import
@@ -17,6 +24,14 @@
 
 	const ready = $derived(tsv !== null);
 	const dirty = $derived(source !== formatted_source);
+
+	// CodeTextarea highlights via the experimental CSS Custom Highlight API; where
+	// it's unsupported the editor still works but shows no token colors. Resolved in
+	// an effect (the API is browser-only) so SSR and supported browsers render no note.
+	let highlight_supported = $state(true);
+	$effect(() => {
+		highlight_supported = supports_css_highlight_api();
+	});
 
 	$effect(() => {
 		if (tsv) return;
@@ -81,15 +96,21 @@
 		<p class="error">Couldn't load the tsv formatter: {load_error}</p>
 	{/if}
 
+	{#if !highlight_supported}
+		<p class="muted">
+			This browser doesn't support live syntax highlighting — the editor still works without token
+			colors.
+		</p>
+	{/if}
+
 	<div class="panes">
-		<textarea
-			class="plain"
+		<CodeTextarea
 			bind:value={source}
+			lang="svelte"
 			onblur={format}
-			spellcheck="false"
 			autocapitalize="off"
 			autocomplete="off"
-		></textarea>
+		/>
 
 		{#if !ready}
 			<p class="muted">loading the formatter…</p>
@@ -130,15 +151,10 @@
 		display: flex;
 		flex-direction: column;
 	}
-	textarea {
-		min-width: 0;
+	/* CodeTextarea sizes from its in-flow <textarea>; match the AST pane's height.
+	   Font, tab-size, resize, and wrapping are the component's own concern. */
+	.panes :global(.code_textarea textarea) {
 		height: 400px;
-		margin-bottom: 0;
-		resize: vertical;
-		font-family: var(--font_family_mono, ui-monospace, monospace);
-		tab-size: 2;
-		white-space: pre;
-		overflow-wrap: normal;
 	}
 	.ast {
 		min-width: 0;

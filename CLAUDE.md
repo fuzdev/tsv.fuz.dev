@@ -42,7 +42,7 @@ tsv.fuz.dev is the public face of the tsv tool:
 - Landing page (home) with links to benchmarks and docs
 - Benchmarks page with bar charts and summary tables
 - Docs section (introduction, playground, benchmarks)
-- Interactive playground (`/docs/playground`) — edit a Svelte example, format on blur, view the parsed AST; runs `@fuzdev/tsv_wasm` as lazily-loaded WASM
+- Interactive playground (`/docs/playground`) — edit a Svelte example in a syntax-highlighted editor (fuz_code's `CodeTextarea`), format on blur, view the parsed AST; runs `@fuzdev/tsv_wasm` as lazily-loaded WASM
 - About page with ecosystem links and theme controls
 - Shows install instructions for `@fuzdev/tsv_wasm` (full tool + `tsv` CLI; format/parse subsets mentioned in the intro)
 
@@ -104,6 +104,7 @@ Key files in `src/routes/docs/benchmarks/`:
 - Benchmark data lives in `src/routes/docs/benchmarks/benchmarks.json` (see [Benchmarks](#benchmarks))
 - `library.ts` builds component metadata at runtime from the `virtual:svelte-docinfo` module (provided by the `svelte-docinfo` Vite plugin); the docs index passes it to `DocsContent`
 - The playground (`/docs/playground`) loads `@fuzdev/tsv_wasm` via a browser-only dynamic `import()` inside `Playground.svelte`, so the WASM code-splits into its own chunk fetched only on that route — the same lazy discipline `library.ts` uses for the heavy svelte-docinfo data, keeping `/docs` and the prerendered pages WASM-free. `@fuzdev/tsv_wasm` is in `vite.config.ts` `optimizeDeps.exclude` (like `blake3_wasm`)
+- The playground's editor is fuz_code's `CodeTextarea` (live syntax highlighting via the experimental CSS Custom Highlight API). It needs `@fuzdev/fuz_code/theme_highlight.css`, imported inside `Playground.svelte` rather than the root layout so it stays on this route only; `supports_css_highlight_api()` drives a graceful-degradation note where the API is unavailable (the editor still works, unstyled)
 
 ## Deployment
 
