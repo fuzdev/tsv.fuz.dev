@@ -6,6 +6,7 @@
 	import Code from '@fuzdev/fuz_code/Code.svelte';
 	import CodeTextarea from '@fuzdev/fuz_code/CodeTextarea.svelte';
 	import {supports_css_highlight_api} from '@fuzdev/fuz_code/highlight_manager.js';
+	import {to_error_message} from '@fuzdev/fuz_util/error.js';
 
 	import {playground_example} from './playground_example.js';
 
@@ -32,7 +33,7 @@
 		try {
 			return {value: fn(tsv), error: null};
 		} catch (err) {
-			return {value: null, error: err instanceof Error ? err.message : String(err)};
+			return {value: null, error: to_error_message(err)};
 		}
 	};
 
@@ -63,7 +64,7 @@
 				if (cancelled) return;
 				tsv = mod;
 			} catch (err) {
-				if (!cancelled) load_error = err instanceof Error ? err.message : String(err);
+				if (!cancelled) load_error = to_error_message(err);
 			}
 		})();
 		return () => {
