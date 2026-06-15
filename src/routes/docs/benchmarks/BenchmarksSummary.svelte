@@ -34,7 +34,7 @@
 			<th></th>
 			<th class="color_h_50">Svelte<br /><small>{count_label('svelte')} files</small></th>
 			<th class="color_i_50">TypeScript<br /><small>{count_label('typescript')} files</small></th>
-			<th class="color_e_50">CSS<br /><small>{count_label('css')} files</small></th>
+			<th class="color_a_50">CSS<br /><small>{count_label('css')} files</small></th>
 		</tr>
 	</thead>
 	<tbody>
