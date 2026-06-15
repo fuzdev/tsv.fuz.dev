@@ -23,8 +23,9 @@
 	{:else}
 		<section>
 			<p>
-				This loads <code>@fuzdev/tsv_wasm</code> in your browser to format and parse Svelte with TypeScript
-				and CSS.
+				This loads <a href="https://www.npmjs.com/package/@fuzdev/tsv_wasm"
+					><code>@fuzdev/tsv_wasm</code></a
+				> in your browser to format and parse Svelte with TypeScript and CSS.
 			</p>
 			<Playground />
 			<p>
