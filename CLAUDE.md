@@ -42,7 +42,7 @@ tsv.fuz.dev is the public face of the tsv tool:
 - Landing page (home) with links to benchmarks and docs
 - Benchmarks page with bar charts and summary tables
 - Docs section (introduction, playground, benchmarks)
-- Interactive playground (`/docs/playground`) — edit a Svelte example in a syntax-highlighted editor (fuz_code's `CodeTextarea`), format on blur, view the parsed AST; runs `@fuzdev/tsv_wasm` as lazily-loaded WASM
+- Interactive playground (`/docs/playground`) — edit a deliberately-unformatted Svelte example in a syntax-highlighted editor (fuz_code's `CodeTextarea`); the formatted output and parsed AST update live alongside it; runs `@fuzdev/tsv_wasm` as lazily-loaded WASM
 - About page with ecosystem links and theme controls
 - Shows install instructions for `@fuzdev/tsv_wasm` (full tool + `tsv` CLI; format/parse subsets mentioned in the intro)
 

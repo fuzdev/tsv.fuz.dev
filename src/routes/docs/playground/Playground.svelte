@@ -15,19 +15,39 @@
 	let tsv: typeof import('@fuzdev/tsv_wasm') | null = $state(null);
 	let load_error: string | null = $state(null);
 
+	// the editable source — starts as the deliberately-unformatted example so the
+	// formatted pane visibly cleans it up
 	let source = $state(playground_example);
-	// the source as of the last successful format; `dirty` diffs against it
-	let formatted_source = $state(playground_example);
-	let ast_json = $state('');
-	let format_error: string | null = $state(null);
-	let parse_error: string | null = $state(null);
 
 	const ready = $derived(tsv !== null);
-	const dirty = $derived(source !== formatted_source);
+
+	// A tsv call's outcome: its string result, or the thrown error's message.
+	type Outcome = {value: string; error: null} | {value: null; error: string};
+
+	// Run a tsv call, capturing a thrown error as a message; `null` until the WASM
+	// loads. Lets `formatted` and `ast` share one shape and recompute as `source` changes
+	// — no blur or button.
+	const run = (fn: (t: NonNullable<typeof tsv>) => string): Outcome | null => {
+		if (!tsv) return null;
+		try {
+			return {value: fn(tsv), error: null};
+		} catch (err) {
+			return {value: null, error: err instanceof Error ? err.message : String(err)};
+		}
+	};
+
+	const formatted = $derived.by(() => run((t) => t.format_svelte(source)));
+	const ast = $derived.by(() => run((t) => JSON.stringify(t.parse_svelte(source), null, 2)));
+
+	// format and parse fail together on malformed input — surface one message, not two
+	const error = $derived(formatted?.error ?? ast?.error ?? null);
 
 	// CodeTextarea highlights via the experimental CSS Custom Highlight API; where
-	// it's unsupported the editor still works but shows no token colors. Resolved in
-	// an effect (the API is browser-only) so SSR and supported browsers render no note.
+	// it's unsupported the editor still works but shows no token colors. Defaulting to
+	// `true` and flipping it in a browser-only effect keeps the note out of the
+	// prerendered HTML (a plain `$derived` would render it server-side and mismatch on
+	// hydration), so the lint rule's writable-derived suggestion doesn't apply here.
+	// eslint-disable-next-line svelte/prefer-writable-derived
 	let highlight_supported = $state(true);
 	$effect(() => {
 		highlight_supported = supports_css_highlight_api();
@@ -42,7 +62,6 @@
 				await mod.init();
 				if (cancelled) return;
 				tsv = mod;
-				format(); // format the initial example once the formatter is ready
 			} catch (err) {
 				if (!cancelled) load_error = err instanceof Error ? err.message : String(err);
 			}
@@ -52,117 +71,72 @@
 		};
 	});
 
-	const update_ast = (): void => {
-		if (!tsv) return;
-		try {
-			ast_json = JSON.stringify(tsv.parse_svelte(source), null, 2);
-			parse_error = null;
-		} catch (err) {
-			parse_error = err instanceof Error ? err.message : String(err);
-		}
-	};
-
-	// Format the source in place (on blur or the Format button). Blur means the
-	// caret has already left the textarea, so replacing its value is safe.
-	const format = (): void => {
-		if (!tsv) return;
-		try {
-			const formatted = tsv.format_svelte(source);
-			source = formatted;
-			formatted_source = formatted;
-			format_error = null;
-		} catch (err) {
-			format_error = err instanceof Error ? err.message : String(err);
-		}
-		update_ast();
-	};
-
 	const reset = (): void => {
 		source = playground_example;
-		format();
+	};
+
+	// format the editable source in place — writes the formatted result back into
+	// the editor; no-op while the WASM is loading or the input doesn't parse
+	const format = (): void => {
+		if (!formatted || formatted.error !== null) return;
+		source = formatted.value;
 	};
 </script>
 
-<div class="playground">
-	<header class="row gap_sm">
-		<button type="button" class="plain" onclick={format} disabled={!ready || !dirty}>format</button>
-		<button type="button" class="plain" onclick={reset} disabled={!ready}>reset</button>
-		{#if dirty}
-			<span class="dirty" title="edits haven't been formatted yet">● unformatted</span>
-		{/if}
-	</header>
+<header class="row">
+	<button type="button" class="plain" onclick={reset} disabled={!ready}>reset</button>
+	<button type="button" class="plain" onclick={format} disabled={!ready || error !== null}>
+		format
+	</button>
+</header>
 
-	{#if load_error}
-		<p class="error">Couldn't load the tsv formatter: {load_error}</p>
+{#if load_error}
+	<p class="error">Couldn't load the tsv formatter: {load_error}</p>
+{/if}
+
+{#if !highlight_supported}
+	<p>
+		This browser doesn't support live syntax highlighting — the editor still works without token
+		colors.
+	</p>
+{/if}
+
+<section>
+	<CodeTextarea bind:value={source} lang="svelte" autocapitalize="off" autocomplete="off" />
+	{#if !ready}
+		<p>loading the formatter…</p>
+	{:else if error}
+		<p class="parse_error">{error}</p>
+	{:else}
+		<p>formatted</p>
+		<Code lang="svelte" content={formatted?.value ?? ''} />
+		<p>AST</p>
+		<Code lang="json" content={ast?.value ?? ''} class="ast" />
 	{/if}
-
-	{#if !highlight_supported}
-		<p class="muted">
-			This browser doesn't support live syntax highlighting — the editor still works without token
-			colors.
-		</p>
-	{/if}
-
-	<div class="panes">
-		<CodeTextarea
-			bind:value={source}
-			lang="svelte"
-			onblur={format}
-			autocapitalize="off"
-			autocomplete="off"
-		/>
-
-		{#if !ready}
-			<p class="muted">loading the formatter…</p>
-		{:else if parse_error}
-			<p class="error">{parse_error}</p>
-		{:else}
-			<div class="ast">
-				<Code lang="json" content={ast_json} />
-			</div>
-		{/if}
-	</div>
-
-	{#if format_error}
-		<p class="error">format error: {format_error}</p>
-	{/if}
-</div>
+</section>
 
 <style>
-	.playground {
-		display: flex;
-		flex-direction: column;
-		gap: var(--space_md);
+	/* The section stacks in normal flow — fuz_css's flow margins space the <p>
+	   labels and block `Code` brings its own bottom margin; only the editor wrapper
+	   isn't a flow element, so give it the matching margin. */
+	section :global(.code_textarea) {
 		margin-bottom: var(--space_lg);
 	}
-	header {
-		align-items: center;
+	/* the editor defaults to fuz_css's 100px textarea height — give it room to work */
+	section :global(.code_textarea textarea) {
+		height: 500px;
 	}
-	.muted {
-		opacity: 0.7;
-		font-size: var(--font_size_sm, 0.875em);
-	}
-	.dirty {
-		color: var(--color_e_40, #c97a00);
-		font-size: var(--font_size_sm, 0.875em);
-	}
-	/* Stacked panes; each is capped at 400px and scrolls. */
-	.panes {
-		display: flex;
-		flex-direction: column;
-	}
-	/* CodeTextarea sizes from its in-flow <textarea>; match the AST pane's height.
-	   Font, tab-size, resize, and wrapping are the component's own concern. */
-	.panes :global(.code_textarea textarea) {
-		height: 400px;
-	}
-	.ast {
-		min-width: 0;
-		height: 400px;
-		overflow: auto;
+	/* cap the read-only panes so a long AST scrolls instead of running the page
+	   (block `Code` already sets `overflow: auto`) */
+	section :global(.ast) {
+		max-height: 500px;
 	}
 	.error {
-		color: var(--color_e_40, #c0392b);
+		color: var(--color_e_40);
+		white-space: pre-wrap;
+	}
+	.parse_error {
+		color: var(--color_c_50);
 		white-space: pre-wrap;
 	}
 </style>
