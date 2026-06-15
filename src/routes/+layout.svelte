@@ -14,8 +14,9 @@
 		children: Snippet;
 	} = $props();
 
-	// `glyph` and `repo_url` derive from `pkg_json`.
-	site_context.set(new SiteState({pkg_json}));
+	// `glyph` derives from `pkg_json`; `repo_url` points to the tsv tool repo
+	// rather than this website's repo (`pkg_json.repository`).
+	site_context.set(new SiteState({pkg_json, repo_url: 'https://github.com/fuzdev/tsv'}));
 </script>
 
 <svelte:head>
