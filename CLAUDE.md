@@ -2,7 +2,7 @@
 
 > website for tsv, a formatter, parser, and future linter + more for Svelte, TypeScript, and CSS
 
-tsv.fuz.dev is the public website for the tsv tool — landing page, benchmarks, docs, and (eventually) playground. Built with SvelteKit + fuz stack, statically deployed.
+tsv.fuz.dev is the public website for the tsv tool — landing page, benchmarks, docs, and an interactive playground. Built with SvelteKit + fuz stack, statically deployed.
 
 For coding conventions, see Skill(fuz-stack).
 
@@ -29,11 +29,12 @@ IMPORTANT for AI agents: Do NOT run `gro dev` - the developer will manage the de
 - fuz_code (`@fuzdev/fuz_code`) - syntax highlighting
 - Gro (`@fuzdev/gro`) - build system and task runner
 - prettier + prettier-plugin-svelte - code formatting
-- zimmerframe - AST traversal
-- `@webref/css` - CSS spec data (used for benchmarks/docs)
+- mdz (`@fuzdev/mdz`) - markdown preprocessor wired into `svelte.config.js`
 - `@fuzdev/tsv_wasm` - tsv's formatter + parser as WASM; powers the playground, loaded lazily in the browser
 
 Note: `@fuzdev/tsv_wasm` is loaded only on `/docs/playground` via a browser-only dynamic `import()`, so the ~900KB WASM never weighs down `/docs` or the prerendered pages.
+
+Note: several devDependencies — `@webref/css` (CSS spec data), `zimmerframe` (AST traversal), `@sveltejs/acorn-typescript`, `zod`, and `@fuzdev/blake3_wasm` — are *optional peer dependencies* of `@fuzdev/fuz_css`'s `vite_plugin_fuz_css`, declared here so its build-time CSS generation resolves them (e.g. `css_literal.ts` imports `@webref/css`, `css_class_extractor.ts` walks ASTs with `zimmerframe`). They aren't imported by this app's own source, so don't mistake them for dead deps.
 
 ## Scope
 
@@ -43,7 +44,7 @@ tsv.fuz.dev is the public face of the tsv tool:
 - Benchmarks page with bar charts and summary tables
 - Docs section (introduction, playground, benchmarks)
 - Interactive playground (`/docs/playground`) — edit a deliberately-unformatted Svelte example in a syntax-highlighted editor (fuz_code's `CodeTextarea`); the formatted output and parsed AST update live alongside it; runs `@fuzdev/tsv_wasm` as lazily-loaded WASM
-- About page with ecosystem links and theme controls
+- Theme controls via fuz_ui's `ThemeRoot` in the root layout (no separate about/settings page)
 - Shows install instructions for `@fuzdev/tsv_wasm` (full tool + `tsv` CLI; format/parse subsets mentioned in the intro)
 
 ### What tsv.fuz.dev does NOT include (yet)
@@ -54,23 +55,25 @@ tsv.fuz.dev is the public face of the tsv tool:
 ## Routes
 
 ```
-src/routes/
-├── +page.svelte          # Home: hero, links to benchmarks and docs
-├── +layout.svelte        # Root layout with fuz_css imports
-├── +layout.ts            # prerender: true, ssr: true
-├── style.css             # global styles
-├── library.ts            # builds library metadata at runtime from virtual:svelte-docinfo
-├── sample.ts             # sample TypeScript code for demos
-├── example.test.ts       # test example
-├── about/
-│   └── +page.svelte      # About: description, repo links, theme controls
-└── docs/
-    ├── +layout.svelte    # Docs layout (Docs component wrapper)
-    ├── +page.svelte      # Docs index
-    ├── tomes.ts          # Docs structure (introduction, playground, benchmarks)
-    ├── introduction/     # Introduction page
-    ├── playground/       # Interactive playground (Playground.svelte + playground_example.ts; lazy @fuzdev/tsv_wasm)
-    └── benchmarks/       # Benchmark visualizations (BenchmarksBar, BenchmarksGroup, etc.)
+src/
+├── lib/
+│   └── sample.ts             # placeholder constant (not yet wired up)
+├── routes/
+│   ├── +page.svelte          # Home: hero, links to docs and benchmarks
+│   ├── +layout.svelte        # Root layout: fuz_css/fuz_code CSS, ThemeRoot, SiteState
+│   ├── +layout.ts            # prerender: true, ssr: true
+│   ├── style.css             # global styles
+│   ├── library.ts            # builds library_json from virtual:svelte-docinfo + pkg.json
+│   ├── example.test.ts       # placeholder test
+│   └── docs/
+│       ├── +layout.svelte    # Docs layout (Docs wrapper; sets library_context)
+│       ├── +page.svelte      # Docs index (DocsContent)
+│       ├── tomes.ts          # Docs structure (introduction, playground, benchmarks)
+│       ├── introduction/     # Introduction page (install + usage)
+│       ├── playground/       # Interactive playground (Playground.svelte + playground_example.ts; lazy @fuzdev/tsv_wasm)
+│       └── benchmarks/       # Benchmark visualizations (BenchmarksBar, BenchmarksGroup, etc.)
+└── test/
+    └── benchmark_data.test.ts # tests for benchmark-data derivations
 ```
 
 ## Benchmarks
