@@ -101,6 +101,11 @@
 					intentionally diverges in some documented cases, and Biome formats to its own style.
 				</li>
 				<li>
+					Oxfmt only formats TypeScript and JS with its own native engine. For CSS and Svelte it
+					bundles and runs Prettier internally (plus prettier-plugin-svelte for Svelte), so its CSS
+					and Svelte rows essentially re-measure Prettier minus a little wrapper overhead.
+				</li>
+				<li>
 					The Prettier baseline runs in JS while the headline tsv row is the native build, so it's a
 					cross-tier comparison. For an engine-vs-engine read, compare within a runtime tier: wasm
 					vs wasm, or native vs native.
