@@ -29,11 +29,14 @@
 </script>
 
 <div class="mb_xl5">
-	<p>
-		{group.operation === 'format' ? 'Formatting' : 'Parsing'}
-		{count_label}
-		{group.language} files:{#if has_coverage}<span class="text_40"
-				>&nbsp;&middot; annotation = files handled / total</span
+	<p style:display="flex" style:justify-content="space-between">
+		<span>
+			{group.operation === 'format' ? 'Formatting' : 'Parsing'}
+			{count_label}
+			{group.language} files</span
+		>
+		{#if has_coverage}<span class="text_40" style:text-align="right"
+				>files handled / total &nbsp;&middot;&nbsp; speed</span
 			>{/if}
 	</p>
 	<div class="column gap_xs">
