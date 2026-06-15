@@ -1091,7 +1091,7 @@ These are used as modifiers to buttons.
 .font_size_xl { font-size: var(--font_size_xl); --font_size: var(--font_size_xl); }
 .text_40 { color: var(--text_40); --text_color: var(--text_40); }
 .text_50 { color: var(--text_50); --text_color: var(--text_50); }
-.color_e_50 { color: var(--color_e_50); --text_color: var(--color_e_50); }
+.color_a_50 { color: var(--color_a_50); --text_color: var(--color_a_50); }
 .color_h_50 { color: var(--color_h_50); --text_color: var(--color_h_50); }
 .color_i_50 { color: var(--color_i_50); --text_color: var(--color_i_50); }
 .shadow_inset_xs { box-shadow: var(--shadow_inset_xs) color-mix(in hsl, var(--shadow_color, var(--shadow_color_umbra)) var(--shadow_alpha, var(--shadow_alpha_30)), transparent); }
