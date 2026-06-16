@@ -5,10 +5,10 @@
 
 	import Code from '@fuzdev/fuz_code/Code.svelte';
 	import CodeTextarea from '@fuzdev/fuz_code/CodeTextarea.svelte';
-	import {supports_css_highlight_api} from '@fuzdev/fuz_code/highlight_manager.js';
-	import {to_error_message} from '@fuzdev/fuz_util/error.js';
+	import {supports_css_highlight_api} from '@fuzdev/fuz_code/highlight_manager.ts';
+	import {to_error_message} from '@fuzdev/fuz_util/error.ts';
 
-	import {playground_example} from './playground_example.js';
+	import {playground_example} from './playground_example.ts';
 
 	// `@fuzdev/tsv_wasm` is loaded lazily, in the browser only — a dynamic import
 	// so the ~900KB WASM lands in its own chunk, fetched the first time this

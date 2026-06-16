@@ -5,7 +5,7 @@
 		format_speedup,
 		speedup_color,
 		type BenchmarkGroup,
-	} from './benchmark_data.js';
+	} from './benchmark_data.ts';
 	import BenchmarksBar from './BenchmarksBar.svelte';
 
 	const {

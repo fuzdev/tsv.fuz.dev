@@ -4,7 +4,7 @@
 		format_label,
 		type FormattedUnit,
 		type ImplementationCategory,
-	} from './benchmark_data.js';
+	} from './benchmark_data.ts';
 
 	const {
 		label,

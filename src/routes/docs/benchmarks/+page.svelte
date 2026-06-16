@@ -2,14 +2,14 @@
 	import TomeContent from '@fuzdev/fuz_ui/TomeContent.svelte';
 	import TomeSection from '@fuzdev/fuz_ui/TomeSection.svelte';
 	import TomeSectionHeader from '@fuzdev/fuz_ui/TomeSectionHeader.svelte';
-	import {tome_get_by_slug} from '@fuzdev/fuz_ui/tome.js';
+	import {tome_get_by_slug} from '@fuzdev/fuz_ui/tome.ts';
 
-	import {benchmarks_json} from './benchmarks.js';
+	import {benchmarks_json} from './benchmarks.ts';
 	import {
 		category_color,
 		derive_benchmark_groups,
 		derive_speedup_summary,
-	} from './benchmark_data.js';
+	} from './benchmark_data.ts';
 	import BenchmarksSummary from './BenchmarksSummary.svelte';
 	import BenchmarksGroup from './BenchmarksGroup.svelte';
 	import BenchmarksSizes from './BenchmarksSizes.svelte';

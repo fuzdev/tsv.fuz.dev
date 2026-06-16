@@ -1,4 +1,4 @@
-import type {BenchmarkBaseline} from './benchmark_data.js';
+import type {BenchmarkBaseline} from './benchmark_data.ts';
 
 import json from './benchmarks.json' with {type: 'json'};
 

@@ -2,8 +2,8 @@
 	import {page} from '$app/state';
 	import TomeContent from '@fuzdev/fuz_ui/TomeContent.svelte';
 	import TomeLink from '@fuzdev/fuz_ui/TomeLink.svelte';
-	import {tome_get_by_slug} from '@fuzdev/fuz_ui/tome.js';
-	import {DOCS_PATH} from '@fuzdev/fuz_ui/docs_helpers.svelte.js';
+	import {tome_get_by_slug} from '@fuzdev/fuz_ui/tome.ts';
+	import {DOCS_PATH} from '@fuzdev/fuz_ui/docs_helpers.svelte.ts';
 
 	import Playground from './Playground.svelte';
 

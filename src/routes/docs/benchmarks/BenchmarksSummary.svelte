@@ -1,5 +1,5 @@
 <script lang="ts">
-	import {format_speedup, type BenchmarkGroup, type SpeedupRow} from './benchmark_data.js';
+	import {format_speedup, type BenchmarkGroup, type SpeedupRow} from './benchmark_data.ts';
 
 	const {
 		rows,

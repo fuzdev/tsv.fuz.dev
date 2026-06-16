@@ -1,7 +1,7 @@
 <script lang="ts">
-	import {site_context} from '@fuzdev/fuz_ui/site.svelte.js';
+	import {site_context} from '@fuzdev/fuz_ui/site.svelte.ts';
 
-	import type {BenchmarkBaseline} from './benchmark_data.js';
+	import type {BenchmarkBaseline} from './benchmark_data.ts';
 
 	const {
 		baseline,

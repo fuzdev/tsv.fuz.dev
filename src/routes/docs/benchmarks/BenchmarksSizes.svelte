@@ -5,7 +5,7 @@
 		categorize_size,
 		size_ratio_color,
 		type BinarySize,
-	} from './benchmark_data.js';
+	} from './benchmark_data.ts';
 	import BenchmarksBar from './BenchmarksBar.svelte';
 
 	const {

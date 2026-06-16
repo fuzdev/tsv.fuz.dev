@@ -1,10 +1,10 @@
 import {assert, describe, test} from 'vitest';
 
-import {benchmarks_json} from '../routes/docs/benchmarks/benchmarks.js';
+import {benchmarks_json} from '$routes/docs/benchmarks/benchmarks.ts';
 import {
 	derive_benchmark_groups,
 	derive_speedup_summary,
-} from '../routes/docs/benchmarks/benchmark_data.js';
+} from '$routes/docs/benchmarks/benchmark_data.ts';
 
 // Shape gate for the committed benchmarks.json: the bench report format drifts
 // (it once went 3 months stale across a key rename that rendered as `undefined`),
