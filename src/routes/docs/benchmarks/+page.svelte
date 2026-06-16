@@ -65,7 +65,12 @@
 			<ul>
 				<li>apples-to-apples comparisons are difficult here because of differing scope</li>
 				<li>Biome includes a parser, formatter, and linter supporting many languages</li>
-				<li>tsv and tsv_wasm include a parser and formatter for Svelte, TypeScript/JS, and CSS</li>
+				<li>
+					tsv and tsv_wasm include a parser and formatter for Svelte/HTML, TypeScript/JS, and CSS
+				</li>
+				<li>
+					oxc-parser only parses TypeScript and JS, not CSS or HTML; oxfmt is its separate formatter
+				</li>
 				<li>oxfmt has no wasm build as of June 2026</li>
 				<li>
 					tsv doesn't publish native artifacts yet, but it builds them for benchmarking over FFI
