@@ -1,4 +1,6 @@
 <script lang="ts">
+	import {site_context} from '@fuzdev/fuz_ui/site.svelte.js';
+
 	import type {BenchmarkBaseline} from './benchmark_data.js';
 
 	const {
@@ -7,6 +9,8 @@
 		baseline: BenchmarkBaseline;
 	} = $props();
 
+	const site = site_context.get();
+
 	const formatted_date = $derived(
 		new Date(baseline.timestamp).toLocaleDateString('en-US', {
 			year: 'numeric',
@@ -14,6 +18,9 @@
 			day: 'numeric',
 		}),
 	);
+
+	// GitHub resolves abbreviated SHAs, so the short `git_commit` links directly.
+	const commit_url = $derived(`${site.repo_url}/commit/${baseline.git_commit}`);
 </script>
 
 <div class="meta">
@@ -42,8 +49,12 @@
 		<h4 class="mt_0 mb_sm">run</h4>
 		<ul>
 			<li>{formatted_date}</li>
+			{#if baseline.versions.tsv}
+				<li>tsv {baseline.versions.tsv}</li>
+			{/if}
 			<li>
-				<code>{baseline.git_commit}</code>
+				<!-- eslint-disable-next-line svelte/no-navigation-without-resolve -->
+				<a href={commit_url}>{baseline.git_commit}</a>
 			</li>
 		</ul>
 	</div>

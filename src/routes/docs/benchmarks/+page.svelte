@@ -55,9 +55,9 @@
 	<TomeSection>
 		<TomeSectionHeader text="Binary size" />
 		<p>
-			Rather than supporting many languages, tsv focuses on Svelte, TypeScript, and CSS. This lets
-			it be smaller when it's all you need, a quality that's more relevant when used in the browser
-			via wasm:
+			Rather than supporting many languages, tsv focuses on Svelte/HTML, TypeScript/JS, and CSS.
+			This lets it be smaller when it's all you need, a quality that's more relevant when used in
+			the browser via wasm:
 		</p>
 		<BenchmarksSizes sizes={benchmarks_json.binary_sizes} />
 		<aside class="mt_xl5">
@@ -92,7 +92,7 @@
 				>Oxfmt</a
 			>
 			and <a href="https://biomejs.dev/">Biome</a>. Today it can format Svelte, TypeScript, and CSS,
-			plus JS as strict-mode TypeScript:
+			plus HTML and JS (as strict-mode TypeScript):
 		</p>
 		{#each format_groups as group (group.language)}
 			<BenchmarksGroup {group} {corpus} />

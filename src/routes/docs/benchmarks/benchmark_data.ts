@@ -39,6 +39,7 @@ export interface BaselineEntry {
 }
 
 export interface BaselineVersions {
+	tsv: string;
 	svelte: string;
 	acorn: string;
 	acorn_ts: string;
