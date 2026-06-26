@@ -16,7 +16,7 @@
     "test": "gro test",
     "preview": "vite preview",
     "deploy": "gro deploy",
-    "update-benchmarks": "cp ../tsv/benches/deno/results/report.json src/routes/docs/benchmarks/benchmarks.json"
+    "update-benchmarks": "cp ../tsv/benches/js/results/report.node.json src/routes/docs/benchmarks/benchmarks.json && cp ../tsv/benches/js/results/report.json src/routes/docs/benchmarks/benchmarks_cross_runtime.json && gro format"
   },
   "type": "module",
   "engines": {
@@ -28,7 +28,7 @@
     "@fuzdev/fuz_css": "^0.63.2",
     "@fuzdev/fuz_ui": "^0.205.1",
     "@fuzdev/fuz_util": "^0.65.2",
-    "@fuzdev/gro": "^0.205.1",
+    "@fuzdev/gro": "^0.206.0",
     "@fuzdev/mdz": "^0.1.0",
     "@fuzdev/tsv_wasm": "^0.1.0",
     "@ryanatkn/eslint-config": "^0.12.1",
@@ -43,8 +43,6 @@
     "eslint-plugin-svelte": "^3.13.1",
     "esm-env": "^1.2.2",
     "magic-string": "^0.30.21",
-    "prettier": "^3.7.4",
-    "prettier-plugin-svelte": "^3.4.1",
     "svelte": "^5.56.0",
     "svelte-check": "^4.3.6",
     "svelte-docinfo": "^0.5.3",
@@ -56,23 +54,6 @@
     "vitest": "^4.0.15",
     "zimmerframe": "^1.1.4",
     "zod": "^4.3.6"
-  },
-  "prettier": {
-    "plugins": [
-      "prettier-plugin-svelte"
-    ],
-    "useTabs": true,
-    "printWidth": 100,
-    "singleQuote": true,
-    "bracketSpacing": false,
-    "overrides": [
-      {
-        "files": "package.json",
-        "options": {
-          "useTabs": false
-        }
-      }
-    ]
   },
   "sideEffects": [
     "**/*.css"

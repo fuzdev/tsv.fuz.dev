@@ -1,8 +1,10 @@
 import {assert, describe, test} from 'vitest';
 
 import {benchmarks_json} from '$routes/docs/benchmarks/benchmarks.ts';
+import {benchmarks_cross_runtime_json} from '$routes/docs/benchmarks/benchmarks_cross_runtime.ts';
 import {
 	derive_benchmark_groups,
+	derive_cross_runtime_groups,
 	derive_speedup_summary,
 } from '$routes/docs/benchmarks/benchmark_data.ts';
 
@@ -17,7 +19,7 @@ describe('benchmarks.json shape', () => {
 
 	test('binary sizes include the ratio anchors', () => {
 		const labels = benchmarks_json.binary_sizes.map((s) => s.label);
-		assert.include(labels, 'tsv (native)'); // native anchor
+		assert.include(labels, 'tsv (napi)'); // native anchor (flagship N-API build)
 		assert.include(labels, 'tsv_wasm'); // wasm anchor (the full build)
 	});
 
@@ -52,6 +54,40 @@ describe('benchmarks.json shape', () => {
 			assert.isDefined(row.format_svelte, row.variant);
 			assert.isDefined(row.format_typescript, row.variant);
 			assert.isDefined(row.format_css, row.variant);
+		}
+	});
+
+	test('flagship report is the node runtime', () => {
+		// the headline detailed view switched to N-API under Node; guards against an
+		// `update-benchmarks` that pulls the wrong runtime's sibling report
+		assert.strictEqual((benchmarks_json as {runtime?: string}).runtime, 'node');
+	});
+});
+
+// Shape gate for the committed cross-runtime `benchmarks_cross_runtime.json` (the
+// bench composer's combined `report.json`) — a different, slimmer shape than the
+// per-runtime baseline, consumed by the Cross-runtime section.
+describe('benchmarks_cross_runtime.json shape', () => {
+	test('combined report carries the current version and kind', () => {
+		assert.isAtLeast(benchmarks_cross_runtime_json.version, 5);
+		assert.strictEqual(benchmarks_cross_runtime_json.kind, 'combined');
+	});
+
+	test('runtimes include the flagship and its cross-runtime peers', () => {
+		const {runtimes} = benchmarks_cross_runtime_json;
+		assert.include(runtimes, 'node'); // the flagship the headline view leads with
+		assert.include(runtimes, 'deno');
+		assert.include(runtimes, 'bun');
+	});
+
+	test('every group derives rows with the flagship runtime populated', () => {
+		const groups = derive_cross_runtime_groups(benchmarks_cross_runtime_json);
+		assert.isAtLeast(groups.length, 6); // format+parse × svelte/typescript/css
+		for (const group of groups) {
+			assert.isAbove(group.rows.length, 0, group.group);
+			for (const row of group.rows) {
+				assert.isNumber(row.ops_per_second.node, `${group.group}/${row.name} missing node ops`);
+			}
 		}
 	});
 });
