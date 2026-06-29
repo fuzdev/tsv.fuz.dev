@@ -69,11 +69,12 @@ const ast: Root = parse_svelte('<script>const x = 1;<\\/script>');`;
 			<TomeSectionHeader text="Source code" />
 			<ul>
 				<li>
-					<a href="https://github.com/fuzdev/tsv">github.com/fuzdev/tsv</a> - the formatter, parser, wasm
-					bindings, CLI, etc
+					<a href="https://github.com/fuzdev/tsv">github.com/fuzdev/tsv</a> - the formatter, parser,
+					wasm bindings, CLI, etc
 				</li>
 				<li>
-					<a href="https://github.com/fuzdev/tsv.fuz.dev">github.com/fuzdev/tsv.fuz.dev</a> - this website
+					<a href="https://github.com/fuzdev/tsv.fuz.dev">github.com/fuzdev/tsv.fuz.dev</a> - this
+					website
 				</li>
 			</ul>
 		</TomeSection>

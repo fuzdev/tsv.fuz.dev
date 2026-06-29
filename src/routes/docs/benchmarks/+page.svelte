@@ -5,6 +5,7 @@
 	import {tome_get_by_slug} from '@fuzdev/fuz_ui/tome.ts';
 
 	import {benchmarks_json} from './benchmarks.ts';
+	import {benchmarks_cross_runtime_json} from './benchmarks_cross_runtime.ts';
 	import {
 		category_color,
 		derive_benchmark_groups,
@@ -14,6 +15,7 @@
 	import BenchmarksGroup from './BenchmarksGroup.svelte';
 	import BenchmarksSizes from './BenchmarksSizes.svelte';
 	import BenchmarksMeta from './BenchmarksMeta.svelte';
+	import BenchmarksCrossRuntime from './BenchmarksCrossRuntime.svelte';
 
 	const LIBRARY_ITEM_NAME = 'benchmarks';
 
@@ -40,11 +42,13 @@
 		<div class="legend">
 			<span><i class="swatch" style:background={category_color('tsv_native')}></i> tsv native</span>
 			<span
-				><i class="swatch" style:background={category_color('tsv_native_json')}></i> tsv native json</span
+				><i class="swatch" style:background={category_color('tsv_native_json')}></i> tsv native
+				json</span
 			>
 			<span><i class="swatch" style:background={category_color('tsv_wasm')}></i> tsv wasm</span>
 			<span
-				><i class="swatch" style:background={category_color('tsv_wasm_json')}></i> tsv wasm json</span
+				><i class="swatch" style:background={category_color('tsv_wasm_json')}></i> tsv wasm
+				json</span
 			>
 			<span><i class="swatch" style:background={category_color('biome')}></i> biome</span>
 			<span><i class="swatch" style:background={category_color('oxc')}></i> oxc</span>
@@ -73,8 +77,8 @@
 				</li>
 				<li>oxfmt has no wasm build as of June 2026</li>
 				<li>
-					tsv doesn't publish native artifacts yet, but it builds them for benchmarking over FFI
-					with Deno
+					tsv doesn't publish native artifacts yet, but it builds them for benchmarking - an N-API
+					addon for Node and Bun, and a C-FFI library for Deno
 				</li>
 			</ul>
 		</aside>
@@ -165,6 +169,33 @@
 			typical code, so they skew the corpus toward hard cases).
 		</p>
 		<BenchmarksMeta baseline={benchmarks_json} />
+	</TomeSection>
+
+	<TomeSection>
+		<TomeSectionHeader text="Cross-runtime" />
+		<p>
+			The same benchmark harness runs under three JS runtimes - Node, Deno, and Bun. The headline
+			numbers above are the Node run. The native row differs by runtime: Node and Bun load tsv's
+			N-API addon, while Deno loads its C-FFI library. They share code but have a different binding
+			boundary. A per-runtime delta on the same implementation is a runtime or binding-boundary
+			effect, not an engine difference.
+		</p>
+		<aside class="mt_xl5 mb_xl5">
+			<p>Reading the tables:</p>
+			<ul>
+				<li>
+					tsv's native rows are faster under Node/Bun (N-API) than Deno (FFI), which pays a per-call
+					marshalling cost - so the Node headline reflects tsv's real native speed better than the
+					Deno-FFI numbers do.
+				</li>
+				<li>
+					tsv's own paths - native (N-API/FFI) and wasm - run on all three runtimes. Bun currently
+					fails to load two third-party wasm implementations (biome's wasm-bundler and oxc-parser's
+					wasm32-wasi binding), so they show <code>fail</code> in the Bun column.
+				</li>
+			</ul>
+		</aside>
+		<BenchmarksCrossRuntime report={benchmarks_cross_runtime_json} />
 	</TomeSection>
 </TomeContent>
 

@@ -28,7 +28,7 @@ IMPORTANT for AI agents: Do NOT run `gro dev` - the developer will manage the de
 - fuz_util (`@fuzdev/fuz_util`) - utility functions
 - fuz_code (`@fuzdev/fuz_code`) - syntax highlighting
 - Gro (`@fuzdev/gro`) - build system and task runner
-- prettier + prettier-plugin-svelte - code formatting
+- tsv (via Gro) - code formatting
 - mdz (`@fuzdev/mdz`) - markdown preprocessor wired into `svelte.config.js`
 - `@fuzdev/tsv_wasm` - tsv's formatter + parser as WASM; powers the playground, loaded lazily in the browser
 
@@ -117,7 +117,7 @@ Deploys to `https://tsv.fuz.dev/` via `gro deploy` (builds and pushes to deploy 
 
 - TypeScript strict mode
 - Svelte 5 with runes API
-- Prettier with tabs, 100 char width
+- tsv with tabs, 100 char width
 - Node >= 24.14
 - Private package (not published to npm)
 

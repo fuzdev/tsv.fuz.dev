@@ -115,7 +115,8 @@ const CATEGORY_BY_NAME: Record<string, ImplementationCategory> = {
 	oxfmt: 'oxc',
 };
 
-const categorize_name = (name: string): ImplementationCategory => CATEGORY_BY_NAME[name] ?? 'oxc';
+export const categorize_name = (name: string): ImplementationCategory =>
+	CATEGORY_BY_NAME[name] ?? 'oxc';
 
 export const categorize_size = (label: string): ImplementationCategory => {
 	// covers `tsv_wasm` plus the `tsv_format_wasm`/`tsv_parse_wasm` subsets
@@ -236,6 +237,96 @@ export const derive_speedup_summary = (groups: Array<BenchmarkGroup>): Array<Spe
 	];
 };
 
+// Cross-runtime combined report (the bench composer's `report.json`, `kind: 'combined'`)
+
+export type BenchmarkRuntime = 'deno' | 'node' | 'bun';
+
+export interface CrossRuntimeRow {
+	group: string;
+	name: string;
+	ops_per_second: Partial<Record<BenchmarkRuntime, number>>;
+	mean_ns: Partial<Record<BenchmarkRuntime, number>>;
+	files_iterated: Partial<Record<BenchmarkRuntime, number | null>>;
+}
+
+export interface CrossRuntimeReport {
+	version: number;
+	kind: 'combined';
+	generated: string;
+	runtimes: Array<BenchmarkRuntime>;
+	sources: Array<{
+		runtime: BenchmarkRuntime;
+		timestamp: string;
+		git_commit: string | null;
+		tsv: string | null;
+	}>;
+	rows: Array<CrossRuntimeRow>;
+}
+
+export interface CrossRuntimeDisplayRow {
+	name: string;
+	category: ImplementationCategory;
+	ops_per_second: Partial<Record<BenchmarkRuntime, number>>;
+	// ratio of each runtime vs the base (first present) runtime; `> 1` = faster
+	ratio_vs_base: Partial<Record<BenchmarkRuntime, number>>;
+}
+
+export interface CrossRuntimeGroup {
+	group: string;
+	operation: string;
+	language: string;
+	rows: Array<CrossRuntimeDisplayRow>;
+}
+
+const CROSS_RUNTIME_LANG_ORDER: Record<string, number> = {svelte: 0, typescript: 1, css: 2};
+const CROSS_RUNTIME_OP_ORDER: Record<string, number> = {format: 0, parse: 1};
+
+/**
+ * Groups the combined report's rows by benchmark group, in the same display
+ * order as `derive_benchmark_groups` (format before parse, then svelte /
+ * typescript / css). The ratio base is the first runtime in `report.runtimes`
+ * (deno in a full run), matching the bench's `report.md`.
+ */
+export const derive_cross_runtime_groups = (
+	report: CrossRuntimeReport,
+): Array<CrossRuntimeGroup> => {
+	const base = report.runtimes[0];
+	const grouped: Map<string, Array<CrossRuntimeDisplayRow>> = new Map();
+	for (const row of report.rows) {
+		let rows = grouped.get(row.group);
+		if (!rows) {
+			rows = [];
+			grouped.set(row.group, rows);
+		}
+		const base_ops = base ? row.ops_per_second[base] : undefined;
+		const ratio_vs_base: Partial<Record<BenchmarkRuntime, number>> = {};
+		for (const runtime of report.runtimes) {
+			const ops = row.ops_per_second[runtime];
+			if (ops != null && base_ops != null && base_ops > 0) {
+				ratio_vs_base[runtime] = ops / base_ops;
+			}
+		}
+		rows.push({
+			name: row.name,
+			category: categorize_name(row.name),
+			ops_per_second: row.ops_per_second,
+			ratio_vs_base,
+		});
+	}
+
+	const result: Array<CrossRuntimeGroup> = [];
+	for (const [group, rows] of grouped) {
+		const [operation, language] = group.split('/');
+		result.push({group, operation: operation!, language: language!, rows});
+	}
+	result.sort(
+		(a, b) =>
+			(CROSS_RUNTIME_OP_ORDER[a.operation] ?? 9) - (CROSS_RUNTIME_OP_ORDER[b.operation] ?? 9) ||
+			(CROSS_RUNTIME_LANG_ORDER[a.language] ?? 9) - (CROSS_RUNTIME_LANG_ORDER[b.language] ?? 9),
+	);
+	return result;
+};
+
 // Formatting utilities
 
 export interface FormattedUnit {
@@ -333,4 +424,20 @@ export const speedup_color = (ratio: number): string => {
 	if (ratio < 2) return 'var(--color_e_50)'; // yellow — modest
 	if (ratio < 5) return 'var(--color_b_50)'; // green — fast
 	return 'var(--color_j_50)'; // teal — exceptional
+};
+
+/**
+ * Cross-runtime ratio cell background: a stable fuz_css red (`color_c`) / green
+ * (`color_b`) whose ALPHA varies with distance from parity. Fully transparent at ratio
+ * `1.0` (parity recedes), ramping to `0.3` alpha at ratio `0.8` and below (red) or `1.2`
+ * and above (green). The hue stays constant — only opacity moves — so it reads
+ * consistently in light and dark themes while the cell's text keeps the default color.
+ * Deliberately its own scale — NOT the shared `speedup_color` — because cross-runtime
+ * deltas cluster tightly near 1.0 and this must not bleed into the other displays.
+ */
+export const cross_runtime_ratio_background = (ratio: number): string => {
+	// 0 alpha at ratio 1.0, up to 0.3 at ratio ≤ 0.8 (red) or ≥ 1.2 (green)
+	const alpha = Math.min(1, Math.abs(ratio - 1) / 0.2) * 0.3;
+	const color = ratio < 1 ? 'var(--color_c_50)' : 'var(--color_b_50)';
+	return `color-mix(in srgb, ${color} ${(alpha * 100).toFixed(1)}%, transparent)`;
 };

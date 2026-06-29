@@ -31,7 +31,8 @@
 			<p>
 				See the <TomeLink slug="introduction" /> for setup and API usage. The textarea above uses
 				<a href="https://code.fuz.dev/">fuz_code</a>'s
-				<a href="https://code.fuz.dev/docs/api/CodeTextarea.svelte"><code>CodeTextarea</code></a> component.
+				<a href="https://code.fuz.dev/docs/api/CodeTextarea.svelte"><code>CodeTextarea</code></a
+				> component.
 			</p>
 		</section>
 	{/if}
