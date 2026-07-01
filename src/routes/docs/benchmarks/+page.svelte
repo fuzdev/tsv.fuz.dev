@@ -40,13 +40,11 @@
 		<div class="legend">
 			<span><i class="swatch" style:background={category_color('tsv_native')}></i> tsv native</span>
 			<span
-				><i class="swatch" style:background={category_color('tsv_native_json')}></i> tsv native
-				json</span
+				><i class="swatch" style:background={category_color('tsv_native_json')}></i> tsv native json</span
 			>
 			<span><i class="swatch" style:background={category_color('tsv_wasm')}></i> tsv wasm</span>
 			<span
-				><i class="swatch" style:background={category_color('tsv_wasm_json')}></i> tsv wasm
-				json</span
+				><i class="swatch" style:background={category_color('tsv_wasm_json')}></i> tsv wasm json</span
 			>
 			<span><i class="swatch" style:background={category_color('biome')}></i> biome</span>
 			<span><i class="swatch" style:background={category_color('oxc')}></i> oxc</span>
