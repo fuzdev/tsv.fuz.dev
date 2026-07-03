@@ -3,8 +3,10 @@ import {assert, describe, test} from 'vitest';
 import {benchmarks_json} from '$routes/docs/benchmarks/benchmarks.ts';
 import {benchmarks_cross_runtime_json} from '$routes/docs/benchmarks/benchmarks_cross_runtime.ts';
 import {
+	categorize_size_capability,
 	derive_benchmark_groups,
 	derive_cross_runtime_groups,
+	derive_size_groups,
 	derive_speedup_summary,
 } from '$routes/docs/benchmarks/benchmark_data.ts';
 
@@ -47,6 +49,36 @@ describe('benchmarks.json shape', () => {
 		}
 	});
 
+	test('svelte/css parse groups get disabled oxc placeholders, typescript keeps real ones', () => {
+		const groups = derive_benchmark_groups(benchmarks_json);
+		const parse = (language: string) =>
+			groups.find((g) => g.operation === 'parse' && g.language === language);
+
+		// typescript actually runs oxc-parser — its oxc entries are real, not placeholders
+		const ts = parse('typescript');
+		const ts_oxc = ts?.entries.filter((e) => e.category === 'oxc') ?? [];
+		assert.isNotEmpty(ts_oxc);
+		for (const e of ts_oxc) assert.isNotOk(e.disabled, `${e.name} should be a real entry`);
+
+		// svelte and css mirror those oxc entries in, disabled, in the same slot: just
+		// after the JS-materializing `*-json` entries and before the `*-internal` ones
+		for (const language of ['svelte', 'css']) {
+			const group = parse(language);
+			assert.ok(group, `${language} parse group missing`);
+			const oxc = group!.entries.filter((e) => e.category === 'oxc');
+			assert.strictEqual(oxc.length, ts_oxc.length, `${language} oxc placeholder count`);
+			for (const e of oxc) {
+				assert.ok(e.disabled, `${language} ${e.name} should be disabled`);
+				assert.strictEqual(e.bar_fraction, 0, `${language} ${e.name} bar`);
+				assert.isUndefined(e.speedup_vs_canonical, `${language} ${e.name} speedup`);
+			}
+			const names = group!.entries.map((e) => e.name);
+			const first_oxc = names.findIndex((n) => n.includes('oxc'));
+			const last_json = names.reduce((idx, n, i) => (n.endsWith('-json') ? i : idx), -1);
+			assert.strictEqual(first_oxc, last_json + 1, `${language} oxc slotted after -json entries`);
+		}
+	});
+
 	test('speedup summary is fully populated', () => {
 		const rows = derive_speedup_summary(derive_benchmark_groups(benchmarks_json));
 		assert.strictEqual(rows.length, 2); // native + wasm
@@ -55,6 +87,38 @@ describe('benchmarks.json shape', () => {
 			assert.isDefined(row.format_typescript, row.variant);
 			assert.isDefined(row.format_css, row.variant);
 		}
+	});
+
+	test('binary sizes group by capability with per-kind ratio anchors', () => {
+		const groups = derive_size_groups(benchmarks_json.binary_sizes);
+		// full / formatter / parser, in that order, all present in the current data
+		assert.deepStrictEqual(
+			groups.map((g) => g.capability),
+			['full', 'formatter', 'parser'],
+		);
+		for (const group of groups) {
+			assert.isNotEmpty(group.entries);
+			// every entry lands in the group its capability names
+			for (const e of group.entries) {
+				assert.strictEqual(categorize_size_capability(e.label), group.capability);
+			}
+			// each kind's tsv build anchors that kind's ratios (undefined on itself)
+			for (const kind of ['wasm', 'native'] as const) {
+				const of_kind = group.entries.filter((e) => e.kind === kind);
+				const anchor = of_kind.find(
+					(e) => e.ratio_vs_tsv === undefined && e.label.startsWith('tsv'),
+				);
+				if (of_kind.length > 1) assert.ok(anchor, `${group.capability}/${kind} has no tsv anchor`);
+				for (const e of of_kind) {
+					if (e !== anchor) assert.isDefined(e.ratio_vs_tsv, `${e.label} ratio`);
+				}
+			}
+		}
+		// the parser group pits tsv against oxc-parser in both kinds
+		const parser = groups.find((g) => g.capability === 'parser');
+		const parser_labels = parser?.entries.map((e) => e.label) ?? [];
+		assert.include(parser_labels, 'oxc-parser (wasm)');
+		assert.include(parser_labels, 'oxc-parser (napi)');
 	});
 
 	test('flagship report is the node runtime', () => {

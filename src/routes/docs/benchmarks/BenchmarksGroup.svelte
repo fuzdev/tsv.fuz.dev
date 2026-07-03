@@ -46,13 +46,18 @@
 				bar_fraction={entry.bar_fraction}
 				category={entry.category}
 				value={format_ns(entry.mean_ns)}
+				disabled={entry.disabled}
 				ratio_text={entry.speedup_vs_canonical != null
 					? format_speedup(entry.speedup_vs_canonical)
 					: '1.0x'}
 				ratio_color={entry.speedup_vs_canonical != null
 					? speedup_color(entry.speedup_vs_canonical)
 					: 'var(--text_40)'}
-				annotation={format_coverage(entry.files_processed, entry.files_total)}
+				annotation={entry.disabled
+					? has_coverage
+						? 'n/a'
+						: undefined
+					: format_coverage(entry.files_processed, entry.files_total)}
 			/>
 		{/each}
 	</div>

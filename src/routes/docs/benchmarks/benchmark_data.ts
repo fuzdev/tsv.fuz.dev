@@ -88,6 +88,11 @@ export interface BenchmarkDisplayEntry {
 	category: ImplementationCategory;
 	files_processed: number | null;
 	files_total: number | null;
+	// A placeholder entry mirrored from another language's group for a tool that
+	// doesn't run in this one (e.g. `oxc-parser` under svelte/css parse) — rendered
+	// grayed-out and inert so the parse groups share one entry order. Absent on real,
+	// measured entries.
+	disabled?: boolean;
 }
 
 export interface SpeedupRow {
@@ -205,6 +210,34 @@ export const derive_benchmark_groups = (baseline: BenchmarkBaseline): Array<Benc
 			(LANG_ORDER[a.language] ?? 9) - (LANG_ORDER[b.language] ?? 9),
 	);
 
+	// `oxc-parser` only parses TypeScript/JS, so the svelte and css parse groups
+	// lack it. Mirror its entries in as disabled placeholders — slotted just after
+	// the JS-materializing `*-json` entries, the same position they hold in the
+	// typescript group — so all three parse groups scan with one shared entry order.
+	const ts_parse = result.find((g) => g.operation === 'parse' && g.language === 'typescript');
+	const oxc_templates = ts_parse?.entries.filter((e) => e.category === 'oxc') ?? [];
+	if (oxc_templates.length > 0) {
+		for (const group of result) {
+			if (group.operation !== 'parse' || group.language === 'typescript') continue;
+			if (group.entries.some((e) => e.category === 'oxc')) continue;
+			// index just past the last `*-json` entry (fall back to just below the
+			// canonical row if none), matching oxc's slot in the typescript group
+			const insert_at = group.entries.reduce(
+				(idx, e, i) => (e.name.endsWith('-json') ? i + 1 : idx),
+				1,
+			);
+			const placeholders: Array<BenchmarkDisplayEntry> = oxc_templates.map((e) => ({
+				...e,
+				bar_fraction: 0,
+				speedup_vs_canonical: undefined,
+				files_processed: null,
+				files_total: null,
+				disabled: true,
+			}));
+			group.entries.splice(insert_at, 0, ...placeholders);
+		}
+	}
+
 	return result;
 };
 
@@ -235,6 +268,80 @@ export const derive_speedup_summary = (groups: Array<BenchmarkGroup>): Array<Spe
 			format_css: find_speedup('format', 'css', PRIMARY_WASM_FORMAT),
 		},
 	];
+};
+
+// Binary-size grouping by capability
+
+/** What a build actually does, used to group binary sizes for like-for-like comparison. */
+export type SizeCapability = 'full' | 'formatter' | 'parser';
+
+/**
+ * Buckets a binary-size label by capability so each build lands next to its
+ * closest competitor: `parser` (tsv's parse-only build, `oxc-parser`),
+ * `formatter` (tsv's format-only build, `oxfmt`), else `full` (the flagship
+ * parse+format builds and `biome`).
+ */
+export const categorize_size_capability = (label: string): SizeCapability => {
+	if (label.includes('parse')) return 'parser'; // tsv parse (ffi), tsv_parse_wasm, oxc-parser
+	if (label.includes('format') || label.includes('fmt')) return 'formatter'; // tsv format, oxfmt
+	return 'full'; // tsv (napi/ffi), tsv_wasm, biome
+};
+
+export interface SizeDisplayEntry extends BinarySize {
+	bar_fraction: number;
+	// size relative to tsv's build of the SAME kind (wasm vs wasm, native vs
+	// native) — undefined for the anchor itself and where tsv has no same-kind build
+	ratio_vs_tsv: number | undefined;
+	category: ImplementationCategory;
+}
+
+export interface SizeCapabilityGroup {
+	capability: SizeCapability;
+	heading: string;
+	entries: Array<SizeDisplayEntry>;
+}
+
+const SIZE_CAPABILITY_ORDER: ReadonlyArray<{capability: SizeCapability; heading: string}> = [
+	{capability: 'full', heading: 'Full toolchain (parse + format)'},
+	{capability: 'formatter', heading: 'Formatter'},
+	{capability: 'parser', heading: 'Parser'},
+];
+
+/**
+ * Groups the binary sizes by capability (full / formatter / parser), each group
+ * mixing wasm and native builds sorted smallest-first. Bars scale to the group's
+ * largest build; the `vs tsv` ratio anchors on tsv's build of the same kind
+ * (matching the node report's `tsv_wasm` / `tsv (napi)` anchors) so wasm compares
+ * against wasm and native against native.
+ */
+export const derive_size_groups = (sizes: Array<BinarySize>): Array<SizeCapabilityGroup> => {
+	const groups: Array<SizeCapabilityGroup> = [];
+	for (const {capability, heading} of SIZE_CAPABILITY_ORDER) {
+		const items = sizes.filter((s) => categorize_size_capability(s.label) === capability);
+		if (items.length === 0) continue;
+		const sorted = items.toSorted((a, b) => a.bytes - b.bytes);
+		const max = Math.max(0, ...items.map((s) => s.bytes));
+		const anchor_of = (kind: BinarySize['kind']): BinarySize | undefined => {
+			const pool = sorted.filter((s) => s.kind === kind);
+			return (
+				pool.find((s) => s.label === 'tsv_wasm' || s.label === 'tsv (napi)') ??
+				pool.find((s) => s.label.startsWith('tsv'))
+			);
+		};
+		const wasm_anchor = anchor_of('wasm');
+		const native_anchor = anchor_of('native');
+		const entries: Array<SizeDisplayEntry> = sorted.map((s) => {
+			const anchor = s.kind === 'wasm' ? wasm_anchor : native_anchor;
+			return {
+				...s,
+				bar_fraction: max > 0 ? s.bytes / max : 0,
+				ratio_vs_tsv: anchor && s !== anchor ? s.bytes / anchor.bytes : undefined,
+				category: categorize_size(s.label),
+			};
+		});
+		groups.push({capability, heading, entries});
+	}
+	return groups;
 };
 
 // Cross-runtime combined report (the bench composer's `report.json`, `kind: 'combined'`)

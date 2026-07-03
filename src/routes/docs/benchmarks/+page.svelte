@@ -61,7 +61,8 @@
 		<p>
 			Rather than supporting many languages, tsv focuses on Svelte/HTML, TypeScript/JS, and CSS.
 			This lets it be smaller when it's all you need, a quality that's more relevant when used in
-			the browser via wasm:
+			the browser via wasm. The builds below are grouped by capability — full toolchain, formatter,
+			and parser — so each sits beside its closest competitor:
 		</p>
 		<BenchmarksSizes sizes={benchmarks_json.binary_sizes} />
 		<aside class="mt_xl5">
@@ -112,11 +113,11 @@
 				<li>
 					Oxfmt only formats TypeScript and JS with its own native engine. For CSS and Svelte it
 					bundles and runs Prettier internally (plus prettier-plugin-svelte for Svelte), so its CSS
-					and Svelte rows essentially re-measure Prettier minus a little wrapper overhead.
+					and Svelte entries essentially re-measure Prettier minus a little wrapper overhead.
 				</li>
 				<li>
-					The Prettier baseline runs in JS while the headline tsv row is the native build, so it's a
-					cross-tier comparison. For an engine-vs-engine read, compare within a runtime tier: wasm
+					The Prettier baseline runs in JS while the headline tsv entry is the native build, so it's
+					a cross-tier comparison. For an engine-vs-engine read, compare within a runtime tier: wasm
 					vs wasm, or native vs native.
 				</li>
 				<li>
@@ -131,10 +132,10 @@
 	<TomeSection>
 		<TomeSectionHeader text="Parse" />
 		<p class="mb_xl5">
-			The parse rows that build a full JS AST are directly comparable: tsv and oxc-parser both
+			The parse entries that build a full JS AST are directly comparable: tsv and oxc-parser both
 			serialize the AST to JSON in Rust and deserialize it in JS, native and wasm alike. The
-			tsv-internal and tsv_wasm-internal rows are tsv's parse-only numbers - they build the native
-			AST but skip JS-side materialization, so they show raw in-engine speed rather than a
+			tsv-internal and tsv_wasm-internal entries are tsv's parse-only numbers - they build the
+			native AST but skip JS-side materialization, so they show raw in-engine speed rather than a
 			cross-tool comparison.
 		</p>
 		{#each parse_groups as group (group.language)}
@@ -146,6 +147,10 @@
 				<li>
 					JS parsers skip the Rust-to-JS serialization step that tsv and oxc pay for, which keeps
 					them competitive.
+				</li>
+				<li>
+					oxc-parser only parses TypeScript and JS, so it's shown grayed-out under Svelte and CSS —
+					holding its slot so the three parse groups line up entry-for-entry.
 				</li>
 				<li>Some parts of tsv are not well-optimized yet, particularly parsing CSS.</li>
 			</ul>
@@ -175,7 +180,7 @@
 		<TomeSectionHeader text="Cross-runtime" />
 		<p>
 			The same benchmark harness runs under three JS runtimes - Node, Deno, and Bun. The headline
-			numbers above are the Node run. The native row differs by runtime: Node and Bun load tsv's
+			numbers above are the Node run. The native entry differs by runtime: Node and Bun load tsv's
 			N-API addon, while Deno loads its C-FFI library. They share code but have a different binding
 			boundary. A per-runtime delta on the same implementation is a runtime or binding-boundary
 			effect, not an engine difference.
@@ -184,9 +189,9 @@
 			<p>Reading the tables:</p>
 			<ul>
 				<li>
-					tsv's native rows are faster under Node/Bun (N-API) than Deno (FFI), which pays a per-call
-					marshalling cost - so the Node headline reflects tsv's real native speed better than the
-					Deno-FFI numbers do.
+					tsv's native entries are faster under Node/Bun (N-API) than Deno (FFI), which pays a
+					per-call marshalling cost - so the Node headline reflects tsv's real native speed better
+					than the Deno-FFI numbers do.
 				</li>
 				<li>
 					tsv's own paths - native (N-API/FFI) and wasm - run on all three runtimes. Bun currently

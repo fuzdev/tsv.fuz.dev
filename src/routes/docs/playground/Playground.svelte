@@ -6,6 +6,7 @@
 	import Code from '@fuzdev/fuz_code/Code.svelte';
 	import CodeTextarea from '@fuzdev/fuz_code/CodeTextarea.svelte';
 	import {supports_css_highlight_api} from '@fuzdev/fuz_code/highlight_manager.ts';
+	import CopyToClipboard from '@fuzdev/fuz_ui/CopyToClipboard.svelte';
 	import {to_error_message} from '@fuzdev/fuz_util/error.ts';
 
 	import {playground_example} from './playground_example.ts';
@@ -112,7 +113,10 @@
 		<p>formatted</p>
 		<Code lang="svelte" content={formatted?.value ?? ''} />
 		<p>AST</p>
-		<Code lang="json" content={ast?.value ?? ''} class="ast" />
+		<div class="ast_output">
+			<CopyToClipboard text={ast?.value ?? ''} class="ast_copy" />
+			<Code lang="json" content={ast?.value ?? ''} class="ast" />
+		</div>
 	{/if}
 </section>
 
@@ -131,6 +135,19 @@
 	   (block `Code` already sets `overflow: auto`) */
 	section :global(.ast) {
 		max-height: 500px;
+	}
+	/* float a copy button over the AST pane's top-right corner; it stays pinned as
+	   the pane scrolls since it's absolute to this wrapper, not inside the scroller */
+	.ast_output {
+		position: relative;
+	}
+	.ast_output :global(.ast_copy) {
+		position: absolute;
+		top: var(--space_xs);
+		/* clear the pane's scrollbar */
+		right: var(--space_md);
+		z-index: 1;
+		background: var(--shade_00);
 	}
 	.error {
 		color: var(--color_e_40);
