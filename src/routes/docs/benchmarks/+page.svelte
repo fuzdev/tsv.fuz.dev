@@ -86,7 +86,7 @@
 
 	<TomeSection>
 		<TomeSectionHeader text="Speedier than Prettier" />
-		<BenchmarksSummary rows={speedup_rows} {groups} {corpus} />
+		<BenchmarksSummary rows={speedup_rows} />
 	</TomeSection>
 
 	<TomeSection>

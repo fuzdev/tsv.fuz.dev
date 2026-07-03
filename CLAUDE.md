@@ -81,20 +81,25 @@ src/
 Benchmark data comes from `tsv`. Full workflow to update:
 
 ```bash
-# 1. In ~/dev/tsv — run benchmarks (builds ffi + wasm automatically)
+# 1. In ~/dev/tsv — run benchmarks across deno/node/bun (builds artifacts automatically)
 deno task bench
 
-# 2. In ~/dev/tsv.fuz.dev — copy the latest result
+# 2. In ~/dev/tsv.fuz.dev — copy the latest results
 npm run update-benchmarks
 ```
 
-Step 1 writes `benches/deno/results/report.json` (committed to tsv).
-Step 2 copies it to `src/routes/docs/benchmarks/benchmarks.json`.
-The JSON format matches `BenchmarkBaseline` in `benchmark_data.ts`.
+Step 1 writes the per-runtime `benches/js/results/report.<runtime>.{json,md}`
+siblings plus the composed cross-runtime `report.{json,md}` (committed to tsv).
+Step 2 copies two of them: `report.node.json` → `benchmarks.json` and the
+composed `report.json` → `benchmarks_cross_runtime.json`. Note the script's
+source paths are hardcoded to `../tsv` — if the reports were generated in a
+different worktree, copy them into `~/dev/tsv` (or copy manually) first.
+The JSON formats match the types in `benchmark_data.ts`.
 
 Key files in `src/routes/docs/benchmarks/`:
 
-- `benchmarks.json` — raw benchmark data (copied from tsv)
+- `benchmarks.json` — per-runtime Node report (copied from tsv)
+- `benchmarks_cross_runtime.json` — composed cross-runtime report (copied from tsv)
 - `benchmark_data.ts` — TypeScript types matching the JSON format
 - `benchmarks.ts` — re-exports the JSON with types
 - `BenchmarksBar.svelte`, `BenchmarksGroup.svelte`, etc. — visualization components
