@@ -30,6 +30,16 @@ const ast: Root = parse_svelte('<script>const x = 1;<\\/script>');`;
 			tsv is a formatter, parser, and future linter + more for Svelte, TypeScript, and CSS. This is
 			an early release, but it's ready for testing and feedback. It probably won't mangle your code!
 		</p>
+		<p>
+			Compared to Oxc, Biome, and SWC, tsv is a set of focused tools, not a generic language
+			platform, with Svelte as the only JS framework. The extensibility story is currently limited
+			to using its Rust crates as libraries; bridging to JS and/or WASM plugins is an open question.
+		</p>
+		<p>
+			These docs are a work in progress. For design details see the <a
+				href="https://github.com/fuzdev/tsv">readme</a
+			>.
+		</p>
 		<TomeSection>
 			<TomeSectionHeader text="Install" />
 			<p>tsv ships as WASM packages on npm, a CLI with a formatter and parser:</p>
@@ -46,8 +56,8 @@ const ast: Root = parse_svelte('<script>const x = 1;<\\/script>');`;
 				See the <TomeLink slug="benchmarks" /> for size and performance details.
 			</p>
 			<p>
-				Native builds are not yet available -- opening an
-				<a href="https://github.com/fuzdev/tsv/issues">issue</a> would help push that along.
+				Native builds are not yet available but are coming in v0.2, see
+				<a href="https://github.com/fuzdev/tsv/issues/139">issue 139</a>.
 			</p>
 		</TomeSection>
 		<TomeSection>
