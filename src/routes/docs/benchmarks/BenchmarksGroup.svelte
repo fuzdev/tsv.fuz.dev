@@ -47,11 +47,11 @@
 				category={entry.category}
 				value={format_ns(entry.mean_ns)}
 				disabled={entry.disabled}
-				ratio_text={entry.speedup_vs_canonical != null
-					? format_speedup(entry.speedup_vs_canonical)
+				ratio_text={entry.speedup_vs_anchor != null
+					? format_speedup(entry.speedup_vs_anchor)
 					: '1.0x'}
-				ratio_color={entry.speedup_vs_canonical != null
-					? speedup_color(entry.speedup_vs_canonical)
+				ratio_color={entry.speedup_vs_anchor != null
+					? speedup_color(entry.speedup_vs_anchor)
 					: 'var(--text_40)'}
 				annotation={entry.disabled
 					? has_coverage

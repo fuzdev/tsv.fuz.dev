@@ -84,7 +84,10 @@ export interface BenchmarkDisplayEntry {
 	name: string;
 	mean_ns: number;
 	bar_fraction: number;
-	speedup_vs_canonical: number | undefined;
+	// speed relative to the group's anchor: `biome-wasm` for format groups (so its
+	// bar reads 1.0x and the rest read relative to it), the canonical JS baseline
+	// for parse groups; undefined on the anchor itself and on disabled placeholders
+	speedup_vs_anchor: number | undefined;
 	category: ImplementationCategory;
 	files_processed: number | null;
 	files_total: number | null;
@@ -169,13 +172,21 @@ export const derive_benchmark_groups = (baseline: BenchmarkBaseline): Array<Benc
 		const canonical_entry_raw = entries.find((e) => e.name === canonical_name);
 		const slowest = Math.max(...entries.map((e) => e.mean_ns));
 
+		// Format groups anchor their speed ratios on `biome-wasm` — a fast
+		// native-engine formatter compiled to wasm, a tougher yardstick than the
+		// slow JS Prettier baseline — so its bar reads 1.0x and the rest read
+		// relative to it. Parse groups stay anchored on the canonical JS baseline.
+		// Fall back to the canonical entry if the preferred anchor isn't present.
+		const anchor_name = operation === 'format' ? 'biome-wasm' : canonical_name;
+		const anchor_entry_raw = entries.find((e) => e.name === anchor_name) ?? canonical_entry_raw;
+
 		const display_entries: Array<BenchmarkDisplayEntry> = entries.map((e) => ({
 			name: e.name,
 			mean_ns: e.mean_ns,
 			bar_fraction: slowest > 0 ? e.mean_ns / slowest : 0,
-			speedup_vs_canonical:
-				canonical_entry_raw && e.name !== canonical_name
-					? canonical_entry_raw.mean_ns / e.mean_ns
+			speedup_vs_anchor:
+				anchor_entry_raw && e !== anchor_entry_raw
+					? anchor_entry_raw.mean_ns / e.mean_ns
 					: undefined,
 			category: categorize_name(e.name),
 			files_processed: e.files_processed ?? null,
@@ -229,7 +240,7 @@ export const derive_benchmark_groups = (baseline: BenchmarkBaseline): Array<Benc
 			const placeholders: Array<BenchmarkDisplayEntry> = oxc_templates.map((e) => ({
 				...e,
 				bar_fraction: 0,
-				speedup_vs_canonical: undefined,
+				speedup_vs_anchor: undefined,
 				files_processed: null,
 				files_total: null,
 				disabled: true,

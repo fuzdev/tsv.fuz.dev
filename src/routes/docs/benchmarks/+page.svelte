@@ -61,8 +61,7 @@
 		<p>
 			Rather than supporting many languages, tsv focuses on Svelte/HTML, TypeScript/JS, and CSS.
 			This lets it be smaller when it's all you need, a quality that's more relevant when used in
-			the browser via wasm. The builds below are grouped by capability — full toolchain, formatter,
-			and parser — so each sits beside its closest competitor:
+			the browser via wasm.
 		</p>
 		<BenchmarksSizes sizes={benchmarks_json.binary_sizes} />
 		<aside class="mt_xl5">
@@ -97,7 +96,7 @@
 				>Oxfmt</a
 			>
 			and <a href="https://biomejs.dev/">Biome</a>. Today it can format Svelte, TypeScript, and CSS,
-			plus HTML and JS (as strict-mode TypeScript):
+			plus JS (as strict-mode TypeScript) and soon HTML (not Svelte-flavored):
 		</p>
 		{#each format_groups as group (group.language)}
 			<BenchmarksGroup {group} {corpus} />
@@ -116,9 +115,11 @@
 					and Svelte entries essentially re-measure Prettier minus a little wrapper overhead.
 				</li>
 				<li>
-					The Prettier baseline runs in JS while the headline tsv entry is the native build, so it's
-					a cross-tier comparison. For an engine-vs-engine read, compare within a runtime tier: wasm
-					vs wasm, or native vs native.
+					Speed is shown relative to <code>biome-wasm</code> (the 1.0x anchor) — a fast
+					native-engine formatter compiled to wasm, a tougher and fairer yardstick than the slow JS
+					Prettier baseline. That anchor is a wasm build while the headline tsv entry is native, so
+					the headline ratio is a cross-tier comparison. For an engine-vs-engine read, compare
+					within a runtime tier: wasm vs wasm, or native vs native.
 				</li>
 				<li>
 					tsv's CSS coverage is intentionally lower than Prettier's and Biome's - it rejects
@@ -147,6 +148,11 @@
 				<li>
 					JS parsers skip the Rust-to-JS serialization step that tsv and oxc pay for, which keeps
 					them competitive.
+				</li>
+				<li>
+					Biome is absent from these parse comparisons — its <code>@biomejs/js-api</code> package
+					doesn't expose a parser to JS (only formatting and linting); Biome parses internally but
+					never surfaces the AST across the JS boundary, so there's nothing to benchmark here.
 				</li>
 				<li>
 					oxc-parser only parses TypeScript and JS, so it's shown grayed-out under Svelte and CSS —

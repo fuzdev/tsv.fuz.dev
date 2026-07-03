@@ -70,7 +70,7 @@ describe('benchmarks.json shape', () => {
 			for (const e of oxc) {
 				assert.ok(e.disabled, `${language} ${e.name} should be disabled`);
 				assert.strictEqual(e.bar_fraction, 0, `${language} ${e.name} bar`);
-				assert.isUndefined(e.speedup_vs_canonical, `${language} ${e.name} speedup`);
+				assert.isUndefined(e.speedup_vs_anchor, `${language} ${e.name} speedup`);
 			}
 			const names = group!.entries.map((e) => e.name);
 			const first_oxc = names.findIndex((n) => n.includes('oxc'));

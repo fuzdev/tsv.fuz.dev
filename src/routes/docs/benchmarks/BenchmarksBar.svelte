@@ -14,7 +14,6 @@
 		ratio_text,
 		ratio_color,
 		annotation,
-		badge,
 		disabled = false,
 	}: {
 		label: string;
@@ -26,23 +25,13 @@
 		// optional extra context shown between value and ratio (corpus coverage in
 		// benchmark groups, gzipped size in binary-size groups); omitted when absent
 		annotation?: string | undefined;
-		// optional leading tag (the wasm/native kind in binary-size groups); omitted when absent
-		badge?: string | undefined;
 		// a grayed-out, inert placeholder (a tool that doesn't run in this group) —
 		// no bar, no value, no ratio, just the label held in its shared slot
 		disabled?: boolean;
 	} = $props();
 </script>
 
-<div
-	class="bar-row"
-	class:has-annotation={annotation != null}
-	class:has-badge={badge != null}
-	class:disabled
->
-	{#if badge != null}
-		<span class="bar-badge">{badge}</span>
-	{/if}
+<div class="bar-row" class:has-annotation={annotation != null} class:disabled>
 	<span class="bar-label">{format_label(label)}</span>
 	<div class="bar-track">
 		{#if !disabled}
@@ -79,24 +68,8 @@
 	.bar-row.has-annotation {
 		grid-template-columns: 12rem 1fr 5.6rem 6rem 3.4rem;
 	}
-	.bar-row.has-badge {
-		grid-template-columns: 4rem 12rem 1fr 5.6rem 3.4rem;
-	}
-	.bar-row.has-badge.has-annotation {
-		grid-template-columns: 4rem 12rem 1fr 5.6rem 6rem 3.4rem;
-	}
 	.bar-row.disabled {
 		opacity: 0.6;
-	}
-	.bar-badge {
-		justify-self: start;
-		font-size: var(--font_size_xs);
-		color: var(--text_50);
-		background: var(--fg_05);
-		padding: 0 var(--space_xs);
-		border-radius: var(--border_radius_xs);
-		line-height: 1.6;
-		white-space: nowrap;
 	}
 	.bar-annotation {
 		font-size: var(--font_size_xs);

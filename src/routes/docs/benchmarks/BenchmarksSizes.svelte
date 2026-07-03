@@ -15,8 +15,7 @@
 	} = $props();
 
 	// grouped by capability (full toolchain / formatter / parser) so each build
-	// sits beside its closest competitor; wasm and native mix within a group,
-	// distinguished by the per-entry kind badge
+	// sits beside its closest competitor; wasm and native mix within a group
 	const size_groups = $derived(derive_size_groups(sizes));
 </script>
 
@@ -27,7 +26,6 @@
 			{#each group.entries as s (s.label)}
 				<BenchmarksBar
 					label={s.label}
-					badge={s.kind}
 					bar_fraction={s.bar_fraction}
 					category={s.category}
 					value={format_bytes(s.bytes)}
