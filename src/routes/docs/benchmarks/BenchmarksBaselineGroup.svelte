@@ -10,20 +10,20 @@
 
 	const {
 		rows,
-		default_anchor_key,
 		direction,
 	}: {
+		// ordered so the first enabled row is the default baseline (callers lead with
+		// the canonical reference for speed, the smallest build for size)
 		rows: Array<BaselineRow>;
-		// key of the row that anchors the ratios by default; hovering an enabled row
-		// overrides it, leaving the group restores it
-		default_anchor_key: string | undefined;
 		direction: BaselineDirection;
 	} = $props();
 
 	// the row currently acting as the baseline: the hovered row while the pointer is
-	// over an enabled row, otherwise the group default. Each group instance owns its
-	// own state, so the three groups in a section re-baseline independently.
+	// over an enabled row, otherwise the group default (its first enabled row). Each
+	// group instance owns its own state, so the three groups in a section re-baseline
+	// independently.
 	let hovered_key: string | undefined = $state(undefined);
+	const default_anchor_key = $derived(rows.find((r) => !r.disabled)?.key);
 	const anchor_key = $derived(hovered_key ?? default_anchor_key);
 	const anchor_row = $derived(rows.find((r) => r.key === anchor_key));
 </script>

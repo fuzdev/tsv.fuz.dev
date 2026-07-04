@@ -55,5 +55,5 @@
 				>files handled / total &nbsp;&middot;&nbsp; speed</span
 			>{/if}
 	</p>
-	<BenchmarksBaselineGroup {rows} default_anchor_key={group.anchor_name} direction="speed" />
+	<BenchmarksBaselineGroup {rows} direction="speed" />
 </div>

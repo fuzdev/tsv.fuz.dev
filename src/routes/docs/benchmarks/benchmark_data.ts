@@ -75,10 +75,6 @@ export interface BenchmarkGroup {
 	language: string;
 	entries: Array<BenchmarkDisplayEntry>;
 	canonical_entry: BenchmarkDisplayEntry | undefined;
-	// name of the entry the ratios anchor on by default — the canonical reference
-	// (Prettier for format, the JS baseline for parse), the group's first row. The
-	// hover-to-rebaseline UI restores this anchor when the pointer leaves the group.
-	anchor_name: string | undefined;
 	// files the timed benchmark actually iterated (the per-group intersection);
 	// null on older baselines (< version 4) that don't carry `files_iterated`
 	files_iterated: number | null;
@@ -135,16 +131,6 @@ export const categorize_size = (label: string): ImplementationCategory => {
 	return 'oxc';
 };
 
-// Canonical entry names per group
-const CANONICAL_BY_GROUP: Record<string, string> = {
-	'parse/svelte': 'svelte/compiler',
-	'parse/typescript': 'acorn-typescript',
-	'parse/css': 'svelte/compiler',
-	'format/svelte': 'prettier',
-	'format/typescript': 'prettier',
-	'format/css': 'prettier',
-};
-
 // Primary tsv entry names for speedup summary (fair comparisons)
 const PRIMARY_NATIVE_FORMAT = 'tsv';
 const PRIMARY_WASM_FORMAT = 'tsv_wasm';
@@ -168,14 +154,11 @@ export const derive_benchmark_groups = (baseline: BenchmarkBaseline): Array<Benc
 		const parts = group_key.split('/');
 		const operation = parts[0]!;
 		const language = parts[1]!;
-		// The group's default ratio anchor is its canonical reference — Prettier for
-		// format, the JS baseline (svelte/compiler, acorn-typescript) for parse — which
-		// the sort below pins first, so each group's leading row reads 1.0x and the rest
-		// read relative to it. (Size groups anchor on their smallest build; see
-		// `derive_size_groups`.) It's recorded as `anchor_name`; the shared component
-		// owns every ratio, and hovering a row re-baselines the group onto that row.
-		const canonical_name = CANONICAL_BY_GROUP[group_key];
-		const canonical_entry_raw = entries.find((e) => e.name === canonical_name);
+		// The sort below leads each group with its canonical reference (Prettier for
+		// format, the JS baseline for parse), so the first row is the default 1.0x
+		// anchor; the shared component reads that default off the first row and
+		// recomputes every ratio, re-baselining onto whichever row is hovered. (Size
+		// groups lead with their smallest build; see `derive_size_groups`.)
 		const slowest = Math.max(...entries.map((e) => e.mean_ns));
 
 		const display_entries: Array<BenchmarkDisplayEntry> = entries.map((e) => ({
@@ -203,7 +186,6 @@ export const derive_benchmark_groups = (baseline: BenchmarkBaseline): Array<Benc
 			language,
 			entries: display_entries,
 			canonical_entry: display_entries.find((e) => e.category === 'canonical'),
-			anchor_name: canonical_entry_raw?.name,
 			files_iterated: iterated_counts.length > 0 ? Math.max(...iterated_counts) : null,
 		});
 	}
@@ -323,9 +305,7 @@ export interface SizeDisplayEntry extends BinarySize {
 export interface SizeCapabilityGroup {
 	capability: SizeCapability;
 	heading: string;
-	// label of the group's smallest build — the default ratio anchor (reads 1.0x).
-	// The hover-to-rebaseline UI restores it when the pointer leaves the group.
-	anchor_label: string | undefined;
+	// sorted smallest-first, so the leading entry is the default ratio anchor (1.0x)
 	entries: Array<SizeDisplayEntry>;
 }
 
@@ -384,11 +364,10 @@ export const derive_size_groups = (sizes: Array<BinarySize>): Array<SizeCapabili
 		if (items.length === 0) continue;
 		const sorted = items.toSorted((a, b) => a.bytes - b.bytes);
 		const max = Math.max(0, ...items.map((s) => s.bytes));
-		// one baseline per group: the smallest build reads 1.0x and every other build a
-		// multiple of it, so a mixed wasm/native group has a single anchor rather than
-		// the confusing pair a per-kind anchor produced (`sorted` is ascending, so its
-		// first entry is the smallest)
-		const anchor = sorted[0];
+		// `sorted` is ascending, so the smallest build leads the group — its single
+		// default ratio anchor (1.0x), one baseline whether or not the group mixes wasm
+		// and native (rather than the confusing pair a per-kind anchor produced). The
+		// shared component reads every ratio from that leading row.
 		const entries: Array<SizeDisplayEntry> = sorted.map((s) => ({
 			...s,
 			bar_fraction: max > 0 ? s.bytes / max : 0,
@@ -407,7 +386,7 @@ export const derive_size_groups = (sizes: Array<BinarySize>): Array<SizeCapabili
 			};
 			entries.splice(native_index === -1 ? entries.length : native_index, 0, placeholder);
 		}
-		groups.push({capability, heading, anchor_label: anchor?.label, entries});
+		groups.push({capability, heading, entries});
 	}
 	return groups;
 };

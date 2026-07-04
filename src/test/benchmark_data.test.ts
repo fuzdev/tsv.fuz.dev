@@ -42,12 +42,15 @@ describe('benchmarks.json shape', () => {
 		}
 	});
 
-	test('every group derives a canonical entry and a timed-set count', () => {
+	test('every group leads with its canonical entry (the default anchor) and a timed-set count', () => {
 		const groups = derive_benchmark_groups(benchmarks_json);
 		assert.isAtLeast(groups.length, 6); // format+parse × svelte/typescript/css
 		for (const group of groups) {
 			const key = `${group.operation}/${group.language}`;
 			assert.ok(group.canonical_entry, `${key} has no canonical entry`);
+			// the canonical reference sorts first, so it's the default 1.0x anchor the
+			// shared component reads off the leading row
+			assert.strictEqual(group.entries[0]?.category, 'canonical', `${key} canonical leads`);
 			assert.isNotNull(group.files_iterated, `${key} has no files_iterated`);
 		}
 	});
@@ -130,13 +133,17 @@ describe('benchmarks.json shape', () => {
 			for (const e of group.entries) {
 				assert.strictEqual(categorize_size_capability(e.label), group.capability);
 			}
-			// the group's default ratio anchor (its 1.0x row) is the single smallest
-			// real build, recorded as `anchor_label`; the shared component reads every
-			// ratio from it. Disabled placeholders (e.g. oxfmt's absent wasm build)
-			// never anchor.
+			// the group's default ratio anchor (its 1.0x row) is the single smallest real
+			// build, and it leads the group — the shared component reads every ratio off
+			// the first row. Disabled placeholders (e.g. oxfmt's absent wasm build) never
+			// sort first.
 			const real = group.entries.filter((e) => !e.disabled);
 			const smallest = real.reduce((a, b) => (a.bytes <= b.bytes ? a : b));
-			assert.strictEqual(group.anchor_label, smallest.label, `${group.capability} smallest anchor`);
+			assert.strictEqual(
+				group.entries[0]?.label,
+				smallest.label,
+				`${group.capability} smallest leads`,
+			);
 		}
 		// the parser group pits tsv against oxc-parser in both kinds
 		const parser = groups.find((g) => g.capability === 'parser');

@@ -47,11 +47,7 @@
 {#each size_groups as group (group.capability)}
 	<div class="size-group">
 		<h3>{group.heading}</h3>
-		<BenchmarksBaselineGroup
-			rows={to_rows(group)}
-			default_anchor_key={group.anchor_label}
-			direction="size"
-		/>
+		<BenchmarksBaselineGroup rows={to_rows(group)} direction="size" />
 	</div>
 {/each}
 
