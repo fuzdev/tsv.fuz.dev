@@ -121,6 +121,26 @@ describe('benchmarks.json shape', () => {
 		assert.include(parser_labels, 'oxc-parser (napi)');
 	});
 
+	test('full toolchain group carries the combined oxc-parser + oxfmt entry', () => {
+		const sizes = benchmarks_json.binary_sizes;
+		const groups = derive_size_groups(sizes);
+		const full = groups.find((g) => g.capability === 'full');
+		const combined = full?.entries.find((e) => e.label === 'oxc-parser + oxfmt (napi)');
+		assert.ok(combined, 'combined oxc entry missing from full toolchain group');
+
+		// its bytes and gzip are the sum of oxc's separate parser and formatter builds
+		const oxc_parser = sizes.find((s) => s.label === 'oxc-parser (napi)');
+		const oxfmt = sizes.find((s) => s.label === 'oxfmt (napi)');
+		assert.ok(oxc_parser && oxfmt, 'source oxc builds missing');
+		assert.strictEqual(combined!.bytes, oxc_parser!.bytes + oxfmt!.bytes);
+		assert.strictEqual(combined!.gzip_bytes, oxc_parser!.gzip_bytes! + oxfmt!.gzip_bytes!);
+
+		// native build, colored as oxc, and ratioed against tsv's native flagship
+		assert.strictEqual(combined!.kind, 'native');
+		assert.strictEqual(combined!.category, 'oxc');
+		assert.isDefined(combined!.ratio_vs_tsv);
+	});
+
 	test('flagship report is the node runtime', () => {
 		// the headline detailed view switched to N-API under Node; guards against an
 		// `update-benchmarks` that pulls the wrong runtime's sibling report

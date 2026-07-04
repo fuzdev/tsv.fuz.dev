@@ -60,13 +60,13 @@
 <style>
 	.bar-row {
 		display: grid;
-		grid-template-columns: 12rem 1fr 5.6rem 3.4rem;
+		grid-template-columns: 16rem 1fr 5.6rem 3.4rem;
 		align-items: center;
 		gap: var(--space_sm);
 		height: 2rem;
 	}
 	.bar-row.has-annotation {
-		grid-template-columns: 12rem 1fr 5.6rem 6rem 3.4rem;
+		grid-template-columns: 16rem 1fr 5.6rem 6rem 3.4rem;
 	}
 	.bar-row.disabled {
 		opacity: 0.6;

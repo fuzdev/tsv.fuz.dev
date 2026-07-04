@@ -75,6 +75,11 @@
 				<li>
 					oxc-parser only parses TypeScript and JS, not CSS or HTML; oxfmt is its separate formatter
 				</li>
+				<li>
+					the <code>oxc-parser + oxfmt</code> entry under Full toolchain sums oxc's separate parser
+					and formatter packages, since together they're the closest equivalent to tsv's single
+					parse+format build
+				</li>
 				<li>oxfmt has no wasm build as of June 2026</li>
 				<li>
 					tsv doesn't publish native artifacts yet, but it builds them for benchmarking - an N-API
@@ -115,7 +120,7 @@
 					and Svelte entries essentially re-measure Prettier minus a little wrapper overhead.
 				</li>
 				<li>
-					Speed is shown relative to <code>biome-wasm</code> (the 1.0x anchor) — a fast
+					Speed is shown relative to <code>biome (wasm)</code> (the 1.0x anchor) — a fast
 					native-engine formatter compiled to wasm, a tougher and fairer yardstick than the slow JS
 					Prettier baseline. That anchor is a wasm build while the headline tsv entry is native, so
 					the headline ratio is a cross-tier comparison. For an engine-vs-engine read, compare

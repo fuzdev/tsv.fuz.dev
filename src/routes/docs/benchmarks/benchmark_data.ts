@@ -290,11 +290,15 @@ export type SizeCapability = 'full' | 'formatter' | 'parser';
  * Buckets a binary-size label by capability so each build lands next to its
  * closest competitor: `parser` (tsv's parse-only build, `oxc-parser`),
  * `formatter` (tsv's format-only build, `oxfmt`), else `full` (the flagship
- * parse+format builds and `biome`).
+ * parse+format builds, `biome`, and the combined `oxc-parser + oxfmt` entry).
  */
 export const categorize_size_capability = (label: string): SizeCapability => {
-	if (label.includes('parse')) return 'parser'; // tsv parse (ffi), tsv_parse_wasm, oxc-parser
-	if (label.includes('format') || label.includes('fmt')) return 'formatter'; // tsv format, oxfmt
+	const has_parse = label.includes('parse');
+	const has_format = label.includes('format') || label.includes('fmt');
+	// a build that does both is a full toolchain (e.g. the combined oxc-parser + oxfmt entry)
+	if (has_parse && has_format) return 'full';
+	if (has_parse) return 'parser'; // tsv parse (ffi), tsv_parse_wasm, oxc-parser
+	if (has_format) return 'formatter'; // tsv format, oxfmt
 	return 'full'; // tsv (napi/ffi), tsv_wasm, biome
 };
 
@@ -318,17 +322,45 @@ const SIZE_CAPABILITY_ORDER: ReadonlyArray<{capability: SizeCapability; heading:
 	{capability: 'parser', heading: 'Parser'},
 ];
 
+/** Display label for the synthesized combined oxc full-toolchain build. */
+export const OXC_FULL_LABEL = 'oxc-parser + oxfmt (napi)';
+
+/**
+ * Synthesizes oxc's full-toolchain native build by summing its separately-shipped
+ * parser (`oxc-parser (napi)`) and formatter (`oxfmt (napi)`) packages — together
+ * they're the closest equivalent to tsv's single parse+format build, so the entry
+ * stands beside `tsv (napi)` in the full-toolchain group. Returns `undefined` when
+ * either half is missing (older baselines), and sums gzip only when both carry it.
+ */
+const synthesize_oxc_full = (sizes: Array<BinarySize>): BinarySize | undefined => {
+	const parser = sizes.find((s) => s.label === 'oxc-parser (napi)');
+	const formatter = sizes.find((s) => s.label === 'oxfmt (napi)');
+	if (!parser || !formatter) return undefined;
+	return {
+		label: OXC_FULL_LABEL,
+		bytes: parser.bytes + formatter.bytes,
+		kind: 'native',
+		gzip_bytes:
+			parser.gzip_bytes != null && formatter.gzip_bytes != null
+				? parser.gzip_bytes + formatter.gzip_bytes
+				: null,
+	};
+};
+
 /**
  * Groups the binary sizes by capability (full / formatter / parser), each group
  * mixing wasm and native builds sorted smallest-first. Bars scale to the group's
  * largest build; the `vs tsv` ratio anchors on tsv's build of the same kind
  * (matching the node report's `tsv_wasm` / `tsv (napi)` anchors) so wasm compares
- * against wasm and native against native.
+ * against wasm and native against native. A combined `oxc-parser + oxfmt` entry is
+ * synthesized into the full-toolchain group, since oxc ships parse and format apart.
  */
 export const derive_size_groups = (sizes: Array<BinarySize>): Array<SizeCapabilityGroup> => {
+	const oxc_full = synthesize_oxc_full(sizes);
+	const all_sizes = oxc_full ? [...sizes, oxc_full] : sizes;
 	const groups: Array<SizeCapabilityGroup> = [];
 	for (const {capability, heading} of SIZE_CAPABILITY_ORDER) {
-		const items = sizes.filter((s) => categorize_size_capability(s.label) === capability);
+		const items = all_sizes.filter((s) => categorize_size_capability(s.label) === capability);
 		if (items.length === 0) continue;
 		const sorted = items.toSorted((a, b) => a.bytes - b.bytes);
 		const max = Math.max(0, ...items.map((s) => s.bytes));
@@ -499,7 +531,28 @@ export const format_speedup = (ratio: number): string =>
 /** Hyphenated tool names that should preserve their hyphens in display labels. */
 const HYPHENATED_NAMES = ['acorn-typescript', 'oxc-parser'];
 
+/**
+ * Display labels for the raw benchmark entry names, annotating each with the
+ * runtime binding it runs under in the Node report — native builds load the N-API
+ * addon (`napi`), and the third-party wasm builds are marked `(wasm)`. Mirrors the
+ * parenthesized suffixes the binary-size section's labels already carry. tsv's own
+ * wasm entries keep their `tsv_wasm` package-name style, as in the size groups, so
+ * they aren't listed here. The already-parenthesized size labels aren't keys, so
+ * they fall through to the generic formatting below unchanged.
+ */
+const LABEL_OVERRIDES: Record<string, string> = {
+	tsv: 'tsv (napi)',
+	'tsv-json': 'tsv json (napi)',
+	'tsv-internal': 'tsv internal (napi)',
+	'oxc-parser': 'oxc-parser (napi)',
+	oxfmt: 'oxfmt (napi)',
+	'biome-wasm': 'biome (wasm)',
+	'oxc-parser-wasm': 'oxc-parser (wasm)',
+};
+
 export const format_label = (name: string): string => {
+	const override = LABEL_OVERRIDES[name];
+	if (override) return override;
 	for (const tool of HYPHENATED_NAMES) {
 		if (name.startsWith(tool)) {
 			return tool + name.slice(tool.length).replaceAll('-', ' ');
