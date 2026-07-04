@@ -16,7 +16,7 @@
     "test": "gro test",
     "preview": "vite preview",
     "deploy": "gro deploy",
-    "update-benchmarks": "cp ../tsv/benches/js/results/report.node.json src/routes/docs/benchmarks/benchmarks.json && cp ../tsv/benches/js/results/report.json src/routes/docs/benchmarks/benchmarks_cross_runtime.json && gro format"
+    "update-benchmarks": "cp ../tsv/benches/js/results/report.node.json src/routes/docs/benchmarks/benchmarks.json && cp ../tsv/benches/js/results/report.json src/routes/docs/benchmarks/benchmarks_cross_runtime.json && cp ../tsv/benches/js/results/report.conformance.node.json src/routes/docs/benchmarks/benchmarks_conformance.json && gro format"
   },
   "type": "module",
   "engines": {

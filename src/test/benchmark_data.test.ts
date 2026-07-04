@@ -1,11 +1,13 @@
 import {assert, describe, test} from 'vitest';
 
 import {benchmarks_json} from '$routes/docs/benchmarks/benchmarks.ts';
+import {benchmarks_conformance_json} from '$routes/docs/benchmarks/benchmarks_conformance.ts';
 import {benchmarks_cross_runtime_json} from '$routes/docs/benchmarks/benchmarks_cross_runtime.ts';
 import {
 	categorize_size_capability,
 	compute_baseline_ratio,
 	derive_benchmark_groups,
+	derive_conformance_groups,
 	derive_cross_runtime_groups,
 	derive_size_groups,
 	derive_speedup_summary,
@@ -198,6 +200,49 @@ describe('benchmarks.json shape', () => {
 		// the headline detailed view switched to N-API under Node; guards against an
 		// `update-benchmarks` that pulls the wrong runtime's sibling report
 		assert.strictEqual((benchmarks_json as {runtime?: string}).runtime, 'node');
+	});
+});
+
+// Shape gate for the committed conformance report `benchmarks_conformance.json`
+// (tsv's `report.conformance.node.json` — the parse-coverage surface over the
+// full fixtures-included corpus), consumed by the Parse conformance section.
+describe('benchmarks_conformance.json shape', () => {
+	test('report is the conformance surface at the current version', () => {
+		assert.isAtLeast(benchmarks_conformance_json.version, 6);
+		assert.strictEqual(benchmarks_conformance_json.corpus_kind, 'conformance');
+		assert.strictEqual((benchmarks_conformance_json as {runtime?: string}).runtime, 'node');
+	});
+
+	test('conformance report is parse-only', () => {
+		for (const entry of benchmarks_conformance_json.entries) {
+			assert.match(entry.group, /^parse\//, `${entry.group}/${entry.name}`);
+		}
+	});
+
+	test('corpus sources disclose the composition', () => {
+		assert.isNotEmpty(benchmarks_conformance_json.corpus_sources ?? []);
+	});
+
+	test('derives one coverage group per language, each with a tsv row and full coverage data', () => {
+		const groups = derive_conformance_groups(benchmarks_conformance_json);
+		assert.strictEqual(groups.length, 3); // svelte / typescript / css
+		assert.deepEqual(
+			groups.map((g) => g.language),
+			['svelte', 'typescript', 'css'],
+		);
+		for (const group of groups) {
+			assert.ok(
+				group.rows.some((r) => r.name === 'tsv'),
+				`${group.language} has a tsv row`,
+			);
+			for (const row of group.rows) {
+				assert.isAbove(row.files_total, 0, `${group.language}/${row.name} total`);
+				assert.isAtLeast(row.coverage_fraction, 0);
+				assert.isAtMost(row.coverage_fraction, 1);
+				// engine-level rows only — binding/materialization variants are folded
+				assert.notMatch(row.name, /-internal|wasm-|-wasm/, `${group.language}/${row.name}`);
+			}
+		}
 	});
 });
 

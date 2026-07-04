@@ -5,14 +5,17 @@
 	import {tome_get_by_slug} from '@fuzdev/fuz_ui/tome.ts';
 
 	import {benchmarks_json} from './benchmarks.ts';
+	import {benchmarks_conformance_json} from './benchmarks_conformance.ts';
 	import {benchmarks_cross_runtime_json} from './benchmarks_cross_runtime.ts';
 	import {
 		category_color,
 		derive_benchmark_groups,
+		derive_conformance_groups,
 		derive_speedup_summary,
 	} from './benchmark_data.ts';
 	import BenchmarksSummary from './BenchmarksSummary.svelte';
 	import BenchmarksGroup from './BenchmarksGroup.svelte';
+	import BenchmarksConformance from './BenchmarksConformance.svelte';
 	import BenchmarksSizes from './BenchmarksSizes.svelte';
 	import BenchmarksMeta from './BenchmarksMeta.svelte';
 	import BenchmarksCrossRuntime from './BenchmarksCrossRuntime.svelte';
@@ -23,6 +26,7 @@
 
 	const groups = derive_benchmark_groups(benchmarks_json);
 	const speedup_rows = derive_speedup_summary(groups);
+	const conformance_groups = derive_conformance_groups(benchmarks_conformance_json);
 
 	const corpus = $derived(benchmarks_json.corpus);
 	const format_groups = groups.filter((g) => g.operation === 'format');
@@ -154,6 +158,45 @@
 	</TomeSection>
 
 	<TomeSection>
+		<TomeSectionHeader text="Parse conformance" />
+		<p class="mb_xl5">
+			Separate from the speed numbers above, this measures parse <em>coverage</em>: how much of a
+			much larger, deliberately hard corpus each parser accepts - the real-world code above plus
+			Prettier's format-test suites, Svelte's compiler test suite, CSS extracted from
+			web-platform-tests, and test262's expected-valid strict-mode tests.
+		</p>
+		<BenchmarksConformance groups={conformance_groups} />
+		<aside class="mt_xl5">
+			<p>Reading these numbers:</p>
+			<ul>
+				<li>
+					Coverage is per engine, not per binding - a parser accepts the same files whether it runs
+					native or wasm, so each tool appears once.
+				</li>
+				<li>
+					100% isn't the target: some suite inputs are intentionally invalid or use syntax that's
+					out of scope by design, so read the numbers relative to each other.
+				</li>
+				<li>
+					Accepting a file says nothing about producing the <em>right</em> AST - tsv's output is
+					separately verified against the canonical parsers (svelte/compiler, acorn-typescript) at
+					corpus scale in its repo's conformance gates.
+				</li>
+			</ul>
+			{#if benchmarks_conformance_json.corpus_sources?.length}
+				<details>
+					<summary>Corpus sources ({benchmarks_conformance_json.corpus_sources.length})</summary>
+					<ul>
+						{#each benchmarks_conformance_json.corpus_sources as source (source.path)}
+							<li><code>{source.path}</code> - {source.files.toLocaleString('en-US')} files</li>
+						{/each}
+					</ul>
+				</details>
+			{/if}
+		</aside>
+	</TomeSection>
+
+	<TomeSection>
 		<TomeSectionHeader text="Binary size" />
 		<p>
 			Rather than supporting many languages, tsv focuses on Svelte/HTML, TypeScript/JS, and CSS.
@@ -216,12 +259,13 @@
 			at once, which most of these tools (tsv included) can do.
 		</p>
 		<p class="mb_xl3">
-			What's measured: around 5,500 files (~15 MB) of
-			<code>.svelte</code>/<code>.html</code>, <code>.ts</code>/<code>.js</code>, and
-			<code>.css</code>, from three sources: the fuz.dev libraries and apps, upstream framework
-			source (Svelte, SvelteKit, and the svelte.dev site), and formatter conformance fixtures
-			(Prettier's and prettier-plugin-svelte's own test suites - deliberately tricky edge cases, not
-			typical code, so they skew the corpus toward hard cases).
+			What's measured: around 2,900 files (~17 MB) of <code>.svelte</code>,
+			<code>.ts</code>/<code>.js</code>, and <code>.css</code> - real-world code only, from two
+			sources: the fuz.dev libraries and apps, and upstream framework source (Svelte, SvelteKit, and
+			the svelte.dev site). Test files count as real code and stay in; fixture files (the formatter
+			test suites that used to be part of this corpus, and fixture subtrees inside the measured
+			repos) are excluded - deliberately tricky edge cases measure conformance, not typical
+			throughput, and are covered by the parse-conformance section above.
 		</p>
 		<BenchmarksMeta baseline={benchmarks_json} />
 	</TomeSection>

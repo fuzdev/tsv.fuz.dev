@@ -11,6 +11,19 @@ export interface BenchmarkBaseline {
 	// Counts of silenced third-party stderr noise, keyed by message pattern.
 	// Present from baseline `version` 4 on; not rendered, kept for parity.
 	suppressed_noise?: Record<string, number>;
+	// Which corpus/surface produced the report: `perf` (real-world corpus,
+	// format + parse) or `conformance` (full fixtures-included corpus, parse
+	// only). Present from `version` 6 on.
+	corpus_kind?: 'perf' | 'conformance';
+	// Per-entry corpus composition (path + loaded file count) — discloses which
+	// sources were present on the machine that produced the report. Present
+	// from `version` 6 on.
+	corpus_sources?: Array<CorpusSource>;
+}
+
+export interface CorpusSource {
+	path: string;
+	files: number;
 }
 
 export interface BaselineEntry {
@@ -242,6 +255,83 @@ export const derive_benchmark_groups = (baseline: BenchmarkBaseline): Array<Benc
 
 	return result;
 };
+
+// Parse-conformance coverage (the conformance report's headline metric)
+
+export interface ConformanceRow {
+	name: string;
+	category: ImplementationCategory;
+	files_processed: number;
+	files_total: number;
+	// files_processed / files_total, the bar fraction
+	coverage_fraction: number;
+}
+
+export interface ConformanceGroup {
+	language: string;
+	// the language's total discovered files (every row shares it)
+	files_total: number;
+	rows: Array<ConformanceRow>;
+}
+
+/**
+ * One coverage row per ENGINE, not per binding: the conformance headline is
+ * "which files does this parser accept," which is identical across a tool's
+ * native/wasm/internal variants — so the `-wasm` and `-internal` duplicates
+ * are dropped and `tsv-json` stands in for tsv (relabeled plainly, since the
+ * JSON-materialization qualifier is a speed concern, not a coverage one).
+ */
+const CONFORMANCE_ENGINE_NAMES: Record<string, string> = {
+	'svelte/compiler': 'svelte/compiler',
+	'acorn-typescript': 'acorn-typescript',
+	'tsv-json': 'tsv',
+	'oxc-parser': 'oxc-parser',
+};
+
+/**
+ * Derives per-language parse-coverage groups from a conformance report
+ * (`corpus_kind: 'conformance'` — parse groups only). Rows sort by coverage
+ * descending; entries without coverage data are dropped.
+ */
+export const derive_conformance_groups = (baseline: BenchmarkBaseline): Array<ConformanceGroup> => {
+	const by_language: Map<string, Array<ConformanceRow>> = new Map();
+	for (const entry of baseline.entries) {
+		const [operation, language] = entry.group.split('/');
+		if (operation !== 'parse' || !language) continue;
+		const display_name = CONFORMANCE_ENGINE_NAMES[entry.name];
+		if (!display_name) continue;
+		if (entry.files_processed == null || entry.files_total == null) continue;
+		let rows = by_language.get(language);
+		if (!rows) {
+			rows = [];
+			by_language.set(language, rows);
+		}
+		rows.push({
+			name: display_name,
+			category: categorize_name(entry.name),
+			files_processed: entry.files_processed,
+			files_total: entry.files_total,
+			coverage_fraction: entry.files_total > 0 ? entry.files_processed / entry.files_total : 0,
+		});
+	}
+
+	const result: Array<ConformanceGroup> = [];
+	for (const [language, rows] of by_language) {
+		rows.sort((a, b) => b.coverage_fraction - a.coverage_fraction || a.name.localeCompare(b.name));
+		result.push({
+			language,
+			files_total: Math.max(0, ...rows.map((r) => r.files_total)),
+			rows,
+		});
+	}
+	const LANG_ORDER: Record<string, number> = {svelte: 0, typescript: 1, css: 2};
+	result.sort((a, b) => (LANG_ORDER[a.language] ?? 9) - (LANG_ORDER[b.language] ?? 9));
+	return result;
+};
+
+/** Formats a coverage fraction as a percentage with one decimal (`97.4%`). */
+export const format_coverage_percent = (fraction: number): string =>
+	`${(fraction * 100).toFixed(1)}%`;
 
 export const derive_speedup_summary = (groups: Array<BenchmarkGroup>): Array<SpeedupRow> => {
 	const find_speedup = (
