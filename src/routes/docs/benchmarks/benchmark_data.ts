@@ -528,6 +528,21 @@ export const format_gzip_size = (gzip_bytes: number | null | undefined): string 
 export const format_speedup = (ratio: number): string =>
 	ratio >= 10 ? `${ratio.toFixed(1)}x` : `${ratio.toFixed(2)}x`;
 
+/**
+ * Signed speedup: entries at or above the anchor read as a plain multiple
+ * (`2.50x`), while slower entries show the reciprocal negated (`0.15x` → `-6.67x`)
+ * so "how many times slower" is directly legible instead of a fraction the reader
+ * has to invert. The minus is a convention for "times slower", not a literal
+ * negative rate. Used for the format/parse speed bars, where entries span widely
+ * on both sides of the anchor; the near-parity cross-runtime table and the
+ * bigger-is-worse size ratios stay on the plain fractional `format_speedup`.
+ */
+export const format_speedup_signed = (ratio: number): string => {
+	const magnitude = ratio >= 1 ? ratio : 1 / ratio;
+	const digits = magnitude >= 10 ? 1 : 2;
+	return `${ratio < 1 ? '-' : ''}${magnitude.toFixed(digits)}x`;
+};
+
 /** Hyphenated tool names that should preserve their hyphens in display labels. */
 const HYPHENATED_NAMES = ['acorn-typescript', 'oxc-parser'];
 

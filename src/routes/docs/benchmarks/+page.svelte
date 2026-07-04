@@ -68,7 +68,10 @@
 			<p>Important notes:</p>
 			<ul>
 				<li>apples-to-apples comparisons are difficult here because of differing scope</li>
-				<li>Biome includes a parser, formatter, and linter supporting many languages</li>
+				<li>
+					Biome includes a parser, formatter, and linter supporting many languages, but doesn't
+					expose its parser to JS - <code>@biomejs/js-api</code> offers only formatting and linting
+				</li>
 				<li>
 					tsv and tsv_wasm include a parser and formatter for Svelte/HTML, TypeScript/JS, and CSS
 				</li>
@@ -79,6 +82,14 @@
 					the <code>oxc-parser + oxfmt</code> entry under Full toolchain sums oxc's separate parser
 					and formatter packages, since together they're the closest equivalent to tsv's single
 					parse+format build
+				</li>
+				<li>
+					that combined figure is a little unfair to oxc: oxfmt has to parse in order to format, so
+					it statically links its own copy of the same oxc parser - but it doesn't depend on the
+					<code>oxc-parser</code> package or expose parsing through its own API (only
+					<code>format</code>). The two are independently compiled, so summing them double-counts
+					the parser's compiled code once per binary, inflating the total past what a single build
+					exposing both operations (like tsv's) would actually need
 				</li>
 				<li>oxfmt has no wasm build as of June 2026</li>
 				<li>
@@ -125,6 +136,11 @@
 					Prettier baseline. That anchor is a wasm build while the headline tsv entry is native, so
 					the headline ratio is a cross-tier comparison. For an engine-vs-engine read, compare
 					within a runtime tier: wasm vs wasm, or native vs native.
+				</li>
+				<li>
+					Entries slower than the anchor read as a negative multiple — <code>-6.67x</code> means
+					6.67x slower, not a negative speed — so the factor is directly legible rather than a
+					fraction to invert.
 				</li>
 				<li>
 					tsv's CSS coverage is intentionally lower than Prettier's and Biome's - it rejects

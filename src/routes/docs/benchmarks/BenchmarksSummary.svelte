@@ -43,7 +43,6 @@
 	}
 	thead th {
 		padding: var(--space_xs) var(--space_sm);
-		font-size: var(--font_size_sm);
 	}
 	tbody td {
 		padding: var(--space_xs) var(--space_sm);

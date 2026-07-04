@@ -2,7 +2,7 @@
 	import {
 		format_coverage,
 		format_ns,
-		format_speedup,
+		format_speedup_signed,
 		speedup_color,
 		type BenchmarkGroup,
 	} from './benchmark_data.ts';
@@ -48,7 +48,7 @@
 				value={format_ns(entry.mean_ns)}
 				disabled={entry.disabled}
 				ratio_text={entry.speedup_vs_anchor != null
-					? format_speedup(entry.speedup_vs_anchor)
+					? format_speedup_signed(entry.speedup_vs_anchor)
 					: '1.0x'}
 				ratio_color={entry.speedup_vs_anchor != null
 					? speedup_color(entry.speedup_vs_anchor)

@@ -8,6 +8,7 @@ import {
 	derive_cross_runtime_groups,
 	derive_size_groups,
 	derive_speedup_summary,
+	format_speedup_signed,
 } from '$routes/docs/benchmarks/benchmark_data.ts';
 
 // Shape gate for the committed benchmarks.json: the bench report format drifts
@@ -145,6 +146,20 @@ describe('benchmarks.json shape', () => {
 		// the headline detailed view switched to N-API under Node; guards against an
 		// `update-benchmarks` that pulls the wrong runtime's sibling report
 		assert.strictEqual((benchmarks_json as {runtime?: string}).runtime, 'node');
+	});
+});
+
+describe('format_speedup_signed', () => {
+	test('anchor-and-faster entries read as a plain multiple', () => {
+		assert.strictEqual(format_speedup_signed(1), '1.00x');
+		assert.strictEqual(format_speedup_signed(2.5), '2.50x');
+		assert.strictEqual(format_speedup_signed(12.3), '12.3x'); // >= 10 drops to one decimal
+	});
+
+	test('slower entries negate the reciprocal so the factor is directly legible', () => {
+		assert.strictEqual(format_speedup_signed(0.15), '-6.67x');
+		assert.strictEqual(format_speedup_signed(0.05), '-20.0x'); // >= 10 magnitude → one decimal
+		assert.strictEqual(format_speedup_signed(0.98), '-1.02x'); // near-parity sign flip
 	});
 });
 
