@@ -62,7 +62,8 @@ describe('benchmarks.json shape', () => {
 		for (const e of ts_oxc) assert.isNotOk(e.disabled, `${e.name} should be a real entry`);
 
 		// svelte and css mirror those oxc entries in, disabled, in the same slot: just
-		// after the JS-materializing `*-json` entries and before the `*-internal` ones
+		// after the biome placeholder (itself just after the `*-json` entries) and
+		// before the `*-internal` ones
 		for (const language of ['svelte', 'css']) {
 			const group = parse(language);
 			assert.ok(group, `${language} parse group missing`);
@@ -76,7 +77,33 @@ describe('benchmarks.json shape', () => {
 			const names = group!.entries.map((e) => e.name);
 			const first_oxc = names.findIndex((n) => n.includes('oxc'));
 			const last_json = names.reduce((idx, n, i) => (n.endsWith('-json') ? i : idx), -1);
-			assert.strictEqual(first_oxc, last_json + 1, `${language} oxc slotted after -json entries`);
+			// last_json + 1 is the biome placeholder, so oxc starts one slot further
+			assert.strictEqual(first_oxc, last_json + 2, `${language} oxc slotted after -json entries`);
+		}
+	});
+
+	test('every parse group gets a disabled biome placeholder, since biome never exposes a parser to JS', () => {
+		const groups = derive_benchmark_groups(benchmarks_json);
+		for (const language of ['svelte', 'typescript', 'css']) {
+			const group = groups.find((g) => g.operation === 'parse' && g.language === language);
+			assert.ok(group, `${language} parse group missing`);
+			const biome = group.entries.filter((e) => e.category === 'biome');
+			assert.strictEqual(biome.length, 1, `${language} biome placeholder count`);
+			const [entry] = biome;
+			assert.ok(entry, `${language} biome entry missing`);
+			assert.ok(entry.disabled, `${language} biome entry should be disabled`);
+			assert.strictEqual(entry.bar_fraction, 0, `${language} biome bar`);
+			assert.isUndefined(entry.speedup_vs_anchor, `${language} biome speedup`);
+
+			// slotted just after the JS-materializing `*-json` entries
+			const names = group.entries.map((e) => e.name);
+			const first_biome = names.findIndex((n) => n.includes('biome'));
+			const last_json = names.reduce((idx, n, i) => (n.endsWith('-json') ? i : idx), -1);
+			assert.strictEqual(
+				first_biome,
+				last_json + 1,
+				`${language} biome slotted after -json entries`,
+			);
 		}
 	});
 

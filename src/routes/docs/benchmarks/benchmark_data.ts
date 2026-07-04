@@ -193,10 +193,17 @@ export const derive_benchmark_groups = (baseline: BenchmarkBaseline): Array<Benc
 			files_total: e.files_total ?? null,
 		}));
 
-		// Sort: canonical first, then by mean_ns descending (slowest first for visual)
+		// Sort: canonical first, then (format groups only) biome always second - it's
+		// the format speed anchor, so pinning its slot keeps the anchor row in a
+		// stable place regardless of how its relative speed shifts run to run - then
+		// the rest by mean_ns descending (slowest first for visual)
 		display_entries.sort((a, b) => {
 			if (a.category === 'canonical' && b.category !== 'canonical') return -1;
 			if (b.category === 'canonical' && a.category !== 'canonical') return 1;
+			if (operation === 'format') {
+				if (a.category === 'biome' && b.category !== 'biome') return -1;
+				if (b.category === 'biome' && a.category !== 'biome') return 1;
+			}
 			return b.mean_ns - a.mean_ns;
 		});
 
@@ -221,32 +228,47 @@ export const derive_benchmark_groups = (baseline: BenchmarkBaseline): Array<Benc
 			(LANG_ORDER[a.language] ?? 9) - (LANG_ORDER[b.language] ?? 9),
 	);
 
+	// Neither `biome` nor (for svelte/css) `oxc-parser` has a real entry in every
+	// parse group. `biome`'s `@biomejs/js-api` never exposes a parser to JS at all
+	// (only formatting and linting), so no parse group has a real biome entry;
 	// `oxc-parser` only parses TypeScript/JS, so the svelte and css parse groups
-	// lack it. Mirror its entries in as disabled placeholders — slotted just after
-	// the JS-materializing `*-json` entries, the same position they hold in the
-	// typescript group — so all three parse groups scan with one shared entry order.
+	// lack it. Mirror both in as disabled placeholders — biome always, oxc-parser
+	// only where it's missing — slotted just after the JS-materializing `*-json`
+	// entries (the same position oxc's entries hold in the typescript group), so
+	// all three parse groups scan with one shared entry order.
 	const ts_parse = result.find((g) => g.operation === 'parse' && g.language === 'typescript');
 	const oxc_templates = ts_parse?.entries.filter((e) => e.category === 'oxc') ?? [];
-	if (oxc_templates.length > 0) {
-		for (const group of result) {
-			if (group.operation !== 'parse' || group.language === 'typescript') continue;
-			if (group.entries.some((e) => e.category === 'oxc')) continue;
-			// index just past the last `*-json` entry (fall back to just below the
-			// canonical row if none), matching oxc's slot in the typescript group
-			const insert_at = group.entries.reduce(
-				(idx, e, i) => (e.name.endsWith('-json') ? i + 1 : idx),
-				1,
-			);
-			const placeholders: Array<BenchmarkDisplayEntry> = oxc_templates.map((e) => ({
-				...e,
-				bar_fraction: 0,
-				speedup_vs_anchor: undefined,
-				files_processed: null,
-				files_total: null,
-				disabled: true,
-			}));
-			group.entries.splice(insert_at, 0, ...placeholders);
-		}
+	for (const group of result) {
+		if (group.operation !== 'parse') continue;
+		// index just past the last `*-json` entry (fall back to just below the
+		// canonical row if none), matching oxc's slot in the typescript group
+		const insert_at = group.entries.reduce(
+			(idx, e, i) => (e.name.endsWith('-json') ? i + 1 : idx),
+			1,
+		);
+		const biome_placeholder: BenchmarkDisplayEntry = {
+			name: 'biome-wasm',
+			mean_ns: 0,
+			bar_fraction: 0,
+			speedup_vs_anchor: undefined,
+			category: 'biome',
+			files_processed: null,
+			files_total: null,
+			disabled: true,
+		};
+		const needs_oxc =
+			group.language !== 'typescript' && !group.entries.some((e) => e.category === 'oxc');
+		const oxc_placeholders: Array<BenchmarkDisplayEntry> = needs_oxc
+			? oxc_templates.map((e) => ({
+					...e,
+					bar_fraction: 0,
+					speedup_vs_anchor: undefined,
+					files_processed: null,
+					files_total: null,
+					disabled: true,
+				}))
+			: [];
+		group.entries.splice(insert_at, 0, biome_placeholder, ...oxc_placeholders);
 	}
 
 	return result;

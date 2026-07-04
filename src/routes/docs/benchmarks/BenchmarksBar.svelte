@@ -29,10 +29,21 @@
 		// no bar, no value, no ratio, just the label held in its shared slot
 		disabled?: boolean;
 	} = $props();
+
+	// the parenthesized binding suffix (`(wasm)`/`(napi)`) describes how the tool
+	// actually ran - meaningless for biome's disabled placeholder (its only variant
+	// is wasm, so there's no ambiguity to lose). oxc-parser keeps its suffix even
+	// when disabled since it has two placeholder rows (napi and wasm) that would
+	// otherwise become indistinguishable.
+	const display_label = $derived(
+		disabled && category === 'biome'
+			? format_label(label).replace(/ \([^)]*\)$/, '')
+			: format_label(label),
+	);
 </script>
 
 <div class="bar-row" class:has-annotation={annotation != null} class:disabled>
-	<span class="bar-label">{format_label(label)}</span>
+	<span class="bar-label">{display_label}</span>
 	<div class="bar-track">
 		{#if !disabled}
 			<div

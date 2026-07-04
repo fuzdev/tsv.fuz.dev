@@ -73,6 +73,13 @@
 					expose its parser to JS - <code>@biomejs/js-api</code> offers only formatting and linting
 				</li>
 				<li>
+					Biome's native engine only ships as the <code>biome</code> CLI binary, not an embeddable
+					library - <code>@biomejs/js-api</code> wires up wasm builds only. Every other native entry
+					here (tsv, oxc-parser, oxfmt) is measured as an in-process library call, so a CLI binary
+					invoked as a subprocess isn't a comparable artifact and is excluded; only Biome's wasm
+					build is shown
+				</li>
+				<li>
 					tsv and tsv_wasm include a parser and formatter for Svelte/HTML, TypeScript/JS, and CSS
 				</li>
 				<li>
@@ -138,6 +145,12 @@
 					within a runtime tier: wasm vs wasm, or native vs native.
 				</li>
 				<li>
+					There's no native Biome entry: its native engine ships only as the <code>biome</code> CLI
+					binary, a separate process rather than an embeddable library, so it can't be timed
+					in-process the way tsv, oxc-parser, and oxfmt are. Biome's wasm build is the only one
+					measured.
+				</li>
+				<li>
 					Entries slower than the anchor read as a negative multiple — <code>-6.67x</code> means
 					6.67x slower, not a negative speed — so the factor is directly legible rather than a
 					fraction to invert.
@@ -171,9 +184,10 @@
 					them competitive.
 				</li>
 				<li>
-					Biome is absent from these parse comparisons — its <code>@biomejs/js-api</code> package
-					doesn't expose a parser to JS (only formatting and linting); Biome parses internally but
-					never surfaces the AST across the JS boundary, so there's nothing to benchmark here.
+					Biome is shown grayed-out across all three parse groups, holding its slot rather than
+					being omitted: its <code>@biomejs/js-api</code> package doesn't expose a parser to JS
+					(only formatting and linting) — Biome parses internally but never surfaces the AST across
+					the JS boundary, so there's nothing to time.
 				</li>
 				<li>
 					oxc-parser only parses TypeScript and JS, so it's shown grayed-out under Svelte and CSS —
