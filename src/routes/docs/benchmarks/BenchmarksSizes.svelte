@@ -2,11 +2,11 @@
 	import {
 		format_bytes,
 		format_gzip_size,
-		size_ratio_color,
 		derive_size_groups,
+		type BaselineRow,
 		type BinarySize,
 	} from './benchmark_data.ts';
-	import BenchmarksBar from './BenchmarksBar.svelte';
+	import BenchmarksBaselineGroup from './BenchmarksBaselineGroup.svelte';
 
 	const {
 		sizes,
@@ -24,30 +24,34 @@
 	// column and its bar-track renders wider than its siblings'
 	const has_gzip = (entries: ReadonlyArray<{gzip_bytes: number | null}>) =>
 		entries.some((e) => e.gzip_bytes != null);
+
+	const to_rows = (group: (typeof size_groups)[number]): Array<BaselineRow> => {
+		const group_has_gzip = has_gzip(group.entries);
+		return group.entries.map((s) => ({
+			key: s.label,
+			label: s.label,
+			category: s.category,
+			bar_fraction: s.bar_fraction,
+			value: format_bytes(s.bytes),
+			raw: s.bytes,
+			annotation: s.disabled
+				? group_has_gzip
+					? 'n/a'
+					: undefined
+				: format_gzip_size(s.gzip_bytes),
+			disabled: s.disabled ?? false,
+		}));
+	};
 </script>
 
 {#each size_groups as group (group.capability)}
-	{@const group_has_gzip = has_gzip(group.entries)}
 	<div class="size-group">
 		<h3>{group.heading}</h3>
-		<div class="column gap_xs">
-			{#each group.entries as s (s.label)}
-				<BenchmarksBar
-					label={s.label}
-					bar_fraction={s.bar_fraction}
-					category={s.category}
-					value={format_bytes(s.bytes)}
-					ratio_text={s.ratio_vs_min != null ? `${s.ratio_vs_min.toFixed(1)}x` : '1.0x'}
-					ratio_color={s.ratio_vs_min != null ? size_ratio_color(s.ratio_vs_min) : 'var(--text_40)'}
-					annotation={s.disabled
-						? group_has_gzip
-							? 'n/a'
-							: undefined
-						: format_gzip_size(s.gzip_bytes)}
-					disabled={s.disabled}
-				/>
-			{/each}
-		</div>
+		<BenchmarksBaselineGroup
+			rows={to_rows(group)}
+			default_anchor_key={group.anchor_label}
+			direction="size"
+		/>
 	</div>
 {/each}
 

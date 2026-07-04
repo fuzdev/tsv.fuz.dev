@@ -15,6 +15,8 @@
 		ratio_color,
 		annotation,
 		disabled = false,
+		on_enter,
+		on_leave,
 	}: {
 		label: string;
 		bar_fraction: number;
@@ -28,6 +30,10 @@
 		// a grayed-out, inert placeholder (a tool that doesn't run in this group) —
 		// no bar, no value, no ratio, just the label held in its shared slot
 		disabled?: boolean;
+		// hover-to-rebaseline: fired when the pointer enters/leaves the row so the
+		// group can adopt this row as its ratio anchor; omitted on inert placeholders
+		on_enter?: (() => void) | undefined;
+		on_leave?: (() => void) | undefined;
 	} = $props();
 
 	// the parenthesized binding suffix (`(wasm)`/`(napi)`) describes how the tool
@@ -42,7 +48,17 @@
 	);
 </script>
 
-<div class="bar-row" class:has-annotation={annotation != null} class:disabled>
+<!-- the hover handlers only re-baseline the group's ratios — a non-essential
+	visual aid over data that's fully visible regardless, with the default anchor
+	serving keyboard and no-hover users — so the row stays presentational -->
+<!-- svelte-ignore a11y_no_static_element_interactions -->
+<div
+	class="bar-row"
+	class:has-annotation={annotation != null}
+	class:disabled
+	onmouseenter={on_enter}
+	onmouseleave={on_leave}
+>
 	<span class="bar-label">{display_label}</span>
 	<div class="bar-track">
 		{#if !disabled}
@@ -74,13 +90,21 @@
 		grid-template-columns: 16rem 1fr 5.6rem 3.4rem;
 		align-items: center;
 		gap: var(--space_sm);
-		height: 2rem;
+		/* rows sit flush (no inter-row gap) with a little padding, so the hover
+		 * highlight reads as one contiguous, full-height band per row */
+		padding-block: var(--space_xs);
+		border-radius: var(--border_radius_xs);
 	}
 	.bar-row.has-annotation {
 		grid-template-columns: 16rem 1fr 5.6rem 6rem 3.4rem;
 	}
 	.bar-row.disabled {
 		opacity: 0.6;
+	}
+	/* hovering an enabled row makes it the group's ratio anchor (driven in JS); the
+	 * highlight marks which row every ratio in the group is now measured against */
+	.bar-row:not(.disabled):hover {
+		background-color: var(--fg_10);
 	}
 	.bar-annotation {
 		font-size: var(--font_size_xs);

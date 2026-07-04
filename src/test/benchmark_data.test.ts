@@ -4,6 +4,7 @@ import {benchmarks_json} from '$routes/docs/benchmarks/benchmarks.ts';
 import {benchmarks_cross_runtime_json} from '$routes/docs/benchmarks/benchmarks_cross_runtime.ts';
 import {
 	categorize_size_capability,
+	compute_baseline_ratio,
 	derive_benchmark_groups,
 	derive_cross_runtime_groups,
 	derive_size_groups,
@@ -68,14 +69,13 @@ describe('benchmarks.json shape', () => {
 		for (const language of ['svelte', 'css']) {
 			const group = parse(language);
 			assert.ok(group, `${language} parse group missing`);
-			const oxc = group!.entries.filter((e) => e.category === 'oxc');
+			const oxc = group.entries.filter((e) => e.category === 'oxc');
 			assert.strictEqual(oxc.length, ts_oxc.length, `${language} oxc placeholder count`);
 			for (const e of oxc) {
 				assert.ok(e.disabled, `${language} ${e.name} should be disabled`);
 				assert.strictEqual(e.bar_fraction, 0, `${language} ${e.name} bar`);
-				assert.isUndefined(e.speedup_vs_anchor, `${language} ${e.name} speedup`);
 			}
-			const names = group!.entries.map((e) => e.name);
+			const names = group.entries.map((e) => e.name);
 			const first_oxc = names.findIndex((n) => n.includes('oxc'));
 			const last_json = names.reduce((idx, n, i) => (n.endsWith('-json') ? i : idx), -1);
 			// last_json + 1 is the biome placeholder, so oxc starts one slot further
@@ -94,7 +94,6 @@ describe('benchmarks.json shape', () => {
 			assert.ok(entry, `${language} biome entry missing`);
 			assert.ok(entry.disabled, `${language} biome entry should be disabled`);
 			assert.strictEqual(entry.bar_fraction, 0, `${language} biome bar`);
-			assert.isUndefined(entry.speedup_vs_anchor, `${language} biome speedup`);
 
 			// slotted just after the JS-materializing `*-json` entries
 			const names = group.entries.map((e) => e.name);
@@ -131,19 +130,13 @@ describe('benchmarks.json shape', () => {
 			for (const e of group.entries) {
 				assert.strictEqual(categorize_size_capability(e.label), group.capability);
 			}
-			// exactly one real entry anchors the group — the smallest build — reading
-			// 1.0x (undefined ratio); every other real entry is a multiple ≥ 1 of it.
-			// disabled placeholders (e.g. oxfmt's absent wasm build) carry no ratio either
+			// the group's default ratio anchor (its 1.0x row) is the single smallest
+			// real build, recorded as `anchor_label`; the shared component reads every
+			// ratio from it. Disabled placeholders (e.g. oxfmt's absent wasm build)
+			// never anchor.
 			const real = group.entries.filter((e) => !e.disabled);
 			const smallest = real.reduce((a, b) => (a.bytes <= b.bytes ? a : b));
-			const anchors = real.filter((e) => e.ratio_vs_min === undefined);
-			assert.deepStrictEqual(anchors, [smallest], `${group.capability} single smallest anchor`);
-			for (const e of real) {
-				if (e !== smallest) {
-					assert.isDefined(e.ratio_vs_min, `${e.label} ratio`);
-					assert.isAtLeast(e.ratio_vs_min!, 1, `${e.label} ratio ≥ 1`);
-				}
-			}
+			assert.strictEqual(group.anchor_label, smallest.label, `${group.capability} smallest anchor`);
 		}
 		// the parser group pits tsv against oxc-parser in both kinds
 		const parser = groups.find((g) => g.capability === 'parser');
@@ -163,13 +156,12 @@ describe('benchmarks.json shape', () => {
 		const oxc_parser = sizes.find((s) => s.label === 'oxc-parser (napi)');
 		const oxfmt = sizes.find((s) => s.label === 'oxfmt (napi)');
 		assert.ok(oxc_parser && oxfmt, 'source oxc builds missing');
-		assert.strictEqual(combined!.bytes, oxc_parser!.bytes + oxfmt!.bytes);
-		assert.strictEqual(combined!.gzip_bytes, oxc_parser!.gzip_bytes! + oxfmt!.gzip_bytes!);
+		assert.strictEqual(combined.bytes, oxc_parser.bytes + oxfmt.bytes);
+		assert.strictEqual(combined.gzip_bytes, oxc_parser.gzip_bytes! + oxfmt.gzip_bytes!);
 
-		// native build, colored as oxc, and ratioed against the group's smallest build
-		assert.strictEqual(combined!.kind, 'native');
-		assert.strictEqual(combined!.category, 'oxc');
-		assert.isDefined(combined!.ratio_vs_min);
+		// native build, colored as oxc
+		assert.strictEqual(combined.kind, 'native');
+		assert.strictEqual(combined.category, 'oxc');
 	});
 
 	test('formatter group gets a disabled oxfmt (wasm) placeholder just above oxfmt (napi), since oxfmt has no wasm build', () => {
@@ -183,7 +175,6 @@ describe('benchmarks.json shape', () => {
 		assert.strictEqual(placeholder.kind, 'wasm');
 		assert.strictEqual(placeholder.category, 'oxc');
 		assert.strictEqual(placeholder.bar_fraction, 0);
-		assert.isUndefined(placeholder.ratio_vs_min);
 
 		const labels = formatter.entries.map((e) => e.label);
 		const placeholder_index = labels.indexOf(OXFMT_WASM_LABEL);
@@ -214,6 +205,20 @@ describe('format_speedup_signed', () => {
 		assert.strictEqual(format_speedup_signed(0.15), '-6.67x');
 		assert.strictEqual(format_speedup_signed(0.05), '-20.0x'); // >= 10 magnitude → one decimal
 		assert.strictEqual(format_speedup_signed(0.98), '-1.02x'); // near-parity sign flip
+	});
+});
+
+describe('compute_baseline_ratio', () => {
+	test('speed reads the anchor as the reference — faster entries exceed 1', () => {
+		// anchor 100ns; a 50ns entry is 2x faster, a 200ns entry is half the speed
+		assert.strictEqual(compute_baseline_ratio('speed', 50, 100), 2);
+		assert.strictEqual(compute_baseline_ratio('speed', 200, 100), 0.5);
+	});
+
+	test('size reads the anchor as the reference — bigger entries exceed 1', () => {
+		// anchor 100 bytes; a 300-byte build is 3x bigger, a 50-byte build is half
+		assert.strictEqual(compute_baseline_ratio('size', 300, 100), 3);
+		assert.strictEqual(compute_baseline_ratio('size', 50, 100), 0.5);
 	});
 });
 

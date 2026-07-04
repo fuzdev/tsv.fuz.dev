@@ -103,6 +103,7 @@ Key files in `src/routes/docs/benchmarks/`:
 - `benchmark_data.ts` — TypeScript types matching the JSON format
 - `benchmarks.ts` — re-exports the JSON with types
 - `BenchmarksBar.svelte`, `BenchmarksGroup.svelte`, etc. — visualization components
+- `BenchmarksBaselineGroup.svelte` — shared interactive column behind the format, parse, and binary-size groups: hovering a row re-baselines that group's ratios (each of the three groups per section is independent), restoring the default anchor (the canonical reference — Prettier for format, the JS baseline for parse — and the smallest build for size) on mouseleave. `benchmark_data.ts`'s `compute_baseline_ratio`/`format_baseline_ratio`/`baseline_ratio_color` carry the per-`BaselineDirection` (`speed`/`size`) formulas it and the derivations share
 
 ## Architecture
 

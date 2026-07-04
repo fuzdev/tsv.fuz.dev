@@ -75,6 +75,10 @@ export interface BenchmarkGroup {
 	language: string;
 	entries: Array<BenchmarkDisplayEntry>;
 	canonical_entry: BenchmarkDisplayEntry | undefined;
+	// name of the entry the ratios anchor on by default — the canonical reference
+	// (Prettier for format, the JS baseline for parse), the group's first row. The
+	// hover-to-rebaseline UI restores this anchor when the pointer leaves the group.
+	anchor_name: string | undefined;
 	// files the timed benchmark actually iterated (the per-group intersection);
 	// null on older baselines (< version 4) that don't carry `files_iterated`
 	files_iterated: number | null;
@@ -84,10 +88,6 @@ export interface BenchmarkDisplayEntry {
 	name: string;
 	mean_ns: number;
 	bar_fraction: number;
-	// speed relative to the group's anchor: `biome-wasm` for format groups (so its
-	// bar reads 1.0x and the rest read relative to it), the canonical JS baseline
-	// for parse groups; undefined on the anchor itself and on disabled placeholders
-	speedup_vs_anchor: number | undefined;
 	category: ImplementationCategory;
 	files_processed: number | null;
 	files_total: number | null;
@@ -168,42 +168,30 @@ export const derive_benchmark_groups = (baseline: BenchmarkBaseline): Array<Benc
 		const parts = group_key.split('/');
 		const operation = parts[0]!;
 		const language = parts[1]!;
+		// The group's default ratio anchor is its canonical reference — Prettier for
+		// format, the JS baseline (svelte/compiler, acorn-typescript) for parse — which
+		// the sort below pins first, so each group's leading row reads 1.0x and the rest
+		// read relative to it. (Size groups anchor on their smallest build; see
+		// `derive_size_groups`.) It's recorded as `anchor_name`; the shared component
+		// owns every ratio, and hovering a row re-baselines the group onto that row.
 		const canonical_name = CANONICAL_BY_GROUP[group_key];
 		const canonical_entry_raw = entries.find((e) => e.name === canonical_name);
 		const slowest = Math.max(...entries.map((e) => e.mean_ns));
-
-		// Format groups anchor their speed ratios on `biome-wasm` — a fast
-		// native-engine formatter compiled to wasm, a tougher yardstick than the
-		// slow JS Prettier baseline — so its bar reads 1.0x and the rest read
-		// relative to it. Parse groups stay anchored on the canonical JS baseline.
-		// Fall back to the canonical entry if the preferred anchor isn't present.
-		const anchor_name = operation === 'format' ? 'biome-wasm' : canonical_name;
-		const anchor_entry_raw = entries.find((e) => e.name === anchor_name) ?? canonical_entry_raw;
 
 		const display_entries: Array<BenchmarkDisplayEntry> = entries.map((e) => ({
 			name: e.name,
 			mean_ns: e.mean_ns,
 			bar_fraction: slowest > 0 ? e.mean_ns / slowest : 0,
-			speedup_vs_anchor:
-				anchor_entry_raw && e !== anchor_entry_raw
-					? anchor_entry_raw.mean_ns / e.mean_ns
-					: undefined,
 			category: categorize_name(e.name),
 			files_processed: e.files_processed ?? null,
 			files_total: e.files_total ?? null,
 		}));
 
-		// Sort: canonical first, then (format groups only) biome always second - it's
-		// the format speed anchor, so pinning its slot keeps the anchor row in a
-		// stable place regardless of how its relative speed shifts run to run - then
-		// the rest by mean_ns descending (slowest first for visual)
+		// Sort: canonical (the anchor) first so every group's 1.0x row leads, then the
+		// rest by mean_ns descending (slowest first for visual)
 		display_entries.sort((a, b) => {
 			if (a.category === 'canonical' && b.category !== 'canonical') return -1;
 			if (b.category === 'canonical' && a.category !== 'canonical') return 1;
-			if (operation === 'format') {
-				if (a.category === 'biome' && b.category !== 'biome') return -1;
-				if (b.category === 'biome' && a.category !== 'biome') return 1;
-			}
 			return b.mean_ns - a.mean_ns;
 		});
 
@@ -215,6 +203,7 @@ export const derive_benchmark_groups = (baseline: BenchmarkBaseline): Array<Benc
 			language,
 			entries: display_entries,
 			canonical_entry: display_entries.find((e) => e.category === 'canonical'),
+			anchor_name: canonical_entry_raw?.name,
 			files_iterated: iterated_counts.length > 0 ? Math.max(...iterated_counts) : null,
 		});
 	}
@@ -250,7 +239,6 @@ export const derive_benchmark_groups = (baseline: BenchmarkBaseline): Array<Benc
 			name: 'biome-wasm',
 			mean_ns: 0,
 			bar_fraction: 0,
-			speedup_vs_anchor: undefined,
 			category: 'biome',
 			files_processed: null,
 			files_total: null,
@@ -262,7 +250,6 @@ export const derive_benchmark_groups = (baseline: BenchmarkBaseline): Array<Benc
 			? oxc_templates.map((e) => ({
 					...e,
 					bar_fraction: 0,
-					speedup_vs_anchor: undefined,
 					files_processed: null,
 					files_total: null,
 					disabled: true,
@@ -326,9 +313,6 @@ export const categorize_size_capability = (label: string): SizeCapability => {
 
 export interface SizeDisplayEntry extends BinarySize {
 	bar_fraction: number;
-	// size relative to the group's single smallest build (its one 1.0x baseline);
-	// undefined on that smallest build itself
-	ratio_vs_min: number | undefined;
 	category: ImplementationCategory;
 	// a grayed-out, inert placeholder for a build that doesn't exist (e.g. oxfmt's
 	// absent wasm build) — no bar, no size, just the label held in its slot. Absent
@@ -339,6 +323,9 @@ export interface SizeDisplayEntry extends BinarySize {
 export interface SizeCapabilityGroup {
 	capability: SizeCapability;
 	heading: string;
+	// label of the group's smallest build — the default ratio anchor (reads 1.0x).
+	// The hover-to-rebaseline UI restores it when the pointer leaves the group.
+	anchor_label: string | undefined;
 	entries: Array<SizeDisplayEntry>;
 }
 
@@ -405,7 +392,6 @@ export const derive_size_groups = (sizes: Array<BinarySize>): Array<SizeCapabili
 		const entries: Array<SizeDisplayEntry> = sorted.map((s) => ({
 			...s,
 			bar_fraction: max > 0 ? s.bytes / max : 0,
-			ratio_vs_min: anchor && s !== anchor ? s.bytes / anchor.bytes : undefined,
 			category: categorize_size(s.label),
 		}));
 		if (capability === 'formatter' && !entries.some((e) => e.label === OXFMT_WASM_LABEL)) {
@@ -416,13 +402,12 @@ export const derive_size_groups = (sizes: Array<BinarySize>): Array<SizeCapabili
 				kind: 'wasm',
 				gzip_bytes: null,
 				bar_fraction: 0,
-				ratio_vs_min: undefined,
 				category: categorize_size(OXFMT_WASM_LABEL),
 				disabled: true,
 			};
 			entries.splice(native_index === -1 ? entries.length : native_index, 0, placeholder);
 		}
-		groups.push({capability, heading, entries});
+		groups.push({capability, heading, anchor_label: anchor?.label, entries});
 	}
 	return groups;
 };
@@ -636,11 +621,17 @@ export const category_color = (category: ImplementationCategory): string => {
 	}
 };
 
-/** Returns a CSS color variable for a size ratio (inverted — bigger is worse). */
+/**
+ * Returns a CSS color variable for a size ratio (inverted — bigger is worse).
+ * Green is reserved for builds smaller than the baseline (ratio < 1, only reachable
+ * once a hover re-baselines onto a larger build); any build at or above the baseline
+ * reads yellow at the floor, ramping through orange to red as it grows.
+ */
 export const size_ratio_color = (ratio: number): string => {
-	if (ratio < 2) return 'var(--color_b_50)'; // green — similar
-	if (ratio < 5) return 'var(--color_e_50)'; // yellow — notably larger
-	return 'var(--color_c_50)'; // red — much larger
+	if (ratio < 1) return 'var(--color_b_50)'; // green — smaller than baseline
+	if (ratio < 3) return 'var(--color_e_50)'; // yellow — larger
+	if (ratio < 10) return 'var(--color_h_50)'; // orange — much larger
+	return 'var(--color_c_50)'; // red — enormous
 };
 
 /** Returns a CSS color variable for the speedup ratio. */
@@ -667,3 +658,55 @@ export const cross_runtime_ratio_background = (ratio: number): string => {
 	const color = ratio < 1 ? 'var(--color_c_50)' : 'var(--color_b_50)';
 	return `color-mix(in srgb, ${color} ${(alpha * 100).toFixed(1)}%, transparent)`;
 };
+
+// Interactive baseline (hover-to-rebaseline)
+
+/**
+ * Which way a group's ratio runs, so re-anchoring on hover stays consistent. A
+ * `speed` group (format/parse) reads its anchor as a reference speed — faster
+ * entries are positive multiples, slower ones negative (`format_speedup_signed` /
+ * `speedup_color`). A `size` group reads its anchor as a reference size — bigger
+ * builds are multiples ≥ 1 (`format_size_ratio` / `size_ratio_color`). The two
+ * ratios are reciprocals, which is exactly why one direction flag suffices.
+ */
+export type BaselineDirection = 'speed' | 'size';
+
+/** An entry's ratio against its group's anchor, in the group's direction. */
+export const compute_baseline_ratio = (
+	direction: BaselineDirection,
+	entry_raw: number,
+	anchor_raw: number,
+): number => (direction === 'speed' ? anchor_raw / entry_raw : entry_raw / anchor_raw);
+
+/** Plain size ratio (`2.3x`) — its own formatter since sizes never take the signed treatment. */
+export const format_size_ratio = (ratio: number): string => `${ratio.toFixed(1)}x`;
+
+/** Formats a baseline ratio for display in the given direction. */
+export const format_baseline_ratio = (direction: BaselineDirection, ratio: number): string =>
+	direction === 'speed' ? format_speedup_signed(ratio) : format_size_ratio(ratio);
+
+/** Color for a baseline ratio in the given direction. */
+export const baseline_ratio_color = (direction: BaselineDirection, ratio: number): string =>
+	direction === 'speed' ? speedup_color(ratio) : size_ratio_color(ratio);
+
+/**
+ * A normalized row for `BenchmarksBaselineGroup` — the shared hover-to-rebaseline
+ * column behind the format, parse, and binary-size groups. `raw` is the number the
+ * ratio derives from (mean ns for speed, bytes for size); `value` is its formatted
+ * display. Flattening the group-specific display entries to this one shape lets a
+ * single component own the anchor state for all three sections.
+ */
+export interface BaselineRow {
+	// stable identity for `#each` and anchor matching (the entry name / size label)
+	key: string;
+	// raw name/label; `BenchmarksBar` formats it for display
+	label: string;
+	category: ImplementationCategory;
+	bar_fraction: number;
+	value: FormattedUnit;
+	// the number the ratio derives from — mean ns (speed) or bytes (size)
+	raw: number;
+	annotation: string | undefined;
+	// grayed-out, inert placeholder — never an anchor, no hover highlight
+	disabled: boolean;
+}

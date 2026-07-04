@@ -2,11 +2,10 @@
 	import {
 		format_coverage,
 		format_ns,
-		format_speedup_signed,
-		speedup_color,
+		type BaselineRow,
 		type BenchmarkGroup,
 	} from './benchmark_data.ts';
-	import BenchmarksBar from './BenchmarksBar.svelte';
+	import BenchmarksBaselineGroup from './BenchmarksBaselineGroup.svelte';
 
 	const {
 		group,
@@ -26,6 +25,23 @@
 	const count_label = $derived(
 		group.files_iterated != null ? `${group.files_iterated} of ${total}` : `${total}`,
 	);
+
+	const rows: Array<BaselineRow> = $derived(
+		group.entries.map((e) => ({
+			key: e.name,
+			label: e.name,
+			category: e.category,
+			bar_fraction: e.bar_fraction,
+			value: format_ns(e.mean_ns),
+			raw: e.mean_ns,
+			annotation: e.disabled
+				? has_coverage
+					? 'n/a'
+					: undefined
+				: format_coverage(e.files_processed, e.files_total),
+			disabled: e.disabled ?? false,
+		})),
+	);
 </script>
 
 <div class="mb_xl5">
@@ -39,26 +55,5 @@
 				>files handled / total &nbsp;&middot;&nbsp; speed</span
 			>{/if}
 	</p>
-	<div class="column gap_xs">
-		{#each group.entries as entry (entry.name)}
-			<BenchmarksBar
-				label={entry.name}
-				bar_fraction={entry.bar_fraction}
-				category={entry.category}
-				value={format_ns(entry.mean_ns)}
-				disabled={entry.disabled}
-				ratio_text={entry.speedup_vs_anchor != null
-					? format_speedup_signed(entry.speedup_vs_anchor)
-					: '1.0x'}
-				ratio_color={entry.speedup_vs_anchor != null
-					? speedup_color(entry.speedup_vs_anchor)
-					: 'var(--text_40)'}
-				annotation={entry.disabled
-					? has_coverage
-						? 'n/a'
-						: undefined
-					: format_coverage(entry.files_processed, entry.files_total)}
-			/>
-		{/each}
-	</div>
+	<BenchmarksBaselineGroup {rows} default_anchor_key={group.anchor_name} direction="speed" />
 </div>

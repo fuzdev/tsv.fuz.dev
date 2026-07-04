@@ -87,11 +87,12 @@
 					and Svelte entries essentially re-measure Prettier minus a little wrapper overhead.
 				</li>
 				<li>
-					Speed is shown relative to <code>biome (wasm)</code> (the 1.0x anchor) — a fast
-					native-engine formatter compiled to wasm, a tougher and fairer yardstick than the slow JS
-					Prettier baseline. That anchor is a wasm build while the headline tsv entry is native, so
-					the headline ratio is a cross-tier comparison. For an engine-vs-engine read, compare
-					within a runtime tier: wasm vs wasm, or native vs native.
+					Speed is shown relative to <code>prettier</code> (the 1.0x anchor) — the canonical
+					reference every format entry is measured against, the same baseline the parse groups and
+					the summary above anchor on, so every section reads consistently. Prettier runs in JS
+					while the headline tsv entry is native, so the headline ratio is a cross-tier comparison;
+					for an engine-vs-engine read, compare within a runtime tier: wasm vs wasm, or native vs
+					native.
 				</li>
 				<li>
 					There's no native Biome entry: its native engine ships only as the <code>biome</code> CLI
