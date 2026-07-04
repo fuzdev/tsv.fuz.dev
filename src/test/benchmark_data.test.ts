@@ -9,6 +9,7 @@ import {
 	derive_size_groups,
 	derive_speedup_summary,
 	format_speedup_signed,
+	OXFMT_WASM_LABEL,
 } from '$routes/docs/benchmarks/benchmark_data.ts';
 
 // Shape gate for the committed benchmarks.json: the bench report format drifts
@@ -20,10 +21,10 @@ describe('benchmarks.json shape', () => {
 		assert.isAtLeast(benchmarks_json.version, 4);
 	});
 
-	test('binary sizes include the ratio anchors', () => {
+	test('binary sizes include the flagship tsv builds', () => {
 		const labels = benchmarks_json.binary_sizes.map((s) => s.label);
-		assert.include(labels, 'tsv (napi)'); // native anchor (flagship N-API build)
-		assert.include(labels, 'tsv_wasm'); // wasm anchor (the full build)
+		assert.include(labels, 'tsv (napi)'); // flagship N-API build (perf report anchor)
+		assert.include(labels, 'tsv_wasm'); // the full wasm build — smallest full-toolchain, size baseline
 	});
 
 	test('versions carries the keys the meta component renders', () => {
@@ -117,7 +118,7 @@ describe('benchmarks.json shape', () => {
 		}
 	});
 
-	test('binary sizes group by capability with per-kind ratio anchors', () => {
+	test('binary sizes group by capability with one smallest-build ratio anchor', () => {
 		const groups = derive_size_groups(benchmarks_json.binary_sizes);
 		// full / formatter / parser, in that order, all present in the current data
 		assert.deepStrictEqual(
@@ -130,15 +131,17 @@ describe('benchmarks.json shape', () => {
 			for (const e of group.entries) {
 				assert.strictEqual(categorize_size_capability(e.label), group.capability);
 			}
-			// each kind's tsv build anchors that kind's ratios (undefined on itself)
-			for (const kind of ['wasm', 'native'] as const) {
-				const of_kind = group.entries.filter((e) => e.kind === kind);
-				const anchor = of_kind.find(
-					(e) => e.ratio_vs_tsv === undefined && e.label.startsWith('tsv'),
-				);
-				if (of_kind.length > 1) assert.ok(anchor, `${group.capability}/${kind} has no tsv anchor`);
-				for (const e of of_kind) {
-					if (e !== anchor) assert.isDefined(e.ratio_vs_tsv, `${e.label} ratio`);
+			// exactly one real entry anchors the group — the smallest build — reading
+			// 1.0x (undefined ratio); every other real entry is a multiple ≥ 1 of it.
+			// disabled placeholders (e.g. oxfmt's absent wasm build) carry no ratio either
+			const real = group.entries.filter((e) => !e.disabled);
+			const smallest = real.reduce((a, b) => (a.bytes <= b.bytes ? a : b));
+			const anchors = real.filter((e) => e.ratio_vs_min === undefined);
+			assert.deepStrictEqual(anchors, [smallest], `${group.capability} single smallest anchor`);
+			for (const e of real) {
+				if (e !== smallest) {
+					assert.isDefined(e.ratio_vs_min, `${e.label} ratio`);
+					assert.isAtLeast(e.ratio_vs_min!, 1, `${e.label} ratio ≥ 1`);
 				}
 			}
 		}
@@ -163,10 +166,34 @@ describe('benchmarks.json shape', () => {
 		assert.strictEqual(combined!.bytes, oxc_parser!.bytes + oxfmt!.bytes);
 		assert.strictEqual(combined!.gzip_bytes, oxc_parser!.gzip_bytes! + oxfmt!.gzip_bytes!);
 
-		// native build, colored as oxc, and ratioed against tsv's native flagship
+		// native build, colored as oxc, and ratioed against the group's smallest build
 		assert.strictEqual(combined!.kind, 'native');
 		assert.strictEqual(combined!.category, 'oxc');
-		assert.isDefined(combined!.ratio_vs_tsv);
+		assert.isDefined(combined!.ratio_vs_min);
+	});
+
+	test('formatter group gets a disabled oxfmt (wasm) placeholder just above oxfmt (napi), since oxfmt has no wasm build', () => {
+		const groups = derive_size_groups(benchmarks_json.binary_sizes);
+		const formatter = groups.find((g) => g.capability === 'formatter');
+		assert.ok(formatter, 'formatter group missing');
+
+		const placeholder = formatter.entries.find((e) => e.label === OXFMT_WASM_LABEL);
+		assert.ok(placeholder, 'oxfmt (wasm) placeholder missing');
+		assert.ok(placeholder.disabled, 'oxfmt (wasm) should be disabled');
+		assert.strictEqual(placeholder.kind, 'wasm');
+		assert.strictEqual(placeholder.category, 'oxc');
+		assert.strictEqual(placeholder.bar_fraction, 0);
+		assert.isUndefined(placeholder.ratio_vs_min);
+
+		const labels = formatter.entries.map((e) => e.label);
+		const placeholder_index = labels.indexOf(OXFMT_WASM_LABEL);
+		const native_index = labels.indexOf('oxfmt (napi)');
+		assert.isAbove(native_index, -1, 'oxfmt (napi) missing from formatter group');
+		assert.strictEqual(
+			placeholder_index,
+			native_index - 1,
+			'placeholder should sit just above oxfmt (napi)',
+		);
 	});
 
 	test('flagship report is the node runtime', () => {

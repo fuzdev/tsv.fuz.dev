@@ -57,57 +57,6 @@
 	</section>
 
 	<TomeSection>
-		<TomeSectionHeader text="Binary size" />
-		<p>
-			Rather than supporting many languages, tsv focuses on Svelte/HTML, TypeScript/JS, and CSS.
-			This lets it be smaller when it's all you need, a quality that's more relevant when used in
-			the browser via wasm.
-		</p>
-		<BenchmarksSizes sizes={benchmarks_json.binary_sizes} />
-		<aside class="mt_xl5">
-			<p>Important notes:</p>
-			<ul>
-				<li>apples-to-apples comparisons are difficult here because of differing scope</li>
-				<li>
-					Biome includes a parser, formatter, and linter supporting many languages, but doesn't
-					expose its parser to JS - <code>@biomejs/js-api</code> offers only formatting and linting
-				</li>
-				<li>
-					Biome's native engine only ships as the <code>biome</code> CLI binary, not an embeddable
-					library - <code>@biomejs/js-api</code> wires up wasm builds only. Every other native entry
-					here (tsv, oxc-parser, oxfmt) is measured as an in-process library call, so a CLI binary
-					invoked as a subprocess isn't a comparable artifact and is excluded; only Biome's wasm
-					build is shown
-				</li>
-				<li>
-					tsv and tsv_wasm include a parser and formatter for Svelte/HTML, TypeScript/JS, and CSS
-				</li>
-				<li>
-					oxc-parser only parses TypeScript and JS, not CSS or HTML; oxfmt is its separate formatter
-				</li>
-				<li>
-					the <code>oxc-parser + oxfmt</code> entry under Full toolchain sums oxc's separate parser
-					and formatter packages, since together they're the closest equivalent to tsv's single
-					parse+format build
-				</li>
-				<li>
-					that combined figure is a little unfair to oxc: oxfmt has to parse in order to format, so
-					it statically links its own copy of the same oxc parser - but it doesn't depend on the
-					<code>oxc-parser</code> package or expose parsing through its own API (only
-					<code>format</code>). The two are independently compiled, so summing them double-counts
-					the parser's compiled code once per binary, inflating the total past what a single build
-					exposing both operations (like tsv's) would actually need
-				</li>
-				<li>oxfmt has no wasm build as of June 2026</li>
-				<li>
-					tsv doesn't publish native artifacts yet, but it builds them for benchmarking - an N-API
-					addon for Node and Bun, and a C-FFI library for Deno
-				</li>
-			</ul>
-		</aside>
-	</TomeSection>
-
-	<TomeSection>
 		<TomeSectionHeader text="Speedier than Prettier" />
 		<BenchmarksSummary rows={speedup_rows} />
 	</TomeSection>
@@ -198,6 +147,60 @@
 					comparison to the other entries - they skip JS-side AST materialization entirely, so
 					they're included only to show tsv's own JSON-serialization overhead against its
 					non-internal entry.
+				</li>
+			</ul>
+		</aside>
+	</TomeSection>
+
+	<TomeSection>
+		<TomeSectionHeader text="Binary size" />
+		<p>
+			Rather than supporting many languages, tsv focuses on Svelte/HTML, TypeScript/JS, and CSS.
+			This lets it be smaller when it's all you need, a quality that's more relevant when used in
+			the browser via wasm.
+		</p>
+		<BenchmarksSizes sizes={benchmarks_json.binary_sizes} />
+		<aside class="mt_xl5">
+			<p>Important notes:</p>
+			<ul>
+				<li>apples-to-apples comparisons are difficult here because of differing scope</li>
+				<li>
+					Biome includes a parser, formatter, and linter supporting many languages, but doesn't
+					expose its parser to JS - <code>@biomejs/js-api</code> offers only formatting and linting
+				</li>
+				<li>
+					Biome's native engine only ships as the <code>biome</code> CLI binary, not an embeddable
+					library - <code>@biomejs/js-api</code> wires up wasm builds only. Every other native entry
+					here (tsv, oxc-parser, oxfmt) is measured as an in-process library call, so a CLI binary
+					invoked as a subprocess isn't a comparable artifact and is excluded; only Biome's wasm
+					build is shown
+				</li>
+				<li>
+					tsv and tsv_wasm include a parser and formatter for Svelte/HTML, TypeScript/JS, and CSS
+				</li>
+				<li>
+					oxc-parser only parses TypeScript and JS, not CSS or HTML; oxfmt is its separate formatter
+				</li>
+				<li>
+					the <code>oxc-parser + oxfmt</code> entry under Full toolchain sums oxc's separate parser
+					and formatter packages, since together they're the closest equivalent to tsv's single
+					parse+format build
+				</li>
+				<li>
+					that combined figure is a little unfair to oxc: oxfmt has to parse in order to format, so
+					it statically links its own copy of the same oxc parser - but it doesn't depend on the
+					<code>oxc-parser</code> package or expose parsing through its own API (only
+					<code>format</code>). The two are independently compiled, so summing them double-counts
+					the parser's compiled code once per binary, inflating the total past what a single build
+					exposing both operations (like tsv's) would actually need
+				</li>
+				<li>
+					oxfmt has no wasm build as of June 2026, so it's shown grayed-out under Formatter, holding
+					its slot beside <code>oxfmt (napi)</code>
+				</li>
+				<li>
+					tsv doesn't publish native artifacts yet, but it builds them for benchmarking - an N-API
+					addon for Node and Bun, and a C-FFI library for Deno
 				</li>
 			</ul>
 		</aside>

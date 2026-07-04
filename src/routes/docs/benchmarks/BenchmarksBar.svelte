@@ -55,7 +55,7 @@
 	</div>
 	<span class="bar-value">
 		{#if disabled}
-			<span class="text_40">—</span>
+			<span class="text_40">n/a</span>
 		{:else}
 			{value.value} <span class="text_50">{value.unit}</span>
 		{/if}

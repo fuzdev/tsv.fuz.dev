@@ -326,10 +326,14 @@ export const categorize_size_capability = (label: string): SizeCapability => {
 
 export interface SizeDisplayEntry extends BinarySize {
 	bar_fraction: number;
-	// size relative to tsv's build of the SAME kind (wasm vs wasm, native vs
-	// native) — undefined for the anchor itself and where tsv has no same-kind build
-	ratio_vs_tsv: number | undefined;
+	// size relative to the group's single smallest build (its one 1.0x baseline);
+	// undefined on that smallest build itself
+	ratio_vs_min: number | undefined;
 	category: ImplementationCategory;
+	// a grayed-out, inert placeholder for a build that doesn't exist (e.g. oxfmt's
+	// absent wasm build) — no bar, no size, just the label held in its slot. Absent
+	// on real, measured entries.
+	disabled?: boolean;
 }
 
 export interface SizeCapabilityGroup {
@@ -346,6 +350,9 @@ const SIZE_CAPABILITY_ORDER: ReadonlyArray<{capability: SizeCapability; heading:
 
 /** Display label for the synthesized combined oxc full-toolchain build. */
 export const OXC_FULL_LABEL = 'oxc-parser + oxfmt (napi)';
+
+/** Display label for oxfmt's absent wasm build placeholder — see `derive_size_groups`. */
+export const OXFMT_WASM_LABEL = 'oxfmt (wasm)';
 
 /**
  * Synthesizes oxc's full-toolchain native build by summing its separately-shipped
@@ -372,10 +379,14 @@ const synthesize_oxc_full = (sizes: Array<BinarySize>): BinarySize | undefined =
 /**
  * Groups the binary sizes by capability (full / formatter / parser), each group
  * mixing wasm and native builds sorted smallest-first. Bars scale to the group's
- * largest build; the `vs tsv` ratio anchors on tsv's build of the same kind
- * (matching the node report's `tsv_wasm` / `tsv (napi)` anchors) so wasm compares
- * against wasm and native against native. A combined `oxc-parser + oxfmt` entry is
+ * largest build; the `vs` ratio anchors on the group's single smallest build, so
+ * exactly one entry reads 1.0x and every other is a multiple of it. (In the current
+ * data that smallest build is always one of tsv's, so tsv reads 1.0x and the heavier
+ * competitors read >1.0x.) A combined `oxc-parser + oxfmt` entry is
  * synthesized into the full-toolchain group, since oxc ships parse and format apart.
+ * oxfmt has no wasm build, so the formatter group gets a disabled `oxfmt (wasm)`
+ * placeholder slotted just above its real `oxfmt (napi)` entry, holding the slot
+ * rather than omitting it.
  */
 export const derive_size_groups = (sizes: Array<BinarySize>): Array<SizeCapabilityGroup> => {
 	const oxc_full = synthesize_oxc_full(sizes);
@@ -386,24 +397,31 @@ export const derive_size_groups = (sizes: Array<BinarySize>): Array<SizeCapabili
 		if (items.length === 0) continue;
 		const sorted = items.toSorted((a, b) => a.bytes - b.bytes);
 		const max = Math.max(0, ...items.map((s) => s.bytes));
-		const anchor_of = (kind: BinarySize['kind']): BinarySize | undefined => {
-			const pool = sorted.filter((s) => s.kind === kind);
-			return (
-				pool.find((s) => s.label === 'tsv_wasm' || s.label === 'tsv (napi)') ??
-				pool.find((s) => s.label.startsWith('tsv'))
-			);
-		};
-		const wasm_anchor = anchor_of('wasm');
-		const native_anchor = anchor_of('native');
-		const entries: Array<SizeDisplayEntry> = sorted.map((s) => {
-			const anchor = s.kind === 'wasm' ? wasm_anchor : native_anchor;
-			return {
-				...s,
-				bar_fraction: max > 0 ? s.bytes / max : 0,
-				ratio_vs_tsv: anchor && s !== anchor ? s.bytes / anchor.bytes : undefined,
-				category: categorize_size(s.label),
+		// one baseline per group: the smallest build reads 1.0x and every other build a
+		// multiple of it, so a mixed wasm/native group has a single anchor rather than
+		// the confusing pair a per-kind anchor produced (`sorted` is ascending, so its
+		// first entry is the smallest)
+		const anchor = sorted[0];
+		const entries: Array<SizeDisplayEntry> = sorted.map((s) => ({
+			...s,
+			bar_fraction: max > 0 ? s.bytes / max : 0,
+			ratio_vs_min: anchor && s !== anchor ? s.bytes / anchor.bytes : undefined,
+			category: categorize_size(s.label),
+		}));
+		if (capability === 'formatter' && !entries.some((e) => e.label === OXFMT_WASM_LABEL)) {
+			const native_index = entries.findIndex((e) => e.label === 'oxfmt (napi)');
+			const placeholder: SizeDisplayEntry = {
+				label: OXFMT_WASM_LABEL,
+				bytes: 0,
+				kind: 'wasm',
+				gzip_bytes: null,
+				bar_fraction: 0,
+				ratio_vs_min: undefined,
+				category: categorize_size(OXFMT_WASM_LABEL),
+				disabled: true,
 			};
-		});
+			entries.splice(native_index === -1 ? entries.length : native_index, 0, placeholder);
+		}
 		groups.push({capability, heading, entries});
 	}
 	return groups;

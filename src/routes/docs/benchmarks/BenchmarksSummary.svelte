@@ -13,7 +13,7 @@
 		>Prettier</a
 	>. We're very grateful for the hard work of its
 	<a href="https://github.com/prettier/prettier/graphs/contributors">contributors</a>. tsv offers a
-	speedup over Prettier:
+	speedup over Prettier (single-threaded):
 </p>
 <table>
 	<thead>
