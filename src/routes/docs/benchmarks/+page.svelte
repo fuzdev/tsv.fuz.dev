@@ -179,7 +179,12 @@
 					oxc-parser only parses TypeScript and JS, so it's shown grayed-out under Svelte and CSS —
 					holding its slot so the three parse groups line up entry-for-entry.
 				</li>
-				<li>Some parts of tsv are not well-optimized yet, particularly parsing CSS.</li>
+				<li>
+					<code>tsv internal (napi)</code> and <code>tsv_wasm internal</code> aren't a fair
+					comparison to the other entries - they skip JS-side AST materialization entirely, so
+					they're included only to show tsv's own JSON-serialization overhead against its
+					non-internal entry.
+				</li>
 			</ul>
 		</aside>
 	</TomeSection>
