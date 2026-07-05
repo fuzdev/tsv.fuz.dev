@@ -608,7 +608,7 @@ export const format_coverage = (
 	total: number | null | undefined,
 ): string | undefined => {
 	if (processed == null || total == null) return undefined;
-	return `${processed}/${total}`;
+	return `${processed} / ${total}`;
 };
 
 /**

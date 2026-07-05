@@ -40,7 +40,7 @@
 					></div>
 				</div>
 				<span class="coverage-count"
-					>{row.files_processed.toLocaleString('en-US')}/{row.files_total.toLocaleString(
+					>{row.files_processed.toLocaleString('en-US')} / {row.files_total.toLocaleString(
 						'en-US',
 					)}</span
 				>
@@ -78,13 +78,13 @@
 		transition: width 0.3s ease;
 	}
 	.coverage-count {
-		font-size: var(--font_size_xs);
+		font-size: var(--font_size_sm);
 		text-align: right;
 		font-variant-numeric: tabular-nums;
 		white-space: nowrap;
 	}
 	.coverage-percent {
-		font-size: var(--font_size_sm);
+		font-size: var(--font_size_md);
 		font-weight: 700;
 		text-align: right;
 		font-variant-numeric: tabular-nums;

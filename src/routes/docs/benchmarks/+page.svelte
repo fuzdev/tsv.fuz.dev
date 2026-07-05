@@ -164,7 +164,9 @@
 			Separate from the speed numbers above, this measures parse <em>coverage</em>: how much of a
 			much larger, deliberately hard corpus each parser accepts - the real-world code above plus
 			Prettier's format-test suites, Svelte's compiler test suite, CSS extracted from
-			web-platform-tests, and test262's expected-valid strict-mode tests.
+			<a href="https://github.com/web-platform-tests/wpt">web-platform-tests</a>, and <a
+				href="https://github.com/tc39/test262">test262</a
+			>'s expected-valid strict-mode tests.
 		</p>
 		<BenchmarksConformance groups={conformance_groups} />
 		<aside class="mt_xl5">
