@@ -33,18 +33,23 @@ export interface CorpusSource {
 export interface BaselineEntry {
 	name: string;
 	group: string;
-	mean_ns: number;
-	p50_ns: number;
-	p75_ns: number;
-	p90_ns: number;
-	p95_ns: number;
-	p99_ns: number;
-	min_ns: number;
-	max_ns: number;
-	std_dev_ns: number;
-	cv: number;
-	ops_per_second: number;
-	sample_size: number;
+	// Timing stats are `null` on a coverage-only report (the conformance surface
+	// the site refreshes from — parse coverage measured, timed phase skipped). A
+	// perf report always carries real numbers, and only the perf path
+	// (`derive_benchmark_groups`) reads these, so the nulls are unreachable there
+	// but must be expressed for the shared cast to stay sound.
+	mean_ns: number | null;
+	p50_ns: number | null;
+	p75_ns: number | null;
+	p90_ns: number | null;
+	p95_ns: number | null;
+	p99_ns: number | null;
+	min_ns: number | null;
+	max_ns: number | null;
+	std_dev_ns: number | null;
+	cv: number | null;
+	ops_per_second: number | null;
+	sample_size: number | null;
 	// Per-implementation preflight coverage: files this impl processed / the
 	// language's total discovered files. Present from baseline `version` 3 on;
 	// absent (or `null`) in older baselines.
@@ -176,12 +181,14 @@ export const derive_benchmark_groups = (baseline: BenchmarkBaseline): Array<Benc
 		// anchor; the shared component reads that default off the first row and
 		// recomputes every ratio, re-baselining onto whichever row is hovered. (Size
 		// groups lead with their smallest build; see `derive_size_groups`.)
-		const slowest = Math.max(...entries.map((e) => e.mean_ns));
+		// `?? 0` coerces the coverage-only null (unreachable on a perf report, the
+		// only kind this runs on) so the display entry's `mean_ns` stays a number.
+		const slowest = Math.max(...entries.map((e) => e.mean_ns ?? 0));
 
 		const display_entries: Array<BenchmarkDisplayEntry> = entries.map((e) => ({
 			name: e.name,
-			mean_ns: e.mean_ns,
-			bar_fraction: slowest > 0 ? e.mean_ns / slowest : 0,
+			mean_ns: e.mean_ns ?? 0,
+			bar_fraction: slowest > 0 ? (e.mean_ns ?? 0) / slowest : 0,
 			category: categorize_name(e.name),
 			files_processed: e.files_processed ?? null,
 			files_total: e.files_total ?? null,
@@ -333,7 +340,7 @@ export const derive_conformance_groups = (baseline: BenchmarkBaseline): Array<Co
 	return result;
 };
 
-/** Formats a coverage fraction as a percentage with one decimal (`97.4%`). */
+/** Formats a coverage fraction as a percentage with one decimal (`99.9%`). */
 export const format_coverage_percent = (fraction: number): string =>
 	`${(fraction * 100).toFixed(1)}%`;
 

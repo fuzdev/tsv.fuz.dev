@@ -177,8 +177,12 @@
 					native or wasm, so each tool appears once.
 				</li>
 				<li>
-					100% isn't the target: some suite inputs are intentionally invalid or use syntax that's
-					out of scope by design, so read the numbers relative to each other.
+					For Svelte, the corpus excludes the files svelte/compiler itself rejects, so its number is
+					100% by construction and the rest read as drop-in fidelity against it - higher is strictly
+					better. For TypeScript and CSS the canonical parser isn't a clean validity oracle
+					(acorn-typescript trails modern syntax, Svelte's CSS parser is lenient), so those suites
+					keep intentionally-invalid and out-of-scope inputs - read them relative to each other, not
+					as an absolute target.
 				</li>
 				<li>
 					Accepting a file says nothing about producing the <em>right</em> AST - tsv's output is
@@ -219,14 +223,13 @@
 					Biome's native engine only ships as the <code>biome</code> CLI binary, not an embeddable
 					library - <code>@biomejs/js-api</code> wires up wasm builds only. Every other native entry
 					here (tsv, oxc-parser, oxfmt) is measured as an in-process library call, so a CLI binary
-					invoked as a subprocess isn't a comparable artifact and is excluded; only Biome's wasm
-					build is shown
+					invoked as a subprocess isn't a comparable artifact and is excluded; therefore only
+					Biome's wasm build is included
 				</li>
+				<li>tsv and tsv_wasm include a parser and formatter for Svelte, TypeScript/JS, and CSS</li>
 				<li>
-					tsv and tsv_wasm include a parser and formatter for Svelte/HTML, TypeScript/JS, and CSS
-				</li>
-				<li>
-					oxc-parser only parses TypeScript and JS, not CSS or HTML; oxfmt is its separate formatter
+					oxc-parser only parses TypeScript and JS, not CSS or Svelte; oxfmt is its separate
+					formatter
 				</li>
 				<li>
 					the <code>oxc-parser + oxfmt</code> entry under Full toolchain sums oxc's separate parser

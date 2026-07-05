@@ -205,7 +205,8 @@ describe('benchmarks.json shape', () => {
 
 // Shape gate for the committed conformance report `benchmarks_conformance.json`
 // (tsv's `report.conformance.node.json` — the parse-coverage surface over the
-// full fixtures-included corpus), consumed by the Parse conformance section.
+// fixtures-included corpus, Svelte set minus canonical-rejects), consumed by the
+// Parse conformance section.
 describe('benchmarks_conformance.json shape', () => {
 	test('report is the conformance surface at the current version', () => {
 		assert.isAtLeast(benchmarks_conformance_json.version, 6);
