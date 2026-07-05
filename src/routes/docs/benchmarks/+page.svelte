@@ -12,6 +12,7 @@
 		derive_benchmark_groups,
 		derive_conformance_groups,
 		derive_speedup_summary,
+		format_corpus_source_files,
 	} from './benchmark_data.ts';
 	import BenchmarksSummary from './BenchmarksSummary.svelte';
 	import BenchmarksGroup from './BenchmarksGroup.svelte';
@@ -188,7 +189,7 @@
 					<summary>Corpus sources ({benchmarks_conformance_json.corpus_sources.length})</summary>
 					<ul>
 						{#each benchmarks_conformance_json.corpus_sources as source (source.path)}
-							<li><code>{source.path}</code> - {source.files.toLocaleString('en-US')} files</li>
+							<li><code>{source.path}</code> - {format_corpus_source_files(source)}</li>
 						{/each}
 					</ul>
 				</details>

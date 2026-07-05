@@ -24,6 +24,10 @@ export interface BenchmarkBaseline {
 export interface CorpusSource {
 	path: string;
 	files: number;
+	// Per-language split of `files` (svelte/typescript/css counts summing to
+	// `files`). Present on reports whose loader emitted it; older reports carry
+	// only the `files` total, so treat it as optional.
+	by_language?: Partial<Record<string, number>>;
 }
 
 export interface BaselineEntry {
@@ -605,6 +609,22 @@ export const format_coverage = (
 ): string | undefined => {
 	if (processed == null || total == null) return undefined;
 	return `${processed}/${total}`;
+};
+
+/**
+ * Formats a corpus source's file count as a per-language breakdown
+ * (`124 typescript, 15 svelte, 31 css`), largest language first and dropping
+ * zero-count languages. Falls back to the plain `N files` total when the report
+ * predates the per-language split (or lists no recognized language).
+ */
+export const format_corpus_source_files = (source: CorpusSource): string => {
+	const total = `${source.files.toLocaleString('en-US')} files`;
+	if (!source.by_language) return total;
+	const parts = Object.entries(source.by_language)
+		.filter((entry): entry is [string, number] => (entry[1] ?? 0) > 0)
+		.sort((a, b) => b[1] - a[1])
+		.map(([language, count]) => `${count.toLocaleString('en-US')} ${language}`);
+	return parts.length > 0 ? parts.join(', ') : total;
 };
 
 /**

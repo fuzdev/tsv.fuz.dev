@@ -142,12 +142,17 @@
 		position: relative;
 	}
 	.ast_output :global(.ast_copy) {
+		--font_size: var(--font_size_lg);
 		position: absolute;
 		top: var(--space_xs);
 		/* clear the pane's scrollbar */
 		right: var(--space_md);
 		z-index: 1;
 		background: var(--shade_00);
+	}
+	/* TODO hacky */
+	.ast_output :global(.ast_copy > div) {
+		width: auto !important;
 	}
 	.error {
 		color: var(--color_e_40);
