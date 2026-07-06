@@ -23,7 +23,9 @@
 	// subset of the discovered corpus; show "<timed> of <total>" when we have it,
 	// falling back to the corpus total on older baselines (< version 4)
 	const count_label = $derived(
-		group.files_iterated != null ? `${group.files_iterated} of ${total}` : `${total}`,
+		group.files_iterated != null
+			? `${group.files_iterated.toLocaleString('en-US')} of ${total.toLocaleString('en-US')}`
+			: total.toLocaleString('en-US'),
 	);
 
 	const rows: Array<BaselineRow> = $derived(

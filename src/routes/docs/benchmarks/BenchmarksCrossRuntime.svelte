@@ -32,7 +32,7 @@
 
 <div class="cross-runtime">
 	{#if report.mixed_vintage}
-		<aside>
+		<aside class="mixed-vintage">
 			⚠ The per-runtime reports backing these tables come from different commits/versions, so the
 			ratios are unreliable until every runtime is re-run.
 		</aside>
@@ -80,12 +80,17 @@
 		</div>
 	{/each}
 	<p class="text_40">
-		ops/sec (higher is faster); ratios are vs <code>{base}</code> (&gt; 1 = faster than {base}). A
+		sweeps/sec — one sweep is a full pass over the group's timed file set (higher is faster); ratios
+		are vs <code>{base}</code> (&gt; 1 = faster than {base}). A
 		<code>fail</code> is an implementation that runtime can't load (see notes above).
 	</p>
 </div>
 
 <style>
+	/* the warning red tint over fuz_css's base aside styling */
+	.mixed-vintage {
+		border-left-color: var(--color_c_50);
+	}
 	.group {
 		margin-bottom: var(--space_xl4);
 	}

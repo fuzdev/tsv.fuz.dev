@@ -40,9 +40,15 @@
 			<li>acorn-typescript {baseline.versions.acorn_ts}</li>
 			<li>prettier {baseline.versions.prettier}</li>
 			<li>prettier-plugin-svelte {baseline.versions.prettier_svelte}</li>
-			<li>oxc-parser {baseline.versions.oxc_parser}</li>
-			<li>oxfmt {baseline.versions.oxfmt}</li>
-			<li>biome {baseline.versions.biome}</li>
+			{#if baseline.versions.oxc_parser}
+				<li>oxc-parser {baseline.versions.oxc_parser}</li>
+			{/if}
+			{#if baseline.versions.oxfmt}
+				<li>oxfmt {baseline.versions.oxfmt}</li>
+			{/if}
+			{#if baseline.versions.biome}
+				<li>biome {baseline.versions.biome}</li>
+			{/if}
 		</ul>
 	</div>
 	<div class="meta-section">

@@ -12,6 +12,8 @@ import {
 	derive_size_groups,
 	derive_speedup_summary,
 	format_speedup_signed,
+	order_cross_runtime_runtimes,
+	OXC_FULL_LABEL,
 	OXFMT_WASM_LABEL,
 } from '$routes/docs/benchmarks/benchmark_data.ts';
 
@@ -170,7 +172,7 @@ describe('benchmarks.json shape', () => {
 		const sizes = benchmarks_json.binary_sizes;
 		const groups = derive_size_groups(sizes);
 		const full = groups.find((g) => g.capability === 'full');
-		const combined = full?.entries.find((e) => e.label === 'oxc-parser + oxfmt (napi)');
+		const combined = full?.entries.find((e) => e.label === OXC_FULL_LABEL);
 		assert.ok(combined, 'combined oxc entry missing from full toolchain group');
 
 		// its bytes and gzip are the sum of oxc's separate parser and formatter builds
@@ -287,6 +289,21 @@ describe('compute_baseline_ratio', () => {
 	});
 });
 
+describe('order_cross_runtime_runtimes', () => {
+	test('reorders the report storage order to node-first display order', () => {
+		assert.deepStrictEqual(order_cross_runtime_runtimes(['deno', 'node', 'bun']), [
+			'node',
+			'deno',
+			'bun',
+		]);
+	});
+
+	test('anchors on the next runtime in display order when node is absent', () => {
+		assert.deepStrictEqual(order_cross_runtime_runtimes(['bun', 'deno']), ['deno', 'bun']);
+		assert.deepStrictEqual(order_cross_runtime_runtimes([]), []);
+	});
+});
+
 // Shape gate for the committed cross-runtime `benchmarks_cross_runtime.json` (the
 // bench composer's combined `report.json`) — a different, slimmer shape than the
 // per-runtime baseline, consumed by the Cross-runtime section.
@@ -294,6 +311,10 @@ describe('benchmarks_cross_runtime.json shape', () => {
 	test('combined report carries the current version and kind', () => {
 		assert.isAtLeast(benchmarks_cross_runtime_json.version, 5);
 		assert.strictEqual(benchmarks_cross_runtime_json.kind, 'combined');
+		// the committed fixture must be same-vintage — if this trips, re-run every
+		// runtime and recompose rather than committing a mixed set (the site would
+		// show the unreliable-ratios warning banner)
+		assert.notStrictEqual(benchmarks_cross_runtime_json.mixed_vintage, true);
 	});
 
 	test('runtimes include the flagship and its cross-runtime peers', () => {

@@ -63,7 +63,8 @@ export interface BaselineEntry {
 	// Files this impl was actually timed on (the per-group intersection in
 	// default mode). Present from baseline `version` 4 on.
 	files_iterated?: number | null;
-	// Present from report `version` 5 on (matches the report's top-level).
+	// Present from report `version` 5 on (matches the report's top-level);
+	// not rendered, kept for parity.
 	runtime?: string;
 }
 
@@ -162,8 +163,7 @@ export const categorize_size = (label: string): ImplementationCategory => {
 	if (label.startsWith('tsv') && label.includes('wasm')) return 'tsv_wasm';
 	if (label.startsWith('tsv')) return 'tsv_native';
 	if (label.startsWith('biome')) return 'biome';
-	if (label.includes('oxc') || label.includes('oxfmt')) return 'oxc';
-	return 'oxc';
+	return 'oxc'; // oxc-parser / oxfmt, and any unrecognized label
 };
 
 // Primary tsv entry names for speedup summary (fair comparisons)
@@ -171,6 +171,11 @@ const PRIMARY_NATIVE_FORMAT = 'tsv';
 const PRIMARY_WASM_FORMAT = 'tsv_wasm';
 
 // Derivation functions
+
+// Shared display order for benchmark groups: format before parse, then by
+// language — used by the detailed, conformance, and cross-runtime views alike.
+const OPERATION_ORDER: Record<string, number> = {format: 0, parse: 1};
+const LANGUAGE_ORDER: Record<string, number> = {svelte: 0, typescript: 1, css: 2};
 
 export const derive_benchmark_groups = (baseline: BenchmarkBaseline): Array<BenchmarkGroup> => {
 	const grouped: Map<string, Array<BaselineEntry>> = new Map();
@@ -231,13 +236,10 @@ export const derive_benchmark_groups = (baseline: BenchmarkBaseline): Array<Benc
 		});
 	}
 
-	// Sort groups: format before parse, then by language
-	const LANG_ORDER: Record<string, number> = {svelte: 0, typescript: 1, css: 2};
-	const OP_ORDER: Record<string, number> = {format: 0, parse: 1};
 	result.sort(
 		(a, b) =>
-			(OP_ORDER[a.operation] ?? 9) - (OP_ORDER[b.operation] ?? 9) ||
-			(LANG_ORDER[a.language] ?? 9) - (LANG_ORDER[b.language] ?? 9),
+			(OPERATION_ORDER[a.operation] ?? 9) - (OPERATION_ORDER[b.operation] ?? 9) ||
+			(LANGUAGE_ORDER[a.language] ?? 9) - (LANGUAGE_ORDER[b.language] ?? 9),
 	);
 
 	// Neither `biome` nor (for svelte/css) `oxc-parser` has a real entry in every
@@ -372,8 +374,7 @@ export const derive_conformance_groups = (baseline: BenchmarkBaseline): Array<Co
 			rows,
 		});
 	}
-	const LANG_ORDER: Record<string, number> = {svelte: 0, typescript: 1, css: 2};
-	result.sort((a, b) => (LANG_ORDER[a.language] ?? 9) - (LANG_ORDER[b.language] ?? 9));
+	result.sort((a, b) => (LANGUAGE_ORDER[a.language] ?? 9) - (LANGUAGE_ORDER[b.language] ?? 9));
 	return result;
 };
 
@@ -574,9 +575,6 @@ export interface CrossRuntimeGroup {
 	rows: Array<CrossRuntimeDisplayRow>;
 }
 
-const CROSS_RUNTIME_LANG_ORDER: Record<string, number> = {svelte: 0, typescript: 1, css: 2};
-const CROSS_RUNTIME_OP_ORDER: Record<string, number> = {format: 0, parse: 1};
-
 // The combined report stores runtimes deno-first (matching the bench's
 // `report.md`); the site presents them node-first (the flagship N-API runtime),
 // then deno, then bun.
@@ -633,8 +631,8 @@ export const derive_cross_runtime_groups = (
 	}
 	result.sort(
 		(a, b) =>
-			(CROSS_RUNTIME_OP_ORDER[a.operation] ?? 9) - (CROSS_RUNTIME_OP_ORDER[b.operation] ?? 9) ||
-			(CROSS_RUNTIME_LANG_ORDER[a.language] ?? 9) - (CROSS_RUNTIME_LANG_ORDER[b.language] ?? 9),
+			(OPERATION_ORDER[a.operation] ?? 9) - (OPERATION_ORDER[b.operation] ?? 9) ||
+			(LANGUAGE_ORDER[a.language] ?? 9) - (LANGUAGE_ORDER[b.language] ?? 9),
 	);
 	return result;
 };
@@ -664,15 +662,16 @@ export const format_bytes = (bytes: number): FormattedUnit => {
 };
 
 /**
- * Formats per-implementation corpus coverage as `processed/total`, or
- * `undefined` when either value is missing (older baselines without coverage).
+ * Formats per-implementation corpus coverage as `processed / total`
+ * (thousands-grouped, e.g. `4,523 / 4,523`), or `undefined` when either value
+ * is missing (older baselines without coverage).
  */
 export const format_coverage = (
 	processed: number | null | undefined,
 	total: number | null | undefined,
 ): string | undefined => {
 	if (processed == null || total == null) return undefined;
-	return `${processed} / ${total}`;
+	return `${processed.toLocaleString('en-US')} / ${total.toLocaleString('en-US')}`;
 };
 
 /**
@@ -737,6 +736,9 @@ const LABEL_OVERRIDES: Record<string, string> = {
 	tsv: 'tsv (napi)',
 	'tsv-json': 'tsv json (napi)',
 	'tsv-json-no-locations': 'tsv json no-locations (napi)',
+	// the one tsv_wasm entry listed here: the generic formatting below would
+	// break the `no-locations` hyphen its native sibling deliberately keeps
+	'tsv_wasm-json-no-locations': 'tsv_wasm json no-locations',
 	'tsv-internal': 'tsv internal (napi)',
 	'oxc-parser': 'oxc-parser (napi)',
 	oxfmt: 'oxfmt (napi)',
