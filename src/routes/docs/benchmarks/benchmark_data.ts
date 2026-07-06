@@ -300,9 +300,24 @@ const CONFORMANCE_ENGINE_NAMES: Record<string, string> = {
 };
 
 /**
+ * Fixed row order for the conformance groups, applied across every language so a
+ * reader scans one tool down the page and tsv stays prominent (leading each
+ * group). Values are the post-mapping display names from `CONFORMANCE_ENGINE_NAMES`;
+ * a tool absent from a language (e.g. `oxc-parser` under svelte/css) simply doesn't
+ * appear. Any unmapped name sorts last.
+ */
+const CONFORMANCE_ROW_ORDER = ['tsv', 'svelte/compiler', 'acorn-typescript', 'oxc-parser'];
+
+const conformance_row_rank = (name: string): number => {
+	const index = CONFORMANCE_ROW_ORDER.indexOf(name);
+	return index === -1 ? CONFORMANCE_ROW_ORDER.length : index;
+};
+
+/**
  * Derives per-language parse-coverage groups from a conformance report
- * (`corpus_kind: 'conformance'` — parse groups only). Rows sort by coverage
- * descending; entries without coverage data are dropped.
+ * (`corpus_kind: 'conformance'` — parse groups only). Rows follow the fixed
+ * `CONFORMANCE_ROW_ORDER` (tsv first, same order in every group); entries without
+ * coverage data are dropped.
  */
 export const derive_conformance_groups = (baseline: BenchmarkBaseline): Array<ConformanceGroup> => {
 	const by_language: Map<string, Array<ConformanceRow>> = new Map();
@@ -328,7 +343,9 @@ export const derive_conformance_groups = (baseline: BenchmarkBaseline): Array<Co
 
 	const result: Array<ConformanceGroup> = [];
 	for (const [language, rows] of by_language) {
-		rows.sort((a, b) => b.coverage_fraction - a.coverage_fraction || a.name.localeCompare(b.name));
+		rows.sort(
+			(a, b) => conformance_row_rank(a.name) - conformance_row_rank(b.name) || a.name.localeCompare(b.name),
+		);
 		result.push({
 			language,
 			files_total: Math.max(0, ...rows.map((r) => r.files_total)),

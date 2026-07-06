@@ -30,6 +30,9 @@
 	const conformance_groups = derive_conformance_groups(benchmarks_conformance_json);
 
 	const corpus = $derived(benchmarks_json.corpus);
+	// Derived from the report so the "What's measured" figure can't drift from the
+	// copied data (the report carries per-language file counts, not bytes).
+	const corpus_file_count = $derived(Object.values(corpus).reduce((sum, n) => sum + n, 0));
 	const format_groups = groups.filter((g) => g.operation === 'format');
 	const parse_groups = groups.filter((g) => g.operation === 'parse');
 </script>
@@ -265,7 +268,7 @@
 			at once, which most of these tools (tsv included) can do.
 		</p>
 		<p class="mb_xl3">
-			What's measured: around 2,900 files (~17 MB) of <code>.svelte</code>,
+			What's measured: {corpus_file_count.toLocaleString('en-US')} files of <code>.svelte</code>,
 			<code>.ts</code>/<code>.js</code>, and <code>.css</code> - real-world code only, from two
 			sources: the fuz.dev libraries and apps, and upstream framework source (Svelte, SvelteKit, and
 			the svelte.dev site). Test files count as real code and stay in; fixture files (the formatter
