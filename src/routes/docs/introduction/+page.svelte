@@ -22,6 +22,14 @@ const formatted = format_svelte('<script>\\nconst   x=1\\n<\\/script>');`;
 	const parse_example = `import {parse_svelte, type Root} from '@fuzdev/tsv_parse_wasm';
 
 const ast: Root = parse_svelte('<script>const x = 1;<\\/script>');`;
+
+	const no_locations_example = `import {parse_typescript_no_locations, reconstruct_locations} from '@fuzdev/tsv_parse_wasm';
+
+// span-only AST: start/end offsets, no per-node loc (~46% smaller)
+const ast = parse_typescript_no_locations('const x = 1;');
+
+// derive line/column back when you need it, no re-parse
+reconstruct_locations(ast, 'const x = 1;');`;
 </script>
 
 <TomeContent {tome}>
@@ -73,6 +81,25 @@ const ast: Root = parse_svelte('<script>const x = 1;<\\/script>');`;
 				<code>parse_css</code> work the same way, and the parsers return Svelte-compatible JSON ASTs
 				with bundled TS types. Everything works zero-config in Node.js, Bun, and Deno (sync
 				auto-init); browsers and bundlers call <code>await init()</code> once first.
+			</p>
+		</TomeSection>
+		<TomeSection>
+			<TomeSectionHeader text="Span-only parsing" />
+			<p>
+				For TypeScript and Svelte, the parsers also emit a span-only AST that drops the per-node
+				<code>loc</code> (line/column) object — Svelte also drops <code>name_loc</code> — for a ~46%
+				smaller, faster-to-materialize result, mirroring acorn's <code>locations: false</code>. Line
+				and column stay derivable from the <code>start</code>/<code>end</code> offsets plus your source,
+				so nothing is lost when you have the source.
+			</p>
+			<Code lang="ts" content={no_locations_example} />
+			<p>
+				<code>reconstruct_locations(ast, source)</code> walks the tree and adds <code>loc</code>
+				back, mutating in place — exact for TypeScript, approximate for Svelte (it skips the parser's
+				own
+				<code>name_loc</code> and a couple of position quirks). For sparse lookups,
+				<code>create_locator(source)</code> reuses one line table across calls. CSS has no
+				<code>loc</code>, so there's no span-only variant for it.
 			</p>
 		</TomeSection>
 		<TomeSection>
