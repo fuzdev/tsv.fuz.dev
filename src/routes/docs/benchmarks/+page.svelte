@@ -125,10 +125,16 @@
 	<TomeSection>
 		<TomeSectionHeader text="Parse" />
 		<p class="mb_xl5">
-			The parse entries that build a full JS AST are directly comparable: tsv and oxc-parser both
-			serialize the AST to JSON in Rust and deserialize it in JS, native and wasm alike. The
-			tsv-internal and tsv_wasm-internal entries are tsv's parse-only numbers - they build the
-			native AST but skip JS-side materialization, so they show raw in-engine speed rather than a
+			The parse entries that build a full JS AST are comparable in mechanism: tsv and oxc-parser
+			both serialize the AST to JSON in Rust and deserialize it in JS, native and wasm alike. But
+			the deliverables differ — tsv's default wire (<code>tsv-json</code> / <code>tsv_wasm-json</code>)
+			carries a per-node <code>loc</code> (line/column) object that oxc-parser's default span-only
+			AST omits, and that <code>loc</code> is roughly half the wire bytes and most of its JSON.parse
+			cost. The <code>tsv-json-no-locations</code> / <code>tsv_wasm-json-no-locations</code> entries
+			drop it, emitting the same span-only shape oxc does, so <strong>those are the payload-matched,
+			apples-to-apples comparison with oxc-parser</strong> (line/column stays derivable from the
+			offsets plus source, so nothing is lost). The tsv-internal and tsv_wasm-internal entries build
+			the native AST but skip JS-side materialization, so they show raw in-engine speed rather than a
 			cross-tool comparison.
 		</p>
 		{#each parse_groups as group (group.language)}
@@ -150,6 +156,14 @@
 				<li>
 					oxc-parser only parses TypeScript and JS, so it's shown grayed-out under Svelte and CSS —
 					holding its slot so the three parse groups line up entry-for-entry.
+				</li>
+				<li>
+					<code>tsv-json-no-locations</code> / <code>tsv_wasm-json-no-locations</code> are the fair,
+					payload-matched comparison with oxc-parser: they emit tsv's span-only wire (offsets, no
+					per-node <code>loc</code>), matching oxc's default AST shape. The plain
+					<code>tsv-json</code> entries carry the richer <code>loc</code>-bearing drop-in AST that
+					Svelte's compiler consumes for sourcemaps — a strictly larger deliverable, so a slower
+					number that isn't an engine-speed difference.
 				</li>
 				<li>
 					<code>tsv internal (napi)</code> and <code>tsv_wasm internal</code> aren't a fair

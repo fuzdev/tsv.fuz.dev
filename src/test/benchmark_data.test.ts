@@ -100,10 +100,15 @@ describe('benchmarks.json shape', () => {
 			assert.ok(entry.disabled, `${language} biome entry should be disabled`);
 			assert.strictEqual(entry.bar_fraction, 0, `${language} biome bar`);
 
-			// slotted just after the JS-materializing `*-json` entries
+			// slotted just after the JS-materializing `*-json` entries (the
+			// `*-json-no-locations` span-only variants materialize the same way, so
+			// they belong to the same group)
 			const names = group.entries.map((e) => e.name);
 			const first_biome = names.findIndex((n) => n.includes('biome'));
-			const last_json = names.reduce((idx, n, i) => (n.endsWith('-json') ? i : idx), -1);
+			const last_json = names.reduce(
+				(idx, n, i) => (n.endsWith('-json') || n.endsWith('-no-locations') ? i : idx),
+				-1,
+			);
 			assert.strictEqual(
 				first_biome,
 				last_json + 1,
