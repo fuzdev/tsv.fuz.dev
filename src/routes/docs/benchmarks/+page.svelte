@@ -287,14 +287,14 @@
 			What's measured: {corpus_file_count.toLocaleString('en-US')} files of <code>.svelte</code>,
 			<code>.ts</code>/<code>.js</code>, and <code>.css</code> - real-world code only, from two
 			sources: the author's libraries, apps, and sites (the fuz.dev ecosystem plus personal
-			SvelteKit sites), and upstream framework source (Svelte, SvelteKit, and the svelte.dev
-			site). The CSS set also includes real-authored CSS extracted from those components'
+			SvelteKit sites), and upstream framework source (Svelte, SvelteKit, and the svelte.dev site).
+			The CSS set also includes real-authored CSS extracted from those components'
 			<code>&lt;style&gt;</code> blocks, concatenated per repo - standalone CSS files are rare in
-			this ecosystem, and the same bytes appear in the Svelte rows (rows are never summed).
-			Test files count as real code and stay in; fixture files (the formatter
-			test suites that used to be part of this corpus, and fixture subtrees inside the measured
-			repos) are excluded - deliberately tricky edge cases measure conformance, not typical
-			throughput, and are covered by the parse-conformance section above.
+			this ecosystem, and the same bytes appear in the Svelte rows (rows are never summed). Test
+			files count as real code and stay in; fixture files (the formatter test suites that used to be
+			part of this corpus, and fixture subtrees inside the measured repos) are excluded -
+			deliberately tricky edge cases measure conformance, not typical throughput, and are covered by
+			the parse-conformance section above.
 		</p>
 		<BenchmarksMeta baseline={benchmarks_json} />
 	</TomeSection>
