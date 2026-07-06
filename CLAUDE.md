@@ -58,8 +58,6 @@ tsv.fuz.dev is the public face of the tsv tool:
 
 ```
 src/
-├── lib/
-│   └── sample.ts             # placeholder constant (not yet wired up)
 ├── routes/
 │   ├── +page.svelte          # Home: hero, links to docs and benchmarks
 │   ├── +layout.svelte        # Root layout: fuz_css/fuz_code CSS, ThemeRoot, SiteState
