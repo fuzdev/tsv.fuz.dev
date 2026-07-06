@@ -89,19 +89,23 @@ npm run update-benchmarks
 ```
 
 Step 1 writes the per-runtime `benches/js/results/report.<runtime>.{json,md}`
-siblings plus the composed cross-runtime `report.{json,md}` (committed to tsv).
-Step 2 copies two of them: `report.node.json` → `benchmarks.json` and the
-composed `report.json` → `benchmarks_cross_runtime.json`. Note the script's
-source paths are hardcoded to `../tsv` — if the reports were generated in a
-different worktree, copy them into `~/dev/tsv` (or copy manually) first.
+siblings, the composed cross-runtime `report.{json,md}`, and the conformance
+coverage report `report.conformance.node.json` (committed to tsv).
+Step 2 copies three of them — `report.node.json` → `benchmarks.json`, the
+composed `report.json` → `benchmarks_cross_runtime.json`, and
+`report.conformance.node.json` → `benchmarks_conformance.json` — then runs
+`gro format` over the copies. Note the script's source paths are hardcoded to
+`../tsv` — if the reports were generated in a different worktree, copy them
+into `~/dev/tsv` (or copy manually) first.
 The JSON formats match the types in `benchmark_data.ts`.
 
 Key files in `src/routes/docs/benchmarks/`:
 
 - `benchmarks.json` — per-runtime Node report (copied from tsv)
 - `benchmarks_cross_runtime.json` — composed cross-runtime report (copied from tsv)
+- `benchmarks_conformance.json` — conformance parse-coverage report (copied from tsv)
 - `benchmark_data.ts` — TypeScript types matching the JSON format
-- `benchmarks.ts` — re-exports the JSON with types
+- `benchmarks.ts`, `benchmarks_cross_runtime.ts`, `benchmarks_conformance.ts` — re-export the JSON with types
 - `BenchmarksBar.svelte`, `BenchmarksGroup.svelte`, etc. — visualization components
 - `BenchmarksBaselineGroup.svelte` — shared interactive column behind the format, parse, and binary-size groups: hovering a row re-baselines that group's ratios (each of the three groups per section is independent), restoring the default anchor (the canonical reference — Prettier for format, the JS baseline for parse — and the smallest build for size) on mouseleave. `benchmark_data.ts`'s `compute_baseline_ratio`/`format_baseline_ratio`/`baseline_ratio_color` carry the per-`BaselineDirection` (`speed`/`size`) formulas it and the derivations share
 

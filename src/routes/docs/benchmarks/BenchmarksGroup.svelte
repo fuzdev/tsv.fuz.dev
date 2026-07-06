@@ -32,7 +32,9 @@
 			label: e.name,
 			category: e.category,
 			bar_fraction: e.bar_fraction,
-			value: format_ns(e.mean_ns),
+			// per-file mean when the baseline carries it (version 4+), falling back to
+			// the whole-sweep mean; ratios stay on the sweep mean via `raw`
+			value: format_ns(e.mean_per_file_ns ?? e.mean_ns),
 			raw: e.mean_ns,
 			annotation: e.disabled
 				? has_coverage
@@ -52,7 +54,7 @@
 			{group.language} files</span
 		>
 		{#if has_coverage}<span class="text_40" style:text-align="right"
-				>files handled / total &nbsp;&middot;&nbsp; speed</span
+				>files handled / total &nbsp;&middot;&nbsp; avg per file &nbsp;&middot;&nbsp; speed</span
 			>{/if}
 	</p>
 	<BenchmarksBaselineGroup {rows} direction="speed" />

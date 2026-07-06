@@ -127,15 +127,17 @@
 		<p class="mb_xl5">
 			The parse entries that build a full JS AST are comparable in mechanism: tsv and oxc-parser
 			both serialize the AST to JSON in Rust and deserialize it in JS, native and wasm alike. But
-			the deliverables differ — tsv's default wire (<code>tsv-json</code> / <code>tsv_wasm-json</code>)
-			carries a per-node <code>loc</code> (line/column) object that oxc-parser's default span-only
-			AST omits, and that <code>loc</code> is roughly half the wire bytes and most of its JSON.parse
-			cost. The <code>tsv-json-no-locations</code> / <code>tsv_wasm-json-no-locations</code> entries
-			drop it, emitting the same span-only shape oxc does, so <strong>those are the payload-matched,
-			apples-to-apples comparison with oxc-parser</strong> (line/column stays derivable from the
-			offsets plus source, so nothing is lost). The tsv-internal and tsv_wasm-internal entries build
-			the native AST but skip JS-side materialization, so they show raw in-engine speed rather than a
-			cross-tool comparison.
+			the deliverables differ — tsv's default wire (<code>tsv-json</code> / <code
+				>tsv_wasm-json</code
+			>) carries a per-node <code>loc</code> (line/column) object that oxc-parser's default
+			span-only AST omits, and that <code>loc</code> is roughly half the wire bytes and most of its
+			JSON.parse cost. The <code>tsv-json-no-locations</code> / <code
+				>tsv_wasm-json-no-locations</code
+			> entries drop it, emitting the same span-only shape oxc does, so <strong
+				>those are the payload-matched, apples-to-apples comparison with oxc-parser</strong
+			> (line/column stays derivable from the offsets plus source, so nothing is lost). The
+			tsv-internal and tsv_wasm-internal entries build the native AST but skip JS-side
+			materialization, so they show raw in-engine speed rather than a cross-tool comparison.
 		</p>
 		{#each parse_groups as group (group.language)}
 			<BenchmarksGroup {group} {corpus} />

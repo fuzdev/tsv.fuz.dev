@@ -1,7 +1,12 @@
-// Raw types matching the tsv bench.ts `Baseline` format
+// Raw types matching the tsv bench's per-runtime report format
+// (`benches/js/results/report.<runtime>.json` — the site's flagship detailed
+// view is the Node report, the N-API native path)
 
 export interface BenchmarkBaseline {
 	version: number;
+	// The runtime that produced this report (`node` for the flagship view).
+	// Present from report `version` 5 on.
+	runtime?: string;
 	timestamp: string;
 	git_commit: string;
 	corpus: Record<string, number>;
@@ -58,6 +63,8 @@ export interface BaselineEntry {
 	// Files this impl was actually timed on (the per-group intersection in
 	// default mode). Present from baseline `version` 4 on.
 	files_iterated?: number | null;
+	// Present from report `version` 5 on (matches the report's top-level).
+	runtime?: string;
 }
 
 export interface BaselineVersions {
@@ -105,6 +112,10 @@ export interface BenchmarkGroup {
 export interface BenchmarkDisplayEntry {
 	name: string;
 	mean_ns: number;
+	// mean time per FILE (the sweep mean divided by the iterated file count);
+	// null on older baselines (< version 4) without `files_iterated`, and on
+	// disabled placeholder entries
+	mean_per_file_ns: number | null;
 	bar_fraction: number;
 	category: ImplementationCategory;
 	files_processed: number | null;
@@ -190,6 +201,10 @@ export const derive_benchmark_groups = (baseline: BenchmarkBaseline): Array<Benc
 		const display_entries: Array<BenchmarkDisplayEntry> = entries.map((e) => ({
 			name: e.name,
 			mean_ns: e.mean_ns ?? 0,
+			mean_per_file_ns:
+				e.mean_ns != null && e.files_iterated != null && e.files_iterated > 0
+					? e.mean_ns / e.files_iterated
+					: null,
 			bar_fraction: slowest > 0 ? (e.mean_ns ?? 0) / slowest : 0,
 			category: categorize_name(e.name),
 			files_processed: e.files_processed ?? null,
@@ -246,6 +261,7 @@ export const derive_benchmark_groups = (baseline: BenchmarkBaseline): Array<Benc
 		const biome_placeholder: BenchmarkDisplayEntry = {
 			name: 'biome-wasm',
 			mean_ns: 0,
+			mean_per_file_ns: null,
 			bar_fraction: 0,
 			category: 'biome',
 			files_processed: null,
@@ -257,6 +273,7 @@ export const derive_benchmark_groups = (baseline: BenchmarkBaseline): Array<Benc
 		const oxc_placeholders: Array<BenchmarkDisplayEntry> = needs_oxc
 			? oxc_templates.map((e) => ({
 					...e,
+					mean_per_file_ns: null,
 					bar_fraction: 0,
 					files_processed: null,
 					files_total: null,
@@ -346,7 +363,8 @@ export const derive_conformance_groups = (baseline: BenchmarkBaseline): Array<Co
 	const result: Array<ConformanceGroup> = [];
 	for (const [language, rows] of by_language) {
 		rows.sort(
-			(a, b) => conformance_row_rank(a.name) - conformance_row_rank(b.name) || a.name.localeCompare(b.name),
+			(a, b) =>
+				conformance_row_rank(a.name) - conformance_row_rank(b.name) || a.name.localeCompare(b.name),
 		);
 		result.push({
 			language,
@@ -528,6 +546,10 @@ export interface CrossRuntimeReport {
 	kind: 'combined';
 	generated: string;
 	runtimes: Array<BenchmarkRuntime>;
+	// The sibling reports came from different commits/versions — ratios are
+	// unreliable until every runtime is re-run. Present from combined
+	// `version` 6 on.
+	mixed_vintage?: boolean;
 	sources: Array<{
 		runtime: BenchmarkRuntime;
 		timestamp: string;
@@ -555,16 +577,32 @@ export interface CrossRuntimeGroup {
 const CROSS_RUNTIME_LANG_ORDER: Record<string, number> = {svelte: 0, typescript: 1, css: 2};
 const CROSS_RUNTIME_OP_ORDER: Record<string, number> = {format: 0, parse: 1};
 
+// The combined report stores runtimes deno-first (matching the bench's
+// `report.md`); the site presents them node-first (the flagship N-API runtime),
+// then deno, then bun.
+const CROSS_RUNTIME_DISPLAY_ORDER: Array<BenchmarkRuntime> = ['node', 'deno', 'bun'];
+
+/**
+ * The report's runtimes in the site's display order — node (the flagship, the
+ * ratio anchor) first, then deno, then bun. Shared by `derive_cross_runtime_groups`
+ * and the table headers so the anchor can't drift between them.
+ */
+export const order_cross_runtime_runtimes = (
+	runtimes: Array<BenchmarkRuntime>,
+): Array<BenchmarkRuntime> => CROSS_RUNTIME_DISPLAY_ORDER.filter((r) => runtimes.includes(r));
+
 /**
  * Groups the combined report's rows by benchmark group, in the same display
  * order as `derive_benchmark_groups` (format before parse, then svelte /
- * typescript / css). The ratio base is the first runtime in `report.runtimes`
- * (deno in a full run), matching the bench's `report.md`.
+ * typescript / css). The ratio base is the first runtime in display order
+ * (node when present — the flagship N-API path), regardless of the report's
+ * own deno-first storage order.
  */
 export const derive_cross_runtime_groups = (
 	report: CrossRuntimeReport,
 ): Array<CrossRuntimeGroup> => {
-	const base = report.runtimes[0];
+	const runtimes = order_cross_runtime_runtimes(report.runtimes);
+	const base = runtimes[0];
 	const grouped: Map<string, Array<CrossRuntimeDisplayRow>> = new Map();
 	for (const row of report.rows) {
 		let rows = grouped.get(row.group);
@@ -574,7 +612,7 @@ export const derive_cross_runtime_groups = (
 		}
 		const base_ops = base ? row.ops_per_second[base] : undefined;
 		const ratio_vs_base: Partial<Record<BenchmarkRuntime, number>> = {};
-		for (const runtime of report.runtimes) {
+		for (const runtime of runtimes) {
 			const ops = row.ops_per_second[runtime];
 			if (ops != null && base_ops != null && base_ops > 0) {
 				ratio_vs_base[runtime] = ops / base_ops;
@@ -808,9 +846,11 @@ export const baseline_ratio_color = (direction: BaselineDirection, ratio: number
 /**
  * A normalized row for `BenchmarksBaselineGroup` — the shared hover-to-rebaseline
  * column behind the format, parse, and binary-size groups. `raw` is the number the
- * ratio derives from (mean ns for speed, bytes for size); `value` is its formatted
- * display. Flattening the group-specific display entries to this one shape lets a
- * single component own the anchor state for all three sections.
+ * ratio derives from (sweep mean ns for speed, bytes for size); `value` is the
+ * row's displayed measurement (per-file mean time for speed — every entry in a
+ * group times the same intersection set, so the ratios agree either way — and
+ * bytes for size). Flattening the group-specific display entries to this one
+ * shape lets a single component own the anchor state for all three sections.
  */
 export interface BaselineRow {
 	// stable identity for `#each` and anchor matching (the entry name / size label)

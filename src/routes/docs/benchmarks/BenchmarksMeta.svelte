@@ -49,6 +49,9 @@
 		<h4 class="mt_0 mb_sm">run</h4>
 		<ul>
 			<li>{formatted_date}</li>
+			{#if baseline.runtime}
+				<li>runtime: {baseline.runtime}</li>
+			{/if}
 			{#if baseline.versions.tsv}
 				<li>tsv {baseline.versions.tsv}</li>
 			{/if}

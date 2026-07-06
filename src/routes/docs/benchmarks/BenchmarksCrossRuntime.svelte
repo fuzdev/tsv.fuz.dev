@@ -5,7 +5,7 @@
 		derive_cross_runtime_groups,
 		format_label,
 		format_speedup,
-		type BenchmarkRuntime,
+		order_cross_runtime_runtimes,
 		type CrossRuntimeReport,
 	} from './benchmark_data.ts';
 
@@ -15,16 +15,14 @@
 		report: CrossRuntimeReport;
 	} = $props();
 
-	// Lead with node (the flagship N-API runtime), then deno, then bun; ratios anchor
-	// on the first present (node). The combined report stores runtimes deno-first
-	// (matching the bench's report.md); the site presents them node-first.
-	const DISPLAY_ORDER: Array<BenchmarkRuntime> = ['node', 'deno', 'bun'];
-	const runtimes = $derived(DISPLAY_ORDER.filter((r) => report.runtimes.includes(r)));
+	// Node-first (the flagship N-API runtime), then deno, then bun — the same
+	// display order `derive_cross_runtime_groups` anchors its ratios on.
+	const runtimes = $derived(order_cross_runtime_runtimes(report.runtimes));
 	const base = $derived(runtimes[0]);
 	// ratio columns compare every other runtime against the base (node)
 	const others = $derived(runtimes.filter((r) => r !== base));
 
-	const groups = $derived(derive_cross_runtime_groups({...report, runtimes}));
+	const groups = $derived(derive_cross_runtime_groups(report));
 
 	const format_ops = (n: number | undefined): string => (n == null ? 'fail' : n.toFixed(2));
 
@@ -33,6 +31,12 @@
 </script>
 
 <div class="cross-runtime">
+	{#if report.mixed_vintage}
+		<aside>
+			⚠ The per-runtime reports backing these tables come from different commits/versions, so the
+			ratios are unreliable until every runtime is re-run.
+		</aside>
+	{/if}
 	{#each groups as group (group.group)}
 		<div class="group">
 			<h4 class="mt_0 mb_sm">{group_label(group.operation, group.language)}</h4>

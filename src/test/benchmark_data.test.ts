@@ -21,7 +21,8 @@ import {
 // When `npm run update-benchmarks` pulls in a new shape, these fail loudly.
 describe('benchmarks.json shape', () => {
 	test('baseline version is current', () => {
-		assert.isAtLeast(benchmarks_json.version, 4);
+		// version 5 is the first per-runtime report shape (carries `runtime`)
+		assert.isAtLeast(benchmarks_json.version, 5);
 	});
 
 	test('binary sizes include the flagship tsv builds', () => {
@@ -54,6 +55,12 @@ describe('benchmarks.json shape', () => {
 			// shared component reads off the leading row
 			assert.strictEqual(group.entries[0]?.category, 'canonical', `${key} canonical leads`);
 			assert.isNotNull(group.files_iterated, `${key} has no files_iterated`);
+			for (const entry of group.entries) {
+				if (entry.disabled) continue;
+				// the bars render per-file means; a null would silently fall back to the
+				// whole-sweep mean and misread as per-file latency
+				assert.isNotNull(entry.mean_per_file_ns, `${key}/${entry.name} has no per-file mean`);
+			}
 		}
 	});
 
@@ -204,7 +211,7 @@ describe('benchmarks.json shape', () => {
 	test('flagship report is the node runtime', () => {
 		// the headline detailed view switched to N-API under Node; guards against an
 		// `update-benchmarks` that pulls the wrong runtime's sibling report
-		assert.strictEqual((benchmarks_json as {runtime?: string}).runtime, 'node');
+		assert.strictEqual(benchmarks_json.runtime, 'node');
 	});
 });
 
@@ -216,7 +223,7 @@ describe('benchmarks_conformance.json shape', () => {
 	test('report is the conformance surface at the current version', () => {
 		assert.isAtLeast(benchmarks_conformance_json.version, 6);
 		assert.strictEqual(benchmarks_conformance_json.corpus_kind, 'conformance');
-		assert.strictEqual((benchmarks_conformance_json as {runtime?: string}).runtime, 'node');
+		assert.strictEqual(benchmarks_conformance_json.runtime, 'node');
 	});
 
 	test('conformance report is parse-only', () => {
@@ -303,6 +310,9 @@ describe('benchmarks_cross_runtime.json shape', () => {
 			assert.isAbove(group.rows.length, 0, group.group);
 			for (const row of group.rows) {
 				assert.isNumber(row.ops_per_second.node, `${group.group}/${row.name} missing node ops`);
+				// ratios anchor on node (the display-order base, not the report's
+				// deno-first storage order), so node's own ratio is exactly 1
+				assert.strictEqual(row.ratio_vs_base.node, 1, `${group.group}/${row.name} node anchor`);
 			}
 		}
 	});
