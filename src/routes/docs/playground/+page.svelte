@@ -10,7 +10,7 @@
 	const tome = tome_get_by_slug('playground');
 
 	// The `/docs` index renders every tome's component via `DocsContent`, which would
-	// mount `Playground` and pull in its ~900KB WASM. Guard like fuz_css's api tome:
+	// mount `Playground` and pull in its ~900KB-gzipped WASM. Guard like fuz_css's api tome:
 	// show only a link at the root, the full playground at `/docs/playground`.
 	const at_root = $derived(page.url.pathname === DOCS_PATH);
 </script>

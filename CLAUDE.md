@@ -32,9 +32,11 @@ IMPORTANT for AI agents: Do NOT run `gro dev` - the developer will manage the de
 - mdz (`@fuzdev/mdz`) - markdown preprocessor wired into `svelte.config.js`
 - `@fuzdev/tsv_wasm` - tsv's formatter + parser as WASM; powers the playground, loaded lazily in the browser
 
-Note: `@fuzdev/tsv_wasm` is loaded only on `/docs/playground` via a browser-only dynamic `import()`, so the ~900KB WASM never weighs down `/docs` or the prerendered pages.
+Note: `@fuzdev/tsv_wasm` is loaded only on `/docs/playground` via a browser-only dynamic `import()`, so the ~900KB-gzipped WASM (~2.9MB decoded) never weighs down `/docs` or the prerendered pages.
 
 Note: several devDependencies — `@webref/css` (CSS spec data), `zimmerframe` (AST traversal), `@sveltejs/acorn-typescript`, `zod`, and `@fuzdev/blake3_wasm` — are *optional peer dependencies* of `@fuzdev/fuz_css`'s `vite_plugin_fuz_css`, declared here so its build-time CSS generation resolves them (e.g. `css_literal.ts` imports `@webref/css`, `css_class_extractor.ts` walks ASTs with `zimmerframe`). They aren't imported by this app's own source, so don't mistake them for dead deps.
+
+Note: `vite` is deliberately held at 7.x (with `@sveltejs/vite-plugin-svelte` 6.x) — vite 8 + plugin-svelte 7 was buggy with this app or SvelteKit's integration. Don't upgrade to vite 8 without deliberately re-verifying the site works.
 
 ## Scope
 

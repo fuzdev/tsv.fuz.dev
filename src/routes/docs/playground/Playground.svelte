@@ -12,7 +12,7 @@
 	import {playground_example} from './playground_example.ts';
 
 	// `@fuzdev/tsv_wasm` is loaded lazily, in the browser only — a dynamic import
-	// so the ~900KB WASM lands in its own chunk, fetched the first time this
+	// so the ~900KB-gzipped WASM lands in its own chunk, fetched the first time this
 	// component mounts and never pulled into `/docs` or the prerendered HTML.
 	let tsv: typeof import('@fuzdev/tsv_wasm') | null = $state(null);
 	let load_error: string | null = $state(null);
