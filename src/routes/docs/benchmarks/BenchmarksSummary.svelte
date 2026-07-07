@@ -11,9 +11,9 @@
 <p>
 	tsv is heavily inspired by and borrows architectural patterns from <a href="https://prettier.io/"
 		>Prettier</a
-	>. We're very grateful for the hard work of its
+	>, and we're grateful for the hard work of its
 	<a href="https://github.com/prettier/prettier/graphs/contributors">contributors</a>. tsv offers a
-	speedup over Prettier (single-threaded):
+	speedup over Prettier. These are single-threaded numbers over the full benchmarked corpus:
 </p>
 <table>
 	<thead>
@@ -54,6 +54,5 @@
 	.speedup {
 		font-size: var(--font_size_xl);
 		font-weight: 700;
-		font-variant-numeric: tabular-nums;
 	}
 </style>

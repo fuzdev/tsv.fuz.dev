@@ -59,9 +59,9 @@ describe('benchmarks.json shape', () => {
 			assert.isNotNull(group.files_iterated, `${key} has no files_iterated`);
 			for (const entry of group.entries) {
 				if (entry.disabled) continue;
-				// the bars render per-file means; a null would silently fall back to the
-				// whole-sweep mean and misread as per-file latency
-				assert.isNotNull(entry.mean_per_file_ns, `${key}/${entry.name} has no per-file mean`);
+				// measured entries render the whole-sweep mean (total corpus time); a
+				// zero would misread as an instantaneous run
+				assert.isAbove(entry.mean_ns, 0, `${key}/${entry.name} has no mean`);
 			}
 		}
 	});
@@ -77,9 +77,9 @@ describe('benchmarks.json shape', () => {
 		assert.isNotEmpty(ts_oxc);
 		for (const e of ts_oxc) assert.isNotOk(e.disabled, `${e.name} should be a real entry`);
 
-		// svelte and css mirror those oxc entries in, disabled, in the same slot: just
-		// after the biome placeholder (itself just after the `*-json` entries) and
-		// before the `*-internal` ones
+		// svelte and css mirror those oxc entries in, disabled, in the same fixed slot:
+		// directly after the biome placeholder (both lead the cross-tool comparisons,
+		// right after the canonical row) and before tsv's json wires
 		for (const language of ['svelte', 'css']) {
 			const group = parse(language);
 			assert.ok(group, `${language} parse group missing`);
@@ -90,10 +90,11 @@ describe('benchmarks.json shape', () => {
 				assert.strictEqual(e.bar_fraction, 0, `${language} ${e.name} bar`);
 			}
 			const names = group.entries.map((e) => e.name);
+			const first_biome = names.findIndex((n) => n.includes('biome'));
 			const first_oxc = names.findIndex((n) => n.includes('oxc'));
-			const last_json = names.reduce((idx, n, i) => (n.endsWith('-json') ? i : idx), -1);
-			// last_json + 1 is the biome placeholder, so oxc starts one slot further
-			assert.strictEqual(first_oxc, last_json + 2, `${language} oxc slotted after -json entries`);
+			const first_json = names.findIndex((n) => n.endsWith('-json') || n.endsWith('-no-locations'));
+			assert.strictEqual(first_oxc, first_biome + 1, `${language} oxc directly after biome`);
+			assert.isBelow(first_oxc, first_json, `${language} oxc before the tsv json entries`);
 		}
 	});
 
@@ -109,20 +110,42 @@ describe('benchmarks.json shape', () => {
 			assert.ok(entry.disabled, `${language} biome entry should be disabled`);
 			assert.strictEqual(entry.bar_fraction, 0, `${language} biome bar`);
 
-			// slotted just after the JS-materializing `*-json` entries (the
-			// `*-json-no-locations` span-only variants materialize the same way, so
-			// they belong to the same group)
+			// biome leads the cross-tool comparisons: directly after the single canonical
+			// row (index 0), before tsv's json wires
 			const names = group.entries.map((e) => e.name);
 			const first_biome = names.findIndex((n) => n.includes('biome'));
-			const last_json = names.reduce(
-				(idx, n, i) => (n.endsWith('-json') || n.endsWith('-no-locations') ? i : idx),
-				-1,
+			const first_json = names.findIndex((n) => n.endsWith('-json') || n.endsWith('-no-locations'));
+			assert.strictEqual(first_biome, 1, `${language} biome directly after the canonical row`);
+			assert.isBelow(first_biome, first_json, `${language} biome before the tsv json entries`);
+		}
+	});
+
+	test('format/parse rows follow the fixed canonical → biome → oxc → json → internal order', () => {
+		// independently mirrors the requested row order so a regression in the
+		// derivation's comparator fails here
+		const tier = (name: string, category: string): number => {
+			if (category === 'canonical') return 0;
+			if (category === 'biome') return 1;
+			if (category === 'oxc') return 2;
+			if (name.endsWith('-no-locations')) return 3; // tsv json, span-only wire
+			if (name.endsWith('-json')) return 4; // tsv json, loc-carrying wire
+			return 5; // tsv internal engine
+		};
+		for (const group of derive_benchmark_groups(benchmarks_json)) {
+			const key = `${group.operation}/${group.language}`;
+			const tiers = group.entries.map((e) => tier(e.name, e.category));
+			assert.deepEqual(
+				tiers,
+				[...tiers].toSorted((a, b) => a - b),
+				`${key} tier order`,
 			);
-			assert.strictEqual(
-				first_biome,
-				last_json + 1,
-				`${language} biome slotted after -json entries`,
-			);
+			// native precedes wasm within a tier
+			for (let i = 1; i < group.entries.length; i++) {
+				if (tiers[i] !== tiers[i - 1]) continue;
+				const prev_wasm = group.entries[i - 1]!.name.includes('wasm');
+				const curr_wasm = group.entries[i]!.name.includes('wasm');
+				assert.isFalse(prev_wasm && !curr_wasm, `${key} wasm precedes native within a tier`);
+			}
 		}
 	});
 
@@ -249,6 +272,13 @@ describe('benchmarks_conformance.json shape', () => {
 			assert.ok(
 				group.rows.some((r) => r.name === 'tsv'),
 				`${group.language} has a tsv row`,
+			);
+			// rows are ordered by coverage, highest first
+			const fractions = group.rows.map((r) => r.coverage_fraction);
+			assert.deepEqual(
+				fractions,
+				[...fractions].toSorted((a, b) => b - a),
+				`${group.language} rows descend by coverage`,
 			);
 			for (const row of group.rows) {
 				assert.isAbove(row.files_total, 0, `${group.language}/${row.name} total`);

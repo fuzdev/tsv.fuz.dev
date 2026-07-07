@@ -109,15 +109,13 @@
 	.bar-annotation {
 		font-size: var(--font_size_xs);
 		text-align: right;
-		font-variant-numeric: tabular-nums;
 		white-space: nowrap;
 	}
 	.bar-label {
 		font-size: var(--font_size_sm);
 		text-align: right;
-		overflow: hidden;
-		text-overflow: ellipsis;
 		white-space: nowrap;
+		/* these may overflow slightly/harmlessly, just need to visually check */
 	}
 	.bar-track {
 		height: 1.2rem;
@@ -133,7 +131,6 @@
 	.bar-value {
 		font-size: var(--font_size_sm);
 		text-align: right;
-		font-variant-numeric: tabular-nums;
 		white-space: nowrap;
 	}
 	.bar-ratio {

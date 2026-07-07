@@ -113,10 +113,6 @@ export interface BenchmarkGroup {
 export interface BenchmarkDisplayEntry {
 	name: string;
 	mean_ns: number;
-	// mean time per FILE (the sweep mean divided by the iterated file count);
-	// null on older baselines (< version 4) without `files_iterated`, and on
-	// disabled placeholder entries
-	mean_per_file_ns: number | null;
 	bar_fraction: number;
 	category: ImplementationCategory;
 	files_processed: number | null;
@@ -177,6 +173,35 @@ const PRIMARY_WASM_FORMAT = 'tsv_wasm';
 const OPERATION_ORDER: Record<string, number> = {format: 0, parse: 1};
 const LANGUAGE_ORDER: Record<string, number> = {svelte: 0, typescript: 1, css: 2};
 
+/**
+ * Fixed slot for a format/parse row, applied in place of a size-ordered sort so the
+ * rows read in a stable, meaningful sequence across every group: the canonical
+ * reference first (the default 1.0x anchor), then the cross-tool comparisons (biome,
+ * then oxc), then tsv's JSON-materializing wires (the span-only `no-locations` wire
+ * before the default `loc`-carrying one), then tsv's raw internal engine.
+ */
+const speed_entry_rank = (entry: BenchmarkDisplayEntry): number => {
+	if (entry.category === 'canonical') return 0;
+	if (entry.category === 'biome') return 1;
+	if (entry.category === 'oxc') return 2;
+	if (entry.name.endsWith('-no-locations')) return 3; // tsv json, span-only wire
+	if (entry.name.endsWith('-json')) return 4; // tsv json, loc-carrying wire
+	return 5; // tsv-internal / tsv_wasm-internal — raw in-engine, no JS materialization
+};
+
+/**
+ * Orders format/parse rows by their fixed `speed_entry_rank` slot, native before
+ * wasm within a tier, then by name — shared by the initial sort and the re-sort
+ * after disabled placeholders are mixed in, so every group scans identically.
+ */
+const compare_speed_entries = (a: BenchmarkDisplayEntry, b: BenchmarkDisplayEntry): number => {
+	const rank = speed_entry_rank(a) - speed_entry_rank(b);
+	if (rank !== 0) return rank;
+	const kind = (a.name.includes('wasm') ? 1 : 0) - (b.name.includes('wasm') ? 1 : 0);
+	if (kind !== 0) return kind;
+	return a.name.localeCompare(b.name);
+};
+
 export const derive_benchmark_groups = (baseline: BenchmarkBaseline): Array<BenchmarkGroup> => {
 	const grouped: Map<string, Array<BaselineEntry>> = new Map();
 	for (const entry of baseline.entries) {
@@ -206,23 +231,15 @@ export const derive_benchmark_groups = (baseline: BenchmarkBaseline): Array<Benc
 		const display_entries: Array<BenchmarkDisplayEntry> = entries.map((e) => ({
 			name: e.name,
 			mean_ns: e.mean_ns ?? 0,
-			mean_per_file_ns:
-				e.mean_ns != null && e.files_iterated != null && e.files_iterated > 0
-					? e.mean_ns / e.files_iterated
-					: null,
 			bar_fraction: slowest > 0 ? (e.mean_ns ?? 0) / slowest : 0,
 			category: categorize_name(e.name),
 			files_processed: e.files_processed ?? null,
 			files_total: e.files_total ?? null,
 		}));
 
-		// Sort: canonical (the anchor) first so every group's 1.0x row leads, then the
-		// rest by mean_ns descending (slowest first for visual)
-		display_entries.sort((a, b) => {
-			if (a.category === 'canonical' && b.category !== 'canonical') return -1;
-			if (b.category === 'canonical' && a.category !== 'canonical') return 1;
-			return b.mean_ns - a.mean_ns;
-		});
+		// Fixed order (see `compare_speed_entries`): canonical leads as the default 1.0x
+		// anchor, then biome, oxc, tsv's json wires, then tsv's internal engine
+		display_entries.sort(compare_speed_entries);
 
 		const iterated_counts = entries
 			.map((e) => e.files_iterated)
@@ -247,23 +264,16 @@ export const derive_benchmark_groups = (baseline: BenchmarkBaseline): Array<Benc
 	// (only formatting and linting), so no parse group has a real biome entry;
 	// `oxc-parser` only parses TypeScript/JS, so the svelte and css parse groups
 	// lack it. Mirror both in as disabled placeholders — biome always, oxc-parser
-	// only where it's missing — slotted just after the JS-materializing `*-json`
-	// entries (the same position oxc's entries hold in the typescript group), so
-	// all three parse groups scan with one shared entry order.
+	// only where it's missing — then re-sort so they fall into their fixed slots
+	// (biome then oxc, right after the canonical row), giving all three parse groups
+	// one shared entry order.
 	const ts_parse = result.find((g) => g.operation === 'parse' && g.language === 'typescript');
 	const oxc_templates = ts_parse?.entries.filter((e) => e.category === 'oxc') ?? [];
 	for (const group of result) {
 		if (group.operation !== 'parse') continue;
-		// index just past the last `*-json` entry (fall back to just below the
-		// canonical row if none), matching oxc's slot in the typescript group
-		const insert_at = group.entries.reduce(
-			(idx, e, i) => (e.name.endsWith('-json') ? i + 1 : idx),
-			1,
-		);
 		const biome_placeholder: BenchmarkDisplayEntry = {
 			name: 'biome-wasm',
 			mean_ns: 0,
-			mean_per_file_ns: null,
 			bar_fraction: 0,
 			category: 'biome',
 			files_processed: null,
@@ -275,14 +285,14 @@ export const derive_benchmark_groups = (baseline: BenchmarkBaseline): Array<Benc
 		const oxc_placeholders: Array<BenchmarkDisplayEntry> = needs_oxc
 			? oxc_templates.map((e) => ({
 					...e,
-					mean_per_file_ns: null,
 					bar_fraction: 0,
 					files_processed: null,
 					files_total: null,
 					disabled: true,
 				}))
 			: [];
-		group.entries.splice(insert_at, 0, biome_placeholder, ...oxc_placeholders);
+		group.entries.push(biome_placeholder, ...oxc_placeholders);
+		group.entries.sort(compare_speed_entries);
 	}
 
 	return result;
@@ -292,10 +302,9 @@ export const derive_benchmark_groups = (baseline: BenchmarkBaseline): Array<Benc
 
 export interface ConformanceRow {
 	name: string;
-	category: ImplementationCategory;
 	files_processed: number;
 	files_total: number;
-	// files_processed / files_total, the bar fraction
+	// files_processed / files_total, rendered as the coverage percentage
 	coverage_fraction: number;
 }
 
@@ -321,24 +330,9 @@ const CONFORMANCE_ENGINE_NAMES: Record<string, string> = {
 };
 
 /**
- * Fixed row order for the conformance groups, applied across every language so a
- * reader scans one tool down the page and tsv stays prominent (leading each
- * group). Values are the post-mapping display names from `CONFORMANCE_ENGINE_NAMES`;
- * a tool absent from a language (e.g. `oxc-parser` under svelte/css) simply doesn't
- * appear. Any unmapped name sorts last.
- */
-const CONFORMANCE_ROW_ORDER = ['tsv', 'svelte/compiler', 'acorn-typescript', 'oxc-parser'];
-
-const conformance_row_rank = (name: string): number => {
-	const index = CONFORMANCE_ROW_ORDER.indexOf(name);
-	return index === -1 ? CONFORMANCE_ROW_ORDER.length : index;
-};
-
-/**
  * Derives per-language parse-coverage groups from a conformance report
- * (`corpus_kind: 'conformance'` — parse groups only). Rows follow the fixed
- * `CONFORMANCE_ROW_ORDER` (tsv first, same order in every group); entries without
- * coverage data are dropped.
+ * (`corpus_kind: 'conformance'` — parse groups only). Rows are ordered by coverage,
+ * highest first; entries without coverage data are dropped.
  */
 export const derive_conformance_groups = (baseline: BenchmarkBaseline): Array<ConformanceGroup> => {
 	const by_language: Map<string, Array<ConformanceRow>> = new Map();
@@ -355,7 +349,6 @@ export const derive_conformance_groups = (baseline: BenchmarkBaseline): Array<Co
 		}
 		rows.push({
 			name: display_name,
-			category: categorize_name(entry.name),
 			files_processed: entry.files_processed,
 			files_total: entry.files_total,
 			coverage_fraction: entry.files_total > 0 ? entry.files_processed / entry.files_total : 0,
@@ -364,10 +357,8 @@ export const derive_conformance_groups = (baseline: BenchmarkBaseline): Array<Co
 
 	const result: Array<ConformanceGroup> = [];
 	for (const [language, rows] of by_language) {
-		rows.sort(
-			(a, b) =>
-				conformance_row_rank(a.name) - conformance_row_rank(b.name) || a.name.localeCompare(b.name),
-		);
+		// coverage descending (highest acceptance first), name as a stable tiebreak
+		rows.sort((a, b) => b.coverage_fraction - a.coverage_fraction || a.name.localeCompare(b.name));
 		result.push({
 			language,
 			files_total: Math.max(0, ...rows.map((r) => r.files_total)),
@@ -378,9 +369,9 @@ export const derive_conformance_groups = (baseline: BenchmarkBaseline): Array<Co
 	return result;
 };
 
-/** Formats a coverage fraction as a percentage with one decimal (`99.9%`). */
+/** Formats a coverage fraction as a percentage with two decimals (`99.85%`). */
 export const format_coverage_percent = (fraction: number): string =>
-	`${(fraction * 100).toFixed(1)}%`;
+	`${(fraction * 100).toFixed(2)}%`;
 
 export const derive_speedup_summary = (groups: Array<BenchmarkGroup>): Array<SpeedupRow> => {
 	const find_speedup = (
@@ -662,19 +653,6 @@ export const format_bytes = (bytes: number): FormattedUnit => {
 };
 
 /**
- * Formats per-implementation corpus coverage as `processed / total`
- * (thousands-grouped, e.g. `4,523 / 4,523`), or `undefined` when either value
- * is missing (older baselines without coverage).
- */
-export const format_coverage = (
-	processed: number | null | undefined,
-	total: number | null | undefined,
-): string | undefined => {
-	if (processed == null || total == null) return undefined;
-	return `${processed.toLocaleString('en-US')} / ${total.toLocaleString('en-US')}`;
-};
-
-/**
  * Formats a corpus source's file count as a per-language breakdown
  * (`124 typescript, 15 svelte, 31 css`), largest language first and dropping
  * zero-count languages. Falls back to the plain `N files` total when the report
@@ -849,10 +827,10 @@ export const baseline_ratio_color = (direction: BaselineDirection, ratio: number
  * A normalized row for `BenchmarksBaselineGroup` — the shared hover-to-rebaseline
  * column behind the format, parse, and binary-size groups. `raw` is the number the
  * ratio derives from (sweep mean ns for speed, bytes for size); `value` is the
- * row's displayed measurement (per-file mean time for speed — every entry in a
- * group times the same intersection set, so the ratios agree either way — and
- * bytes for size). Flattening the group-specific display entries to this one
- * shape lets a single component own the anchor state for all three sections.
+ * row's displayed measurement (the whole-sweep mean — total time over the group's
+ * iterated corpus — for speed, bytes for size). Flattening the group-specific
+ * display entries to this one shape lets a single component own the anchor state
+ * for all three sections.
  */
 export interface BaselineRow {
 	// stable identity for `#each` and anchor matching (the entry name / size label)

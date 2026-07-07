@@ -99,7 +99,6 @@
 	}
 	.num {
 		text-align: right;
-		font-variant-numeric: tabular-nums;
 	}
 	.ratio {
 		font-weight: 700;

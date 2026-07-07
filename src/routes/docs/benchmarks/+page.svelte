@@ -8,7 +8,6 @@
 	import {benchmarks_conformance_json} from './benchmarks_conformance.ts';
 	import {benchmarks_cross_runtime_json} from './benchmarks_cross_runtime.ts';
 	import {
-		category_color,
 		derive_benchmark_groups,
 		derive_conformance_groups,
 		derive_speedup_summary,
@@ -39,29 +38,13 @@
 
 <TomeContent {tome}>
 	<section>
-		<p>tsv is a formatter, parser, and future linter + more for Svelte, TypeScript, and CSS.</p>
+		<p>tsv is a formatter, parser, and future linter + more for Svelte, TypeScript/JS, and CSS.</p>
 		<p>
-			Please note, this is an early-stage project and these numbers will change, both upwards and
-			downwards.
+			tsv focuses on performance including speed, binary size, and memory usage, but doesn't have
+			the wide language support of related projects like Oxc and Biome, which are compared here to
+			varying degrees of fairness - each section below has notes that try to fairly contextualize
+			the numbers.
 		</p>
-	</section>
-
-	<section>
-		<div class="legend">
-			<span><i class="swatch" style:background={category_color('tsv_native')}></i> tsv native</span>
-			<span
-				><i class="swatch" style:background={category_color('tsv_native_json')}></i> tsv native
-				json</span
-			>
-			<span><i class="swatch" style:background={category_color('tsv_wasm')}></i> tsv wasm</span>
-			<span
-				><i class="swatch" style:background={category_color('tsv_wasm_json')}></i> tsv wasm
-				json</span
-			>
-			<span><i class="swatch" style:background={category_color('biome')}></i> biome</span>
-			<span><i class="swatch" style:background={category_color('oxc')}></i> oxc</span>
-			<span><i class="swatch" style:background={category_color('canonical')}></i> canonical</span>
-		</div>
 	</section>
 
 	<TomeSection>
@@ -76,7 +59,7 @@
 				>Oxfmt</a
 			>
 			and <a href="https://biomejs.dev/">Biome</a>. Today it can format Svelte, TypeScript, and CSS,
-			plus JS (as strict-mode TypeScript) and soon HTML (not Svelte-flavored):
+			plus JS (as strict-mode TypeScript) and soon JSON and HTML (without the Svelte differences):
 		</p>
 		{#each format_groups as group (group.language)}
 			<BenchmarksGroup {group} {corpus} />
@@ -234,21 +217,18 @@
 			<p>Important notes:</p>
 			<ul>
 				<li>apples-to-apples comparisons are difficult here because of differing scope</li>
+				<li>oxc-parser only parses TypeScript and JS/JSX; oxfmt is its separate formatter</li>
 				<li>
 					Biome includes a parser, formatter, and linter supporting many languages, but doesn't
 					expose its parser to JS - <code>@biomejs/js-api</code> offers only formatting and linting
 				</li>
-				<li>
-					Biome's native engine only ships as the <code>biome</code> CLI binary, not an embeddable
-					library - <code>@biomejs/js-api</code> wires up wasm builds only. Every other native entry
-					here (tsv, oxc-parser, oxfmt) is measured as an in-process library call, so a CLI binary
-					invoked as a subprocess isn't a comparable artifact and is excluded; therefore only
-					Biome's wasm build is included
-				</li>
 				<li>tsv and tsv_wasm include a parser and formatter for Svelte, TypeScript/JS, and CSS</li>
 				<li>
-					oxc-parser only parses TypeScript and JS, not CSS or Svelte; oxfmt is its separate
-					formatter
+					Biome ships a native CLI but not an embeddable library -
+					<code>@biomejs/js-api</code> is embeddable wasm, but doesn't expose its parser. Every
+					other native entry here (tsv, oxc-parser, oxfmt) is measured as an in-process library
+					call, so a CLI binary invoked as a subprocess isn't a comparable artifact and is excluded,
+					so only Biome's wasm build is included
 				</li>
 				<li>
 					the <code>oxc-parser + oxfmt</code> entry under Full toolchain sums oxc's separate parser
@@ -279,9 +259,9 @@
 		<TomeSectionHeader text="Benchmarking details" />
 		<p>
 			All numbers are single-threaded: every library formats or parses one file at a time, measured
-			sequentially with no cross-file parallelism. These are per-file, single-core latency and
-			throughput numbers - not the multi-core batch throughput a CLI gets when it formats many files
-			at once, which most of these tools (tsv included) can do.
+			sequentially with no cross-file parallelism. Each row is the total time to process the whole
+			corpus once on a single core - not the multi-core batch throughput a CLI gets when it formats
+			many files at once, which most of these tools (tsv included) can do.
 		</p>
 		<p class="mb_xl3">
 			What's measured: {corpus_file_count.toLocaleString('en-US')} files of <code>.svelte</code>,
@@ -326,24 +306,3 @@
 		<BenchmarksCrossRuntime report={benchmarks_cross_runtime_json} />
 	</TomeSection>
 </TomeContent>
-
-<style>
-	.legend {
-		display: flex;
-		gap: var(--space_xl);
-		flex-wrap: wrap;
-		font-size: var(--font_size_sm);
-		margin-bottom: var(--space_xl);
-	}
-	.legend span {
-		display: flex;
-		align-items: center;
-		gap: var(--space_xs);
-	}
-	.swatch {
-		display: inline-block;
-		width: 1.6rem;
-		height: 1.6rem;
-		border-radius: var(--border_radius_xs);
-	}
-</style>
