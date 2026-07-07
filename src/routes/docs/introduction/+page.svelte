@@ -5,6 +5,8 @@
 	import TomeSection from '@fuzdev/fuz_ui/TomeSection.svelte';
 	import TomeSectionHeader from '@fuzdev/fuz_ui/TomeSectionHeader.svelte';
 	import {tome_get_by_slug} from '@fuzdev/fuz_ui/tome.ts';
+	import Svg from '@fuzdev/fuz_ui/Svg.svelte';
+	import {logo_tsv} from '@fuzdev/fuz_ui/logos.ts';
 
 	const LIBRARY_ITEM_NAME = 'introduction';
 
@@ -34,6 +36,7 @@ reconstruct_locations(ast, 'const x = 1;');`;
 
 <TomeContent {tome}>
 	<section>
+		<Svg data={logo_tsv} size="var(--icon_size_xl2)" class="float:right ml_lg mb_lg" />
 		<p>
 			tsv is a toolchain for TypeScript/JS, CSS, and Svelte in Rust. The first release has a
 			formatter that closely follows <a href="https://prettier.io/">Prettier</a> +
@@ -58,7 +61,8 @@ reconstruct_locations(ast, 'const x = 1;');`;
 		</ol>
 		<p>
 			See the <a href="https://tsv.fuz.dev/docs/benchmarks">benchmarks</a> for stats. Compared to Oxc
-			and Biome, tsv is significantly faster, smaller, and uses less memory.
+			and Biome, tsv is significantly faster, smaller, and uses less memory to parse and format its supported
+			languages
 		</p>
 		<p>
 			This is an early release, and reports and feedback are appreciated - see the
