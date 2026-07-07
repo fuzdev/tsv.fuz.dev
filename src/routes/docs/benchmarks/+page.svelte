@@ -58,7 +58,7 @@
 			tsv's formatter is similar to <a href="https://oxc.rs/docs/guide/usage/formatter.html"
 				>Oxfmt</a
 			>
-			and <a href="https://biomejs.dev/">Biome</a>. Today it can format Svelte, TypeScript, and CSS,
+			and <a href="https://biomejs.dev/formatter/">Biome</a>. Today it can format Svelte, TypeScript, and CSS,
 			plus JS (as strict-mode TypeScript) and soon JSON and HTML (without the Svelte differences):
 		</p>
 		{#each format_groups as group (group.language)}
