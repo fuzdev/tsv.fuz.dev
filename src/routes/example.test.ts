@@ -1,5 +1,5 @@
-import {assert, test} from 'vitest';
+import { assert, test } from "vitest";
 
-test('tests work', () => {
-	assert.strictEqual('ok', 'OK'.toLowerCase());
+test("tests work", () => {
+  assert.strictEqual("ok", "OK".toLowerCase());
 });

@@ -11,11 +11,13 @@
 
 <main>
 	<section>
-		<header class="box pt_xl">
-			<h1 class="mt_xl2 mb_sm">tsv</h1>
-			<Svg data={logo_tsv} size="var(--icon_size_xl2)" />
+		<header class="box">
+			<div class="pt_xl5 pb_xl">
+				<Svg data={logo_tsv} size="var(--icon_size_xl2)" />
+			</div>
+			<h1 class="mt_lg mb_sm">tsv</h1>
 			<p class="panel p_md mt_lg" style:text-align="center">
-				tsv is precise language tools<br />for TypeScript/JS, CSS, and Svelte in Rust
+				precise language tools<br />for TypeScript/JS, CSS, and Svelte in Rust
 			</p>
 		</header>
 	</section>

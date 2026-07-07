@@ -38,10 +38,11 @@
 
 <TomeContent {tome}>
 	<section>
-		<p>tsv is precise language tools for TypeScript/JS, CSS, and Svelte in Rust.</p>
 		<p>
-			tsv focuses on performance including speed, binary size, and memory usage, but doesn't offer
-			wide language support like Oxc and Biome, which are compared here to varying degrees of
+			tsv is a toolchain for TypeScript/JS, CSS, and Svelte in Rust. Performance is its priority
+			after correctness, and the numbers compare favorably to Oxc and Biome for its supported
+			languages. Note that doesn't offer
+			wide language support like Oxc and Biome (no JSX/SCSS/etc), which are compared here to varying degrees of
 			fairness. Each section below has notes that try to fairly contextualize the numbers.
 		</p>
 	</section>
