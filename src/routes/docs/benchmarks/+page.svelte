@@ -40,10 +40,9 @@
 	<section>
 		<p>tsv is a formatter, parser, and future linter + more for Svelte, TypeScript/JS, and CSS.</p>
 		<p>
-			tsv focuses on performance including speed, binary size, and memory usage, but doesn't have
-			the wide language support of related projects like Oxc and Biome, which are compared here to
-			varying degrees of fairness - each section below has notes that try to fairly contextualize
-			the numbers.
+			tsv focuses on performance including speed, binary size, and memory usage, but doesn't offer
+			wide language support like Oxc and Biome, which are compared here to varying degrees of
+			fairness. Each section below has notes that try to fairly contextualize the numbers.
 		</p>
 	</section>
 
@@ -164,11 +163,14 @@
 		<TomeSectionHeader text="Parse conformance" />
 		<p class="mb_xl5">
 			Separate from the speed numbers above, this measures parse <em>coverage</em>: how much of a
-			much larger, deliberately hard corpus each parser accepts - the real-world code above plus
-			Prettier's format-test suites, Svelte's compiler test suite, CSS extracted from
+			much larger, deliberately hard corpus each parser accepts - Prettier's format-test suites,
+			Svelte's compiler test suite, CSS extracted from
 			<a href="https://github.com/web-platform-tests/wpt">web-platform-tests</a>, and <a
 				href="https://github.com/tc39/test262">test262</a
-			>'s expected-valid strict-mode tests.
+			>'s expected-valid strict-mode tests. It's a separate corpus from the real-world code timed
+			above, which is held to a stricter bar - every tool must fully process every file it supports,
+			or the benchmark fails - so coverage there is 100% by construction and the discriminating
+			signal is here, on the hard cases.
 		</p>
 		<BenchmarksConformance groups={conformance_groups} />
 		<aside class="mt_xl5">
@@ -284,17 +286,21 @@
 		<p>
 			The same benchmark harness runs under three JS runtimes - Node, Deno, and Bun. The headline
 			numbers above are the Node run. The native entry differs by runtime: Node and Bun load tsv's
-			N-API addon, while Deno loads its C-FFI library. They share code but have a different binding
-			boundary. A per-runtime delta on the same implementation is a runtime or binding-boundary
-			effect, not an engine difference.
+			N-API addon, while Deno loads its C-FFI library. They share code but cross a different binding
+			boundary, so a per-runtime delta on the same row is a runtime effect - the JS engine or the
+			binding boundary - not a difference in tsv's own engine, which is identical across all three.
 		</p>
 		<aside class="mt_xl5 mb_xl5">
 			<p>Reading the tables:</p>
 			<ul>
 				<li>
-					tsv's native entries are faster under Node/Bun (N-API) than Deno (FFI), which pays a
-					per-call marshalling cost - so the Node headline reflects tsv's real native speed better
-					than the Deno-FFI numbers do.
+					tsv's native binding boundaries are at parity across runtimes - the
+					<code>tsv-internal</code> rows, which cross the boundary but hand nothing back to
+					materialize, sit within a few percent Node vs Deno. The visible spread is largely confined
+					to the JSON-materializing parse rows, where it reflects each JS engine's
+					<code>JSON.parse</code> cost rather than the N-API-vs-FFI boundary: Deno and Bun edge out
+					Node there. Node is the headline as the default N-API path, not because it's the fastest
+					native number.
 				</li>
 				<li>
 					tsv's own paths - native (N-API/FFI) and wasm - run on all three runtimes. Bun currently

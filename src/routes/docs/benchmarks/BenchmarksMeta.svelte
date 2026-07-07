@@ -1,7 +1,7 @@
 <script lang="ts">
 	import {site_context} from '@fuzdev/fuz_ui/site.svelte.ts';
 
-	import type {BenchmarkBaseline} from './benchmark_data.ts';
+	import {type BenchmarkBaseline, derive_corpus_repos} from './benchmark_data.ts';
 
 	const {
 		baseline,
@@ -10,6 +10,8 @@
 	} = $props();
 
 	const site = site_context.get();
+
+	const corpus_repos = $derived(derive_corpus_repos(baseline.corpus_sources));
 
 	const formatted_date = $derived(
 		new Date(baseline.timestamp).toLocaleDateString('en-US', {
@@ -25,7 +27,7 @@
 
 <div class="meta">
 	<div class="meta-section">
-		<h4 class="mt_0 mb_sm">corpus</h4>
+		<h4 class="mt_0 mb_sm">corpus stats</h4>
 		<ul>
 			{#each Object.entries(baseline.corpus) as [lang, count] (lang)}
 				<li>{lang}: {count} file{count !== 1 ? 's' : ''}</li>
@@ -67,6 +69,19 @@
 			</li>
 		</ul>
 	</div>
+	{#if corpus_repos.length}
+		<div class="meta-section corpus-repos">
+			<h4 class="mt_0 mb_sm">corpus repos</h4>
+			<ul class="repos">
+				{#each corpus_repos as repo (repo.url)}
+					<li>
+						<!-- eslint-disable-next-line svelte/no-navigation-without-resolve -->
+						<a href={repo.url}>{repo.label}</a>
+					</li>
+				{/each}
+			</ul>
+		</div>
+	{/if}
 </div>
 
 <style>
@@ -81,5 +96,15 @@
 		list-style: none;
 		padding: 0;
 		margin: 0;
+	}
+	/* the repos list spans its own row below the compact stat columns and wraps horizontally */
+	.corpus-repos {
+		flex-basis: 100%;
+	}
+	.repos {
+		display: flex;
+		flex-wrap: wrap;
+		column-gap: var(--space_lg);
+		row-gap: var(--space_xs);
 	}
 </style>

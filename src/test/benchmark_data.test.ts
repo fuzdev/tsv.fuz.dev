@@ -8,6 +8,7 @@ import {
 	compute_baseline_ratio,
 	derive_benchmark_groups,
 	derive_conformance_groups,
+	derive_corpus_repos,
 	derive_cross_runtime_groups,
 	derive_size_groups,
 	derive_speedup_summary,
@@ -139,12 +140,12 @@ describe('benchmarks.json shape', () => {
 				[...tiers].toSorted((a, b) => a - b),
 				`${key} tier order`,
 			);
-			// native precedes wasm within a tier
+			// wasm precedes native within a tier
 			for (let i = 1; i < group.entries.length; i++) {
 				if (tiers[i] !== tiers[i - 1]) continue;
 				const prev_wasm = group.entries[i - 1]!.name.includes('wasm');
 				const curr_wasm = group.entries[i]!.name.includes('wasm');
-				assert.isFalse(prev_wasm && !curr_wasm, `${key} wasm precedes native within a tier`);
+				assert.isFalse(!prev_wasm && curr_wasm, `${key} native precedes wasm within a tier`);
 			}
 		}
 	});
@@ -242,8 +243,8 @@ describe('benchmarks.json shape', () => {
 
 // Shape gate for the committed conformance report `benchmarks_conformance.json`
 // (tsv's `report.conformance.node.json` — the parse-coverage surface over the
-// fixtures-included corpus, Svelte set minus canonical-rejects), consumed by the
-// Parse conformance section.
+// deliberately-hard fixture suites, disjoint from the perf corpus, Svelte set minus
+// canonical-rejects), consumed by the Parse conformance section.
 describe('benchmarks_conformance.json shape', () => {
 	test('report is the conformance surface at the current version', () => {
 		assert.isAtLeast(benchmarks_conformance_json.version, 6);
@@ -288,6 +289,41 @@ describe('benchmarks_conformance.json shape', () => {
 				assert.notMatch(row.name, /-internal|wasm-|-wasm/, `${group.language}/${row.name}`);
 			}
 		}
+	});
+});
+
+describe('derive_corpus_repos', () => {
+	test('maps the committed corpus sources to deduped org/name repo links', () => {
+		const repos = derive_corpus_repos(benchmarks_json.corpus_sources);
+		assert.isNotEmpty(repos);
+		// one entry per URL — no repo appears twice even though svelte.dev contributes
+		// several source subpaths
+		const urls = repos.map((r) => r.url);
+		assert.strictEqual(new Set(urls).size, urls.length, 'urls are distinct');
+		const svelte_dev = repos.filter((r) => r.url === 'https://github.com/sveltejs/svelte.dev');
+		assert.strictEqual(svelte_dev.length, 1, 'svelte.dev collapses to one entry');
+		// each label is the linkified `org/name`, derived from (and ending) its URL
+		for (const repo of repos) {
+			assert.match(repo.label, /^[^/]+\/[^/]+$/, repo.url);
+			assert.isTrue(repo.url.endsWith(repo.label), `${repo.url} ends with ${repo.label}`);
+		}
+	});
+
+	test('collapses shared repos and drops sources with no mapped repo', () => {
+		const repos = derive_corpus_repos([
+			{path: '../zzz/src', files: 1},
+			{path: '../svelte.dev/apps/svelte.dev/src', files: 1},
+			{path: '../svelte.dev/packages/repl/src', files: 1}, // same repo → collapsed
+			{path: 'benches/js/.cache/svelte_styles', files: 1}, // not a repo → dropped
+		]);
+		assert.deepStrictEqual(repos, [
+			{url: 'https://github.com/fuzdev/zzz', label: 'fuzdev/zzz'},
+			{url: 'https://github.com/sveltejs/svelte.dev', label: 'sveltejs/svelte.dev'},
+		]);
+	});
+
+	test('handles a missing corpus_sources field', () => {
+		assert.deepStrictEqual(derive_corpus_repos(undefined), []);
 	});
 });
 

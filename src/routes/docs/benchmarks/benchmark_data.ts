@@ -17,8 +17,8 @@ export interface BenchmarkBaseline {
 	// Present from baseline `version` 4 on; not rendered, kept for parity.
 	suppressed_noise?: Record<string, number>;
 	// Which corpus/surface produced the report: `perf` (real-world corpus,
-	// format + parse) or `conformance` (full fixtures-included corpus, parse
-	// only). Present from `version` 6 on.
+	// format + parse) or `conformance` (the deliberately-hard fixture suites,
+	// disjoint from the perf corpus, parse only). Present from `version` 6 on.
 	corpus_kind?: 'perf' | 'conformance';
 	// Per-entry corpus composition (path + loaded file count) — discloses which
 	// sources were present on the machine that produced the report. Present
@@ -190,14 +190,16 @@ const speed_entry_rank = (entry: BenchmarkDisplayEntry): number => {
 };
 
 /**
- * Orders format/parse rows by their fixed `speed_entry_rank` slot, native before
- * wasm within a tier, then by name — shared by the initial sort and the re-sort
- * after disabled placeholders are mixed in, so every group scans identically.
+ * Orders format/parse rows by their fixed `speed_entry_rank` slot, then wasm before
+ * native within a tier (the browser-relevant build leads each pairing), then by name
+ * — shared by the initial sort and the re-sort after disabled placeholders are mixed
+ * in, so every group scans identically.
  */
 const compare_speed_entries = (a: BenchmarkDisplayEntry, b: BenchmarkDisplayEntry): number => {
 	const rank = speed_entry_rank(a) - speed_entry_rank(b);
 	if (rank !== 0) return rank;
-	const kind = (a.name.includes('wasm') ? 1 : 0) - (b.name.includes('wasm') ? 1 : 0);
+	// wasm before native within a tier
+	const kind = (a.name.includes('wasm') ? 0 : 1) - (b.name.includes('wasm') ? 0 : 1);
 	if (kind !== 0) return kind;
 	return a.name.localeCompare(b.name);
 };
@@ -666,6 +668,74 @@ export const format_corpus_source_files = (source: CorpusSource): string => {
 		.sort((a, b) => b[1] - a[1])
 		.map(([language, count]) => `${count.toLocaleString('en-US')} ${language}`);
 	return parts.length > 0 ? parts.join(', ') : total;
+};
+
+// Corpus source repos (site-owned path → URL mapping)
+
+export interface CorpusRepo {
+	// public repo URL the entry links to
+	url: string;
+	// `org/name`, derived from the URL — the linkified display label
+	label: string;
+}
+
+/**
+ * Maps a corpus source's on-disk path to its public repo URL. The bench records
+ * only local paths (`../zzz/src`), so the site owns this mapping — the links then
+ * survive an `update-benchmarks` refresh without touching the copied JSON. Keyed by
+ * the repo's directory prefix, each ending in a slash so siblings like `../fuz_css/`
+ * and `../fuz_code/`, and `../svelte/` vs `../svelte.dev/`, stay distinct. A source
+ * matching no prefix — the derived `svelte_styles` CSS cache, which isn't a single
+ * repo — is dropped from the repos list rather than shown unlinked.
+ */
+const CORPUS_REPO_URL_BY_PREFIX: ReadonlyArray<readonly [string, string]> = [
+	['../zzz/', 'https://github.com/fuzdev/zzz'],
+	['../fuz_app/', 'https://github.com/fuzdev/fuz_app'],
+	['../fuz_blog/', 'https://github.com/ryanatkn/fuz_blog'],
+	['../fuz_code/', 'https://github.com/fuzdev/fuz_code'],
+	['../fuz_css/', 'https://github.com/fuzdev/fuz_css'],
+	['../fuz_docs/', 'https://github.com/fuzdev/fuz_docs'],
+	['../fuz_gitops/', 'https://github.com/ryanatkn/fuz_gitops'],
+	['../fuz_mastodon/', 'https://github.com/ryanatkn/fuz_mastodon'],
+	['../fuz_template/', 'https://github.com/ryanatkn/fuz_template'],
+	['../fuz_ui/', 'https://github.com/fuzdev/fuz_ui'],
+	['../fuz_util/', 'https://github.com/fuzdev/fuz_util'],
+	['../mdz/', 'https://github.com/fuzdev/mdz'],
+	['../gro/', 'https://github.com/fuzdev/gro'],
+	['../svelte-docinfo/', 'https://github.com/fuzdev/svelte-docinfo'],
+	['../tsv.fuz.dev/', 'https://github.com/fuzdev/tsv.fuz.dev'],
+	['../ryanatkn.com/', 'https://github.com/ryanatkn/ryanatkn.com'],
+	['../webdevladder.net/', 'https://github.com/ryanatkn/webdevladder.net'],
+	['../kit/', 'https://github.com/sveltejs/kit'],
+	['../svelte.dev/', 'https://github.com/sveltejs/svelte.dev'],
+	['../svelte/', 'https://github.com/sveltejs/svelte'],
+];
+
+/** The repo URL for a corpus source path, or `undefined` when it maps to no repo. */
+const corpus_repo_url = (path: string): string | undefined =>
+	CORPUS_REPO_URL_BY_PREFIX.find(([prefix]) => path.startsWith(prefix))?.[1];
+
+/** `org/name` from a `https://github.com/org/name` URL — the linkified label. */
+const corpus_repo_label = (url: string): string => new URL(url).pathname.slice(1);
+
+/**
+ * The distinct source repos behind a report's corpus, one entry per URL in
+ * first-seen order (the author's ecosystem leads, the upstream framework repos
+ * trail, matching the source order). Sources sharing a repo (svelte.dev's several
+ * packages) collapse to one entry; sources with no mapped repo (the `svelte_styles`
+ * CSS cache) are dropped. URLs come from the site-owned `CORPUS_REPO_URL_BY_PREFIX`,
+ * not the report, so the links survive a refresh.
+ */
+export const derive_corpus_repos = (
+	sources: Array<CorpusSource> | undefined,
+): Array<CorpusRepo> => {
+	const by_url: Map<string, CorpusRepo> = new Map();
+	for (const source of sources ?? []) {
+		const url = corpus_repo_url(source.path);
+		if (!url || by_url.has(url)) continue;
+		by_url.set(url, {url, label: corpus_repo_label(url)});
+	}
+	return [...by_url.values()];
 };
 
 /**
