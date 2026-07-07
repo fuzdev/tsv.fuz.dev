@@ -29,10 +29,10 @@
 
 <TomeContent {tome}>
 	<section>
-		<p>tsv is a toolchain for TypeScript/JS, CSS, and Svelte in Rust.</p>
 		<p>
-			Please note, this is an early-stage project and these numbers will change, both upwards and
-			downwards.
+			tsv is a toolchain for TypeScript/JS, CSS, and Svelte in Rust. Performance is its priority
+			after correctness, and the numbers compare favorably to Oxc and Biome for its supported
+			languages.
 		</p>
 	</section>
 
