@@ -53,7 +53,7 @@
 	</TomeSection>
 
 	<TomeSection>
-		<TomeSectionHeader text="Format" />
+		<TomeSectionHeader text="Format speed" />
 		<p class="mb_xl5">
 			tsv's formatter is similar to <a href="https://oxc.rs/docs/guide/usage/formatter.html"
 				>Oxfmt</a
@@ -106,7 +106,7 @@
 	</TomeSection>
 
 	<TomeSection>
-		<TomeSectionHeader text="Parse" />
+		<TomeSectionHeader text="Parse speed" />
 		<p class="mb_xl5">
 			The parse entries that build a full JS AST are comparable in mechanism: tsv and oxc-parser
 			both serialize the AST to JSON in Rust and deserialize it in JS, native and wasm alike. But
