@@ -1102,8 +1102,8 @@ These are used as modifiers to buttons.
 .p_md { padding: var(--space_md); }
 .p_lg { padding: var(--space_lg); }
 .p_xl { padding: var(--space_xl); }
-.pt_xl { padding-top: var(--space_xl); }
 .pt_xl3 { padding-top: var(--space_xl3); }
+.pt_xl5 { padding-top: var(--space_xl5); }
 .pb_0 { padding-bottom: 0; }
 .pb_xl { padding-bottom: var(--space_xl); }
 .pl_xl { padding-left: var(--space_xl); }
@@ -1115,7 +1115,6 @@ These are used as modifiers to buttons.
 .py_md { padding-top: var(--space_md);	padding-bottom: var(--space_md); }
 .mt_0 { margin-top: 0; }
 .mt_lg { margin-top: var(--space_lg); }
-.mt_xl2 { margin-top: var(--space_xl2); }
 .mt_xl5 { margin-top: var(--space_xl5); }
 .mb_sm { margin-bottom: var(--space_sm); }
 .mb_lg { margin-bottom: var(--space_lg); }
