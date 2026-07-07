@@ -35,13 +35,40 @@ reconstruct_locations(ast, 'const x = 1;');`;
 <TomeContent {tome}>
 	<section>
 		<p>
-			tsv is precise language tools for TypeScript/JS, CSS, and Svelte in Rust. This is an early
-			release, but it's ready for testing and feedback. It probably won't mangle your code!
+			tsv is a toolchain for TypeScript/JS, CSS, and Svelte in Rust. The first release has a
+			formatter that closely follows <a href="https://prettier.io/">Prettier</a> +
+			<a href="https://github.com/sveltejs/prettier-plugin-svelte">prettier-plugin-svelte</a>, and a
+			drop-in replacement for <a href="https://svelte.dev/">Svelte</a>'s parser +
+			<a href="https://github.com/acornjs/acorn">acorn</a> +
+			<a href="https://github.com/sveltejs/acorn-typescript">acorn-typescript</a>.
 		</p>
 		<p>
 			Compared to Oxc, Biome, and SWC, tsv is a set of focused tools, not a generic language
-			platform, with Svelte as the only JS framework. The extensibility story is currently limited
-			to using its Rust crates as libraries; bridging to JS and/or WASM plugins is an open question.
+			platform, so the focus is web standards and there's no support for JSX/SCSS/etc, beyond Svelte
+			as the only JS framework. The extensibility story is currently limited to using its Rust
+			crates as libraries; bridging to JS or WASM plugins is an open question, but may not be
+			supported.
+		</p>
+		<p>tsv prioritizes, in order:</p>
+		<ol>
+			<li>correctness (Svelte and TypeScript conformance, spec adherence for HTML/CSS/JS)</li>
+			<li>speed</li>
+			<li>binary size and memory usage</li>
+			<li>extensibility (valued but deprioritized)</li>
+		</ol>
+		<p>
+			See the <a href="https://tsv.fuz.dev/docs/benchmarks">benchmarks</a> for stats. Compared to Oxc
+			and Biome, tsv is significantly faster, smaller, and uses less memory.
+		</p>
+		<p>
+			This is an early release, and reports and feedback are appreciated - see the
+			<a href="https://github.com/fuzdev/tsv/issues">issues</a> and
+			<a href="https://github.com/fuzdev/tsv/discussions">discussions</a>.
+		</p>
+		<p>
+			AI disclosure: this codebase is mostly LLM-generated, and the usual caveats apply. The first
+			release took 7 months and ~1800 manual commits. It's a high-effort project that prioritizes
+			quality.
 		</p>
 		<p>
 			These docs are a work in progress. For design details see the <a
