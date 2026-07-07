@@ -60,9 +60,9 @@ reconstruct_locations(ast, 'const x = 1;');`;
 			<li>extensibility (valued but deprioritized)</li>
 		</ol>
 		<p>
-			See the <a href="https://tsv.fuz.dev/docs/benchmarks">benchmarks</a> for stats. Compared to
+			See the <TomeLink slug="benchmarks" /> for stats. Compared to
 			Oxc and Biome, tsv is significantly faster, smaller, and uses less memory to parse and format
-			its supported languages
+			its supported languages.
 		</p>
 		<p>
 			This is an early release, and reports and feedback are appreciated - see the
