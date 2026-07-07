@@ -69,6 +69,20 @@
 			</li>
 		</ul>
 	</div>
+	{#if baseline.machine}
+		<div class="meta-section">
+			<h4 class="mt_0 mb_sm">environment</h4>
+			<ul>
+				<li>{baseline.machine.cpu_model}</li>
+				<li>{baseline.machine.os}/{baseline.machine.arch}</li>
+				{#if baseline.runtime}
+					<li>{baseline.runtime} {baseline.machine.runtime_version}</li>
+				{:else}
+					<li>{baseline.machine.runtime_version}</li>
+				{/if}
+			</ul>
+		</div>
+	{/if}
 	{#if corpus_repos.length}
 		<div class="meta-section corpus-repos">
 			<h4 class="mt_0 mb_sm">corpus repos</h4>

@@ -24,6 +24,20 @@ export interface BenchmarkBaseline {
   // sources were present on the machine that produced the report. Present
   // from `version` 6 on.
   corpus_sources?: Array<CorpusSource>;
+  // The machine that produced the report — CPU model, OS/arch, runtime version.
+  // The throughput numbers are machine-relative, so this is the environment the
+  // meta panel discloses. Present from `version` 7 on (absent on older reports).
+  machine?: Machine;
+}
+
+// The hardware/runtime a report was measured on. Excludes hostname (the reports
+// are published) and volatile fields (free memory, load) that would churn.
+export interface Machine {
+  cpu_model: string;
+  os: string;
+  arch: string;
+  // The producing runtime's own version (`node`/`deno`/`bun` version string).
+  runtime_version: string;
 }
 
 export interface CorpusSource {
@@ -598,11 +612,16 @@ export interface CrossRuntimeReport {
   // unreliable until every runtime is re-run. Present from combined
   // `version` 6 on.
   mixed_vintage?: boolean;
+  // The sibling reports were produced on different hardware — ratios are not
+  // comparable. Present from combined `version` 7 on.
+  mixed_machine?: boolean;
   sources: Array<{
     runtime: BenchmarkRuntime;
     timestamp: string;
     git_commit: string | null;
     tsv: string | null;
+    // The producing box's machine block; present from combined `version` 7 on.
+    machine?: Machine | null;
   }>;
   rows: Array<CrossRuntimeRow>;
 }

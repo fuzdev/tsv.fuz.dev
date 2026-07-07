@@ -37,6 +37,12 @@
 			ratios are unreliable until every runtime is re-run.
 		</aside>
 	{/if}
+	{#if report.mixed_machine}
+		<aside class="mixed-vintage">
+			⚠ The per-runtime reports backing these tables were produced on different hardware, so the
+			ratios are not comparable until every runtime is re-run on one machine.
+		</aside>
+	{/if}
 	{#each groups as group (group.group)}
 		<div class="group">
 			<h4 class="mt_0 mb_sm">{group_label(group.operation, group.language)}</h4>
