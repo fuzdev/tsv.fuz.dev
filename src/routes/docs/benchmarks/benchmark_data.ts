@@ -389,9 +389,14 @@ export const derive_conformance_groups = (baseline: BenchmarkBaseline): Array<Co
 	return result;
 };
 
-/** Formats a coverage fraction as a percentage with two decimals (`99.85%`). */
+/**
+ * Formats a coverage fraction as a percentage with two decimals (`99.85%`),
+ * FLOORED rather than rounded — rounding would render e.g. 44219/44220 as
+ * `100.00%` next to a visibly non-total count. Only exact totality reads 100%
+ * (matching the harness's own `coverage_pct` convention in tsv's report.ts).
+ */
 export const format_coverage_percent = (fraction: number): string =>
-	`${(fraction * 100).toFixed(2)}%`;
+	`${(Math.floor(fraction * 10_000) / 100).toFixed(2)}%`;
 
 export const derive_speedup_summary = (groups: Array<BenchmarkGroup>): Array<SpeedupRow> => {
 	const find_speedup = (

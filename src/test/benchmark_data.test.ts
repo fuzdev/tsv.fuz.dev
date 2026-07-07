@@ -12,6 +12,7 @@ import {
 	derive_cross_runtime_groups,
 	derive_size_groups,
 	derive_speedup_summary,
+	format_coverage_percent,
 	format_speedup_signed,
 	order_cross_runtime_runtimes,
 	OXC_FULL_LABEL,
@@ -289,6 +290,15 @@ describe('benchmarks_conformance.json shape', () => {
 				assert.notMatch(row.name, /-internal|wasm-|-wasm/, `${group.language}/${row.name}`);
 			}
 		}
+	});
+
+	test('coverage percent floors — only exact totality reads 100%', () => {
+		// 44219/44220 rounds to 100.00% but must not display as it: floor, so a
+		// visibly non-total count never sits beside a "100.00%" label.
+		assert.strictEqual(format_coverage_percent(44_219 / 44_220), '99.99%');
+		assert.strictEqual(format_coverage_percent(1), '100.00%');
+		assert.strictEqual(format_coverage_percent(0.998549), '99.85%');
+		assert.strictEqual(format_coverage_percent(0), '0.00%');
 	});
 });
 
