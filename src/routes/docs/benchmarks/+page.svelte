@@ -38,7 +38,7 @@
 
 <TomeContent {tome}>
 	<section>
-		<p>tsv is a formatter, parser, and future linter + more for Svelte, TypeScript/JS, and CSS.</p>
+		<p>tsv is precise language tools for TypeScript/JS, CSS, and Svelte in Rust.</p>
 		<p>
 			tsv focuses on performance including speed, binary size, and memory usage, but doesn't offer
 			wide language support like Oxc and Biome, which are compared here to varying degrees of
