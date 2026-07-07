@@ -35,8 +35,8 @@ reconstruct_locations(ast, 'const x = 1;');`;
 <TomeContent {tome}>
 	<section>
 		<p>
-			tsv is a formatter, parser, and future linter + more for Svelte, TypeScript, and CSS. This is
-			an early release, but it's ready for testing and feedback. It probably won't mangle your code!
+			tsv is precise language tools for TypeScript/JS, CSS, and Svelte in Rust. This is an early
+			release, but it's ready for testing and feedback. It probably won't mangle your code!
 		</p>
 		<p>
 			Compared to Oxc, Biome, and SWC, tsv is a set of focused tools, not a generic language

@@ -29,7 +29,7 @@
 
 <TomeContent {tome}>
 	<section>
-		<p>tsv is a formatter, parser, and future linter + more for Svelte, TypeScript, and CSS.</p>
+		<p>tsv is precise language tools for TypeScript/JS, CSS, and Svelte in Rust.</p>
 		<p>
 			Please note, this is an early-stage project and these numbers will change, both upwards and
 			downwards.

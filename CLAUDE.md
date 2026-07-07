@@ -1,6 +1,6 @@
 # tsv.fuz.dev
 
-> website for tsv, a formatter, parser, and future linter + more for Svelte, TypeScript, and CSS
+> website for tsv, precise language tools for TypeScript/JS, CSS, and Svelte in Rust
 
 tsv.fuz.dev is the public website for the tsv tool — landing page, benchmarks, docs, and an interactive playground. Built with SvelteKit + fuz stack, statically deployed.
 

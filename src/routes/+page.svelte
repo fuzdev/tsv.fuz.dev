@@ -3,6 +3,8 @@
 	import DocsFooter from '@fuzdev/fuz_ui/DocsFooter.svelte';
 	import {FUZ_DEV_URL} from '@fuzdev/fuz_ui/constants.ts';
 	import {site_context} from '@fuzdev/fuz_ui/site.svelte.ts';
+	import Svg from '@fuzdev/fuz_ui/Svg.svelte';
+	import {logo_tsv} from '@fuzdev/fuz_ui/logos.ts';
 
 	const site = site_context.get();
 </script>
@@ -10,9 +12,10 @@
 <main>
 	<section>
 		<header class="box pt_xl">
-			<h1 class="mt_xl2">tsv</h1>
-			<p class="panel p_md" style:text-align="center">
-				tsv is a formatter, parser, and future linter + more<br />for Svelte, TypeScript, and CSS
+			<h1 class="mt_xl2 mb_sm">tsv</h1>
+			<Svg data={logo_tsv} size="var(--icon_size_xl2)" />
+			<p class="panel p_md mt_lg" style:text-align="center">
+				tsv is precise language tools<br />for TypeScript/JS, CSS, and Svelte in Rust
 			</p>
 		</header>
 	</section>
