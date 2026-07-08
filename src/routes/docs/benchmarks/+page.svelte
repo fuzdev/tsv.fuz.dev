@@ -154,7 +154,7 @@
 					number that isn't an engine-speed difference.
 				</li>
 				<li>
-					<code>tsv internal (napi)</code> and <code>tsv_wasm internal</code> aren't a fair
+					<code>tsv internal (node napi)</code> and <code>tsv_wasm internal</code> aren't a fair
 					comparison to the other entries - they skip JS-side AST materialization entirely, so
 					they're included only to show tsv's own JSON-serialization overhead against its
 					non-internal entry.

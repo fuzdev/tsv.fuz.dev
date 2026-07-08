@@ -852,10 +852,11 @@ const HYPHENATED_NAMES = ['acorn-typescript', 'oxc-parser'];
 const LABEL_OVERRIDES: Record<string, string> = {
 	tsv: 'tsv (node napi)',
 	'tsv-json': 'tsv json (node napi)',
-	'tsv-json-no-locations': 'tsv json no-locations (node napi)',
+	// `no-locs` (not `no-locations`) — the full word eats too much column width.
+	'tsv-json-no-locations': 'tsv json no-locs (node napi)',
 	// the one tsv_wasm entry listed here: the generic formatting below would
-	// break the `no-locations` hyphen its native sibling deliberately keeps
-	'tsv_wasm-json-no-locations': 'tsv_wasm json no-locations',
+	// break the `no-locs` hyphen its native sibling deliberately keeps
+	'tsv_wasm-json-no-locations': 'tsv_wasm json no-locs',
 	'tsv-internal': 'tsv internal (node napi)',
 	'oxc-parser': 'oxc-parser (node napi)',
 	oxfmt: 'oxfmt (node napi)',
