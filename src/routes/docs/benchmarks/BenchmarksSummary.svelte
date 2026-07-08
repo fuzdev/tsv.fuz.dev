@@ -9,8 +9,8 @@
 </script>
 
 <p>
-	tsv is heavily inspired by and borrows architectural patterns from <a href="https://prettier.io/"
-		>Prettier</a
+	tsv's formatter is heavily inspired by and borrows architectural patterns from <a
+		href="https://prettier.io/">Prettier</a
 	>, and we're grateful for the hard work of its
 	<a href="https://github.com/prettier/prettier/graphs/contributors">contributors</a>. tsv offers a
 	speedup over Prettier. These are single-threaded numbers over the full benchmarked corpus:

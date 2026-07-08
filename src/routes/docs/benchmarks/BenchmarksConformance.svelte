@@ -23,7 +23,7 @@
 		<table>
 			<thead>
 				<tr>
-					<th>engine</th>
+					<th></th>
 					<th class="num">files accepted</th>
 					<th class="num">coverage</th>
 				</tr>
