@@ -70,15 +70,8 @@
 			<p>How to read these numbers:</p>
 			<ul>
 				<li>
-					Each tool is timed producing its own formatting, so outputs may differ. Prettier is the
-					reference, and Oxfmt also targets Prettier conformance. tsv tracks Prettier closely but
-					intentionally diverges in some documented cases, and Biome formats to its own style.
-				</li>
-				<li>
-					Oxfmt formats TypeScript, JS, and CSS with its own native engine. Only for Svelte does it
-					fall back to bundling and running Prettier internally (via prettier-plugin-svelte), so its
-					Svelte entry essentially re-measures Prettier minus a little wrapper overhead — while its
-					CSS entry is a genuine native-engine number.
+					Oxfmt formats TypeScript, JS, and CSS with its own native engine, and for Svelte it
+					delegates to Prettier internally (via prettier-plugin-svelte).
 				</li>
 				<li>
 					Speed is shown relative to <code>prettier</code> (the 1.0x anchor) — the canonical
@@ -93,16 +86,6 @@
 					binary, a separate process rather than an embeddable library, so it can't be timed
 					in-process the way tsv, oxc-parser, and oxfmt are. Biome's wasm build is the only one
 					measured.
-				</li>
-				<li>
-					Entries slower than the anchor read as a negative multiple — <code>-6.67x</code> means
-					6.67x slower, not a negative speed — so the factor is directly legible rather than a
-					fraction to invert.
-				</li>
-				<li>
-					tsv's CSS coverage is intentionally lower than Prettier's and Biome's - it rejects
-					non-standard non-Svelte CSS (SCSS, LESS, CSS Modules, IE hacks) to stay slim and focused.
-					Full CSS-spec compliance is on the roadmap, including error recovery.
 				</li>
 			</ul>
 		</aside>
@@ -136,14 +119,14 @@
 					them competitive.
 				</li>
 				<li>
-					Biome is shown grayed-out across all three parse groups, holding its slot rather than
-					being omitted: its <code>@biomejs/js-api</code> package doesn't expose a parser to JS
-					(only formatting and linting) — Biome parses internally but never surfaces the AST across
-					the JS boundary, so there's nothing to time.
+					Biome is shown grayed-out across all three parse groups because its <code
+						>@biomejs/js-api</code
+					> package doesn't expose a parser to JS (only formatting and linting). Biome parses
+					internally but never surfaces the AST across the JS boundary, so it can't be measured.
 				</li>
 				<li>
-					oxc-parser only parses TypeScript and JS, so it's shown grayed-out under Svelte and CSS —
-					holding its slot so the three parse groups line up entry-for-entry.
+					oxc-parser only parses TypeScript and JS (and JSX, not measured here). oxc-parser doesn't
+					expose a CSS parser, and it doesn't parse Svelte.
 				</li>
 				<li>
 					<code>tsv-json-no-locations</code> / <code>tsv_wasm-json-no-locations</code> are the fair,
