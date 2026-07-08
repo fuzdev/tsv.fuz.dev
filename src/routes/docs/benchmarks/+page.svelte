@@ -12,6 +12,7 @@
 		derive_conformance_groups,
 		derive_speedup_summary,
 		format_corpus_source_files,
+		corpus_source_url,
 	} from './benchmark_data.ts';
 	import BenchmarksSummary from './BenchmarksSummary.svelte';
 	import BenchmarksGroup from './BenchmarksGroup.svelte';
@@ -58,8 +59,9 @@
 			tsv's formatter is similar to <a href="https://oxc.rs/docs/guide/usage/formatter.html"
 				>Oxfmt</a
 			>
-			and <a href="https://biomejs.dev/formatter/">Biome</a>. Today it can format Svelte, TypeScript, and CSS,
-			plus JS (as strict-mode TypeScript) and soon JSON and HTML (without the Svelte differences):
+			and <a href="https://biomejs.dev/formatter/">Biome</a>. Today it can format Svelte,
+			TypeScript, and CSS, plus JS (as strict-mode TypeScript) and soon JSON and HTML (without the
+			Svelte differences):
 		</p>
 		{#each format_groups as group (group.language)}
 			<BenchmarksGroup {group} {corpus} />
@@ -73,9 +75,10 @@
 					intentionally diverges in some documented cases, and Biome formats to its own style.
 				</li>
 				<li>
-					Oxfmt only formats TypeScript and JS with its own native engine. For CSS and Svelte it
-					bundles and runs Prettier internally (plus prettier-plugin-svelte for Svelte), so its CSS
-					and Svelte entries essentially re-measure Prettier minus a little wrapper overhead.
+					Oxfmt formats TypeScript, JS, and CSS with its own native engine. Only for Svelte does it
+					fall back to bundling and running Prettier internally (via prettier-plugin-svelte), so its
+					Svelte entry essentially re-measures Prettier minus a little wrapper overhead — while its
+					CSS entry is a genuine native-engine number.
 				</li>
 				<li>
 					Speed is shown relative to <code>prettier</code> (the 1.0x anchor) — the canonical
@@ -196,14 +199,20 @@
 				</li>
 			</ul>
 			{#if benchmarks_conformance_json.corpus_sources?.length}
-				<details>
-					<summary>Corpus sources ({benchmarks_conformance_json.corpus_sources.length})</summary>
-					<ul>
-						{#each benchmarks_conformance_json.corpus_sources as source (source.path)}
-							<li><code>{source.path}</code> - {format_corpus_source_files(source)}</li>
-						{/each}
-					</ul>
-				</details>
+				<p>Corpus sources ({benchmarks_conformance_json.corpus_sources.length}):</p>
+				<ul>
+					{#each benchmarks_conformance_json.corpus_sources as source (source.path)}
+						{@const url = corpus_source_url(source)}
+						<li>
+							{#if url}
+								<a href={url} rel="external"><code>{source.path}</code></a>
+							{:else}
+								<code>{source.path}</code>
+							{/if}
+							- {format_corpus_source_files(source)}
+						</li>
+					{/each}
+				</ul>
 			{/if}
 		</aside>
 	</TomeSection>

@@ -47,7 +47,39 @@ export interface CorpusSource {
 	// `files`). Present on reports whose loader emitted it; older reports carry
 	// only the `files` total, so treat it as optional.
 	by_language?: Partial<Record<string, number>>;
+	// The source's GitHub origin, git-detected by the bench at report-build time
+	// (URL + commit + subpath). Present from `version` 8 on; absent on older
+	// reports and on sources with no GitHub remote — treat as optional.
+	repo?: CorpusRepoRef;
 }
+
+// A corpus source's GitHub origin — see `CorpusSource.repo` and `corpus_source_url`.
+export interface CorpusRepoRef {
+	// Canonical https GitHub URL, e.g. `https://github.com/sveltejs/svelte`.
+	url: string;
+	// `owner/name` (e.g. `sveltejs/svelte`) — a compact label.
+	slug: string;
+	// The commit the corpus was loaded at (full SHA); `''` for a harvested cache
+	// linked at its canonical upstream root (no pin).
+	commit: string;
+	// Path within the repo to this source (`''` = repo root).
+	subpath: string;
+}
+
+/**
+ * The GitHub URL for a corpus source, pinned to the measured commit + subpath
+ * (`…/tree/<commit>/<subpath>`) when detected, or the repo root for a
+ * canonical-upstream cache (empty `commit`). `undefined` when the source has no
+ * detected origin (older reports, or the local `svelte_styles` cache).
+ */
+export const corpus_source_url = (source: CorpusSource): string | undefined => {
+	const repo = source.repo;
+	if (!repo) return undefined;
+	if (!repo.commit) return repo.url;
+	return repo.subpath
+		? `${repo.url}/tree/${repo.commit}/${repo.subpath}`
+		: `${repo.url}/tree/${repo.commit}`;
+};
 
 export interface BaselineEntry {
 	name: string;
@@ -762,9 +794,11 @@ export const derive_corpus_repos = (
 ): Array<CorpusRepo> => {
 	const by_url: Map<string, CorpusRepo> = new Map();
 	for (const source of sources ?? []) {
-		const url = corpus_repo_url(source.path);
+		// Prefer the report's git-detected repo; fall back to the legacy prefix
+		// map for reports predating `version` 8 (which lack `source.repo`).
+		const url = source.repo?.url ?? corpus_repo_url(source.path);
 		if (!url || by_url.has(url)) continue;
-		by_url.set(url, {url, label: corpus_repo_label(url)});
+		by_url.set(url, {url, label: source.repo?.slug ?? corpus_repo_label(url)});
 	}
 	return [...by_url.values()];
 };
@@ -803,24 +837,28 @@ export const format_speedup_signed = (ratio: number): string => {
 const HYPHENATED_NAMES = ['acorn-typescript', 'oxc-parser'];
 
 /**
- * Display labels for the raw benchmark entry names, annotating each with the
- * runtime binding it runs under in the Node report — native builds load the N-API
- * addon (`napi`), and the third-party wasm builds are marked `(wasm)`. Mirrors the
- * parenthesized suffixes the binary-size section's labels already carry. tsv's own
- * wasm entries keep their `tsv_wasm` package-name style, as in the size groups, so
- * they aren't listed here. The already-parenthesized size labels aren't keys, so
- * they fall through to the generic formatting below unchanged.
+ * Display labels for the raw benchmark entry names in the main (Node) tables,
+ * annotating each with the runtime **and** binding it runs under — the native
+ * builds load the N-API addon under Node, so they read `(node napi)` to
+ * distinguish them from the Deno FFI numbers the cross-runtime table surfaces
+ * (`tsv (deno ffi)`); the third-party wasm builds are marked `(wasm)`. Mirrors
+ * the parenthesized suffixes the binary-size section's labels already carry.
+ * tsv's own wasm entries keep their `tsv_wasm` package-name style, as in the size
+ * groups, so they aren't listed here. The already-parenthesized size labels
+ * aren't keys, so they fall through to the generic formatting below unchanged.
+ * The cross-runtime table neutralizes the `(node napi)` suffix per row (its
+ * columns span runtimes) via `format_cross_runtime_label`.
  */
 const LABEL_OVERRIDES: Record<string, string> = {
-	tsv: 'tsv (napi)',
-	'tsv-json': 'tsv json (napi)',
-	'tsv-json-no-locations': 'tsv json no-locations (napi)',
+	tsv: 'tsv (node napi)',
+	'tsv-json': 'tsv json (node napi)',
+	'tsv-json-no-locations': 'tsv json no-locations (node napi)',
 	// the one tsv_wasm entry listed here: the generic formatting below would
 	// break the `no-locations` hyphen its native sibling deliberately keeps
 	'tsv_wasm-json-no-locations': 'tsv_wasm json no-locations',
-	'tsv-internal': 'tsv internal (napi)',
-	'oxc-parser': 'oxc-parser (napi)',
-	oxfmt: 'oxfmt (napi)',
+	'tsv-internal': 'tsv internal (node napi)',
+	'oxc-parser': 'oxc-parser (node napi)',
+	oxfmt: 'oxfmt (node napi)',
 	'biome-wasm': 'biome (wasm)',
 	'oxc-parser-wasm': 'oxc-parser (wasm)',
 };
@@ -835,6 +873,16 @@ export const format_label = (name: string): string => {
 	}
 	return name.replaceAll('-', ' ');
 };
+
+/**
+ * The label for a cross-runtime row. Each row spans node/deno/bun columns, and a
+ * native build's binding is runtime-specific (N-API on node & bun, C-FFI on
+ * deno), so the row can't pin one binding — neutralize `format_label`'s
+ * node-centric `(node napi)` suffix to `(native)`. The per-runtime binding is
+ * disclosed once in the table caption instead (see `BenchmarksCrossRuntime`).
+ */
+export const format_cross_runtime_label = (name: string): string =>
+	format_label(name).replace(' (node napi)', ' (native)');
 
 /** Returns a CSS background color variable for a category. */
 export const category_color = (category: ImplementationCategory): string => {
