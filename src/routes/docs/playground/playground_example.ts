@@ -10,8 +10,9 @@ const doubled=$derived(count*2)
 const increment=()=>{count+=1}
 </script>
 
-<button onclick={increment}>clicks: {count}</button>
-<p>doubled: {doubled}</p>
+<button onclick={ increment  }>clicks: {
+count}</button>
+<p>doubled: {doubled } </p>
 
 <style>
 button{color:var(--text_color)}
