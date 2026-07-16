@@ -3,6 +3,7 @@ import {assert, describe, test} from 'vitest';
 import {benchmarks_json} from '$routes/docs/benchmarks/benchmarks.ts';
 import {benchmarks_conformance_json} from '$routes/docs/benchmarks/benchmarks_conformance.ts';
 import {benchmarks_cross_runtime_json} from '$routes/docs/benchmarks/benchmarks_cross_runtime.ts';
+import {benchmarks_cli} from '$routes/docs/benchmarks/benchmarks_cli.ts';
 import {
 	categorize_size_capability,
 	compute_baseline_ratio,
@@ -415,5 +416,34 @@ describe('benchmarks_cross_runtime.json shape', () => {
 				assert.strictEqual(row.ratio_vs_base.node, 1, `${group.group}/${row.name} node anchor`);
 			}
 		}
+	});
+});
+
+// Shape gate for the hand-maintained CLI snapshot `benchmarks_cli.ts` (copied from
+// the linked oxc-bench-formatter fork). Unlike the JSON reports it isn't generated,
+// so a bad hand-edit (a scenario missing its `tsv` reference row, a zeroed metric)
+// would silently render an empty table rather than fail to typecheck.
+describe('benchmarks_cli shape', () => {
+	test('every scenario carries a tsv reference row with positive metrics', () => {
+		assert.isAtLeast(benchmarks_cli.scenarios.length, 1);
+		for (const scenario of benchmarks_cli.scenarios) {
+			// BenchmarksCli anchors every ratio on the tsv row; without it the table is empty
+			assert.ok(
+				scenario.results.some((r) => r.label === 'tsv'),
+				`${scenario.key} is missing its tsv row`,
+			);
+			for (const r of scenario.results) {
+				assert.isAbove(r.wall_ms, 0, `${scenario.key}/${r.label} wall_ms`);
+				assert.isAbove(r.cpu_ms, 0, `${scenario.key}/${r.label} cpu_ms`);
+				assert.isAbove(r.memory_mb, 0, `${scenario.key}/${r.label} memory_mb`);
+			}
+		}
+	});
+
+	test('source links point at the fork (on its tsv branch) and its upstream', () => {
+		// the fork's `main` tracks upstream and carries neither tsv nor the analysis,
+		// so every fork link must target the `tsv` branch
+		assert.match(benchmarks_cli.source_url, /ryanatkn\/oxc-bench-formatter\/tree\/tsv$/);
+		assert.match(benchmarks_cli.upstream_url, /oxc-project\/bench-formatter/);
 	});
 });

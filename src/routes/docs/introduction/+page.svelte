@@ -60,12 +60,12 @@ reconstruct_locations(ast, 'const x = 1;');`;
 			<li>extensibility (valued but deprioritized)</li>
 		</ol>
 		<p>
-			See the <TomeLink slug="benchmarks" /> for stats. Compared to Oxc and Biome, tsv is
-			significantly faster, smaller, and uses less memory to parse and format its supported
-			languages.
+			See the <TomeLink slug="benchmarks" /> for stats. Compared to Oxc and Biome, tsv formats
+			faster with smaller builds and less memory, and parses faster on matched output (span-only
+			ASTs).
 		</p>
 		<p>
-			This is an early release, and reports and feedback are appreciated - see the
+			This is an early release, and reports and feedback are appreciated — see the
 			<a href="https://github.com/fuzdev/tsv/issues">issues</a> and
 			<a href="https://github.com/fuzdev/tsv/discussions">discussions</a>.
 		</p>
@@ -95,7 +95,7 @@ reconstruct_locations(ast, 'const x = 1;');`;
 				See the <TomeLink slug="benchmarks" /> for size and performance details.
 			</p>
 			<p>
-				Native builds are not yet available but are coming in v0.2, see
+				Native builds are not yet published — follow
 				<a href="https://github.com/fuzdev/tsv/issues/139">issue 139</a>.
 			</p>
 		</TomeSection>
@@ -137,11 +137,11 @@ reconstruct_locations(ast, 'const x = 1;');`;
 			<TomeSectionHeader text="Source code" />
 			<ul>
 				<li>
-					<a href="https://github.com/fuzdev/tsv">github.com/fuzdev/tsv</a> - the formatter, parser,
+					<a href="https://github.com/fuzdev/tsv">github.com/fuzdev/tsv</a> — the formatter, parser,
 					wasm bindings, CLI, etc
 				</li>
 				<li>
-					<a href="https://github.com/fuzdev/tsv.fuz.dev">github.com/fuzdev/tsv.fuz.dev</a> - this
+					<a href="https://github.com/fuzdev/tsv.fuz.dev">github.com/fuzdev/tsv.fuz.dev</a> — this
 					website
 				</li>
 			</ul>

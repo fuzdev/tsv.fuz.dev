@@ -23,7 +23,7 @@ IMPORTANT for AI agents: Do NOT run `gro dev` - the developer will manage the de
 
 - Svelte 5 - component framework with runes
 - SvelteKit - application framework with static adapter
-- fuz_css (`@fuzdev/fuz_css`) - CSS framework and design system
+- fuz_css (`@fuzdev/fuz_css`) - semantic-first CSS framework and design system
 - fuz_ui (`@fuzdev/fuz_ui`) - UI components, theming, docs system
 - fuz_util (`@fuzdev/fuz_util`) - utility functions
 - fuz_code (`@fuzdev/fuz_code`) - syntax highlighting
