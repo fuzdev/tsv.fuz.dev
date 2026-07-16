@@ -194,9 +194,8 @@
 			Svelte's compiler test suite, CSS extracted from
 			<a href="https://github.com/web-platform-tests/wpt">web-platform-tests</a>, and <a
 				href="https://github.com/tc39/test262">test262</a
-			>'s expected-valid strict-mode tests. The real-world code timed above is held to a stricter
-			bar — every tool must fully process every file it supports or the benchmark fails — so
-			coverage there is 100% by construction; the discriminating signal is here, on the hard cases.
+			>'s expected-valid strict-mode tests. The corpus used for performance above has real-world
+			code, parse conformance is the edge cases.
 		</p>
 		<BenchmarksConformance groups={conformance_groups} />
 		<aside class="mt_xl5">
