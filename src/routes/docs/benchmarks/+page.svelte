@@ -83,8 +83,10 @@
 			</li>
 		</ul>
 		<p>
-			Each section below has notes that fairly contextualize its numbers. The charts show numbers
-			using Node, except for the <code>(ffi)</code> ones, which are Deno.
+			Each section below has notes that attempt to fairly contextualize its numbers. The charts show
+			numbers using Node, and at the end of the page is a <a href="#Cross-runtime"
+				>cross-runtime comparison</a
+			>.
 		</p>
 	</TomeSection>
 
