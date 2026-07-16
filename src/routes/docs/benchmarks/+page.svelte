@@ -61,29 +61,25 @@
 		</p>
 		<ul>
 			<li>
-				Formatting TypeScript, tsv is <strong>~1.66x faster than Oxfmt</strong> (native-vs-native),
-				~26x faster than Prettier (native Rust vs Prettier's JS), and ~6.5x faster than Biome
-				(wasm-vs-wasm).
+				Formatting TypeScript, tsv is ~1.66x faster than Oxfmt (native-vs-native), ~26x faster than
+				Prettier (native Rust vs Prettier's JS), and ~6.5x faster than Biome (wasm-vs-wasm).
 			</li>
 			<li>
 				Formatting CSS, it's ~2.6x faster than Oxfmt; Svelte is ~63x faster than Prettier (which
 				Oxfmt's Svelte path delegates to internally).
 			</li>
 			<li>
-				Parsing TypeScript, tsv is <strong>~1.3x faster than Oxc payload-matched</strong> — the
-				span-only AST both emit. tsv's default AST adds a per-node line/column <code>loc</code> that
-				Oxc omits: a richer drop-in deliverable that's correspondingly slower to build, so on the
-				full AST it's slower, not faster.
+				Parsing TypeScript, tsv is ~1.3x faster than Oxc (with the payload-matched span-only AST
+				both emit). tsv's default AST adds a per-node line/column <code>loc</code> for drop-in
+				Svelte compatibility that Oxc omits, with a fast path to reconstruct locs on the JS-side.
 			</li>
 			<li>
-				tsv's numbers look unfairly good in a fork of Oxc's official <code>bench-formatter</code
-				> that adds tsv
 				<a href="https://github.com/ryanatkn/oxc-bench-formatter" rel="external"
-					>end-to-end CLI benchmark</a
-				> on a different corpus. On a real TypeScript repo, tsv formats ~3x faster than Oxfmt and
-				~6.5x faster than Biome using 3–10x less memory. Wall-clock ratios include each tool's
-				multi-file parallelism, so they scale with core count and are machine-dependent, and are
-				warped by .
+					>A fork of Oxc's official <code>bench-formatter</code></a
+				> is an end-to-end CLI benchmark that has its own corpus. On a real TypeScript repo, tsv
+				formats ~3x faster than Oxfmt and ~6.5x faster than Biome using 3–10x less memory.
+				Wall-clock ratios include each tool's multi-file parallelism, so they scale with core count
+				and are machine-dependent, and are warped by .
 			</li>
 		</ul>
 		<p>Each section below has notes that fairly contextualize its numbers.</p>
