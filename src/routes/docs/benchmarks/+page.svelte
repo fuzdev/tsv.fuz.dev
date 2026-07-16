@@ -74,8 +74,8 @@
 				Svelte compatibility that Oxc omits, with a fast path to reconstruct locs on the JS-side.
 			</li>
 			<li>
-				<a href="https://github.com/ryanatkn/oxc-bench-formatter" rel="external"
-					>A fork of Oxc's official <code>bench-formatter</code></a
+				A <a href="https://github.com/ryanatkn/oxc-bench-formatter" rel="external"
+					>fork of Oxc's official <code>bench-formatter</code></a
 				> is an end-to-end CLI benchmark that has its own corpus. On a real TypeScript repo, tsv
 				formats ~3x faster than Oxfmt and ~6.5x faster than Biome using 3–10x less memory.
 				Wall-clock ratios include each tool's multi-file parallelism, so they scale with core count
