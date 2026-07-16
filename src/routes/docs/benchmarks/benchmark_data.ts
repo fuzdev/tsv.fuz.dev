@@ -661,9 +661,7 @@ export interface RuntimeVersion {
  * repeated here — it lives in the environment panel, and a per-runtime hardware
  * mismatch is the report's `mixed_machine` flag's concern.
  */
-export const derive_runtime_versions = (
-	report: CrossRuntimeReport,
-): Array<RuntimeVersion> => {
+export const derive_runtime_versions = (report: CrossRuntimeReport): Array<RuntimeVersion> => {
 	const by_runtime = new Map(report.sources.map((source) => [source.runtime, source]));
 	const result: Array<RuntimeVersion> = [];
 	for (const runtime of order_cross_runtime_runtimes(report.runtimes)) {

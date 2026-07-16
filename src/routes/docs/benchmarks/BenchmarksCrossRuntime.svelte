@@ -49,7 +49,7 @@
 	{/if}
 	{#if runtime_versions.length}
 		<ul class="versions">
-			{#each runtime_versions as {runtime, version} (runtime)}
+			{#each runtime_versions as { runtime, version } (runtime)}
 				<li><code>{runtime}</code> {version}</li>
 			{/each}
 		</ul>

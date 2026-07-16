@@ -42,21 +42,21 @@
 <TomeContent {tome}>
 	<section>
 		<p>
-			tsv is a toolchain for TypeScript/JS, CSS, and Svelte in Rust. This page shows how it measures
-			up against Prettier, which tsv closely follows, and against Oxc and Biome, similar tools with
-			wider language support (tsv doesn't support JSX/TSX, JSON, etc).
+			tsv is a toolchain for TypeScript/JS, CSS, and Svelte in Rust. After correctness, performance
+			is tsv's next priority. This page shows how it measures up against Prettier, which tsv closely
+			follows, and against Oxc and Biome, similar tools with wider language support (tsv doesn't
+			support JSX/TSX, JSON, etc).
 		</p>
 	</section>
 
 	<TomeSection>
 		<TomeSectionHeader text="TLDR" />
 		<p>
-			After correctness, performance is tsv's next priority. The numbers on this page are
-			single-threaded and in-process, where each tool parses or formats one file at a time
-			(isolating engine speed from multi-core parallelism), measured over a large collection of
-			real-world repos: {corpus_file_count.toLocaleString('en-US')} files including Svelte's
-			official repos (svelte, kit, svelte.dev) and the <a href="https://github.com/fuzdev"
-				>fuz.dev repos</a
+			The measurements on this page are single-threaded and in-process, where each tool parses or
+			formats one file at a time (isolating engine speed from multi-core parallelism), measured over
+			a large collection of real-world repos: {corpus_file_count.toLocaleString('en-US')} files
+			including Svelte's official repos (svelte, kit, svelte.dev) and the <a
+				href="https://github.com/fuzdev">fuz.dev repos</a
 			>. On that basis:
 		</p>
 		<ul>
