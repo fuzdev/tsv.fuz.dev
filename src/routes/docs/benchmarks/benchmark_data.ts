@@ -645,6 +645,34 @@ export const order_cross_runtime_runtimes = (
 	runtimes: Array<BenchmarkRuntime>,
 ): Array<BenchmarkRuntime> => CROSS_RUNTIME_DISPLAY_ORDER.filter((r) => runtimes.includes(r));
 
+/** One runtime's own version string (`node 24.14.1`), for the cross-runtime section. */
+export interface RuntimeVersion {
+	runtime: BenchmarkRuntime;
+	version: string;
+}
+
+/**
+ * The per-runtime version strings from a cross-runtime report, in the site's
+ * display order (node first). Drops any runtime whose source carries no machine
+ * block (reports predating combined `version` 7). The cross-runtime section
+ * renders these so the three-runtime tables disclose which node/deno/bun version
+ * each column was measured under; the environment panel above stays scoped to the
+ * flagship Node baseline. The shared hardware identity (CPU/OS/arch) isn't
+ * repeated here — it lives in the environment panel, and a per-runtime hardware
+ * mismatch is the report's `mixed_machine` flag's concern.
+ */
+export const derive_runtime_versions = (
+	report: CrossRuntimeReport,
+): Array<RuntimeVersion> => {
+	const by_runtime = new Map(report.sources.map((source) => [source.runtime, source]));
+	const result: Array<RuntimeVersion> = [];
+	for (const runtime of order_cross_runtime_runtimes(report.runtimes)) {
+		const version = by_runtime.get(runtime)?.machine?.runtime_version;
+		if (version) result.push({runtime, version});
+	}
+	return result;
+};
+
 /**
  * Groups the combined report's rows by benchmark group, in the same display
  * order as `derive_benchmark_groups` (format before parse, then svelte /

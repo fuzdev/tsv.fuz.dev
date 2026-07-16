@@ -3,6 +3,7 @@
 		category_color,
 		cross_runtime_ratio_background,
 		derive_cross_runtime_groups,
+		derive_runtime_versions,
 		format_cross_runtime_label,
 		format_speedup,
 		order_cross_runtime_runtimes,
@@ -14,6 +15,9 @@
 	}: {
 		report: CrossRuntimeReport;
 	} = $props();
+
+	// The node/deno/bun versions the columns were measured under (node-first).
+	const runtime_versions = $derived(derive_runtime_versions(report));
 
 	// Node-first (the flagship N-API runtime), then deno, then bun — the same
 	// display order `derive_cross_runtime_groups` anchors its ratios on.
@@ -42,6 +46,13 @@
 			⚠ The per-runtime reports backing these tables were produced on different hardware, so the
 			ratios are not comparable until every runtime is re-run on one machine.
 		</aside>
+	{/if}
+	{#if runtime_versions.length}
+		<ul class="versions">
+			{#each runtime_versions as {runtime, version} (runtime)}
+				<li><code>{runtime}</code> {version}</li>
+			{/each}
+		</ul>
 	{/if}
 	{#each groups as group (group.group)}
 		<div class="group">
@@ -100,6 +111,18 @@
 	/* the warning red tint over fuz_css's base aside styling */
 	.mixed-vintage {
 		border-left-color: var(--color_c_50);
+	}
+	/* the runtime versions the columns were measured under — a compact horizontal row */
+	.versions {
+		display: flex;
+		flex-wrap: wrap;
+		column-gap: var(--space_lg);
+		row-gap: var(--space_xs);
+		list-style: none;
+		padding: 0;
+		margin-bottom: var(--space_xl3);
+		font-size: var(--font_size_sm);
+		opacity: 0.7;
 	}
 	.group {
 		margin-bottom: var(--space_xl4);
