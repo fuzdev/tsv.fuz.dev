@@ -69,9 +69,10 @@
 				Prettier (native Rust vs Prettier's JS), and ~6.5x faster than Biome (wasm-vs-wasm).
 			</li>
 			<li>
-				Formatting CSS, it's ~2.6x faster than Oxfmt; Svelte is ~63x faster than Prettier (which
-				Oxfmt's Svelte path delegates to internally).
+				Formatting Svelte, tsv is is ~63x faster than Prettier (which Oxfmt's Svelte path delegates
+				to internally) and 7.3x faster than Biome.
 			</li>
+			<li>Formatting CSS, it's ~2.6x faster than Oxfmt and 12.4x faster than Biome.</li>
 			<li>
 				Parsing TypeScript, tsv is ~1.3x faster than Oxc (with the payload-matched span-only AST
 				both emit). tsv's default AST adds a per-node line/column <code>loc</code> for drop-in
