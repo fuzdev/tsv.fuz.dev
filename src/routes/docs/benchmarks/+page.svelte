@@ -44,13 +44,17 @@
 		<p>
 			tsv is a toolchain for TypeScript/JS, CSS, and Svelte in Rust. After correctness, performance
 			is tsv's next priority. This page shows how it measures up against Prettier, which tsv closely
-			follows, and against Oxc and Biome, similar tools with wider language support (tsv doesn't
-			support JSX/TSX/SCSS/etc).
+			follows, and against Oxc and Biome, which are similar tools with wider language support (tsv
+			doesn't support JSX/TSX/SCSS/etc).
 		</p>
 	</section>
 
 	<TomeSection>
 		<TomeSectionHeader text="TLDR" />
+		<p>
+			Compared to Oxc and Biome, tsv is faster, smaller, and uses less memory to parse and format
+			its supported languages.
+		</p>
 		<p>
 			The measurements on this page are single-threaded and in-process, where each tool parses or
 			formats one file at a time (isolating engine speed from multi-core parallelism), measured over
@@ -102,30 +106,23 @@
 				>Oxfmt</a
 			>
 			and <a href="https://biomejs.dev/formatter/">Biome</a>. It formats Svelte, TypeScript, and
-			CSS, plus JS (as strict-mode TypeScript):
+			CSS, plus JS as strict-mode TypeScript:
 		</p>
 		{#each format_groups as group (group.language)}
 			<BenchmarksGroup {group} {corpus} />
 		{/each}
 		<aside class="mt_xl5">
-			<p>How to read these numbers:</p>
+			<p>Notes:</p>
 			<ul>
+				<li>wasm-to-wasm and native-to-native (N-API here) are the fair comparisons</li>
 				<li>
 					Oxfmt formats TypeScript, JS, and CSS with its own native engine, and for Svelte it
 					delegates to Prettier internally (via prettier-plugin-svelte).
 				</li>
 				<li>
-					Speed is shown relative to <code>prettier</code> (the 1.0x anchor), the canonical format
-					reference — the same convention as the parse groups, which anchor on their canonical
-					parser, so every section reads consistently. Prettier runs in JS while the headline tsv
-					entry is native, so that ratio is cross-tier; for an engine-vs-engine read, compare within
-					a tier: wasm vs wasm, or native vs native.
-				</li>
-				<li>
 					There's no native Biome entry: its native engine ships only as the <code>biome</code> CLI
-					binary, a separate process rather than an embeddable library, so it can't be timed
-					in-process the way tsv, oxc-parser, and oxfmt are. Biome's wasm build is the only one
-					measured.
+					binary, a separate process rather than an embeddable library, so it can't be fairly timed
+					in-process like the others.
 				</li>
 			</ul>
 		</aside>
@@ -287,8 +284,8 @@
 	<TomeSection>
 		<TomeSectionHeader text="End-to-end CLI benchmark" />
 		<p class="mb_xl5">
-			The numbers above measure tsv's engine in-process, one file at a time. This is a separate,
-			independent benchmark: a fork of Oxc's official
+			The numbers above measure tsv's engine in-process, one file at a time, using tsv's original
+			benchmarks. This section describes the results from a fork of Oxc's official
 			<a href="https://github.com/oxc-project/bench-formatter" rel="external"
 				><code>bench-formatter</code></a
 			>
