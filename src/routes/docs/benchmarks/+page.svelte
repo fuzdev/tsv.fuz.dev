@@ -82,7 +82,10 @@
 				and are machine-dependent, and are warped by .
 			</li>
 		</ul>
-		<p>Each section below has notes that fairly contextualize its numbers.</p>
+		<p>
+			Each section below has notes that fairly contextualize its numbers. The charts show numbers
+			using Node, except for the <code>(ffi)</code> ones, which are Deno.
+		</p>
 	</TomeSection>
 
 	<TomeSection>
