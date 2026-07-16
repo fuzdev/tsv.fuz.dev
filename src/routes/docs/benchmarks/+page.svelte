@@ -76,7 +76,7 @@
 			<li>
 				Parsing TypeScript, tsv is ~1.3x faster than Oxc (with the payload-matched span-only AST
 				both emit). tsv's default AST adds a per-node line/column <code>loc</code> for drop-in
-				Svelte compatibility that Oxc omits, with a fast path to reconstruct locs on the JS-side.
+				Svelte compatibility, with a fast path to reconstruct locs in JS.
 			</li>
 			<li>
 				A <a href="https://github.com/ryanatkn/oxc-bench-formatter" rel="external"
