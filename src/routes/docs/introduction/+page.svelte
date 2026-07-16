@@ -60,7 +60,7 @@ reconstruct_locations(ast, 'const x = 1;');`;
 		</ol>
 		<p>
 			See the <TomeLink slug="benchmarks" /> for stats. Compared to Oxc and Biome, tsv formats
-			faster with smaller builds and less memory, and parses faster on matched output (span-only
+			faster with smaller builds using less memory, and parses faster on matched output (span-only
 			ASTs).
 		</p>
 		<p>
