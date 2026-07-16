@@ -45,7 +45,7 @@
 			tsv is a toolchain for TypeScript/JS, CSS, and Svelte in Rust. After correctness, performance
 			is tsv's next priority. This page shows how it measures up against Prettier, which tsv closely
 			follows, and against Oxc and Biome, similar tools with wider language support (tsv doesn't
-			support JSX/TSX, JSON, etc).
+			support JSX/TSX/SCSS/etc).
 		</p>
 	</section>
 
