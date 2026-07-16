@@ -47,10 +47,9 @@ reconstruct_locations(ast, 'const x = 1;');`;
 		</p>
 		<p>
 			Compared to Oxc, Biome, and SWC, tsv is a set of focused tools, not a generic language
-			platform, so the focus is web standards and there's no support for JSX/SCSS/etc, beyond Svelte
-			as the only JS framework. The extensibility story is currently limited to using its Rust
-			crates as libraries (or forking); bridging to JS or WASM plugins is an open question (leaning
-			against).
+			platform, so the focus is Web standards + Svelte and there's no support for JSX/SCSS/etc. The
+			extensibility story is currently limited to using its Rust crates as libraries (or forking);
+			bridging to JS or WASM plugins is an open question (leaning against).
 		</p>
 		<p>tsv prioritizes, in order:</p>
 		<ol>
