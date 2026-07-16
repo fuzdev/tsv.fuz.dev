@@ -798,7 +798,10 @@ export const derive_corpus_repos = (
 		// map for reports predating `version` 8 (which lack `source.repo`).
 		const url = source.repo?.url ?? corpus_repo_url(source.path);
 		if (!url || by_url.has(url)) continue;
-		by_url.set(url, {url, label: source.repo?.slug ?? corpus_repo_label(url)});
+		by_url.set(url, {
+			url,
+			label: source.repo?.slug ?? corpus_repo_label(url),
+		});
 	}
 	return [...by_url.values()];
 };
