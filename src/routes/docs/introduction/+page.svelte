@@ -59,9 +59,8 @@ reconstruct_locations(ast, 'const x = 1;');`;
 			<li>extensibility (valued but deprioritized)</li>
 		</ol>
 		<p>
-			See the <TomeLink slug="benchmarks" /> for stats. Compared to Oxc and Biome, tsv formats
-			faster with smaller builds using less memory, and parses faster on matched output (span-only
-			ASTs).
+			See the <TomeLink slug="benchmarks" /> for stats. Compared to Oxc and Biome, tsv is faster,
+			smaller, and uses less memory to parse and format its supported languages.
 		</p>
 		<p>
 			This is an early release, and reports and feedback are appreciated — see the
