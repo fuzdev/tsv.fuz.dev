@@ -189,13 +189,13 @@
 	<TomeSection>
 		<TomeSectionHeader text="Parse conformance" />
 		<p class="mb_xl5">
-			Separate from the speed numbers above, this measures parse <em>coverage</em>: how much of a
-			much larger, deliberately hard corpus each parser accepts — Prettier's format-test suites,
-			Svelte's compiler test suite, CSS extracted from
+			Separate from the speed numbers above that use a real-world corpus of code, this section
+			measures parse <em>coverage</em>: how much of a much larger, deliberately hard corpus each
+			parser accepts — Prettier's format-test suites, Svelte's compiler test suite, CSS extracted
+			from
 			<a href="https://github.com/web-platform-tests/wpt">web-platform-tests</a>, and <a
 				href="https://github.com/tc39/test262">test262</a
-			>'s expected-valid strict-mode tests. The corpus used for performance above has real-world
-			code, parse conformance is the edge cases.
+			>'s expected-valid strict-mode tests.
 		</p>
 		<BenchmarksConformance groups={conformance_groups} />
 		<aside class="mt_xl5">
