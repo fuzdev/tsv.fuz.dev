@@ -51,13 +51,12 @@
 	<TomeSection>
 		<TomeSectionHeader text="TLDR" />
 		<p>
-			After correctness, performance is tsv's priority. The numbers on this page are
-			<strong>single-threaded and in-process</strong> — each tool parses or formats one file at a
-			time, isolating engine speed from multi-core parallelism — measured over a large collection of
-			real-world repos: {corpus_file_count.toLocaleString('en-US')} files including Svelte's
-			official repos (svelte, kit, svelte.dev) and the <a href="https://github.com/fuzdev"
-				>fuz.dev repos</a
-			>. On that basis:
+			After correctness, performance is tsv's priority. The numbers on this page are single-threaded
+			and in-process, where each tool parses or formats one file at a time (isolating engine speed
+			from multi-core parallelism), measured over a large collection of real-world
+			repos: {corpus_file_count.toLocaleString('en-US')} files including Svelte's official repos
+			(svelte, kit, svelte.dev) and the <a href="https://github.com/fuzdev">fuz.dev repos</a>. On
+			that basis:
 		</p>
 		<ul>
 			<li>
