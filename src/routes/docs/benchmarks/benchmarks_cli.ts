@@ -1,6 +1,6 @@
 // A snapshot of the independent end-to-end CLI benchmark — a fork of Oxc's official
 // `bench-formatter` that adds tsv on its `tsv` branch
-// (https://github.com/ryanatkn/oxc-bench-formatter/tree/tsv, forked from
+// (https://github.com/ryanatkn/oxc-bench-formatter, forked from
 // https://github.com/oxc-project/bench-formatter — the fork's `main` tracks
 // upstream and carries neither tsv nor this analysis, so links target `tsv`).
 // Unlike the
@@ -13,7 +13,7 @@
 // parser). Hand-copied from the linked report; regenerate there with
 // `pnpm run update-readme`, then update the numbers below.
 
-export const BENCHMARKS_CLI_SOURCE_URL = 'https://github.com/ryanatkn/oxc-bench-formatter/tree/tsv';
+export const BENCHMARKS_CLI_SOURCE_URL = 'https://github.com/ryanatkn/oxc-bench-formatter';
 export const BENCHMARKS_CLI_UPSTREAM_URL = 'https://github.com/oxc-project/bench-formatter';
 
 export interface CliFormatterResult {

@@ -77,7 +77,7 @@
 			<li>
 				tsv's numbers look unfairly good in a fork of Oxc's official <code>bench-formatter</code
 				> that adds tsv
-				<a href="https://github.com/ryanatkn/oxc-bench-formatter/tree/tsv" rel="external"
+				<a href="https://github.com/ryanatkn/oxc-bench-formatter" rel="external"
 					>end-to-end CLI benchmark</a
 				> on a different corpus. On a real TypeScript repo, tsv formats ~3x faster than Oxfmt and
 				~6.5x faster than Biome using 3–10x less memory. Wall-clock ratios include each tool's
@@ -292,11 +292,11 @@
 				><code>bench-formatter</code></a
 			>
 			that
-			<a href="https://github.com/ryanatkn/oxc-bench-formatter/tree/tsv" rel="external">adds tsv</a
-			>, timing the <strong>whole CLI</strong> end-to-end — process spawn, file discovery, I/O, and
-			each tool's default multi-file parallelism — plus peak memory. It's the "what you experience
-			typing the command" measure, run on real repositories. tsv appears in the two JSX-free
-			scenarios (it has no JSX/TSX parser).
+			<a href="https://github.com/ryanatkn/oxc-bench-formatter" rel="external">adds tsv</a>, timing
+			the <strong>whole CLI</strong> end-to-end — process spawn, file discovery, I/O, and each
+			tool's default multi-file parallelism — plus peak memory. It's the "what you experience typing
+			the command" measure, run on real repositories. tsv appears in the two JSX-free scenarios (it
+			has no JSX/TSX parser).
 		</p>
 		<BenchmarksCli report={benchmarks_cli} />
 		<aside class="mt_xl5">
