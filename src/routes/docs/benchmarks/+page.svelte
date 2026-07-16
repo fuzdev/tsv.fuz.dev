@@ -53,7 +53,7 @@
 		<TomeSectionHeader text="TLDR" />
 		<p>
 			Compared to Oxc and Biome, tsv is faster, smaller, and uses less memory to parse and format
-			its supported languages.
+			its supported languages. This section has a prose summary; skip ahead for charts.
 		</p>
 		<p>
 			The measurements on this page are single-threaded and in-process, where each tool parses or
@@ -82,7 +82,7 @@
 				A <a href="https://github.com/ryanatkn/oxc-bench-formatter" rel="external"
 					>fork of Oxc's official <code>bench-formatter</code></a
 				> is an end-to-end CLI benchmark with its own corpus. On a real TypeScript repo, tsv formats
-				~3x faster than Oxfmt and ~6.5x faster than Biome using 3–10x less memory. Wall-clock
+				~3.1x faster than Oxfmt and ~6.5x faster than Biome using 3–10x less memory. Wall-clock
 				measurements are warped by each tool's multi-file parallelism, so they scale with core count
 				and are machine-dependent, and could change with tuning.
 			</li>
@@ -140,11 +140,11 @@
 			span-only AST omits, and that <code>loc</code> is roughly half the wire bytes and most of its
 			JSON.parse cost. The <code>tsv-json-no-locations</code> / <code
 				>tsv_wasm-json-no-locations</code
-			> entries drop it, emitting the same span-only shape oxc does, so <strong
-				>those are the payload-matched, apples-to-apples comparison with oxc-parser</strong
-			> (line/column stays derivable from the offsets plus source, so nothing is lost). The
-			tsv-internal and tsv_wasm-internal entries build the native AST but skip JS-side
-			materialization, so they show raw in-engine speed rather than a cross-tool comparison.
+			> entries drop it, emitting the same span-only shape oxc does, so those are the
+			payload-matched, apples-to-apples comparison with oxc-parser (line/column stays derivable from
+			the offsets plus source, so nothing is lost). The tsv-internal and tsv_wasm-internal entries
+			build the native AST but skip JS-side materialization, so they show raw in-engine speed rather
+			than a cross-tool comparison.
 		</p>
 		{#each parse_groups as group (group.language)}
 			<BenchmarksGroup {group} {corpus} />
@@ -292,10 +292,10 @@
 			>
 			that
 			<a href="https://github.com/ryanatkn/oxc-bench-formatter" rel="external">adds tsv</a>, timing
-			the <strong>whole CLI</strong> end-to-end — process spawn, file discovery, I/O, and each
-			tool's default multi-file parallelism — plus peak memory. It's the "what you experience typing
-			the command" measure, run on real repositories. tsv appears in the two JSX-free scenarios (it
-			has no JSX/TSX parser).
+			the whole CLI end-to-end — process spawn, file discovery, I/O, and each tool's default
+			multi-file parallelism — plus peak memory. It's the "what you experience typing the command"
+			measure, run on real repositories. tsv appears in the two JSX-free scenarios (it has no
+			JSX/TSX parser).
 		</p>
 		<BenchmarksCli report={benchmarks_cli} />
 		<aside class="mt_xl5">
@@ -304,11 +304,11 @@
 				<li>
 					This measures the whole command, not the engine in isolation. tsv, oxfmt, and biome
 					parallelize across files while prettier is effectively serial, so the wall-clock ratios
-					bake in each tool's parallelism and <strong>scale with core count</strong> — they're only
-					meaningful alongside the machine they ran on. The <code>vs tsv (CPU work)</code> column is
-					the parallelism-neutral view (total CPU time across threads): on the TypeScript repo tsv
-					is ~3x Oxfmt in wall-clock but ~2x in CPU work, the rest being cores Oxfmt uses and
-					Prettier can't.
+					bake in each tool's parallelism and scale with core count — they're only meaningful
+					alongside the machine they ran on. The <code>vs tsv (CPU work)</code> column is the
+					parallelism-neutral view (total CPU time across threads): on the TypeScript repo tsv is
+					~3x Oxfmt in wall-clock but ~2x in CPU work, the rest being cores Oxfmt uses and Prettier
+					can't.
 				</li>
 				<li>
 					Peak memory doesn't depend on thread count, so it's the most directly comparable figure —
