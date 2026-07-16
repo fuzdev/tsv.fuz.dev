@@ -12,8 +12,8 @@
 	tsv's formatter is inspired by and borrows architectural patterns from <a
 		href="https://prettier.io/">Prettier</a
 	>, and we're grateful for the hard work of its
-	<a href="https://github.com/prettier/prettier/graphs/contributors">contributors</a>. These are
-	tsv's single-threaded speedups over Prettier on the benchmarked corpus:
+	<a href="https://github.com/prettier/prettier/graphs/contributors">contributors</a>.
+	Single-threaded on the benchmarked corpus, tsv is this much faster than Prettier:
 </p>
 <table>
 	<thead>
