@@ -78,8 +78,8 @@
 					>fork of Oxc's official <code>bench-formatter</code></a
 				> is an end-to-end CLI benchmark that has its own corpus. On a real TypeScript repo, tsv
 				formats ~3x faster than Oxfmt and ~6.5x faster than Biome using 3–10x less memory.
-				Wall-clock ratios include each tool's multi-file parallelism, so they scale with core count
-				and are machine-dependent, and are warped by .
+				Wall-clock measurements are warped by each tool's multi-file parallelism, so they scale with
+				core count and are machine-dependent.
 			</li>
 		</ul>
 		<p>
