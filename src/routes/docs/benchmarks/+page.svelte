@@ -59,7 +59,7 @@
 		</p>
 		<ul>
 			<li>
-				Formatting TypeScript, tsv is <strong>~1.7x faster than Oxfmt</strong> (native-vs-native),
+				Formatting TypeScript, tsv is <strong>~1.66x faster than Oxfmt</strong> (native-vs-native),
 				~26x faster than Prettier (native Rust vs Prettier's JS), and ~6.5x faster than Biome
 				(wasm-vs-wasm).
 			</li>
@@ -74,14 +74,14 @@
 				full AST it's slower, not faster.
 			</li>
 			<li>
-				An independent <a
-					href="https://github.com/ryanatkn/oxc-bench-formatter/tree/tsv"
-					rel="external">end-to-end CLI benchmark</a
-				>
-				— a fork of Oxc's official <code>bench-formatter</code> that adds tsv — corroborates this at
-				whole-command scale: on a real TypeScript repo, tsv formats ~3x faster than Oxfmt and ~6.5x
-				faster than Biome using 3–10x less memory. Wall-clock ratios include each tool's multi-file
-				parallelism, so they scale with core count and are machine-dependent.
+				tsv's numbers look unfairly good in a fork of Oxc's official <code>bench-formatter</code
+				> that adds tsv
+				<a href="https://github.com/ryanatkn/oxc-bench-formatter/tree/tsv" rel="external"
+					>end-to-end CLI benchmark</a
+				> on a different corpus. On a real TypeScript repo, tsv formats ~3x faster than Oxfmt and
+				~6.5x faster than Biome using 3–10x less memory. Wall-clock ratios include each tool's
+				multi-file parallelism, so they scale with core count and are machine-dependent, and are
+				warped by .
 			</li>
 		</ul>
 		<p>Each section below has notes that fairly contextualize its numbers.</p>

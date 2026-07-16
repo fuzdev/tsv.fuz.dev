@@ -73,6 +73,8 @@
 		};
 	});
 
+	const is_base = $derived(source === playground_example);
+
 	const reset = (): void => {
 		source = playground_example;
 	};
@@ -85,8 +87,8 @@
 	};
 </script>
 
-<header class="row">
-	<button type="button" class="plain" onclick={reset} disabled={!ready}>reset</button>
+<header class="row mb_xs">
+	<button type="button" class="plain" onclick={reset} disabled={!ready || is_base}>reset</button>
 	<button type="button" class="plain" onclick={format} disabled={!ready || error !== null}>
 		format
 	</button>
