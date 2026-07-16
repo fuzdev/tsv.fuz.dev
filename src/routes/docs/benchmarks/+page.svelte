@@ -75,8 +75,9 @@
 			<li>Formatting CSS, it's ~2.6x faster than Oxfmt and 12.4x faster than Biome.</li>
 			<li>
 				Parsing TypeScript, tsv is ~1.3x faster than Oxc (with the payload-matched span-only AST
-				both emit). tsv's default AST adds a per-node line/column <code>loc</code> for drop-in
-				Svelte compatibility, with a fast path to reconstruct locs in JS.
+				both emit) and Biome doesn't expose its parser to JS. tsv's default AST adds a per-node
+				line/column <code>loc</code> for drop-in Svelte compatibility, with a fast path to
+				reconstruct locs in JS.
 			</li>
 			<li>
 				A <a href="https://github.com/ryanatkn/oxc-bench-formatter" rel="external"
