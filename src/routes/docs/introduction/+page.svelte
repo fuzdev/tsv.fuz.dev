@@ -56,7 +56,7 @@ reconstruct_locations(ast, 'const x = 1;');`;
 			<li>correctness (Svelte and TypeScript conformance, spec adherence for HTML/CSS/JS)</li>
 			<li>speed</li>
 			<li>binary size and memory usage</li>
-			<li>extensibility (valued but deprioritized)</li>
+			<li>extensibility (valued but deprioritized), modularity, and reusability</li>
 		</ol>
 		<p>
 			See the <TomeLink slug="benchmarks" /> for stats. Compared to Oxc and Biome, tsv is faster,
