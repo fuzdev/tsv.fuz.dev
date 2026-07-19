@@ -70,7 +70,6 @@ _Measured on: Some CPU · 12 threads · linux x64 — the ratios below depend on
 describe('parse_formatter_benchmarks', () => {
 	test('keeps only the scenarios tsv runs in', () => {
 		const parsed = parse_formatter_benchmarks(readme);
-		assert(parsed);
 		assert.deepEqual(
 			parsed.scenarios.map((s) => s.id),
 			['large-single-file'],
@@ -79,14 +78,13 @@ describe('parse_formatter_benchmarks', () => {
 
 	test('parses the machine and versions from below the results block', () => {
 		const parsed = parse_formatter_benchmarks(readme);
-		assert(parsed);
 		assert.equal(parsed.machine, 'Some CPU · 12 threads · linux x64');
 		assert.deepEqual(parsed.versions, {prettier: '3.9.1', biome: '2.5.1', tsv: '0.2.0'});
 	});
 
 	test('normalizes timings to milliseconds across units', () => {
 		const parsed = parse_formatter_benchmarks(readme);
-		const [biome, tsv] = parsed!.scenarios[0]!.timings;
+		const [biome, tsv] = parsed.scenarios[0]!.timings;
 		assert.deepEqual(biome, {
 			name: 'biome',
 			mean_ms: 1597,
@@ -100,7 +98,7 @@ describe('parse_formatter_benchmarks', () => {
 	});
 
 	test('parses the scenario header, preflight, speedups, and memory', () => {
-		const scenario = parse_formatter_benchmarks(readme)!.scenarios[0]!;
+		const scenario = parse_formatter_benchmarks(readme).scenarios[0]!;
 		assert.equal(scenario.name, 'Large Single File');
 		assert.equal(scenario.target, 'TypeScript compiler parser.ts (~540KB)');
 		assert.equal(scenario.warmup_runs, 2);
@@ -126,12 +124,41 @@ describe('parse_formatter_benchmarks', () => {
 		]);
 	});
 
-	test('returns undefined when the results markers are missing', () => {
-		assert.isUndefined(parse_formatter_benchmarks('# Benchmark\n\nno results here\n'));
+	// A README that's present but drifted must fail the gen task rather than quietly
+	// publishing stale or scenario-stripped numbers — only a MISSING readme is benign,
+	// and that's the caller's call, not the parser's.
+	test('throws when the results markers are missing', () => {
+		assert.throws(
+			() => parse_formatter_benchmarks('# Benchmark\n\nno results here\n'),
+			/no <!-- BENCHMARK_RESULTS_START/,
+		);
 	});
 
-	test('returns undefined when no scenario includes tsv', () => {
+	test('throws when no scenario includes tsv', () => {
 		const without_tsv = readme.replace(/^Benchmark 2: tsv$/m, 'Benchmark 2: oxfmt');
-		assert.isUndefined(parse_formatter_benchmarks(without_tsv));
+		assert.throws(() => parse_formatter_benchmarks(without_tsv), /no scenario includes a tsv row/);
+	});
+
+	test('throws when a scenario banner carries no parseable timings', () => {
+		const drifted = readme.replace(/^Benchmark \d+: /gm, 'Bench $&');
+		assert.throws(() => parse_formatter_benchmarks(drifted), /no parseable timings/);
+	});
+
+	test('throws when a present memory section yields no rows', () => {
+		const drifted = readme
+			.replace(/^ {2}biome: 303\.2 MB.*$/m, '  biome: 303.2 megabytes')
+			.replace(/^ {2}tsv: 23\.1 MB.*$/m, '  tsv: 23.1 megabytes');
+		assert.throws(() => parse_formatter_benchmarks(drifted), /unparseable memory section/);
+	});
+
+	test('throws when the machine line or tsv version is missing', () => {
+		assert.throws(
+			() => parse_formatter_benchmarks(readme.replace(/^_Measured on: .*$/m, '')),
+			/machine line/,
+		);
+		assert.throws(
+			() => parse_formatter_benchmarks(readme.replace(/^- \*\*tsv\*\*: .*$/m, '')),
+			/no tsv version/,
+		);
 	});
 });

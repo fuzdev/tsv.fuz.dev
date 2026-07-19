@@ -84,6 +84,9 @@ const to_results = (scenario: FormatterScenario): Array<CliFormatterResult> =>
 		}))
 		.sort((a, b) => a.wall_ms - b.wall_ms);
 
+/** The scenarios the page has prose for; every one must resolve to generated data. */
+export const CLI_SCENARIO_KEYS = Object.keys(SCENARIO_COPY);
+
 const to_scenarios = (): Array<CliScenario> =>
 	Object.entries(SCENARIO_COPY).flatMap(([key, copy]) => {
 		const scenario = benchmarks_formatters_json.scenarios.find((s) => s.id === key);

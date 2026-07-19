@@ -117,9 +117,17 @@ gro gen
 `benchmarks_formatters.gen.json.ts` parses that README and writes
 `benchmarks_formatters.json`, keeping only the scenarios tsv participates in
 (it has no JSX/TSX parser, so the harness runs it on the JSX-free corpora
-only). The sibling checkout is optional: with it absent or its README
-unparseable, generation is skipped and the committed JSON stands, so
-`gro gen --check` passes anywhere.
+only).
+
+A **missing** sibling checkout is the one tolerated case — generation is
+skipped, the committed JSON stands, and `gro gen --check` passes on any machine
+or CI that has only this repo (CI never checks out the harness, so it always
+takes this path; no `--no-gen` needed). A README that **is** present but has
+drifted fails the task loudly, naming the scenario and the section that stopped
+parsing, rather than publishing stale or scenario-stripped numbers. A drift that
+still parses but renames a scenario is caught on the site side instead: every
+key in `benchmarks_cli.ts`'s `SCENARIO_COPY` must resolve to generated data, and
+a test asserts it.
 
 Key files in `src/routes/docs/benchmarks/`:
 

@@ -7,6 +7,7 @@ import {benchmarks_formatters_json} from '$routes/docs/benchmarks/benchmarks_for
 import {
 	benchmarks_cli,
 	CLI_LABELS,
+	CLI_SCENARIO_KEYS,
 	cli_memory_ratio_range,
 	cli_speedup_vs_tsv,
 	CLI_TS_REPO_KEY,
@@ -480,6 +481,14 @@ describe('benchmarks_cross_runtime.json shape', () => {
 // or scenario id in the harness's README would silently drop a scenario or its
 // `tsv` reference row and render an empty table rather than fail to typecheck.
 describe('benchmarks_cli shape', () => {
+	test('every scenario the page has prose for resolved to generated data', () => {
+		// a copy entry with no matching scenario id drops silently from the table
+		assert.deepEqual(
+			benchmarks_cli.scenarios.map((s) => s.key),
+			CLI_SCENARIO_KEYS,
+		);
+	});
+
 	test('every scenario carries a tsv reference row with positive metrics', () => {
 		assert.isAtLeast(benchmarks_cli.scenarios.length, 1);
 		for (const scenario of benchmarks_cli.scenarios) {
