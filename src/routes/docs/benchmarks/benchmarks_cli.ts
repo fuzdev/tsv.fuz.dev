@@ -1,17 +1,22 @@
-// A snapshot of the independent end-to-end CLI benchmark — a fork of Oxc's official
-// `bench-formatter` that adds tsv on its `tsv` branch
-// (https://github.com/ryanatkn/oxc-bench-formatter, forked from
-// https://github.com/oxc-project/bench-formatter — `tsv` is the fork's DEFAULT
-// branch, so the bare fork URL already lands on it; upstream carries neither tsv
-// nor this analysis). Unlike the
-// in-process, single-threaded numbers elsewhere on this page, it measures the
-// WHOLE CLI: process spawn, file discovery, I/O, and each tool's default
-// multi-file parallelism. tsv, oxfmt, and biome parallelize across files while
-// prettier is effectively serial, so the wall-clock ratios scale with core count
-// and are machine-dependent — the parallelism-neutral view is CPU work (hyperfine
-// `User` time). tsv runs only in the two JSX-free scenarios (it has no JSX/TSX
-// parser). Hand-copied from the linked report; regenerate there with
-// `pnpm run update-readme`, then update the numbers below.
+// The independent end-to-end CLI benchmark — a fork of Oxc's official
+// `bench-formatter` that adds tsv (https://github.com/ryanatkn/oxc-bench-formatter,
+// forked from https://github.com/oxc-project/bench-formatter — `tsv` is the fork's
+// DEFAULT branch, so the bare fork URL already lands on it; upstream carries
+// neither tsv nor this analysis). Unlike the in-process, single-threaded numbers
+// elsewhere on this page, it measures the WHOLE CLI: process spawn, file
+// discovery, I/O, and each tool's default multi-file parallelism. tsv, oxfmt, and
+// biome parallelize across files while prettier is effectively serial, so the
+// wall-clock ratios scale with core count and are machine-dependent — the
+// parallelism-neutral view is CPU work (hyperfine `User` time). tsv runs only in
+// the JSX-free scenarios (it has no JSX/TSX parser).
+//
+// The numbers come from `benchmarks_formatters.json`, generated from that
+// harness's README by `benchmarks_formatters.gen.json.ts`; only the prose below
+// is authored here. To refresh: run `pnpm run update-readme` in the harness, then
+// `gro gen` here.
+
+import {benchmarks_formatters_json} from './benchmarks_formatters.ts';
+import type {FormatterScenario} from './formatter_benchmark_data.ts';
 
 export const BENCHMARKS_CLI_SOURCE_URL = 'https://github.com/ryanatkn/oxc-bench-formatter';
 export const BENCHMARKS_CLI_UPSTREAM_URL = 'https://github.com/oxc-project/bench-formatter';
@@ -23,8 +28,8 @@ export interface CliFormatterResult {
 	wall_ms: number;
 	/** hyperfine `User` time (total CPU across all threads), in ms — the parallelism-neutral view. */
 	cpu_ms: number;
-	/** Peak resident set size (RSS), in megabytes. */
-	memory_mb: number;
+	/** Peak resident set size (RSS), in megabytes; `null` when the harness measured no memory. */
+	memory_mb: number | null;
 }
 
 export interface CliScenario {
@@ -34,7 +39,7 @@ export interface CliScenario {
 	description: string;
 	/** Whether every formatter is effectively single-threaded here (one input file). */
 	single_threaded: boolean;
-	/** Results as measured; the component sorts and computes tsv-relative ratios. */
+	/** Results ascending by wall-clock time, tsv-relative ratios computed by the component. */
 	results: Array<CliFormatterResult>;
 }
 
@@ -42,43 +47,97 @@ export interface BenchmarksCliReport {
 	source_url: string;
 	upstream_url: string;
 	machine: string;
-	versions: {prettier: string; biome: string; oxfmt: string; tsv: string};
+	versions: Record<string, string>;
 	scenarios: Array<CliScenario>;
 }
+
+/**
+ * The prose framing for each scenario, keyed by its generated scenario id — the
+ * harness measures the numbers but doesn't explain them. Also fixes the page
+ * order, which is by narrative weight (the multi-file repo leads), not the order
+ * the harness runs them in. A scenario missing from here is dropped rather than
+ * rendered unexplained.
+ */
+const SCENARIO_COPY: Record<string, Omit<CliScenario, 'key' | 'results'>> = {
+	'typescript-only-tsv-fair': {
+		heading: 'TypeScript repo (Outline, non-JSX subset)',
+		description:
+			"Outline's .ts/.js/.mjs files — the common set every formatter supports, each scoped to it, with a preflight parse check confirming none reject anything. The fair way to put tsv on a real multi-file repo.",
+		single_threaded: false,
+	},
+	'large-single-file': {
+		heading: 'Large single file (TypeScript compiler parser.ts, ~540KB)',
+		description:
+			'One ~13.7K-line .ts file. With a single input every formatter is effectively single-threaded, so wall-clock is close to an engine comparison here — except oxfmt, which spins up a worker pool it cannot use, inflating its CPU time.',
+		single_threaded: true,
+	},
+};
+
+// The harness writes hyperfine's command names; these read better in a table.
+const LABELS: Record<string, string> = {'prettier+oxc-parser': 'prettier + oxc-parser'};
+
+const to_results = (scenario: FormatterScenario): Array<CliFormatterResult> =>
+	scenario.timings
+		.map((timing) => ({
+			label: LABELS[timing.name] ?? timing.name,
+			wall_ms: timing.mean_ms,
+			cpu_ms: timing.user_ms,
+			memory_mb: scenario.memory.find((m) => m.name === timing.name)?.mean_mb ?? null,
+		}))
+		.sort((a, b) => a.wall_ms - b.wall_ms);
+
+const to_scenarios = (): Array<CliScenario> =>
+	Object.entries(SCENARIO_COPY).flatMap(([key, copy]) => {
+		const scenario = benchmarks_formatters_json.scenarios.find((s) => s.id === key);
+		return scenario ? [{key, ...copy, results: to_results(scenario)}] : [];
+	});
 
 export const benchmarks_cli: BenchmarksCliReport = {
 	source_url: BENCHMARKS_CLI_SOURCE_URL,
 	upstream_url: BENCHMARKS_CLI_UPSTREAM_URL,
-	machine: 'AMD Ryzen 5 PRO 7530U · 12 threads · linux x64',
-	versions: {prettier: '3.9.1', biome: '2.5.1', oxfmt: '0.59.0', tsv: '0.2.0'},
-	scenarios: [
-		{
-			key: 'ts-repo',
-			heading: 'TypeScript repo (Outline, non-JSX subset)',
-			description:
-				"Outline's .ts/.js/.mjs files — the common set every formatter supports, each scoped to it, with a preflight parse check confirming none reject anything. The fair way to put tsv on a real multi-file repo.",
-			single_threaded: false,
-			results: [
-				{label: 'tsv', wall_ms: 120.3, cpu_ms: 854.8, memory_mb: 45.2},
-				{label: 'oxfmt', wall_ms: 379.8, cpu_ms: 1826.7, memory_mb: 215.6},
-				{label: 'biome', wall_ms: 784.3, cpu_ms: 7285.0, memory_mb: 135.7},
-				{label: 'prettier + oxc-parser', wall_ms: 8979, cpu_ms: 11237, memory_mb: 331.4},
-				{label: 'prettier', wall_ms: 10911, cpu_ms: 17611, memory_mb: 447.5},
-			],
-		},
-		{
-			key: 'large-single-file',
-			heading: 'Large single file (TypeScript compiler parser.ts, ~540KB)',
-			description:
-				'One ~13.7K-line .ts file. With a single input every formatter is effectively single-threaded, so wall-clock is close to an engine comparison here — except oxfmt, which spins up a worker pool it cannot use, inflating its CPU time.',
-			single_threaded: true,
-			results: [
-				{label: 'tsv', wall_ms: 28.8, cpu_ms: 15.2, memory_mb: 23.1},
-				{label: 'biome', wall_ms: 138.8, cpu_ms: 107.3, memory_mb: 102.6},
-				{label: 'oxfmt', wall_ms: 236.9, cpu_ms: 456.8, memory_mb: 118.0},
-				{label: 'prettier + oxc-parser', wall_ms: 503.4, cpu_ms: 751.3, memory_mb: 184.4},
-				{label: 'prettier', wall_ms: 1597, cpu_ms: 1583, memory_mb: 303.2},
-			],
-		},
-	],
+	machine: benchmarks_formatters_json.machine,
+	versions: benchmarks_formatters_json.versions,
+	scenarios: to_scenarios(),
+};
+
+/** The scenario id the page's prose calls "the TypeScript repo" — the multi-file, real-repo run. */
+export const CLI_TS_REPO_KEY = 'typescript-only-tsv-fair';
+
+/**
+ * How many times faster or lighter tsv is than `label` in one CLI scenario, by
+ * the given metric — the ratios the page's prose quotes.
+ *
+ * @returns the ratio, or `undefined` when the scenario, the formatter, or either
+ * side's measurement is absent
+ */
+export const cli_speedup_vs_tsv = (
+	scenario_key: string,
+	label: string,
+	metric: keyof Omit<CliFormatterResult, 'label'>,
+): number | undefined => {
+	const results = benchmarks_cli.scenarios.find((s) => s.key === scenario_key)?.results;
+	const tsv = results?.find((r) => r.label === 'tsv')?.[metric];
+	const other = results?.find((r) => r.label === label)?.[metric];
+	if (tsv == null || other == null || !tsv) return undefined;
+	return other / tsv;
+};
+
+/**
+ * The span of "times less memory than tsv" across every non-tsv row, over one
+ * scenario or all of them — the prose's `3–13x` claim.
+ *
+ * @returns the low and high ratio, or `undefined` when nothing was measured
+ */
+export const cli_memory_ratio_range = (
+	scenario_key?: string,
+): {min: number; max: number} | undefined => {
+	const scenarios = benchmarks_cli.scenarios.filter((s) => !scenario_key || s.key === scenario_key);
+	const ratios = scenarios.flatMap((scenario) =>
+		scenario.results
+			.filter((r) => r.label !== 'tsv')
+			.map((r) => cli_speedup_vs_tsv(scenario.key, r.label, 'memory_mb'))
+			.filter((ratio) => ratio !== undefined),
+	);
+	if (ratios.length === 0) return undefined;
+	return {min: Math.min(...ratios), max: Math.max(...ratios)};
 };

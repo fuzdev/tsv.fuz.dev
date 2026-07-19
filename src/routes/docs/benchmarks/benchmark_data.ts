@@ -882,6 +882,42 @@ export const format_speedup = (ratio: number): string =>
 	ratio >= 10 ? `${ratio.toFixed(1)}x` : `${ratio.toFixed(2)}x`;
 
 /**
+ * Loose ratio formatting for prose, which reads better with fewer digits than a
+ * table column (`1.7x`, `26x`) — always paired with a `~` in the copy. Renders
+ * `—` for a missing ratio rather than throwing mid-sentence; the benchmark tests
+ * assert every ratio the page quotes actually resolves.
+ */
+export const format_ratio_approx = (ratio: number | undefined): string =>
+	ratio === undefined ? '—' : ratio >= 10 ? `${Math.round(ratio)}x` : `${ratio.toFixed(1)}x`;
+
+/**
+ * An inclusive ratio range for prose (`3–9x`), FLOORED at both ends so a
+ * "3–9x less memory" claim never overstates either bound.
+ */
+export const format_ratio_range = (min: number, max: number): string =>
+	`${Math.floor(min)}–${Math.floor(max)}x`;
+
+/**
+ * How many times faster `faster` is than `slower` within one `operation/language`
+ * group, by mean time — the ratio the prose summaries quote.
+ *
+ * @returns the ratio, or `undefined` when either entry is absent from the report
+ */
+export const benchmark_speedup = (
+	baseline: BenchmarkBaseline,
+	group: string,
+	slower: string,
+	faster: string,
+): number | undefined => {
+	const find = (name: string) => baseline.entries.find((e) => e.group === group && e.name === name);
+	// a coverage-only report carries null timings, so both sides must be real
+	const a = find(slower)?.mean_ns;
+	const b = find(faster)?.mean_ns;
+	if (a == null || !b) return undefined;
+	return a / b;
+};
+
+/**
  * Signed speedup: entries at or above the anchor read as a plain multiple
  * (`2.50x`), while slower entries show the reciprocal negated (`0.15x` → `-6.67x`)
  * so "how many times slower" is directly legible instead of a fraction the reader

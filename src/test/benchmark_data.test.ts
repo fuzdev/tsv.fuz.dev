@@ -3,8 +3,14 @@ import {assert, describe, test} from 'vitest';
 import {benchmarks_json} from '$routes/docs/benchmarks/benchmarks.ts';
 import {benchmarks_conformance_json} from '$routes/docs/benchmarks/benchmarks_conformance.ts';
 import {benchmarks_cross_runtime_json} from '$routes/docs/benchmarks/benchmarks_cross_runtime.ts';
-import {benchmarks_cli} from '$routes/docs/benchmarks/benchmarks_cli.ts';
 import {
+	benchmarks_cli,
+	cli_memory_ratio_range,
+	cli_speedup_vs_tsv,
+	CLI_TS_REPO_KEY,
+} from '$routes/docs/benchmarks/benchmarks_cli.ts';
+import {
+	benchmark_speedup,
 	categorize_size_capability,
 	compute_baseline_ratio,
 	derive_benchmark_groups,
@@ -14,6 +20,8 @@ import {
 	derive_size_groups,
 	derive_speedup_summary,
 	format_coverage_percent,
+	format_ratio_approx,
+	format_ratio_range,
 	format_speedup_signed,
 	order_cross_runtime_runtimes,
 	OXC_FULL_LABEL,
@@ -465,10 +473,10 @@ describe('benchmarks_cross_runtime.json shape', () => {
 	});
 });
 
-// Shape gate for the hand-maintained CLI snapshot `benchmarks_cli.ts` (copied from
-// the linked oxc-bench-formatter fork). Unlike the JSON reports it isn't generated,
-// so a bad hand-edit (a scenario missing its `tsv` reference row, a zeroed metric)
-// would silently render an empty table rather than fail to typecheck.
+// Shape gate for the CLI report `benchmarks_cli.ts` derives from the generated
+// `benchmarks_formatters.json`. The generator parses prose, so a drifted heading
+// or scenario id in the harness's README would silently drop a scenario or its
+// `tsv` reference row and render an empty table rather than fail to typecheck.
 describe('benchmarks_cli shape', () => {
 	test('every scenario carries a tsv reference row with positive metrics', () => {
 		assert.isAtLeast(benchmarks_cli.scenarios.length, 1);
@@ -481,7 +489,8 @@ describe('benchmarks_cli shape', () => {
 			for (const r of scenario.results) {
 				assert.isAbove(r.wall_ms, 0, `${scenario.key}/${r.label} wall_ms`);
 				assert.isAbove(r.cpu_ms, 0, `${scenario.key}/${r.label} cpu_ms`);
-				assert.isAbove(r.memory_mb, 0, `${scenario.key}/${r.label} memory_mb`);
+				// null is legal (a harness run without GNU time measures no memory), 0 is not
+				assert.ok(r.memory_mb === null || r.memory_mb > 0, `${scenario.key}/${r.label} memory_mb`);
 			}
 		}
 	});
@@ -492,5 +501,52 @@ describe('benchmarks_cli shape', () => {
 		// analysis, so the two links must stay distinct repos.
 		assert.match(benchmarks_cli.source_url, /ryanatkn\/oxc-bench-formatter$/);
 		assert.match(benchmarks_cli.upstream_url, /oxc-project\/bench-formatter$/);
+	});
+});
+
+// The page's prose quotes ratios computed from the reports rather than
+// hand-written numbers, so a renamed entry or a dropped scenario would render
+// `—` mid-sentence instead of failing. These gate every pair the copy names.
+describe('prose ratios resolve', () => {
+	const IN_PROCESS_PAIRS: Array<[string, string, string]> = [
+		['format/typescript', 'oxfmt', 'tsv'],
+		['format/typescript', 'prettier', 'tsv'],
+		['format/typescript', 'biome-wasm', 'tsv_wasm'],
+		['format/svelte', 'prettier', 'tsv'],
+		['format/svelte', 'biome-wasm', 'tsv_wasm'],
+		['format/css', 'oxfmt', 'tsv'],
+		['format/css', 'biome-wasm', 'tsv_wasm'],
+		['parse/typescript', 'oxc-parser', 'tsv-json-no-locations'],
+	];
+
+	test('every in-process pair the TLDR quotes is present and favors tsv', () => {
+		for (const [group, slower, faster] of IN_PROCESS_PAIRS) {
+			const ratio = benchmark_speedup(benchmarks_json, group, slower, faster);
+			assert.isDefined(ratio, `${group}: ${slower} vs ${faster}`);
+			assert.isAbove(ratio, 1, `${group}: ${slower} vs ${faster}`);
+		}
+	});
+
+	test('every CLI ratio the prose quotes is present', () => {
+		for (const [label, metric] of [
+			['oxfmt', 'wall_ms'],
+			['oxfmt', 'cpu_ms'],
+			['biome', 'wall_ms'],
+		] as const) {
+			assert.isDefined(
+				cli_speedup_vs_tsv(CLI_TS_REPO_KEY, label, metric),
+				`${CLI_TS_REPO_KEY}: ${label} ${metric}`,
+			);
+		}
+		assert.isDefined(cli_memory_ratio_range(CLI_TS_REPO_KEY));
+		assert.isDefined(cli_memory_ratio_range());
+	});
+
+	test('approximate formatting drops digits as the ratio grows', () => {
+		assert.strictEqual(format_ratio_approx(1.66), '1.7x');
+		assert.strictEqual(format_ratio_approx(26.241), '26x');
+		assert.strictEqual(format_ratio_approx(undefined), '—');
+		// floored at both ends so the claim never overstates either bound
+		assert.strictEqual(format_ratio_range(3.001, 9.89), '3–9x');
 	});
 });

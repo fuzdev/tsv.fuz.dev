@@ -7,12 +7,20 @@
 	import {benchmarks_json} from './benchmarks.ts';
 	import {benchmarks_conformance_json} from './benchmarks_conformance.ts';
 	import {benchmarks_cross_runtime_json} from './benchmarks_cross_runtime.ts';
-	import {benchmarks_cli} from './benchmarks_cli.ts';
 	import {
+		benchmarks_cli,
+		cli_memory_ratio_range,
+		cli_speedup_vs_tsv,
+		CLI_TS_REPO_KEY,
+	} from './benchmarks_cli.ts';
+	import {
+		benchmark_speedup,
 		derive_benchmark_groups,
 		derive_conformance_groups,
 		derive_speedup_summary,
 		format_corpus_source_files,
+		format_ratio_approx,
+		format_ratio_range,
 		corpus_source_url,
 	} from './benchmark_data.ts';
 	import BenchmarksSummary from './BenchmarksSummary.svelte';
@@ -37,6 +45,34 @@
 	const corpus_file_count = $derived(Object.values(corpus).reduce((sum, n) => sum + n, 0));
 	const format_groups = groups.filter((g) => g.operation === 'format');
 	const parse_groups = groups.filter((g) => g.operation === 'parse');
+
+	// Every ratio the TLDR and the section notes quote, computed from the same
+	// reports the charts render so the prose can't drift from them. Native-vs-native
+	// pairs tsv with oxfmt, wasm-vs-wasm pairs tsv_wasm with biome-wasm; the parse
+	// comparison uses tsv's span-only wire, the shape oxc-parser also emits.
+	const speedup = (group: string, slower: string, faster: string) =>
+		format_ratio_approx(benchmark_speedup(benchmarks_json, group, slower, faster));
+	const format_ts_vs_oxfmt = speedup('format/typescript', 'oxfmt', 'tsv');
+	const format_ts_vs_prettier = speedup('format/typescript', 'prettier', 'tsv');
+	const format_ts_vs_biome = speedup('format/typescript', 'biome-wasm', 'tsv_wasm');
+	const format_svelte_vs_prettier = speedup('format/svelte', 'prettier', 'tsv');
+	const format_svelte_vs_biome = speedup('format/svelte', 'biome-wasm', 'tsv_wasm');
+	const format_css_vs_oxfmt = speedup('format/css', 'oxfmt', 'tsv');
+	const format_css_vs_biome = speedup('format/css', 'biome-wasm', 'tsv_wasm');
+	const parse_ts_vs_oxc = speedup('parse/typescript', 'oxc-parser', 'tsv-json-no-locations');
+
+	// The end-to-end CLI claims, from the formatter-comparison report.
+	const cli_ts_wall_vs_oxfmt = format_ratio_approx(
+		cli_speedup_vs_tsv(CLI_TS_REPO_KEY, 'oxfmt', 'wall_ms'),
+	);
+	const cli_ts_cpu_vs_oxfmt = format_ratio_approx(
+		cli_speedup_vs_tsv(CLI_TS_REPO_KEY, 'oxfmt', 'cpu_ms'),
+	);
+	const cli_ts_wall_vs_biome = format_ratio_approx(
+		cli_speedup_vs_tsv(CLI_TS_REPO_KEY, 'biome', 'wall_ms'),
+	);
+	const cli_ts_memory = cli_memory_ratio_range(CLI_TS_REPO_KEY);
+	const cli_memory = cli_memory_ratio_range();
 </script>
 
 <TomeContent {tome}>
@@ -65,27 +101,34 @@
 		</p>
 		<ul>
 			<li>
-				Formatting TypeScript, tsv is ~1.66x faster than Oxfmt (native-vs-native), ~26x faster than
-				Prettier (native Rust vs Prettier's JS), and ~6.5x faster than Biome (wasm-vs-wasm).
+				Formatting TypeScript, tsv is ~{format_ts_vs_oxfmt} faster than Oxfmt (native-vs-native),
+				~{format_ts_vs_prettier}
+				faster than Prettier (native Rust vs Prettier's JS), and ~{format_ts_vs_biome} faster than
+				Biome (wasm-vs-wasm).
 			</li>
 			<li>
-				Formatting Svelte, tsv is is ~63x faster than Prettier (which Oxfmt's Svelte path delegates
-				to internally) and 7.3x faster than Biome.
+				Formatting Svelte, tsv is is ~{format_svelte_vs_prettier} faster than Prettier (which
+				Oxfmt's Svelte path delegates to internally) and {format_svelte_vs_biome} faster than Biome.
 			</li>
-			<li>Formatting CSS, it's ~2.6x faster than Oxfmt and 12.4x faster than Biome.</li>
 			<li>
-				Parsing TypeScript, tsv is ~1.3x faster than Oxc (with the payload-matched span-only AST
-				both emit) and Biome doesn't expose its parser to JS. tsv's default AST adds a per-node
-				line/column <code>loc</code> for drop-in Svelte compatibility, with a fast path to
+				Formatting CSS, it's ~{format_css_vs_oxfmt} faster than Oxfmt
+				and {format_css_vs_biome} faster than Biome.
+			</li>
+			<li>
+				Parsing TypeScript, tsv is ~{parse_ts_vs_oxc} faster than Oxc (with the payload-matched
+				span-only AST both emit) and Biome doesn't expose its parser to JS. tsv's default AST adds a
+				per-node line/column <code>loc</code> for drop-in Svelte compatibility, with a fast path to
 				reconstruct locs in JS.
 			</li>
 			<li>
 				A <a href="https://github.com/ryanatkn/oxc-bench-formatter" rel="external"
 					>fork of Oxc's official <code>bench-formatter</code></a
 				> is an end-to-end CLI benchmark with its own corpus. On a real TypeScript repo, tsv formats
-				~3.1x faster than Oxfmt and ~6.5x faster than Biome using 3–10x less memory. Wall-clock
-				measurements are warped by each tool's multi-file parallelism, so they scale with core count
-				and are machine-dependent, and could change with tuning.
+				~{cli_ts_wall_vs_oxfmt} faster than Oxfmt and ~{cli_ts_wall_vs_biome} faster than Biome
+				using
+				{cli_ts_memory ? format_ratio_range(cli_ts_memory.min, cli_ts_memory.max) : '—'} less
+				memory. Wall-clock measurements are warped by each tool's multi-file parallelism, so they
+				scale with core count and are machine-dependent, and could change with tuning.
 			</li>
 		</ul>
 		<p>
@@ -317,12 +360,13 @@
 					bake in each tool's parallelism and scale with core count — they're only meaningful
 					alongside the machine they ran on. The <code>vs tsv (CPU work)</code> column is the
 					parallelism-neutral view (total CPU time across threads): on the TypeScript repo tsv is
-					~3x Oxfmt in wall-clock but ~2x in CPU work, the rest being cores Oxfmt uses and Prettier
-					can't.
+					~{cli_ts_wall_vs_oxfmt} Oxfmt in wall-clock but ~{cli_ts_cpu_vs_oxfmt} in CPU work, the
+					rest being cores Oxfmt uses and Prettier can't.
 				</li>
 				<li>
 					Peak memory doesn't depend on thread count, so it's the most directly comparable figure —
-					tsv uses 3–13x less than every other tool across both scenarios.
+					tsv uses {cli_memory ? format_ratio_range(cli_memory.min, cli_memory.max) : '—'} less than
+					every other tool across both scenarios.
 				</li>
 				<li>
 					Formatting width isn't identical: prettier, biome, and oxfmt format at width 80 (oxfmt

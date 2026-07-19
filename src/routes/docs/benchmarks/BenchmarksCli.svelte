@@ -30,7 +30,10 @@
 				is_tsv,
 				wall_ratio: is_tsv ? null : result.wall_ms / tsv.wall_ms,
 				cpu_ratio: is_tsv ? null : result.cpu_ms / tsv.cpu_ms,
-				memory_ratio: is_tsv ? null : result.memory_mb / tsv.memory_mb,
+				memory_ratio:
+					is_tsv || result.memory_mb == null || tsv.memory_mb == null
+						? null
+						: result.memory_mb / tsv.memory_mb,
 			};
 		});
 	};
@@ -61,7 +64,10 @@
 								>{row.wall_ratio == null ? '—' : format_speedup(row.wall_ratio)}</td
 							>
 							<td class="speedup">{row.cpu_ratio == null ? '—' : format_speedup(row.cpu_ratio)}</td>
-							<td>{Math.round(row.result.memory_mb)} MB</td>
+							<td>{row.result.memory_mb == null
+								? '—'
+								: `${Math.round(row.result.memory_mb)} MB`}</td
+							>
 							<td class="speedup"
 								>{row.memory_ratio == null ? '—' : format_speedup(row.memory_ratio)}</td
 							>
