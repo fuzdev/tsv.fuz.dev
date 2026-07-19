@@ -8,6 +8,14 @@
 		report: BenchmarksCliReport;
 	} = $props();
 
+	// listed as the harness reported them, so a formatter added or dropped upstream
+	// shows up here instead of silently rendering `undefined` for a fixed key
+	const versions = $derived(
+		Object.entries(report.versions)
+			.map(([name, version]) => `${name} ${version}`)
+			.join(', '),
+	);
+
 	const format_time = (ms: number): string =>
 		ms < 1000 ? `${Math.round(ms)} ms` : `${(ms / 1000).toFixed(1)} s`;
 
@@ -80,9 +88,8 @@
 {/each}
 
 <p class="versions">
-	Measured on {report.machine} — prettier {report.versions.prettier}, biome {report.versions.biome},
-	oxfmt {report.versions.oxfmt}, tsv {report.versions.tsv}. Wall-clock ratios scale with core count;
-	"vs tsv (CPU work)" is the parallelism-neutral view.
+	Measured on {report.machine} — {versions}. Wall-clock ratios scale with core count; "vs tsv (CPU
+	work)" is the parallelism-neutral view.
 </p>
 
 <style>

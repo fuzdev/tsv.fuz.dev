@@ -3,8 +3,10 @@ import {assert, describe, test} from 'vitest';
 import {benchmarks_json} from '$routes/docs/benchmarks/benchmarks.ts';
 import {benchmarks_conformance_json} from '$routes/docs/benchmarks/benchmarks_conformance.ts';
 import {benchmarks_cross_runtime_json} from '$routes/docs/benchmarks/benchmarks_cross_runtime.ts';
+import {benchmarks_formatters_json} from '$routes/docs/benchmarks/benchmarks_formatters.ts';
 import {
 	benchmarks_cli,
+	CLI_LABELS,
 	cli_memory_ratio_range,
 	cli_speedup_vs_tsv,
 	CLI_TS_REPO_KEY,
@@ -495,12 +497,43 @@ describe('benchmarks_cli shape', () => {
 		}
 	});
 
-	test('source links point at the fork and its upstream', () => {
-		// `tsv` is the fork's DEFAULT branch, so the bare fork URL already lands on the
-		// tsv work — no `/tree/tsv` suffix needed. Upstream carries neither tsv nor the
-		// analysis, so the two links must stay distinct repos.
-		assert.match(benchmarks_cli.source_url, /ryanatkn\/oxc-bench-formatter$/);
-		assert.match(benchmarks_cli.upstream_url, /oxc-project\/bench-formatter$/);
+	test('the derived wall-clock ratios agree with hyperfine own summary', () => {
+		// The generated report carries the harness's own `Summary` ratios beside the
+		// raw timings. Recomputing them from the timings and comparing catches a
+		// misparse that would otherwise render plausible-but-wrong numbers.
+		for (const scenario of benchmarks_formatters_json.scenarios) {
+			assert.strictEqual(scenario.baseline, 'tsv', `${scenario.id} baseline`);
+			for (const speedup of scenario.speedups) {
+				const derived = cli_speedup_vs_tsv(
+					scenario.id,
+					CLI_LABELS[speedup.name] ?? speedup.name,
+					'wall_ms',
+				);
+				assert.isDefined(derived, `${scenario.id}/${speedup.name}`);
+				// hyperfine derives its summary from full-precision means but prints the
+				// timings rounded, so recomputing from the printed numbers lands within a
+				// fraction of a percent — wide enough for that, far too tight to hide a
+				// misparse (a wrong unit would be off by 1000x)
+				assert.closeTo(
+					derived,
+					speedup.ratio,
+					speedup.ratio * 0.01,
+					`${scenario.id}/${speedup.name}`,
+				);
+			}
+		}
+	});
+
+	test('every formatter accepts the whole corpus, as the page claims', () => {
+		// The page's notes say the preflight parse check found nothing rejected, so
+		// no formatter is credited for skipping files. That's a claim about the data.
+		for (const scenario of benchmarks_formatters_json.scenarios) {
+			assert.isNotEmpty(scenario.preflight, `${scenario.id} ran no preflight`);
+			for (const entry of scenario.preflight) {
+				assert.strictEqual(entry.rejected, 0, `${scenario.id}/${entry.name} rejected files`);
+				assert.isFalse(entry.unavailable, `${scenario.id}/${entry.name} never launched`);
+			}
+		}
 	});
 });
 

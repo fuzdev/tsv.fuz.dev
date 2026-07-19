@@ -18,9 +18,6 @@
 import {benchmarks_formatters_json} from './benchmarks_formatters.ts';
 import type {FormatterScenario} from './formatter_benchmark_data.ts';
 
-export const BENCHMARKS_CLI_SOURCE_URL = 'https://github.com/ryanatkn/oxc-bench-formatter';
-export const BENCHMARKS_CLI_UPSTREAM_URL = 'https://github.com/oxc-project/bench-formatter';
-
 export interface CliFormatterResult {
 	/** Display label; `tsv` is the reference row every ratio is computed against. */
 	label: string;
@@ -44,8 +41,6 @@ export interface CliScenario {
 }
 
 export interface BenchmarksCliReport {
-	source_url: string;
-	upstream_url: string;
 	machine: string;
 	versions: Record<string, string>;
 	scenarios: Array<CliScenario>;
@@ -73,13 +68,16 @@ const SCENARIO_COPY: Record<string, Omit<CliScenario, 'key' | 'results'>> = {
 	},
 };
 
-// The harness writes hyperfine's command names; these read better in a table.
-const LABELS: Record<string, string> = {'prettier+oxc-parser': 'prettier + oxc-parser'};
+/**
+ * Display labels for the harness's hyperfine command names, which read better
+ * spaced out in a table. Names absent here are displayed as-is.
+ */
+export const CLI_LABELS: Record<string, string> = {'prettier+oxc-parser': 'prettier + oxc-parser'};
 
 const to_results = (scenario: FormatterScenario): Array<CliFormatterResult> =>
 	scenario.timings
 		.map((timing) => ({
-			label: LABELS[timing.name] ?? timing.name,
+			label: CLI_LABELS[timing.name] ?? timing.name,
 			wall_ms: timing.mean_ms,
 			cpu_ms: timing.user_ms,
 			memory_mb: scenario.memory.find((m) => m.name === timing.name)?.mean_mb ?? null,
@@ -93,8 +91,6 @@ const to_scenarios = (): Array<CliScenario> =>
 	});
 
 export const benchmarks_cli: BenchmarksCliReport = {
-	source_url: BENCHMARKS_CLI_SOURCE_URL,
-	upstream_url: BENCHMARKS_CLI_UPSTREAM_URL,
 	machine: benchmarks_formatters_json.machine,
 	versions: benchmarks_formatters_json.versions,
 	scenarios: to_scenarios(),
