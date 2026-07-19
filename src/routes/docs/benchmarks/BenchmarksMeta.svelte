@@ -51,6 +51,9 @@
 			{#if baseline.versions.biome}
 				<li>biome {baseline.versions.biome}</li>
 			{/if}
+			{#if baseline.versions.dprint}
+				<li>dprint {baseline.versions.dprint}</li>
+			{/if}
 		</ul>
 	</div>
 	<div class="meta-section">

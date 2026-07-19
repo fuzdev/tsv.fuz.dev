@@ -1,9 +1,9 @@
 // A snapshot of the independent end-to-end CLI benchmark — a fork of Oxc's official
 // `bench-formatter` that adds tsv on its `tsv` branch
 // (https://github.com/ryanatkn/oxc-bench-formatter, forked from
-// https://github.com/oxc-project/bench-formatter — the fork's `main` tracks
-// upstream and carries neither tsv nor this analysis, so links target `tsv`).
-// Unlike the
+// https://github.com/oxc-project/bench-formatter — `tsv` is the fork's DEFAULT
+// branch, so the bare fork URL already lands on it; upstream carries neither tsv
+// nor this analysis). Unlike the
 // in-process, single-threaded numbers elsewhere on this page, it measures the
 // WHOLE CLI: process spawn, file discovery, I/O, and each tool's default
 // multi-file parallelism. tsv, oxfmt, and biome parallelize across files while

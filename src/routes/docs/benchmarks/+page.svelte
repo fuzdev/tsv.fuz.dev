@@ -106,9 +106,9 @@
 		<p class="mb_xl5">
 			tsv's formatter is similar to <a href="https://oxc.rs/docs/guide/usage/formatter.html"
 				>Oxfmt</a
-			>
-			and <a href="https://biomejs.dev/formatter/">Biome</a>. It formats Svelte, TypeScript, and
-			CSS, plus JS as strict-mode TypeScript:
+			>, <a href="https://biomejs.dev/formatter/">Biome</a>, and
+			<a href="https://dprint.dev/plugins/typescript/">dprint</a>. It formats Svelte, TypeScript,
+			and CSS, plus JS as strict-mode TypeScript:
 		</p>
 		{#each format_groups as group (group.language)}
 			<BenchmarksGroup {group} {corpus} />
@@ -125,6 +125,15 @@
 					There's no native Biome entry: its native engine ships only as the <code>biome</code> CLI
 					binary, a separate process rather than an embeddable library, so it can't be fairly timed
 					in-process like the others.
+				</li>
+				<li>
+					The dprint entry is <a href="https://dprint.dev/plugins/typescript/"
+						>dprint-plugin-typescript</a
+					>, the engine <code>deno fmt</code> runs for TypeScript and JS, loaded in-process as its
+					wasm plugin. It formats TypeScript and JS only — the plugin rejects CSS and Svelte, and
+					dprint's CSS and HTML plugins are separate — so it's grayed out in those two groups. This
+					times the engine, not the <code>deno fmt</code> CLI: a subprocess per file would measure
+					process startup instead of formatting.
 				</li>
 			</ul>
 		</aside>

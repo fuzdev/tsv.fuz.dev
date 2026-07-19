@@ -124,6 +124,9 @@ export interface BaselineVersions {
 	oxc_parser?: string;
 	oxfmt?: string;
 	biome?: string;
+	// `@dprint/typescript` — the plugin version (the host `@dprint/formatter` is
+	// just the Wasm loader). Absent on reports produced before the dprint row.
+	dprint?: string;
 }
 
 export interface BinarySize {
@@ -144,6 +147,7 @@ export type ImplementationCategory =
 	| 'tsv_wasm'
 	| 'tsv_wasm_json'
 	| 'biome'
+	| 'dprint'
 	| 'oxc';
 
 export interface BenchmarkGroup {
@@ -192,6 +196,7 @@ const CATEGORY_BY_NAME: Record<string, ImplementationCategory> = {
 	'tsv_wasm-json-no-locations': 'tsv_wasm_json',
 	'tsv_wasm-internal': 'tsv_wasm',
 	'biome-wasm': 'biome',
+	'dprint-wasm': 'dprint',
 	'oxc-parser': 'oxc',
 	'oxc-parser-wasm': 'oxc',
 	oxfmt: 'oxc',
@@ -205,6 +210,7 @@ export const categorize_size = (label: string): ImplementationCategory => {
 	if (label.startsWith('tsv') && label.includes('wasm')) return 'tsv_wasm';
 	if (label.startsWith('tsv')) return 'tsv_native';
 	if (label.startsWith('biome')) return 'biome';
+	if (label.startsWith('dprint')) return 'dprint';
 	return 'oxc'; // oxc-parser / oxfmt, and any unrecognized label
 };
 
@@ -226,17 +232,19 @@ const LANGUAGE_ORDER: Record<string, number> = {
 /**
  * Fixed slot for a format/parse row, applied in place of a size-ordered sort so the
  * rows read in a stable, meaningful sequence across every group: the canonical
- * reference first (the default 1.0x anchor), then the cross-tool comparisons (biome,
- * then oxc), then tsv's JSON-materializing wires (the span-only `no-locations` wire
- * before the default `loc`-carrying one), then tsv's raw internal engine.
+ * reference first (the default 1.0x anchor), then the cross-tool comparisons
+ * (alphabetically: biome, dprint, then oxc), then tsv's JSON-materializing wires (the
+ * span-only `no-locations` wire before the default `loc`-carrying one), then tsv's raw
+ * internal engine.
  */
 const speed_entry_rank = (entry: BenchmarkDisplayEntry): number => {
 	if (entry.category === 'canonical') return 0;
 	if (entry.category === 'biome') return 1;
-	if (entry.category === 'oxc') return 2;
-	if (entry.name.endsWith('-no-locations')) return 3; // tsv json, span-only wire
-	if (entry.name.endsWith('-json')) return 4; // tsv json, loc-carrying wire
-	return 5; // tsv-internal / tsv_wasm-internal — raw in-engine, no JS materialization
+	if (entry.category === 'dprint') return 2;
+	if (entry.category === 'oxc') return 3;
+	if (entry.name.endsWith('-no-locations')) return 4; // tsv json, span-only wire
+	if (entry.name.endsWith('-json')) return 5; // tsv json, loc-carrying wire
+	return 6; // tsv-internal / tsv_wasm-internal — raw in-engine, no JS materialization
 };
 
 /**
@@ -345,6 +353,32 @@ export const derive_benchmark_groups = (baseline: BenchmarkBaseline): Array<Benc
 			: [];
 		group.entries.push(biome_placeholder, ...oxc_placeholders);
 		group.entries.sort(compare_speed_entries);
+	}
+
+	// The format-side analogue: `dprint` formats TypeScript/JS only — its
+	// `@dprint/typescript` plugin rejects CSS and Svelte outright (dprint's CSS and
+	// HTML plugins are separate Wasm plugins the bench doesn't load) — so the svelte
+	// and css FORMAT groups have no real dprint entry. Mirror it in as a disabled
+	// placeholder so all three format groups share one entry order, exactly as
+	// oxc-parser is mirrored into the svelte/css parse groups above. Guarded on the
+	// template existing, so a report predating the dprint row renders unchanged.
+	const ts_format = result.find((g) => g.operation === 'format' && g.language === 'typescript');
+	const dprint_templates = ts_format?.entries.filter((e) => e.category === 'dprint') ?? [];
+	if (dprint_templates.length > 0) {
+		for (const group of result) {
+			if (group.operation !== 'format') continue;
+			if (group.entries.some((e) => e.category === 'dprint')) continue;
+			group.entries.push(
+				...dprint_templates.map((e) => ({
+					...e,
+					bar_fraction: 0,
+					files_processed: null,
+					files_total: null,
+					disabled: true,
+				})),
+			);
+			group.entries.sort(compare_speed_entries);
+		}
 	}
 
 	return result;
@@ -890,6 +924,7 @@ const LABEL_OVERRIDES: Record<string, string> = {
 	'oxc-parser': 'oxc-parser (node napi)',
 	oxfmt: 'oxfmt (node napi)',
 	'biome-wasm': 'biome (wasm)',
+	'dprint-wasm': 'dprint (wasm)',
 	'oxc-parser-wasm': 'oxc-parser (wasm)',
 };
 
@@ -929,6 +964,8 @@ export const category_color = (category: ImplementationCategory): string => {
 			return 'var(--color_f_40)';
 		case 'biome':
 			return 'var(--color_a_40)';
+		case 'dprint':
+			return 'var(--color_b_40)';
 		case 'oxc':
 			return 'var(--color_i_40)';
 	}

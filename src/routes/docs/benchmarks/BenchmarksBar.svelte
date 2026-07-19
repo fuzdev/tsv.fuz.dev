@@ -37,12 +37,13 @@
 	} = $props();
 
 	// the parenthesized binding suffix (`(wasm)`/`(node napi)`) describes how the
-	// tool actually ran in this (Node) report - meaningless for biome's disabled
-	// placeholder (its only variant is wasm, so there's no ambiguity to lose).
-	// oxc-parser keeps its suffix even when disabled since it has two placeholder
-	// rows (napi and wasm) that would otherwise become indistinguishable.
+	// tool actually ran in this (Node) report - meaningless for the disabled
+	// placeholders of single-variant tools (biome and dprint each ship only a wasm
+	// build here, so there's no ambiguity to lose). oxc-parser keeps its suffix even
+	// when disabled since it has two placeholder rows (napi and wasm) that would
+	// otherwise become indistinguishable.
 	const display_label = $derived(
-		disabled && category === 'biome'
+		disabled && (category === 'biome' || category === 'dprint')
 			? format_label(label).replace(/ \([^)]*\)$/, '')
 			: format_label(label),
 	);

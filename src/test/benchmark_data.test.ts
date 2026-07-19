@@ -123,16 +123,62 @@ describe('benchmarks.json shape', () => {
 		}
 	});
 
-	test('format/parse rows follow the fixed canonical → biome → oxc → json → internal order', () => {
+	test('svelte/css format groups get disabled dprint placeholders, typescript keeps real ones', () => {
+		const groups = derive_benchmark_groups(benchmarks_json);
+		const format = (language: string) =>
+			groups.find((g) => g.operation === 'format' && g.language === language);
+
+		// typescript actually runs dprint — its entry is real, not a placeholder
+		const ts = format('typescript');
+		const ts_dprint = ts?.entries.filter((e) => e.category === 'dprint') ?? [];
+
+		// The dprint row postdates older reports. With no measured entry there is
+		// nothing to mirror, and the derivation deliberately leaves every group
+		// untouched — so assert exactly that (no invented rows) and stop. Refreshing
+		// the report is what promotes this to the full assertion below.
+		if (ts_dprint.length === 0) {
+			for (const language of ['svelte', 'css']) {
+				const group = format(language);
+				assert.isEmpty(
+					group?.entries.filter((e) => e.category === 'dprint') ?? [],
+					`${language} must not invent a dprint row when the report carries none`,
+				);
+			}
+			return;
+		}
+
+		for (const e of ts_dprint) assert.isNotOk(e.disabled, `${e.name} should be a real entry`);
+
+		// svelte and css mirror it in, disabled: dprint's `@dprint/typescript` plugin
+		// rejects CSS and Svelte outright, so those groups have no real entry
+		for (const language of ['svelte', 'css']) {
+			const group = format(language);
+			assert.ok(group, `${language} format group missing`);
+			const dprint = group.entries.filter((e) => e.category === 'dprint');
+			assert.strictEqual(dprint.length, ts_dprint.length, `${language} dprint placeholder count`);
+			for (const e of dprint) {
+				assert.ok(e.disabled, `${language} ${e.name} should be disabled`);
+				assert.strictEqual(e.bar_fraction, 0, `${language} ${e.name} bar`);
+			}
+			// dprint sits between biome and oxc in the shared cross-tool ordering
+			const names = group.entries.map((e) => e.name);
+			const first_biome = names.findIndex((n) => n.includes('biome'));
+			const first_dprint = names.findIndex((n) => n.includes('dprint'));
+			assert.strictEqual(first_dprint, first_biome + 1, `${language} dprint directly after biome`);
+		}
+	});
+
+	test('format/parse rows follow the fixed canonical → biome → dprint → oxc → json → internal order', () => {
 		// independently mirrors the requested row order so a regression in the
 		// derivation's comparator fails here
 		const tier = (name: string, category: string): number => {
 			if (category === 'canonical') return 0;
 			if (category === 'biome') return 1;
-			if (category === 'oxc') return 2;
-			if (name.endsWith('-no-locations')) return 3; // tsv json, span-only wire
-			if (name.endsWith('-json')) return 4; // tsv json, loc-carrying wire
-			return 5; // tsv internal engine
+			if (category === 'dprint') return 2;
+			if (category === 'oxc') return 3;
+			if (name.endsWith('-no-locations')) return 4; // tsv json, span-only wire
+			if (name.endsWith('-json')) return 5; // tsv json, loc-carrying wire
+			return 6; // tsv internal engine
 		};
 		for (const group of derive_benchmark_groups(benchmarks_json)) {
 			const key = `${group.operation}/${group.language}`;
@@ -440,10 +486,11 @@ describe('benchmarks_cli shape', () => {
 		}
 	});
 
-	test('source links point at the fork (on its tsv branch) and its upstream', () => {
-		// the fork's `main` tracks upstream and carries neither tsv nor the analysis,
-		// so every fork link must target the `tsv` branch
-		assert.match(benchmarks_cli.source_url, /ryanatkn\/oxc-bench-formatter\/tree\/tsv$/);
-		assert.match(benchmarks_cli.upstream_url, /oxc-project\/bench-formatter/);
+	test('source links point at the fork and its upstream', () => {
+		// `tsv` is the fork's DEFAULT branch, so the bare fork URL already lands on the
+		// tsv work — no `/tree/tsv` suffix needed. Upstream carries neither tsv nor the
+		// analysis, so the two links must stay distinct repos.
+		assert.match(benchmarks_cli.source_url, /ryanatkn\/oxc-bench-formatter$/);
+		assert.match(benchmarks_cli.upstream_url, /oxc-project\/bench-formatter$/);
 	});
 });
