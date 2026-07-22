@@ -68,9 +68,8 @@ reconstruct_locations(ast, 'const x = 1;');`;
 			<a href="https://github.com/fuzdev/tsv/discussions">discussions</a>.
 		</p>
 		<p>
-			AI disclosure: this codebase is mostly LLM-generated, and the usual caveats apply. The first
-			release took 7 months and ~1800 manual commits. It's a high-effort project that prioritizes
-			quality.
+			AI disclosure: this codebase is mostly LLM-generated, and the usual caveats apply. It's a
+			high-effort project that prioritizes quality.
 		</p>
 		<p>
 			These docs are a work in progress. For design details see the <a
