@@ -115,7 +115,7 @@
 				and {format_css_vs_biome} faster than Biome.
 			</li>
 			<li>
-				Parsing TypeScript to JSON, tsv is ~{parse_ts_vs_oxc} faster than Oxc and Biome doesn't
+				Parsing TypeScript to JSON, tsv is ~{parse_ts_vs_oxc} faster than Oxc; Biome doesn't
 				expose its parser to JS. tsv's default AST adds a per-node line/column <code>loc</code> for
 				drop-in Svelte compatibility, with a fast path to reconstruct locs in JS.
 			</li>
