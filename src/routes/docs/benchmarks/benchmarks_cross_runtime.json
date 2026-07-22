@@ -2,11 +2,7 @@
 	"version": 7,
 	"kind": "combined",
 	"generated": "2026-07-22T09:27:01.099Z",
-	"runtimes": [
-		"deno",
-		"node",
-		"bun"
-	],
+	"runtimes": ["deno", "node", "bun"],
 	"mixed_vintage": false,
 	"mixed_machine": false,
 	"sources": [

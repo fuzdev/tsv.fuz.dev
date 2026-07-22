@@ -199,7 +199,7 @@ const CATEGORY_BY_NAME: Record<string, ImplementationCategory> = {
 	'dprint-wasm': 'dprint',
 	'oxc-parser': 'oxc',
 	'oxc-parser-wasm': 'oxc',
-	oxfmt: 'oxc',
+	oxfmt: 'oxc'
 };
 
 export const categorize_name = (name: string): ImplementationCategory =>
@@ -222,11 +222,11 @@ const PRIMARY_WASM_FORMAT = 'tsv_wasm';
 
 // Shared display order for benchmark groups: format before parse, then by
 // language — used by the detailed, conformance, and cross-runtime views alike.
-const OPERATION_ORDER: Record<string, number> = {format: 0, parse: 1};
+const OPERATION_ORDER: Record<string, number> = { format: 0, parse: 1 };
 const LANGUAGE_ORDER: Record<string, number> = {
 	svelte: 0,
 	typescript: 1,
-	css: 2,
+	css: 2
 };
 
 /**
@@ -294,7 +294,7 @@ export const derive_benchmark_groups = (baseline: BenchmarkBaseline): Array<Benc
 			bar_fraction: slowest > 0 ? (e.mean_ns ?? 0) / slowest : 0,
 			category: categorize_name(e.name),
 			files_processed: e.files_processed ?? null,
-			files_total: e.files_total ?? null,
+			files_total: e.files_total ?? null
 		}));
 
 		// Fixed order (see `compare_speed_entries`): canonical leads as the default 1.0x
@@ -309,14 +309,14 @@ export const derive_benchmark_groups = (baseline: BenchmarkBaseline): Array<Benc
 			language,
 			entries: display_entries,
 			canonical_entry: display_entries.find((e) => e.category === 'canonical'),
-			files_iterated: iterated_counts.length > 0 ? Math.max(...iterated_counts) : null,
+			files_iterated: iterated_counts.length > 0 ? Math.max(...iterated_counts) : null
 		});
 	}
 
 	result.sort(
 		(a, b) =>
 			(OPERATION_ORDER[a.operation] ?? 9) - (OPERATION_ORDER[b.operation] ?? 9) ||
-			(LANGUAGE_ORDER[a.language] ?? 9) - (LANGUAGE_ORDER[b.language] ?? 9),
+			(LANGUAGE_ORDER[a.language] ?? 9) - (LANGUAGE_ORDER[b.language] ?? 9)
 	);
 
 	// Neither `biome` nor (for svelte/css) `oxc-parser` has a real entry in every
@@ -338,7 +338,7 @@ export const derive_benchmark_groups = (baseline: BenchmarkBaseline): Array<Benc
 			category: 'biome',
 			files_processed: null,
 			files_total: null,
-			disabled: true,
+			disabled: true
 		};
 		const needs_oxc =
 			group.language !== 'typescript' && !group.entries.some((e) => e.category === 'oxc');
@@ -348,7 +348,7 @@ export const derive_benchmark_groups = (baseline: BenchmarkBaseline): Array<Benc
 					bar_fraction: 0,
 					files_processed: null,
 					files_total: null,
-					disabled: true,
+					disabled: true
 				}))
 			: [];
 		group.entries.push(biome_placeholder, ...oxc_placeholders);
@@ -374,8 +374,8 @@ export const derive_benchmark_groups = (baseline: BenchmarkBaseline): Array<Benc
 					bar_fraction: 0,
 					files_processed: null,
 					files_total: null,
-					disabled: true,
-				})),
+					disabled: true
+				}))
 			);
 			group.entries.sort(compare_speed_entries);
 		}
@@ -412,7 +412,7 @@ const CONFORMANCE_ENGINE_NAMES: Record<string, string> = {
 	'svelte/compiler': 'svelte/compiler',
 	'acorn-typescript': 'acorn-typescript',
 	'tsv-json': 'tsv',
-	'oxc-parser': 'oxc-parser',
+	'oxc-parser': 'oxc-parser'
 };
 
 /**
@@ -437,7 +437,7 @@ export const derive_conformance_groups = (baseline: BenchmarkBaseline): Array<Co
 			name: display_name,
 			files_processed: entry.files_processed,
 			files_total: entry.files_total,
-			coverage_fraction: entry.files_total > 0 ? entry.files_processed / entry.files_total : 0,
+			coverage_fraction: entry.files_total > 0 ? entry.files_processed / entry.files_total : 0
 		});
 	}
 
@@ -448,7 +448,7 @@ export const derive_conformance_groups = (baseline: BenchmarkBaseline): Array<Co
 		result.push({
 			language,
 			files_total: Math.max(0, ...rows.map((r) => r.files_total)),
-			rows,
+			rows
 		});
 	}
 	result.sort((a, b) => (LANGUAGE_ORDER[a.language] ?? 9) - (LANGUAGE_ORDER[b.language] ?? 9));
@@ -468,7 +468,7 @@ export const derive_speedup_summary = (groups: Array<BenchmarkGroup>): Array<Spe
 	const find_speedup = (
 		operation: string,
 		language: string,
-		primary_name: string,
+		primary_name: string
 	): number | undefined => {
 		const group = groups.find((g) => g.operation === operation && g.language === language);
 		if (!group?.canonical_entry) return undefined;
@@ -482,14 +482,14 @@ export const derive_speedup_summary = (groups: Array<BenchmarkGroup>): Array<Spe
 			variant: 'native',
 			format_svelte: find_speedup('format', 'svelte', PRIMARY_NATIVE_FORMAT),
 			format_typescript: find_speedup('format', 'typescript', PRIMARY_NATIVE_FORMAT),
-			format_css: find_speedup('format', 'css', PRIMARY_NATIVE_FORMAT),
+			format_css: find_speedup('format', 'css', PRIMARY_NATIVE_FORMAT)
 		},
 		{
 			variant: 'wasm',
 			format_svelte: find_speedup('format', 'svelte', PRIMARY_WASM_FORMAT),
 			format_typescript: find_speedup('format', 'typescript', PRIMARY_WASM_FORMAT),
-			format_css: find_speedup('format', 'css', PRIMARY_WASM_FORMAT),
-		},
+			format_css: find_speedup('format', 'css', PRIMARY_WASM_FORMAT)
+		}
 	];
 };
 
@@ -534,9 +534,9 @@ const SIZE_CAPABILITY_ORDER: ReadonlyArray<{
 	capability: SizeCapability;
 	heading: string;
 }> = [
-	{capability: 'full', heading: 'Full toolchain (parse + format)'},
-	{capability: 'formatter', heading: 'Formatter'},
-	{capability: 'parser', heading: 'Parser'},
+	{ capability: 'full', heading: 'Full toolchain (parse + format)' },
+	{ capability: 'formatter', heading: 'Formatter' },
+	{ capability: 'parser', heading: 'Parser' }
 ];
 
 /** Display label for the synthesized combined oxc full-toolchain build. */
@@ -563,7 +563,7 @@ const synthesize_oxc_full = (sizes: Array<BinarySize>): BinarySize | undefined =
 		gzip_bytes:
 			parser.gzip_bytes != null && formatter.gzip_bytes != null
 				? parser.gzip_bytes + formatter.gzip_bytes
-				: null,
+				: null
 	};
 };
 
@@ -583,7 +583,7 @@ export const derive_size_groups = (sizes: Array<BinarySize>): Array<SizeCapabili
 	const oxc_full = synthesize_oxc_full(sizes);
 	const all_sizes = oxc_full ? [...sizes, oxc_full] : sizes;
 	const groups: Array<SizeCapabilityGroup> = [];
-	for (const {capability, heading} of SIZE_CAPABILITY_ORDER) {
+	for (const { capability, heading } of SIZE_CAPABILITY_ORDER) {
 		const items = all_sizes.filter((s) => categorize_size_capability(s.label) === capability);
 		if (items.length === 0) continue;
 		const sorted = items.toSorted((a, b) => a.bytes - b.bytes);
@@ -595,7 +595,7 @@ export const derive_size_groups = (sizes: Array<BinarySize>): Array<SizeCapabili
 		const entries: Array<SizeDisplayEntry> = sorted.map((s) => ({
 			...s,
 			bar_fraction: max > 0 ? s.bytes / max : 0,
-			category: categorize_size(s.label),
+			category: categorize_size(s.label)
 		}));
 		if (capability === 'formatter' && !entries.some((e) => e.label === OXFMT_WASM_LABEL)) {
 			const native_index = entries.findIndex((e) => e.label === 'oxfmt (napi)');
@@ -606,11 +606,11 @@ export const derive_size_groups = (sizes: Array<BinarySize>): Array<SizeCapabili
 				gzip_bytes: null,
 				bar_fraction: 0,
 				category: categorize_size(OXFMT_WASM_LABEL),
-				disabled: true,
+				disabled: true
 			};
 			entries.splice(native_index === -1 ? entries.length : native_index, 0, placeholder);
 		}
-		groups.push({capability, heading, entries});
+		groups.push({ capability, heading, entries });
 	}
 	return groups;
 };
@@ -676,7 +676,7 @@ const CROSS_RUNTIME_DISPLAY_ORDER: Array<BenchmarkRuntime> = ['node', 'deno', 'b
  * and the table headers so the anchor can't drift between them.
  */
 export const order_cross_runtime_runtimes = (
-	runtimes: Array<BenchmarkRuntime>,
+	runtimes: Array<BenchmarkRuntime>
 ): Array<BenchmarkRuntime> => CROSS_RUNTIME_DISPLAY_ORDER.filter((r) => runtimes.includes(r));
 
 /** One runtime's own version string (`node 24.14.1`), for the cross-runtime section. */
@@ -700,7 +700,7 @@ export const derive_runtime_versions = (report: CrossRuntimeReport): Array<Runti
 	const result: Array<RuntimeVersion> = [];
 	for (const runtime of order_cross_runtime_runtimes(report.runtimes)) {
 		const version = by_runtime.get(runtime)?.machine?.runtime_version;
-		if (version) result.push({runtime, version});
+		if (version) result.push({ runtime, version });
 	}
 	return result;
 };
@@ -713,7 +713,7 @@ export const derive_runtime_versions = (report: CrossRuntimeReport): Array<Runti
  * own deno-first storage order.
  */
 export const derive_cross_runtime_groups = (
-	report: CrossRuntimeReport,
+	report: CrossRuntimeReport
 ): Array<CrossRuntimeGroup> => {
 	const runtimes = order_cross_runtime_runtimes(report.runtimes);
 	const base = runtimes[0];
@@ -736,19 +736,19 @@ export const derive_cross_runtime_groups = (
 			name: row.name,
 			category: categorize_name(row.name),
 			ops_per_second: row.ops_per_second,
-			ratio_vs_base,
+			ratio_vs_base
 		});
 	}
 
 	const result: Array<CrossRuntimeGroup> = [];
 	for (const [group, rows] of grouped) {
 		const [operation, language] = group.split('/');
-		result.push({group, operation: operation!, language: language!, rows});
+		result.push({ group, operation: operation!, language: language!, rows });
 	}
 	result.sort(
 		(a, b) =>
 			(OPERATION_ORDER[a.operation] ?? 9) - (OPERATION_ORDER[b.operation] ?? 9) ||
-			(LANGUAGE_ORDER[a.language] ?? 9) - (LANGUAGE_ORDER[b.language] ?? 9),
+			(LANGUAGE_ORDER[a.language] ?? 9) - (LANGUAGE_ORDER[b.language] ?? 9)
 	);
 	return result;
 };
@@ -761,20 +761,20 @@ export interface FormattedUnit {
 }
 
 export const format_ns = (ns: number): FormattedUnit => {
-	if (ns < 1_000) return {value: `${Math.round(ns)}`, unit: 'ns'};
+	if (ns < 1_000) return { value: `${Math.round(ns)}`, unit: 'ns' };
 	if (ns < 1_000_000)
 		return {
 			value: (ns / 1_000).toFixed(ns < 10_000 ? 2 : ns < 100_000 ? 1 : 0),
-			unit: 'µs',
+			unit: 'µs'
 		};
 	const ms = Math.round(ns / 1_000_000);
-	return {value: ms.toLocaleString('en-US'), unit: 'ms'};
+	return { value: ms.toLocaleString('en-US'), unit: 'ms' };
 };
 
 export const format_bytes = (bytes: number): FormattedUnit => {
-	if (bytes < 1_024) return {value: `${bytes}`, unit: 'B'};
-	if (bytes < 1_048_576) return {value: (bytes / 1_024).toFixed(0), unit: 'KB'};
-	return {value: (bytes / 1_048_576).toFixed(1), unit: 'MB'};
+	if (bytes < 1_024) return { value: `${bytes}`, unit: 'B' };
+	if (bytes < 1_048_576) return { value: (bytes / 1_024).toFixed(0), unit: 'KB' };
+	return { value: (bytes / 1_048_576).toFixed(1), unit: 'MB' };
 };
 
 /**
@@ -831,7 +831,7 @@ const CORPUS_REPO_URL_BY_PREFIX: ReadonlyArray<readonly [string, string]> = [
 	['../webdevladder.net/', 'https://github.com/ryanatkn/webdevladder.net'],
 	['../kit/', 'https://github.com/sveltejs/kit'],
 	['../svelte.dev/', 'https://github.com/sveltejs/svelte.dev'],
-	['../svelte/', 'https://github.com/sveltejs/svelte'],
+	['../svelte/', 'https://github.com/sveltejs/svelte']
 ];
 
 /** The repo URL for a corpus source path, or `undefined` when it maps to no repo. */
@@ -850,7 +850,7 @@ const corpus_repo_label = (url: string): string => new URL(url).pathname.slice(1
  * not the report, so the links survive a refresh.
  */
 export const derive_corpus_repos = (
-	sources: Array<CorpusSource> | undefined,
+	sources: Array<CorpusSource> | undefined
 ): Array<CorpusRepo> => {
 	const by_url: Map<string, CorpusRepo> = new Map();
 	for (const source of sources ?? []) {
@@ -860,7 +860,7 @@ export const derive_corpus_repos = (
 		if (!url || by_url.has(url)) continue;
 		by_url.set(url, {
 			url,
-			label: source.repo?.slug ?? corpus_repo_label(url),
+			label: source.repo?.slug ?? corpus_repo_label(url)
 		});
 	}
 	return [...by_url.values()];
@@ -873,7 +873,7 @@ export const derive_corpus_repos = (
  */
 export const format_gzip_size = (gzip_bytes: number | null | undefined): string | undefined => {
 	if (gzip_bytes == null) return undefined;
-	const {value, unit} = format_bytes(gzip_bytes);
+	const { value, unit } = format_bytes(gzip_bytes);
 	return `${value} ${unit} gz`;
 };
 
@@ -907,7 +907,7 @@ export const benchmark_speedup = (
 	baseline: BenchmarkBaseline,
 	group: string,
 	slower: string,
-	faster: string,
+	faster: string
 ): number | undefined => {
 	const find = (name: string) => baseline.entries.find((e) => e.group === group && e.name === name);
 	// a coverage-only report carries null timings, so both sides must be real
@@ -961,7 +961,7 @@ const LABEL_OVERRIDES: Record<string, string> = {
 	oxfmt: 'oxfmt (node napi)',
 	'biome-wasm': 'biome (wasm)',
 	'dprint-wasm': 'dprint (wasm)',
-	'oxc-parser-wasm': 'oxc-parser (wasm)',
+	'oxc-parser-wasm': 'oxc-parser (wasm)'
 };
 
 export const format_label = (name: string): string => {
@@ -1061,7 +1061,7 @@ export type BaselineDirection = 'speed' | 'size';
 export const compute_baseline_ratio = (
 	direction: BaselineDirection,
 	entry_raw: number,
-	anchor_raw: number,
+	anchor_raw: number
 ): number => (direction === 'speed' ? anchor_raw / entry_raw : entry_raw / anchor_raw);
 
 /** Plain size ratio (`2.3x`) — its own formatter since sizes never take the signed treatment. */

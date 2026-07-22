@@ -1,8 +1,8 @@
 <script lang="ts">
-	import {format_coverage_percent, type ConformanceGroup} from './benchmark_data.ts';
+	import { format_coverage_percent, type ConformanceGroup } from './benchmark_data.ts';
 
 	const {
-		groups,
+		groups
 	}: {
 		groups: Array<ConformanceGroup>;
 	} = $props();
@@ -10,7 +10,7 @@
 	const LANGUAGE_LABELS: Record<string, string> = {
 		svelte: 'Svelte',
 		typescript: 'TypeScript',
-		css: 'CSS',
+		css: 'CSS'
 	};
 </script>
 
@@ -34,7 +34,7 @@
 						<td>{row.name}</td>
 						<td class="num"
 							>{row.files_processed.toLocaleString('en-US')} / {row.files_total.toLocaleString(
-								'en-US',
+								'en-US'
 							)}</td
 						>
 						<td class="num percent">{format_coverage_percent(row.coverage_fraction)}</td>

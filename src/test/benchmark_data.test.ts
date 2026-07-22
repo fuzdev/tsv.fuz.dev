@@ -1,16 +1,16 @@
-import {assert, describe, test} from 'vitest';
+import { assert, describe, test } from 'vitest';
 
-import {benchmarks_json} from '$routes/docs/benchmarks/benchmarks.ts';
-import {benchmarks_conformance_json} from '$routes/docs/benchmarks/benchmarks_conformance.ts';
-import {benchmarks_cross_runtime_json} from '$routes/docs/benchmarks/benchmarks_cross_runtime.ts';
-import {benchmarks_formatters_json} from '$routes/docs/benchmarks/benchmarks_formatters.ts';
+import { benchmarks_json } from '$routes/docs/benchmarks/benchmarks.ts';
+import { benchmarks_conformance_json } from '$routes/docs/benchmarks/benchmarks_conformance.ts';
+import { benchmarks_cross_runtime_json } from '$routes/docs/benchmarks/benchmarks_cross_runtime.ts';
+import { benchmarks_formatters_json } from '$routes/docs/benchmarks/benchmarks_formatters.ts';
 import {
 	benchmarks_cli,
 	CLI_LABELS,
 	CLI_SCENARIO_KEYS,
 	cli_memory_ratio_range,
 	cli_speedup_vs_tsv,
-	CLI_TS_REPO_KEY,
+	CLI_TS_REPO_KEY
 } from '$routes/docs/benchmarks/benchmarks_cli.ts';
 import {
 	benchmark_speedup,
@@ -28,7 +28,7 @@ import {
 	format_speedup_signed,
 	order_cross_runtime_runtimes,
 	OXC_FULL_LABEL,
-	OXFMT_WASM_LABEL,
+	OXFMT_WASM_LABEL
 } from '$routes/docs/benchmarks/benchmark_data.ts';
 
 // Shape gate for the committed benchmarks.json: the bench report format drifts
@@ -48,7 +48,7 @@ describe('benchmarks.json shape', () => {
 	});
 
 	test('versions carries the keys the meta component renders', () => {
-		const {versions} = benchmarks_json;
+		const { versions } = benchmarks_json;
 		assert.isString(versions.svelte);
 		assert.isString(versions.acorn_ts);
 		assert.isString(versions.prettier);
@@ -152,7 +152,7 @@ describe('benchmarks.json shape', () => {
 				const group = format(language);
 				assert.isEmpty(
 					group?.entries.filter((e) => e.category === 'dprint') ?? [],
-					`${language} must not invent a dprint row when the report carries none`,
+					`${language} must not invent a dprint row when the report carries none`
 				);
 			}
 			return;
@@ -197,7 +197,7 @@ describe('benchmarks.json shape', () => {
 			assert.deepEqual(
 				tiers,
 				[...tiers].toSorted((a, b) => a - b),
-				`${key} tier order`,
+				`${key} tier order`
 			);
 			// wasm precedes native within a tier
 			for (let i = 1; i < group.entries.length; i++) {
@@ -224,7 +224,7 @@ describe('benchmarks.json shape', () => {
 		// full / formatter / parser, in that order, all present in the current data
 		assert.deepStrictEqual(
 			groups.map((g) => g.capability),
-			['full', 'formatter', 'parser'],
+			['full', 'formatter', 'parser']
 		);
 		for (const group of groups) {
 			assert.isNotEmpty(group.entries);
@@ -241,7 +241,7 @@ describe('benchmarks.json shape', () => {
 			assert.strictEqual(
 				group.entries[0]?.label,
 				smallest.label,
-				`${group.capability} smallest leads`,
+				`${group.capability} smallest leads`
 			);
 		}
 		// the parser group pits tsv against oxc-parser in both kinds
@@ -289,7 +289,7 @@ describe('benchmarks.json shape', () => {
 		assert.strictEqual(
 			placeholder_index,
 			native_index - 1,
-			'placeholder should sit just above oxfmt (napi)',
+			'placeholder should sit just above oxfmt (napi)'
 		);
 	});
 
@@ -326,19 +326,19 @@ describe('benchmarks_conformance.json shape', () => {
 		assert.strictEqual(groups.length, 3); // svelte / typescript / css
 		assert.deepEqual(
 			groups.map((g) => g.language),
-			['svelte', 'typescript', 'css'],
+			['svelte', 'typescript', 'css']
 		);
 		for (const group of groups) {
 			assert.ok(
 				group.rows.some((r) => r.name === 'tsv'),
-				`${group.language} has a tsv row`,
+				`${group.language} has a tsv row`
 			);
 			// rows are ordered by coverage, highest first
 			const fractions = group.rows.map((r) => r.coverage_fraction);
 			assert.deepEqual(
 				fractions,
 				[...fractions].toSorted((a, b) => b - a),
-				`${group.language} rows descend by coverage`,
+				`${group.language} rows descend by coverage`
 			);
 			for (const row of group.rows) {
 				assert.isAbove(row.files_total, 0, `${group.language}/${row.name} total`);
@@ -379,17 +379,17 @@ describe('derive_corpus_repos', () => {
 
 	test('collapses shared repos and drops sources with no mapped repo', () => {
 		const repos = derive_corpus_repos([
-			{path: '../zzz/src', files: 1},
-			{path: '../svelte.dev/apps/svelte.dev/src', files: 1},
-			{path: '../svelte.dev/packages/repl/src', files: 1}, // same repo → collapsed
-			{path: 'benches/js/.cache/svelte_styles', files: 1}, // not a repo → dropped
+			{ path: '../zzz/src', files: 1 },
+			{ path: '../svelte.dev/apps/svelte.dev/src', files: 1 },
+			{ path: '../svelte.dev/packages/repl/src', files: 1 }, // same repo → collapsed
+			{ path: 'benches/js/.cache/svelte_styles', files: 1 } // not a repo → dropped
 		]);
 		assert.deepStrictEqual(repos, [
-			{url: 'https://github.com/fuzdev/zzz', label: 'fuzdev/zzz'},
+			{ url: 'https://github.com/fuzdev/zzz', label: 'fuzdev/zzz' },
 			{
 				url: 'https://github.com/sveltejs/svelte.dev',
-				label: 'sveltejs/svelte.dev',
-			},
+				label: 'sveltejs/svelte.dev'
+			}
 		]);
 	});
 
@@ -431,7 +431,7 @@ describe('order_cross_runtime_runtimes', () => {
 		assert.deepStrictEqual(order_cross_runtime_runtimes(['deno', 'node', 'bun']), [
 			'node',
 			'deno',
-			'bun',
+			'bun'
 		]);
 	});
 
@@ -455,7 +455,7 @@ describe('benchmarks_cross_runtime.json shape', () => {
 	});
 
 	test('runtimes include the flagship and its cross-runtime peers', () => {
-		const {runtimes} = benchmarks_cross_runtime_json;
+		const { runtimes } = benchmarks_cross_runtime_json;
 		assert.include(runtimes, 'node'); // the flagship the headline view leads with
 		assert.include(runtimes, 'deno');
 		assert.include(runtimes, 'bun');
@@ -485,7 +485,7 @@ describe('benchmarks_cli shape', () => {
 		// a copy entry with no matching scenario id drops silently from the table
 		assert.deepEqual(
 			benchmarks_cli.scenarios.map((s) => s.key),
-			CLI_SCENARIO_KEYS,
+			CLI_SCENARIO_KEYS
 		);
 	});
 
@@ -495,7 +495,7 @@ describe('benchmarks_cli shape', () => {
 			// BenchmarksCli anchors every ratio on the tsv row; without it the table is empty
 			assert.ok(
 				scenario.results.some((r) => r.label === 'tsv'),
-				`${scenario.key} is missing its tsv row`,
+				`${scenario.key} is missing its tsv row`
 			);
 			for (const r of scenario.results) {
 				assert.isAbove(r.wall_ms, 0, `${scenario.key}/${r.label} wall_ms`);
@@ -516,7 +516,7 @@ describe('benchmarks_cli shape', () => {
 				const derived = cli_speedup_vs_tsv(
 					scenario.id,
 					CLI_LABELS[speedup.name] ?? speedup.name,
-					'wall_ms',
+					'wall_ms'
 				);
 				assert.isDefined(derived, `${scenario.id}/${speedup.name}`);
 				// hyperfine derives its summary from full-precision means but prints the
@@ -527,7 +527,7 @@ describe('benchmarks_cli shape', () => {
 					derived,
 					speedup.ratio,
 					speedup.ratio * 0.01,
-					`${scenario.id}/${speedup.name}`,
+					`${scenario.id}/${speedup.name}`
 				);
 			}
 		}
@@ -558,7 +558,7 @@ describe('prose ratios resolve', () => {
 		['format/svelte', 'biome-wasm', 'tsv_wasm'],
 		['format/css', 'oxfmt', 'tsv'],
 		['format/css', 'biome-wasm', 'tsv_wasm'],
-		['parse/typescript', 'oxc-parser', 'tsv-json-no-locations'],
+		['parse/typescript', 'oxc-parser', 'tsv-json-no-locations']
 	];
 
 	test('every in-process pair the TLDR quotes is present and favors tsv', () => {
@@ -573,11 +573,11 @@ describe('prose ratios resolve', () => {
 		for (const [label, metric] of [
 			['oxfmt', 'wall_ms'],
 			['oxfmt', 'cpu_ms'],
-			['biome', 'wall_ms'],
+			['biome', 'wall_ms']
 		] as const) {
 			assert.isDefined(
 				cli_speedup_vs_tsv(CLI_TS_REPO_KEY, label, metric),
-				`${CLI_TS_REPO_KEY}: ${label} ${metric}`,
+				`${CLI_TS_REPO_KEY}: ${label} ${metric}`
 			);
 		}
 		assert.isDefined(cli_memory_ratio_range(CLI_TS_REPO_KEY));

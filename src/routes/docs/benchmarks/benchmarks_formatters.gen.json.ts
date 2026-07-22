@@ -1,8 +1,8 @@
-import type {Gen} from '@fuzdev/gro/gen.ts';
-import {readFile} from 'node:fs/promises';
-import {resolve} from 'node:path';
+import type { Gen } from '@fuzdev/gro/gen.ts';
+import { readFile } from 'node:fs/promises';
+import { resolve } from 'node:path';
 
-import {parse_formatter_benchmarks} from './formatter_benchmark_data.ts';
+import { parse_formatter_benchmarks } from './formatter_benchmark_data.ts';
 
 // The formatter comparison harness lives in a sibling checkout and publishes its
 // results only as prose — see `formatter_benchmark_data.ts`.
@@ -19,7 +19,7 @@ const README_PATH = '../oxc-bench-formatter/README.md';
  * stale or scenario-stripped numbers.
  */
 export const gen: Gen = {
-	generate: async ({log}) => {
+	generate: async ({ log }) => {
 		const path = resolve(README_PATH);
 
 		let readme;
@@ -36,5 +36,5 @@ export const gen: Gen = {
 		log.info(`parsed ${benchmarks.scenarios.length} tsv scenario(s) from ${path}`);
 		return JSON.stringify(benchmarks);
 	},
-	dependencies: {files: [resolve(README_PATH)]},
+	dependencies: { files: [resolve(README_PATH)] }
 };

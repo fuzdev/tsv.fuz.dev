@@ -3,7 +3,7 @@
 		category_color,
 		format_label,
 		type FormattedUnit,
-		type ImplementationCategory,
+		type ImplementationCategory
 	} from './benchmark_data.ts';
 
 	const {
@@ -16,7 +16,7 @@
 		annotation,
 		disabled = false,
 		on_enter,
-		on_leave,
+		on_leave
 	}: {
 		label: string;
 		bar_fraction: number;
@@ -45,7 +45,7 @@
 	const display_label = $derived(
 		disabled && (category === 'biome' || category === 'dprint')
 			? format_label(label).replace(/ \([^)]*\)$/, '')
-			: format_label(label),
+			: format_label(label)
 	);
 </script>
 

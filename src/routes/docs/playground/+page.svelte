@@ -1,9 +1,9 @@
 <script lang="ts">
-	import {page} from '$app/state';
+	import { page } from '$app/state';
 	import TomeContent from '@fuzdev/fuz_ui/TomeContent.svelte';
 	import TomeLink from '@fuzdev/fuz_ui/TomeLink.svelte';
-	import {tome_get_by_slug} from '@fuzdev/fuz_ui/tome.ts';
-	import {DOCS_PATH} from '@fuzdev/fuz_ui/docs_helpers.svelte.ts';
+	import { tome_get_by_slug } from '@fuzdev/fuz_ui/tome.ts';
+	import { DOCS_PATH } from '@fuzdev/fuz_ui/docs_helpers.svelte.ts';
 
 	import Playground from './Playground.svelte';
 
@@ -31,8 +31,7 @@
 			<p>
 				See the <TomeLink slug="introduction" /> for setup and API usage. The textarea above uses
 				<a href="https://code.fuz.dev/">fuz_code</a>'s
-				<a href="https://code.fuz.dev/docs/api/CodeTextarea.svelte"><code>CodeTextarea</code></a
-				> component.
+				<a href="https://code.fuz.dev/docs/api/CodeTextarea.svelte"><code>CodeTextarea</code></a> component.
 			</p>
 		</section>
 	{/if}

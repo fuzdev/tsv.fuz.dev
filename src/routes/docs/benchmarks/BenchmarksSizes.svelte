@@ -4,12 +4,12 @@
 		format_gzip_size,
 		derive_size_groups,
 		type BaselineRow,
-		type BinarySize,
+		type BinarySize
 	} from './benchmark_data.ts';
 	import BenchmarksBaselineGroup from './BenchmarksBaselineGroup.svelte';
 
 	const {
-		sizes,
+		sizes
 	}: {
 		sizes: Array<BinarySize>;
 	} = $props();
@@ -22,7 +22,7 @@
 	// own; when its group's other entries do carry one, fall back to 'n/a' rather than
 	// omitting the annotation entirely - otherwise that row drops the annotation
 	// column and its bar-track renders wider than its siblings'
-	const has_gzip = (entries: ReadonlyArray<{gzip_bytes: number | null}>) =>
+	const has_gzip = (entries: ReadonlyArray<{ gzip_bytes: number | null }>) =>
 		entries.some((e) => e.gzip_bytes != null);
 
 	const to_rows = (group: (typeof size_groups)[number]): Array<BaselineRow> => {
@@ -39,7 +39,7 @@
 					? 'n/a'
 					: undefined
 				: format_gzip_size(s.gzip_bytes),
-			disabled: s.disabled ?? false,
+			disabled: s.disabled ?? false
 		}));
 	};
 </script>

@@ -5,11 +5,11 @@
 
 	import Code from '@fuzdev/fuz_code/Code.svelte';
 	import CodeTextarea from '@fuzdev/fuz_code/CodeTextarea.svelte';
-	import {supports_css_highlight_api} from '@fuzdev/fuz_code/highlight_manager.ts';
+	import { supports_css_highlight_api } from '@fuzdev/fuz_code/highlight_manager.ts';
 	import CopyToClipboard from '@fuzdev/fuz_ui/CopyToClipboard.svelte';
-	import {to_error_message} from '@fuzdev/fuz_util/error.ts';
+	import { to_error_message } from '@fuzdev/fuz_util/error.ts';
 
-	import {playground_example} from './playground_example.ts';
+	import { playground_example } from './playground_example.ts';
 
 	// `@fuzdev/tsv_wasm` is loaded lazily, in the browser only — a dynamic import
 	// so the ~900KB-gzipped WASM lands in its own chunk, fetched the first time this
@@ -24,7 +24,7 @@
 	const ready = $derived(tsv !== null);
 
 	// A tsv call's outcome: its string result, or the thrown error's message.
-	type Outcome = {value: string; error: null} | {value: null; error: string};
+	type Outcome = { value: string; error: null } | { value: null; error: string };
 
 	// Run a tsv call, capturing a thrown error as a message; `null` until the WASM
 	// loads. Lets `formatted` and `ast` share one shape and recompute as `source` changes
@@ -32,9 +32,9 @@
 	const run = (fn: (t: NonNullable<typeof tsv>) => string): Outcome | null => {
 		if (!tsv) return null;
 		try {
-			return {value: fn(tsv), error: null};
+			return { value: fn(tsv), error: null };
 		} catch (err) {
-			return {value: null, error: to_error_message(err)};
+			return { value: null, error: to_error_message(err) };
 		}
 	};
 

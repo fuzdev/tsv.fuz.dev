@@ -1,8 +1,8 @@
 <script lang="ts">
-	import {format_speedup, type SpeedupRow} from './benchmark_data.ts';
+	import { format_speedup, type SpeedupRow } from './benchmark_data.ts';
 
 	const {
-		rows,
+		rows
 	}: {
 		rows: Array<SpeedupRow>;
 	} = $props();

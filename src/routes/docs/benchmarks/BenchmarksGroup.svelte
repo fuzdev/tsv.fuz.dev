@@ -1,10 +1,10 @@
 <script lang="ts">
-	import {format_ns, type BaselineRow, type BenchmarkGroup} from './benchmark_data.ts';
+	import { format_ns, type BaselineRow, type BenchmarkGroup } from './benchmark_data.ts';
 	import BenchmarksBaselineGroup from './BenchmarksBaselineGroup.svelte';
 
 	const {
 		group,
-		corpus,
+		corpus
 	}: {
 		group: BenchmarkGroup;
 		corpus: Record<string, number>;
@@ -26,8 +26,8 @@
 			value: format_ns(e.mean_ns),
 			raw: e.mean_ns,
 			annotation: undefined,
-			disabled: e.disabled ?? false,
-		})),
+			disabled: e.disabled ?? false
+		}))
 	);
 </script>
 

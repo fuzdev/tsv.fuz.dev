@@ -1,6 +1,6 @@
-import {assert, describe, test} from 'vitest';
+import { assert, describe, test } from 'vitest';
 
-import {parse_formatter_benchmarks} from '$routes/docs/benchmarks/formatter_benchmark_data.ts';
+import { parse_formatter_benchmarks } from '$routes/docs/benchmarks/formatter_benchmark_data.ts';
 
 // A trimmed stand-in for the bench harness's README — one scenario tsv runs in,
 // one it sits out, plus the versions and machine lines below the results block.
@@ -72,14 +72,14 @@ describe('parse_formatter_benchmarks', () => {
 		const parsed = parse_formatter_benchmarks(readme);
 		assert.deepEqual(
 			parsed.scenarios.map((s) => s.id),
-			['large-single-file'],
+			['large-single-file']
 		);
 	});
 
 	test('parses the machine and versions from below the results block', () => {
 		const parsed = parse_formatter_benchmarks(readme);
 		assert.equal(parsed.machine, 'Some CPU · 12 threads · linux x64');
-		assert.deepEqual(parsed.versions, {prettier: '3.9.1', biome: '2.5.1', tsv: '0.2.0'});
+		assert.deepEqual(parsed.versions, { prettier: '3.9.1', biome: '2.5.1', tsv: '0.2.0' });
 	});
 
 	test('normalizes timings to milliseconds across units', () => {
@@ -92,7 +92,7 @@ describe('parse_formatter_benchmarks', () => {
 			user_ms: 1583,
 			system_ms: 846,
 			min_ms: 1581,
-			max_ms: 1614,
+			max_ms: 1614
 		});
 		assert.equal(tsv!.mean_ms, 28.8);
 	});
@@ -104,12 +104,12 @@ describe('parse_formatter_benchmarks', () => {
 		assert.equal(scenario.warmup_runs, 2);
 		assert.equal(scenario.benchmark_runs, 5);
 		assert.deepEqual(scenario.preflight, [
-			{name: 'biome', rejected: 0, unavailable: false},
-			{name: 'oxfmt', rejected: 3, unavailable: false},
-			{name: 'tsv', rejected: 0, unavailable: true},
+			{ name: 'biome', rejected: 0, unavailable: false },
+			{ name: 'oxfmt', rejected: 3, unavailable: false },
+			{ name: 'tsv', rejected: 0, unavailable: true }
 		]);
 		assert.equal(scenario.baseline, 'tsv');
-		assert.deepEqual(scenario.speedups, [{name: 'biome', ratio: 55.41, ratio_stddev: 1.36}]);
+		assert.deepEqual(scenario.speedups, [{ name: 'biome', ratio: 55.41, ratio_stddev: 1.36 }]);
 		// the lowest-memory formatter is the ratio baseline, so it carries no ratio
 		assert.deepEqual(scenario.memory, [
 			{
@@ -118,9 +118,9 @@ describe('parse_formatter_benchmarks', () => {
 				min_mb: 291.5,
 				max_mb: 319.4,
 				ratio: 13.12,
-				ratio_stddev: 0.62,
+				ratio_stddev: 0.62
 			},
-			{name: 'tsv', mean_mb: 23.1, min_mb: 22.5, max_mb: 23.9},
+			{ name: 'tsv', mean_mb: 23.1, min_mb: 22.5, max_mb: 23.9 }
 		]);
 	});
 
@@ -130,7 +130,7 @@ describe('parse_formatter_benchmarks', () => {
 	test('throws when the results markers are missing', () => {
 		assert.throws(
 			() => parse_formatter_benchmarks('# Benchmark\n\nno results here\n'),
-			/no <!-- BENCHMARK_RESULTS_START/,
+			/no <!-- BENCHMARK_RESULTS_START/
 		);
 	});
 
@@ -154,11 +154,11 @@ describe('parse_formatter_benchmarks', () => {
 	test('throws when the machine line or tsv version is missing', () => {
 		assert.throws(
 			() => parse_formatter_benchmarks(readme.replace(/^_Measured on: .*$/m, '')),
-			/machine line/,
+			/machine line/
 		);
 		assert.throws(
 			() => parse_formatter_benchmarks(readme.replace(/^- \*\*tsv\*\*: .*$/m, '')),
-			/no tsv version/,
+			/no tsv version/
 		);
 	});
 });

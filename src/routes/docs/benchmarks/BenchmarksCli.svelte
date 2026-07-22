@@ -1,9 +1,9 @@
 <script lang="ts">
-	import {format_speedup} from './benchmark_data.ts';
-	import type {BenchmarksCliReport, CliScenario, CliFormatterResult} from './benchmarks_cli.ts';
+	import { format_speedup } from './benchmark_data.ts';
+	import type { BenchmarksCliReport, CliScenario, CliFormatterResult } from './benchmarks_cli.ts';
 
 	const {
-		report,
+		report
 	}: {
 		report: BenchmarksCliReport;
 	} = $props();
@@ -13,7 +13,7 @@
 	const versions = $derived(
 		Object.entries(report.versions)
 			.map(([name, version]) => `${name} ${version}`)
-			.join(', '),
+			.join(', ')
 	);
 
 	const format_time = (ms: number): string =>
@@ -41,7 +41,7 @@
 				memory_ratio:
 					is_tsv || result.memory_mb == null || tsv.memory_mb == null
 						? null
-						: result.memory_mb / tsv.memory_mb,
+						: result.memory_mb / tsv.memory_mb
 			};
 		});
 	};
@@ -72,9 +72,8 @@
 								>{row.wall_ratio == null ? '—' : format_speedup(row.wall_ratio)}</td
 							>
 							<td class="speedup">{row.cpu_ratio == null ? '—' : format_speedup(row.cpu_ratio)}</td>
-							<td>{row.result.memory_mb == null
-								? '—'
-								: `${Math.round(row.result.memory_mb)} MB`}</td
+							<td
+								>{row.result.memory_mb == null ? '—' : `${Math.round(row.result.memory_mb)} MB`}</td
 							>
 							<td class="speedup"
 								>{row.memory_ratio == null ? '—' : format_speedup(row.memory_ratio)}</td

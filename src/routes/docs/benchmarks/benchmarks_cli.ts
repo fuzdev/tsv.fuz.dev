@@ -15,8 +15,8 @@
 // is authored here. To refresh: run `pnpm run update-readme` in the harness, then
 // `gro gen` here.
 
-import {benchmarks_formatters_json} from './benchmarks_formatters.ts';
-import type {FormatterScenario} from './formatter_benchmark_data.ts';
+import { benchmarks_formatters_json } from './benchmarks_formatters.ts';
+import type { FormatterScenario } from './formatter_benchmark_data.ts';
 
 export interface CliFormatterResult {
 	/** Display label; `tsv` is the reference row every ratio is computed against. */
@@ -58,21 +58,23 @@ const SCENARIO_COPY: Record<string, Omit<CliScenario, 'key' | 'results'>> = {
 		heading: 'TypeScript repo (Outline, non-JSX subset)',
 		description:
 			"Outline's .ts/.js/.mjs files — the common set every formatter supports, each scoped to it, with a preflight parse check confirming none reject anything. The fair way to put tsv on a real multi-file repo.",
-		single_threaded: false,
+		single_threaded: false
 	},
 	'large-single-file': {
 		heading: 'Large single file (TypeScript compiler parser.ts, ~540KB)',
 		description:
 			'One ~13.7K-line .ts file. With a single input every formatter is effectively single-threaded, so wall-clock is close to an engine comparison here — except oxfmt, which spins up a worker pool it cannot use, inflating its CPU time.',
-		single_threaded: true,
-	},
+		single_threaded: true
+	}
 };
 
 /**
  * Display labels for the harness's hyperfine command names, which read better
  * spaced out in a table. Names absent here are displayed as-is.
  */
-export const CLI_LABELS: Record<string, string> = {'prettier+oxc-parser': 'prettier + oxc-parser'};
+export const CLI_LABELS: Record<string, string> = {
+	'prettier+oxc-parser': 'prettier + oxc-parser'
+};
 
 const to_results = (scenario: FormatterScenario): Array<CliFormatterResult> =>
 	scenario.timings
@@ -80,7 +82,7 @@ const to_results = (scenario: FormatterScenario): Array<CliFormatterResult> =>
 			label: CLI_LABELS[timing.name] ?? timing.name,
 			wall_ms: timing.mean_ms,
 			cpu_ms: timing.user_ms,
-			memory_mb: scenario.memory.find((m) => m.name === timing.name)?.mean_mb ?? null,
+			memory_mb: scenario.memory.find((m) => m.name === timing.name)?.mean_mb ?? null
 		}))
 		.sort((a, b) => a.wall_ms - b.wall_ms);
 
@@ -90,13 +92,13 @@ export const CLI_SCENARIO_KEYS = Object.keys(SCENARIO_COPY);
 const to_scenarios = (): Array<CliScenario> =>
 	Object.entries(SCENARIO_COPY).flatMap(([key, copy]) => {
 		const scenario = benchmarks_formatters_json.scenarios.find((s) => s.id === key);
-		return scenario ? [{key, ...copy, results: to_results(scenario)}] : [];
+		return scenario ? [{ key, ...copy, results: to_results(scenario) }] : [];
 	});
 
 export const benchmarks_cli: BenchmarksCliReport = {
 	machine: benchmarks_formatters_json.machine,
 	versions: benchmarks_formatters_json.versions,
-	scenarios: to_scenarios(),
+	scenarios: to_scenarios()
 };
 
 /** The scenario id the page's prose calls "the TypeScript repo" — the multi-file, real-repo run. */
@@ -112,7 +114,7 @@ export const CLI_TS_REPO_KEY = 'typescript-only-tsv-fair';
 export const cli_speedup_vs_tsv = (
 	scenario_key: string,
 	label: string,
-	metric: keyof Omit<CliFormatterResult, 'label'>,
+	metric: keyof Omit<CliFormatterResult, 'label'>
 ): number | undefined => {
 	const results = benchmarks_cli.scenarios.find((s) => s.key === scenario_key)?.results;
 	const tsv = results?.find((r) => r.label === 'tsv')?.[metric];
@@ -128,15 +130,15 @@ export const cli_speedup_vs_tsv = (
  * @returns the low and high ratio, or `undefined` when nothing was measured
  */
 export const cli_memory_ratio_range = (
-	scenario_key?: string,
-): {min: number; max: number} | undefined => {
+	scenario_key?: string
+): { min: number; max: number } | undefined => {
 	const scenarios = benchmarks_cli.scenarios.filter((s) => !scenario_key || s.key === scenario_key);
 	const ratios = scenarios.flatMap((scenario) =>
 		scenario.results
 			.filter((r) => r.label !== 'tsv')
 			.map((r) => cli_speedup_vs_tsv(scenario.key, r.label, 'memory_mb'))
-			.filter((ratio) => ratio !== undefined),
+			.filter((ratio) => ratio !== undefined)
 	);
 	if (ratios.length === 0) return undefined;
-	return {min: Math.min(...ratios), max: Math.max(...ratios)};
+	return { min: Math.min(...ratios), max: Math.max(...ratios) };
 };

@@ -1,10 +1,10 @@
 <script lang="ts">
-	import {site_context} from '@fuzdev/fuz_ui/site.svelte.ts';
+	import { site_context } from '@fuzdev/fuz_ui/site.svelte.ts';
 
-	import {type BenchmarkBaseline, derive_corpus_repos} from './benchmark_data.ts';
+	import { type BenchmarkBaseline, derive_corpus_repos } from './benchmark_data.ts';
 
 	const {
-		baseline,
+		baseline
 	}: {
 		baseline: BenchmarkBaseline;
 	} = $props();
@@ -17,8 +17,8 @@
 		new Date(baseline.timestamp).toLocaleDateString('en-US', {
 			year: 'numeric',
 			month: 'long',
-			day: 'numeric',
-		}),
+			day: 'numeric'
+		})
 	);
 
 	// GitHub resolves abbreviated SHAs, so the short `git_commit` links directly.

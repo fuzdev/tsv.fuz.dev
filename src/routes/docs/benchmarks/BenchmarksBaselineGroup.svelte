@@ -4,13 +4,13 @@
 		compute_baseline_ratio,
 		format_baseline_ratio,
 		type BaselineDirection,
-		type BaselineRow,
+		type BaselineRow
 	} from './benchmark_data.ts';
 	import BenchmarksBar from './BenchmarksBar.svelte';
 
 	const {
 		rows,
-		direction,
+		direction
 	}: {
 		// ordered so the first enabled row is the default baseline (callers lead with
 		// the canonical reference for speed, the smallest build for size)

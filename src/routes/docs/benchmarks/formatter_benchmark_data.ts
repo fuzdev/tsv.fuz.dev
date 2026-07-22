@@ -134,14 +134,14 @@ const parse_timings = (block: string): Array<FormatterTiming> =>
 		user_ms: to_ms(m[6]!, m[7]!),
 		system_ms: to_ms(m[8]!, m[9]!),
 		min_ms: to_ms(m[10]!, m[11]!),
-		max_ms: to_ms(m[12]!, m[13]!),
+		max_ms: to_ms(m[12]!, m[13]!)
 	}));
 
 const parse_preflight = (block: string): Array<FormatterPreflight> =>
 	[...slice_section(block, PREFLIGHT_HEADING, 'Benchmark 1:').matchAll(PREFLIGHT_RE)].map((m) => ({
 		name: m[1]!,
 		rejected: Number.parseInt(m[2]!, 10) || 0,
-		unavailable: m[2] === 'unavailable',
+		unavailable: m[2] === 'unavailable'
 	}));
 
 const parse_memory = (block: string): Array<FormatterMemory> =>
@@ -151,8 +151,8 @@ const parse_memory = (block: string): Array<FormatterMemory> =>
 			mean_mb: Number(m[2]),
 			min_mb: Number(m[3]),
 			max_mb: Number(m[4]),
-			...(m[5] === undefined ? null : {ratio: Number(m[5]), ratio_stddev: Number(m[6])}),
-		}),
+			...(m[5] === undefined ? null : { ratio: Number(m[5]), ratio_stddev: Number(m[6]) })
+		})
 	);
 
 const parse_scenario = (name: string, block: string): FormatterScenario => {
@@ -174,7 +174,7 @@ const parse_scenario = (name: string, block: string): FormatterScenario => {
 	const preflight = parse_preflight(block);
 	if (block.includes(PREFLIGHT_HEADING) && preflight.length === 0) {
 		throw new Error(
-			`formatter benchmarks: scenario "${name}" has an unparseable preflight section`,
+			`formatter benchmarks: scenario "${name}" has an unparseable preflight section`
 		);
 	}
 	return {
@@ -189,9 +189,9 @@ const parse_scenario = (name: string, block: string): FormatterScenario => {
 		speedups: [...summary.matchAll(SPEEDUP_RE)].map((m) => ({
 			name: m[3]!.trim(),
 			ratio: Number(m[1]),
-			ratio_stddev: Number(m[2]),
+			ratio_stddev: Number(m[2])
 		})),
-		memory,
+		memory
 	};
 };
 
@@ -217,7 +217,7 @@ export const parse_formatter_benchmarks = (readme: string): FormatterBenchmarks 
 		throw new Error(
 			`formatter benchmarks: no ${RESULTS_START} / ${
 				RESULTS_END
-			} block — is this the harness's readme?`,
+			} block — is this the harness's readme?`
 		);
 	}
 	const results = readme.slice(start + RESULTS_START.length, end);
@@ -228,20 +228,20 @@ export const parse_formatter_benchmarks = (readme: string): FormatterBenchmarks 
 	if (headings.length === 0) {
 		throw new Error('formatter benchmarks: results block carries no scenario banners');
 	}
-	const parsed = headings.map(({0: heading, 1: name, index}, i) =>
-		parse_scenario(name!.trim(), results.slice(index + heading.length, headings[i + 1]?.index)),
+	const parsed = headings.map(({ 0: heading, 1: name, index }, i) =>
+		parse_scenario(name!.trim(), results.slice(index + heading.length, headings[i + 1]?.index))
 	);
 	// tsv has no JSX/TSX parser, so it sits out some scenarios by design — but if it
 	// ran in NONE of them, either the harness stopped benching tsv or the timing
 	// labels drifted, and the site would render a comparison without its subject.
 	const scenarios = parsed.filter((scenario) =>
-		scenario.timings.some((timing) => timing.name === 'tsv'),
+		scenario.timings.some((timing) => timing.name === 'tsv')
 	);
 	if (scenarios.length === 0) {
 		throw new Error(
 			`formatter benchmarks: no scenario includes a tsv row (found ${parsed
 				.map((s) => s.id)
-				.join(', ')})`,
+				.join(', ')})`
 		);
 	}
 
@@ -261,5 +261,5 @@ export const parse_formatter_benchmarks = (readme: string): FormatterBenchmarks 
 		throw new Error('formatter benchmarks: no `_Measured on: …_` machine line');
 	}
 
-	return {machine, versions, scenarios};
+	return { machine, versions, scenarios };
 };
