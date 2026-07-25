@@ -59,8 +59,8 @@ reconstruct_locations(ast, 'const x = 1;');`;
 			<li>extensibility (valued but deprioritized), modularity, and reusability</li>
 		</ol>
 		<p>
-			See the <TomeLink slug="benchmarks" /> for stats. Compared to Oxc and Biome, tsv is faster, smaller,
-			and uses less memory to parse and format its supported languages.
+			See the <TomeLink slug="benchmarks" /> for stats. Compared to Oxc and Biome, tsv is faster,
+			smaller, and uses less memory to parse and format its supported languages.
 		</p>
 		<p>
 			This is an early release, and reports and feedback are appreciated — see the
@@ -73,8 +73,10 @@ reconstruct_locations(ast, 'const x = 1;');`;
 		</p>
 		<p>
 			These docs are a work in progress. For design details see the <a
-				href="https://github.com/fuzdev/tsv">readme</a
-			>.
+				href="https://github.com/fuzdev/tsv"
+			>
+				readme
+			</a>.
 		</p>
 		<TomeSection>
 			<TomeSectionHeader text="Install" />
@@ -117,14 +119,14 @@ reconstruct_locations(ast, 'const x = 1;');`;
 				For TypeScript and Svelte, the parsers also emit a span-only AST that drops the per-node
 				<code>loc</code> (line/column) object — Svelte also drops <code>name_loc</code> — for a ~46%
 				smaller, faster-to-materialize result, mirroring acorn's <code>locations: false</code>. Line
-				and column stay derivable from the <code>start</code>/<code>end</code> offsets plus your source,
-				so nothing is lost when you have the source.
+				and column stay derivable from the <code>start</code>/<code>end</code> offsets plus your
+				source, so nothing is lost when you have the source.
 			</p>
 			<Code lang="ts" content={no_locations_example} />
 			<p>
 				<code>reconstruct_locations(ast, source)</code> walks the tree and adds <code>loc</code>
-				back, mutating in place — exact for TypeScript, approximate for Svelte (it skips the parser's
-				own
+				back, mutating in place — exact for TypeScript, approximate for Svelte (it skips the
+				parser's own
 				<code>name_loc</code> and a couple of position quirks). For sparse lookups,
 				<code>create_locator(source)</code> reuses one line table across calls. CSS has no
 				<code>loc</code>, so there's no span-only variant for it.
@@ -134,11 +136,12 @@ reconstruct_locations(ast, 'const x = 1;');`;
 			<TomeSectionHeader text="Source code" />
 			<ul>
 				<li>
-					<a href="https://github.com/fuzdev/tsv">github.com/fuzdev/tsv</a> — the formatter, parser, wasm
-					bindings, CLI, etc
+					<a href="https://github.com/fuzdev/tsv">github.com/fuzdev/tsv</a> — the formatter, parser,
+					wasm bindings, CLI, etc
 				</li>
 				<li>
-					<a href="https://github.com/fuzdev/tsv.fuz.dev">github.com/fuzdev/tsv.fuz.dev</a> — this website
+					<a href="https://github.com/fuzdev/tsv.fuz.dev">github.com/fuzdev/tsv.fuz.dev</a> — this
+					website
 				</li>
 			</ul>
 		</TomeSection>

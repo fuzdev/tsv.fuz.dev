@@ -36,8 +36,8 @@
 		<span>
 			{group.operation === 'format' ? 'Formatting' : 'Parsing'}
 			{count_label}
-			{group.language} files</span
-		>
+			{group.language} files
+		</span>
 		<span class="text_40" style:text-align="right">total time &nbsp;&middot;&nbsp; speed</span>
 	</p>
 	<BenchmarksBaselineGroup {rows} direction="speed" />

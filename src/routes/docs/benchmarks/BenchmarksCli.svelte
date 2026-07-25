@@ -68,16 +68,16 @@
 						<tr class:tsv={row.is_tsv}>
 							<td class="formatter">{row.result.label}</td>
 							<td>{format_time(row.result.wall_ms)}</td>
-							<td class="speedup"
-								>{row.wall_ratio == null ? '—' : format_speedup(row.wall_ratio)}</td
-							>
+							<td class="speedup">
+								{row.wall_ratio == null ? '—' : format_speedup(row.wall_ratio)}
+							</td>
 							<td class="speedup">{row.cpu_ratio == null ? '—' : format_speedup(row.cpu_ratio)}</td>
-							<td
-								>{row.result.memory_mb == null ? '—' : `${Math.round(row.result.memory_mb)} MB`}</td
-							>
-							<td class="speedup"
-								>{row.memory_ratio == null ? '—' : format_speedup(row.memory_ratio)}</td
-							>
+							<td>
+								{row.result.memory_mb == null ? '—' : `${Math.round(row.result.memory_mb)} MB`}
+							</td>
+							<td class="speedup">
+								{row.memory_ratio == null ? '—' : format_speedup(row.memory_ratio)}
+							</td>
 						</tr>
 					{/each}
 				</tbody>

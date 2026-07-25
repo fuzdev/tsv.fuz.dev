@@ -102,8 +102,8 @@
 		<code>fail</code> is an implementation that runtime can't load (see notes above). The
 		<code>native</code> rows load each runtime's idiomatic binding of the same engine — the N-API
 		addon under <code>node</code> and <code>bun</code> (<code>tsv (node napi)</code>), the C-FFI
-		library under <code>deno</code> (<code>tsv (deno ffi)</code>) — so the <code>deno</code> column is
-		a first-class FFI-vs-N-API comparison, not a re-run of the same binding.
+		library under <code>deno</code> (<code>tsv (deno ffi)</code>) — so the <code>deno</code> column
+		is a first-class FFI-vs-N-API comparison, not a re-run of the same binding.
 	</p>
 </div>
 

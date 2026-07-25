@@ -24,9 +24,9 @@
 	<section class="box">
 		<div class="column gap_lg">
 			<a class="font_size_xl chip px_xl py_sm text-align:center" href={resolve('/docs')}>docs</a>
-			<a class="font_size_xl chip px_xl py_sm text-align:center" href={resolve('/docs/benchmarks')}
-				>benchmarks</a
-			>
+			<a class="font_size_xl chip px_xl py_sm text-align:center" href={resolve('/docs/benchmarks')}>
+				benchmarks
+			</a>
 		</div>
 	</section>
 	<section class="box">

@@ -32,11 +32,11 @@
 				{#each group.rows as row (row.name)}
 					<tr>
 						<td>{row.name}</td>
-						<td class="num"
-							>{row.files_processed.toLocaleString('en-US')} / {row.files_total.toLocaleString(
+						<td class="num">
+							{row.files_processed.toLocaleString('en-US')} / {row.files_total.toLocaleString(
 								'en-US'
-							)}</td
-						>
+							)}
+						</td>
 						<td class="num percent">{format_coverage_percent(row.coverage_fraction)}</td>
 					</tr>
 				{/each}

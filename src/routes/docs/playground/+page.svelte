@@ -23,15 +23,16 @@
 	{:else}
 		<section>
 			<p>
-				This loads <a href="https://www.npmjs.com/package/@fuzdev/tsv_wasm"
-					><code>@fuzdev/tsv_wasm</code></a
-				> in your browser to format and parse Svelte with TypeScript and CSS.
+				This loads
+				<a href="https://www.npmjs.com/package/@fuzdev/tsv_wasm"><code>@fuzdev/tsv_wasm</code></a>
+				in your browser to format and parse Svelte with TypeScript and CSS.
 			</p>
 			<Playground />
 			<p>
 				See the <TomeLink slug="introduction" /> for setup and API usage. The textarea above uses
 				<a href="https://code.fuz.dev/">fuz_code</a>'s
-				<a href="https://code.fuz.dev/docs/api/CodeTextarea.svelte"><code>CodeTextarea</code></a> component.
+				<a href="https://code.fuz.dev/docs/api/CodeTextarea.svelte"><code>CodeTextarea</code></a>
+				component.
 			</p>
 		</section>
 	{/if}

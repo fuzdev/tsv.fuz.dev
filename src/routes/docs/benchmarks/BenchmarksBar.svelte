@@ -80,9 +80,9 @@
 	{#if annotation != null}
 		<span class="bar-annotation text_50">{annotation}</span>
 	{/if}
-	<span class="bar-ratio" style:color={ratio_color}
-		>{#if !disabled}{ratio_text}{/if}</span
-	>
+	<span class="bar-ratio" style:color={ratio_color}>
+		{#if !disabled}{ratio_text}{/if}
+	</span>
 </div>
 
 <style>
