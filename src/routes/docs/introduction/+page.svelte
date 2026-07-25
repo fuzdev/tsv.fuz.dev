@@ -117,14 +117,14 @@ reconstruct_locations(ast, 'const x = 1;');`;
 			<TomeSectionHeader text="Span-only parsing" />
 			<p>
 				For efficiency, the TypeScript and Svelte parsers have a span-only mode that skips the
-				per-node line/column, making the AST ~46% smaller and faster to materialize, and you can
-				derive line and column later without re-parsing. This is the default in oxc-parser.
+				per-node line/column, making the AST ~46% smaller and faster to materialize. You can derive
+				line and column later without re-parsing. This is the default in oxc-parser.
 			</p>
 			<Code lang="ts" content={no_locations_example} />
 			<p>
 				Using <code>parse_typescript_no_locations</code> is faster than
-				<code>parse_typescript</code>, because there's fewer bytes to emit and parse.
-				Even when you need line/column, reconstructing in JS beats the
+				<code>parse_typescript</code>, because there's fewer bytes to emit and parse. Even when you
+				need line/column, reconstructing in JS beats the
 				<code>loc</code>-bearing wire end-to-end by ~1.7x on TypeScript (~2.2x for a few positions).
 				tsv's primary API emits <code>loc</code> so that the default AST is a drop-in for Svelte's.
 			</p>
