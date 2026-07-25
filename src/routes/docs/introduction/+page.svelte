@@ -117,21 +117,21 @@ reconstruct_locations(ast, 'const x = 1;');`;
 			<TomeSectionHeader text="Span-only parsing" />
 			<p>
 				For efficiency, the TypeScript and Svelte parsers have a span-only mode that skips the
-				line/column in Svelte's AST, making it nearly 50% smaller and much faster to
-				materialize, and you can derive line and column later without re-parsing. (oxc-parser does this too)
+				per-node line/column, making the AST ~46% smaller and faster to materialize, and you can
+				derive line and column later without re-parsing. It's the same span-only shape oxc-parser
+				emits by default.
 			</p>
 			<Code lang="ts" content={no_locations_example} />
 			<p>Details:</p>
 			<ul>
 				<li>
 					Span-only drops the per-node <code>loc</code> object (and <code>name_loc</code> on Svelte
-					nodes), mirroring acorn's <code>locations: false</code>. Everything else is unchanged, and
-					<code>start</code>/<code>end</code> plus your source is enough to recover the rest.
+					nodes), mirroring acorn's <code>locations: false</code>. Everything else is unchanged —
+					every node keeps its <code>start</code>/<code>end</code> offsets.
 				</li>
 				<li>
 					<code>reconstruct_locations(ast, source)</code> walks the tree and adds <code>loc</code>
-					back, mutating in place — exact for TypeScript, approximate for Svelte (it skips the
-					parser's own <code>name_loc</code> and a couple of position quirks).
+					back, mutating in place.
 				</li>
 				<li>
 					For sparse lookups, <code>create_locator(source)</code> reuses one line table across
