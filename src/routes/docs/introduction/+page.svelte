@@ -122,12 +122,11 @@ reconstruct_locations(ast, 'const x = 1;');`;
 			</p>
 			<Code lang="ts" content={no_locations_example} />
 			<p>
-				Using <code>parse_typescript_no_locations</code> is always faster than
-				<code>parse_typescript</code>. Even when you need line/column, reconstructing in JS is
-				faster than the default <code>loc</code>-bearing wire by ~1.7x end-to-end (~2.2x for a few
-				positions), since those <code>loc</code> bytes cost real <code>JSON.parse</code> work and
-				WASM transfer. tsv emits <code>loc</code> by default anyway, so the default AST is a drop-in
-				for Svelte's.
+				Using <code>parse_typescript_no_locations</code> is faster than
+				<code>parse_typescript</code>, because there's fewer bytes to emit and parse.
+				Even when you need line/column, reconstructing in JS beats the
+				<code>loc</code>-bearing wire end-to-end by ~1.7x on TypeScript (~2.2x for a few positions).
+				tsv's primary API emits <code>loc</code> so that the default AST is a drop-in for Svelte's.
 			</p>
 			<p>Details:</p>
 			<ul>
