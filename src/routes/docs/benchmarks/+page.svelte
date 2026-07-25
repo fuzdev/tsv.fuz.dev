@@ -100,7 +100,8 @@
 		</p>
 		<ul>
 			<li>
-				Formatting TypeScript, tsv is ~{format_ts_vs_oxfmt} faster than Oxfmt (native-vs-native), ~{format_ts_vs_prettier}
+				Formatting TypeScript, tsv is ~{format_ts_vs_oxfmt} faster than Oxfmt (native-vs-native),
+				~{format_ts_vs_prettier}
 				faster than Prettier (native Rust vs Prettier's JS), and ~{format_ts_vs_biome} faster than
 				Biome (wasm-vs-wasm).
 			</li>
@@ -121,7 +122,8 @@
 				A <a href="https://github.com/ryanatkn/oxc-bench-formatter" rel="external">
 					fork of Oxc's official <code>bench-formatter</code>
 				</a>
-				is an end-to-end CLI benchmark with its own corpus. On a real TypeScript repo, tsv formats ~{cli_ts_wall_vs_oxfmt}
+				is an end-to-end CLI benchmark with its own corpus. On a real TypeScript repo, tsv formats
+				~{cli_ts_wall_vs_oxfmt}
 				faster than Oxfmt and ~{cli_ts_wall_vs_biome} faster than Biome using
 				{cli_ts_memory ? format_ratio_range(cli_ts_memory.min, cli_ts_memory.max) : '—'} less
 				memory. Wall-clock measurements are warped by each tool's multi-file parallelism, so they
@@ -188,11 +190,12 @@
 			<code>tsv_wasm-json</code>) carries a per-node <code>loc</code> (line/column) object that
 			oxc-parser's default span-only AST omits, and that <code>loc</code> is roughly half the wire
 			bytes and most of its JSON.parse cost. The <code>tsv-json-no-locations</code> /
-			<code>tsv_wasm-json-no-locations</code> entries drop it, emitting the same span-only shape oxc
-			does, so those are the payload-matched, apples-to-apples comparison with oxc-parser
-			(line/column stays derivable from the offsets plus source, so nothing is lost). The
-			tsv-internal and tsv_wasm-internal entries build the native AST but skip JS-side
-			materialization, so they show raw in-engine speed rather than a cross-tool comparison.
+			<code>tsv_wasm-json-no-locations</code>
+			entries drop it, emitting the same span-only shape oxc does, so those are the payload-matched,
+			apples-to-apples comparison with oxc-parser (line/column stays derivable from the offsets plus
+			source, so nothing is lost). The tsv-internal and tsv_wasm-internal entries build the native
+			AST but skip JS-side materialization, so they show raw in-engine speed rather than a
+			cross-tool comparison.
 		</p>
 		{#each parse_groups as group (group.language)}
 			<BenchmarksGroup {group} {corpus} />
@@ -206,9 +209,9 @@
 				</li>
 				<li>
 					Biome is shown grayed-out across all three parse groups because its
-					<code>@biomejs/js-api</code> package doesn't expose a parser to JS (only formatting and
-					linting). Biome parses internally but never surfaces the AST across the JS boundary, so it
-					can't be measured.
+					<code>@biomejs/js-api</code>
+					package doesn't expose a parser to JS (only formatting and linting). Biome parses
+					internally but never surfaces the AST across the JS boundary, so it can't be measured.
 				</li>
 				<li>
 					oxc-parser only parses TypeScript and JS (and JSX, not measured here). oxc-parser doesn't
@@ -301,9 +304,10 @@
 				<li>
 					Biome bundles a parser, formatter, and linter for many languages, but its native engine
 					ships only as the CLI binary, not an embeddable library, and
-					<code>@biomejs/js-api</code> exposes only formatting and linting. Every native entry here
-					is an in-process library call, so a subprocess CLI isn't a comparable artifact — only
-					Biome's wasm build is included
+					<code>@biomejs/js-api</code>
+					exposes only formatting and linting. Every native entry here is an in-process library
+					call, so a subprocess CLI isn't a comparable artifact — only Biome's wasm build is
+					included
 				</li>
 				<li>
 					the <code>oxc-parser + oxfmt</code> entry under Full toolchain sums oxc's separate parser
@@ -313,9 +317,10 @@
 				<li>
 					that combined figure is a little unfair to oxc: oxfmt statically links its own copy of the
 					same oxc parser (it has to parse to format) but doesn't depend on the
-					<code>oxc-parser</code> package or expose parsing through its API. The two are
-					independently compiled, so the sum counts the parser's compiled code twice — more than a
-					single build exposing both operations (like tsv's) would need
+					<code>oxc-parser</code>
+					package or expose parsing through its API. The two are independently compiled, so the sum
+					counts the parser's compiled code twice — more than a single build exposing both
+					operations (like tsv's) would need
 				</li>
 				<li>
 					oxfmt has no wasm build as of July 2026, so it's shown grayed-out under Formatter, holding
@@ -353,7 +358,8 @@
 					parallelize across files while prettier is effectively serial, so the wall-clock ratios
 					bake in each tool's parallelism and scale with core count — they're only meaningful
 					alongside the machine they ran on. The <code>vs tsv (CPU work)</code> column is the
-					parallelism-neutral view (total CPU time across threads): on the TypeScript repo tsv is ~{cli_ts_wall_vs_oxfmt}
+					parallelism-neutral view (total CPU time across threads): on the TypeScript repo tsv is
+					~{cli_ts_wall_vs_oxfmt}
 					Oxfmt in wall-clock but ~{cli_ts_cpu_vs_oxfmt} in CPU work, the rest being cores Oxfmt
 					uses and Prettier can't.
 				</li>
@@ -392,12 +398,13 @@
 			sources: the author's libraries, apps, and sites (the fuz.dev ecosystem plus personal
 			SvelteKit sites), and upstream framework source (Svelte, SvelteKit, and the svelte.dev site).
 			The CSS set also includes real-authored CSS extracted from those components'
-			<code>&lt;style&gt;</code> blocks, concatenated per repo — standalone CSS files are rare in
-			this ecosystem, and the same bytes appear in the Svelte rows (rows are never summed). Test
-			files count as real code and stay in; fixture files (the formatter test suites that used to be
-			part of this corpus, and fixture subtrees inside the measured repos) are excluded —
-			deliberately tricky edge cases measure conformance, not typical throughput, and are covered by
-			the parse-conformance section above.
+			<code>&lt;style&gt;</code>
+			blocks, concatenated per repo — standalone CSS files are rare in this ecosystem, and the same
+			bytes appear in the Svelte rows (rows are never summed). Test files count as real code and
+			stay in; fixture files (the formatter test suites that used to be part of this corpus, and
+			fixture subtrees inside the measured repos) are excluded — deliberately tricky edge cases
+			measure conformance, not typical throughput, and are covered by the parse-conformance section
+			above.
 		</p>
 		<BenchmarksMeta baseline={benchmarks_json} />
 	</TomeSection>
@@ -419,9 +426,9 @@
 					<code>tsv-internal</code> rows, which cross the boundary but hand nothing back to
 					materialize, sit within a few percent Node vs Deno. The visible spread is largely confined
 					to the JSON-materializing parse rows, where it reflects each JS engine's
-					<code>JSON.parse</code> cost rather than the N-API-vs-FFI boundary: Deno and Bun edge out
-					Node there. Node is the headline as the default N-API path, not because it's the fastest
-					native number.
+					<code>JSON.parse</code>
+					cost rather than the N-API-vs-FFI boundary: Deno and Bun edge out Node there. Node is the
+					headline as the default N-API path, not because it's the fastest native number.
 				</li>
 				<li>
 					tsv's own paths — native (N-API/FFI) and wasm — run on all three runtimes. Bun currently

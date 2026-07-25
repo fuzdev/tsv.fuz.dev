@@ -116,21 +116,29 @@ reconstruct_locations(ast, 'const x = 1;');`;
 		<TomeSection>
 			<TomeSectionHeader text="Span-only parsing" />
 			<p>
-				For TypeScript and Svelte, the parsers also emit a span-only AST that drops the per-node
-				<code>loc</code> (line/column) object — Svelte also drops <code>name_loc</code> — for a ~46%
-				smaller, faster-to-materialize result, mirroring acorn's <code>locations: false</code>. Line
-				and column stay derivable from the <code>start</code>/<code>end</code> offsets plus your
-				source, so nothing is lost when you have the source.
+				For efficiency, the TypeScript and Svelte parsers have a span-only mode that skips the
+				line/column in Svelte's AST, making it nearly 50% smaller and much faster to
+				materialize, and you can derive line and column later without re-parsing. (oxc-parser does this too)
 			</p>
 			<Code lang="ts" content={no_locations_example} />
-			<p>
-				<code>reconstruct_locations(ast, source)</code> walks the tree and adds <code>loc</code>
-				back, mutating in place — exact for TypeScript, approximate for Svelte (it skips the
-				parser's own
-				<code>name_loc</code> and a couple of position quirks). For sparse lookups,
-				<code>create_locator(source)</code> reuses one line table across calls. CSS has no
-				<code>loc</code>, so there's no span-only variant for it.
-			</p>
+			<p>Details:</p>
+			<ul>
+				<li>
+					Span-only drops the per-node <code>loc</code> object (and <code>name_loc</code> on Svelte
+					nodes), mirroring acorn's <code>locations: false</code>. Everything else is unchanged, and
+					<code>start</code>/<code>end</code> plus your source is enough to recover the rest.
+				</li>
+				<li>
+					<code>reconstruct_locations(ast, source)</code> walks the tree and adds <code>loc</code>
+					back, mutating in place — exact for TypeScript, approximate for Svelte (it skips the
+					parser's own <code>name_loc</code> and a couple of position quirks).
+				</li>
+				<li>
+					For sparse lookups, <code>create_locator(source)</code> reuses one line table across
+					calls, so you pay for the positions you actually ask for.
+				</li>
+				<li>CSS nodes carry no <code>loc</code> to begin with, so there's no span-only variant.</li>
+			</ul>
 		</TomeSection>
 		<TomeSection>
 			<TomeSectionHeader text="Source code" />
