@@ -46,10 +46,15 @@ reconstruct_locations(ast, 'const x = 1;');`;
 			<a href="https://github.com/sveltejs/acorn-typescript">acorn-typescript</a>.
 		</p>
 		<p>
-			Compared to Oxc, Biome, and SWC, tsv is a set of focused tools, not a generic language
-			platform, so the focus is Web standards + Svelte and there's no support for JSX/SCSS/etc. The
-			extensibility story is currently limited to using its Rust crates as libraries (or forking);
-			bridging to JS or WASM plugins is an open question (leaning against).
+			Compared to Oxc, Biome, and SWC, tsv is a set of focused tools, not an extensible language
+			platform, so the focus is Web standards + Svelte and there's no support for JSX/SCSS/etc.
+			tsv's extensibility story is currently limited to using its Rust crates as libraries (or
+			forking); bridging to JS or WASM plugins is an open question (leaning against).
+		</p>
+		<p>
+			Compared to <a href="https://github.com/baseballyama/rsvelte">rsvelte</a>, tsv has its own
+			TS/JS/CSS parsers instead of using Oxc, and rsvelte additionally has a compiler and
+			linter/typechecker integration (tsv has some in-progress work here, scope unknown).
 		</p>
 		<p>tsv prioritizes, in order:</p>
 		<ol>
@@ -60,7 +65,9 @@ reconstruct_locations(ast, 'const x = 1;');`;
 		</ol>
 		<p>
 			See the <TomeLink slug="benchmarks" /> for stats. Compared to Oxc and Biome, tsv is faster,
-			smaller, and uses less memory to parse and format its supported languages.
+			smaller, and uses less memory to parse and format its supported languages. One reason for tsv
+			to exist is to help find the performance bonuses being left on the table in the Web
+			ecosystem's increasingly-native implementations.
 		</p>
 		<p>
 			This is an early release, and reports and feedback are appreciated — see the
@@ -94,7 +101,7 @@ reconstruct_locations(ast, 'const x = 1;');`;
 				See the <TomeLink slug="benchmarks" /> for size and performance details.
 			</p>
 			<p>
-				Native builds are not yet published — follow
+				Native builds will be published soon, follow
 				<a href="https://github.com/fuzdev/tsv/issues/139">issue 139</a>.
 			</p>
 		</TomeSection>
