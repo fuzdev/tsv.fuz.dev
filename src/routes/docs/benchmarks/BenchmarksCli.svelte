@@ -49,7 +49,7 @@
 
 {#each report.scenarios as scenario (scenario.key)}
 	<div class="scenario">
-		<h3>{scenario.heading}</h3>
+		<h3>{scenario.heading}: {scenario.target}</h3>
 		<p>{scenario.description}</p>
 		<div class="table-scroll">
 			<table>

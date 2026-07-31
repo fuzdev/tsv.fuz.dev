@@ -99,7 +99,7 @@
 	<p class="text_40">
 		sweeps/sec — one sweep is a full pass over the group's timed file set (higher is faster); ratios
 		are vs <code>{base}</code> (&gt; 1 = faster than {base}). A
-		<code>fail</code> is an implementation that runtime can't load (see notes above). The
+		<code>fail</code> is an implementation that runtime can't load. The
 		<code>native</code> rows load each runtime's idiomatic binding of the same engine — the N-API
 		addon under <code>node</code> and <code>bun</code> (<code>tsv (node napi)</code>), the C-FFI
 		library under <code>deno</code> (<code>tsv (deno ffi)</code>) — so the <code>deno</code> column

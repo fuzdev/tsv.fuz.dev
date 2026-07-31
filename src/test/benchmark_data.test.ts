@@ -586,6 +586,21 @@ describe('prose ratios resolve', () => {
 		assert.isDefined(cli_memory_ratio_range());
 	});
 
+	test('the corpus repos the TLDR names are present', () => {
+		// "including Svelte's official repos (svelte, kit, svelte.dev) and the
+		// fuz.dev repos" — gate the names so the sentence can't outlive the corpus
+		const slugs = new Set(
+			(benchmarks_json.corpus_sources ?? []).map((s) => s.repo?.slug).filter(Boolean)
+		);
+		for (const slug of ['sveltejs/svelte', 'sveltejs/kit', 'sveltejs/svelte.dev']) {
+			assert.ok(slugs.has(slug), `TLDR names ${slug} but the corpus lacks it`);
+		}
+		assert.ok(
+			[...slugs].some((slug) => slug?.startsWith('fuzdev/')),
+			'TLDR names the fuz.dev repos but the corpus has none'
+		);
+	});
+
 	test('approximate formatting drops digits as the ratio grows', () => {
 		assert.strictEqual(format_ratio_approx(1.66), '1.7x');
 		assert.strictEqual(format_ratio_approx(26.241), '26x');

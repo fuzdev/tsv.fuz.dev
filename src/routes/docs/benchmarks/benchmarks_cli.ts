@@ -32,7 +32,9 @@ export interface CliFormatterResult {
 export interface CliScenario {
 	key: string;
 	heading: string;
-	/** One-line description of the corpus and what makes the comparison fair. */
+	/** The harness's own one-line corpus label, rendered beside the heading. */
+	target: string;
+	/** One-line description of what makes the comparison fair. */
 	description: string;
 	/** Whether every formatter is effectively single-threaded here (one input file). */
 	single_threaded: boolean;
@@ -53,17 +55,17 @@ export interface BenchmarksCliReport {
  * the harness runs them in. A scenario missing from here is dropped rather than
  * rendered unexplained.
  */
-const SCENARIO_COPY: Record<string, Omit<CliScenario, 'key' | 'results'>> = {
+const SCENARIO_COPY: Record<string, Omit<CliScenario, 'key' | 'target' | 'results'>> = {
 	'typescript-only-tsv-fair': {
-		heading: 'TypeScript repo (Outline, non-JSX subset)',
+		heading: 'TypeScript repo',
 		description:
-			"Outline's .ts/.js/.mjs files — the common set every formatter supports, each scoped to it, with a preflight parse check confirming none reject anything. The fair way to put tsv on a real multi-file repo.",
+			'Every formatter scoped to the same file set, with a preflight parse check confirming none reject anything — the fair way to put tsv on a real multi-file repo.',
 		single_threaded: false
 	},
 	'large-single-file': {
-		heading: 'Large single file (TypeScript compiler parser.ts, ~540KB)',
+		heading: 'Large single file',
 		description:
-			'One ~13.7K-line .ts file. With a single input every formatter is effectively single-threaded, so wall-clock is close to an engine comparison here — except oxfmt, which spins up a worker pool it cannot use, inflating its CPU time.',
+			'With a single input every formatter is effectively single-threaded, so wall-clock is close to an engine comparison here.',
 		single_threaded: true
 	}
 };
@@ -92,7 +94,9 @@ export const CLI_SCENARIO_KEYS = Object.keys(SCENARIO_COPY);
 const to_scenarios = (): Array<CliScenario> =>
 	Object.entries(SCENARIO_COPY).flatMap(([key, copy]) => {
 		const scenario = benchmarks_formatters_json.scenarios.find((s) => s.id === key);
-		return scenario ? [{ key, ...copy, results: to_results(scenario) }] : [];
+		return scenario
+			? [{ key, ...copy, target: scenario.target, results: to_results(scenario) }]
+			: [];
 	});
 
 export const benchmarks_cli: BenchmarksCliReport = {

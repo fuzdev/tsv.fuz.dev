@@ -13,6 +13,19 @@
 
 	const corpus_repos = $derived(derive_corpus_repos(baseline.corpus_sources));
 
+	// Display names for version keys whose underscore form isn't just hyphenation;
+	// everything else hyphenates (`oxc_parser` → `oxc-parser`).
+	const VERSION_LABELS: Record<string, string> = {
+		acorn_ts: 'acorn-typescript',
+		prettier_svelte: 'prettier-plugin-svelte'
+	};
+
+	// every tool version the report carries, in report order, so a tool added
+	// upstream appears without a site edit — tsv itself renders under "run"
+	const versions = $derived(
+		Object.entries(baseline.versions).filter(([key, version]) => key !== 'tsv' && version != null)
+	);
+
 	const formatted_date = $derived(
 		new Date(baseline.timestamp).toLocaleDateString('en-US', {
 			year: 'numeric',
@@ -37,23 +50,9 @@
 	<div class="meta-section">
 		<h4 class="mt_0 mb_sm">versions</h4>
 		<ul>
-			<li>svelte {baseline.versions.svelte}</li>
-			<li>acorn {baseline.versions.acorn}</li>
-			<li>acorn-typescript {baseline.versions.acorn_ts}</li>
-			<li>prettier {baseline.versions.prettier}</li>
-			<li>prettier-plugin-svelte {baseline.versions.prettier_svelte}</li>
-			{#if baseline.versions.oxc_parser}
-				<li>oxc-parser {baseline.versions.oxc_parser}</li>
-			{/if}
-			{#if baseline.versions.oxfmt}
-				<li>oxfmt {baseline.versions.oxfmt}</li>
-			{/if}
-			{#if baseline.versions.biome}
-				<li>biome {baseline.versions.biome}</li>
-			{/if}
-			{#if baseline.versions.dprint}
-				<li>dprint {baseline.versions.dprint}</li>
-			{/if}
+			{#each versions as [key, version] (key)}
+				<li>{VERSION_LABELS[key] ?? key.replaceAll('_', '-')} {version}</li>
+			{/each}
 		</ul>
 	</div>
 	<div class="meta-section">

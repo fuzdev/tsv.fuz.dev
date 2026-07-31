@@ -2,6 +2,7 @@
 	import TomeContent from '@fuzdev/fuz_ui/TomeContent.svelte';
 	import TomeSection from '@fuzdev/fuz_ui/TomeSection.svelte';
 	import TomeSectionHeader from '@fuzdev/fuz_ui/TomeSectionHeader.svelte';
+	import { docs_slugify } from '@fuzdev/fuz_ui/docs_helpers.svelte.ts';
 	import { tome_get_by_slug } from '@fuzdev/fuz_ui/tome.ts';
 
 	import { benchmarks_json } from './benchmarks.ts';
@@ -35,6 +36,22 @@
 	const LIBRARY_ITEM_NAME = 'benchmarks';
 
 	const tome = tome_get_by_slug(LIBRARY_ITEM_NAME);
+
+	// Section titles referenced by in-page anchors, slugified the same way
+	// `TomeSectionHeader` builds its ids so a rename can't orphan a link.
+	const CLI_SECTION_TITLE = 'End-to-end CLI benchmark';
+	const CROSS_RUNTIME_SECTION_TITLE = 'Cross-runtime';
+
+	// The benchmarked runtime version and the report's date, read from the report
+	// itself so the prose tracks each data refresh (the shape tests pin the
+	// flagship report to node, so the "Node" label can't silently drift).
+	const node_display = `Node${
+		benchmarks_json.machine ? ` v${benchmarks_json.machine.runtime_version.split('.')[0]}` : ''
+	}`;
+	const report_month = new Date(benchmarks_json.timestamp).toLocaleDateString('en-US', {
+		month: 'long',
+		year: 'numeric'
+	});
 
 	const groups = derive_benchmark_groups(benchmarks_json);
 	const speedup_rows = derive_speedup_summary(groups);
@@ -130,14 +147,14 @@
 				faster than Oxfmt and ~{cli_ts_wall_vs_biome} faster than Biome using ~{cli_ts_memory
 					? format_ratio_range_approx(cli_ts_memory.min, cli_ts_memory.max)
 					: '—'} less memory than either. Wall-clock ratios bake in each tool's multi-file
-				parallelism — see the notes in <a href="#End-to-end-CLI-benchmark">that section</a>.
+				parallelism — see the notes in
+				<a href="#{docs_slugify(CLI_SECTION_TITLE)}">that section</a>.
 			</li>
 		</ul>
 		<p>
 			Each section below has notes that attempt to fairly contextualize its numbers. The charts show
-			numbers using Node v24, and at the end of the page is a <a href="#Cross-runtime">
-				cross-runtime comparison
-			</a>.
+			numbers using {node_display}, and at the end of the page is a
+			<a href="#{docs_slugify(CROSS_RUNTIME_SECTION_TITLE)}">cross-runtime comparison</a>.
 		</p>
 	</TomeSection>
 
@@ -323,8 +340,8 @@
 					operations (like tsv's) would need
 				</li>
 				<li>
-					oxfmt has no wasm build as of July 2026, so it's shown grayed-out under Formatter, holding
-					its slot beside <code>oxfmt (napi)</code>
+					oxfmt has no wasm build as of {report_month}, so it's shown grayed-out under Formatter,
+					holding its slot beside <code>oxfmt (napi)</code>
 				</li>
 				<li>
 					tsv doesn't publish native artifacts yet, but it builds them for benchmarking — an N-API
@@ -335,7 +352,7 @@
 	</TomeSection>
 
 	<TomeSection>
-		<TomeSectionHeader text="End-to-end CLI benchmark" />
+		<TomeSectionHeader text={CLI_SECTION_TITLE} />
 		<p class="mb_xl5">
 			The numbers above measure tsv's engine in-process, one file at a time, using tsv's original
 			benchmarks. This section describes the results from a fork of Oxc's official
@@ -410,7 +427,7 @@
 	</TomeSection>
 
 	<TomeSection>
-		<TomeSectionHeader text="Cross-runtime" />
+		<TomeSectionHeader text={CROSS_RUNTIME_SECTION_TITLE} />
 		<p>
 			The same benchmark harness runs under three JS runtimes — Node, Deno, and Bun. The headline
 			numbers above are the Node run. The native entry differs by runtime: Node and Bun load tsv's
@@ -419,23 +436,12 @@
 			binding boundary — not a difference in tsv's own engine, which is identical across all three.
 		</p>
 		<aside class="mt_xl5 mb_xl5">
-			<p>Reading the tables:</p>
-			<ul>
-				<li>
-					tsv's native binding boundaries are at parity across runtimes — the
-					<code>tsv-internal</code> rows, which cross the boundary but hand nothing back to
-					materialize, sit within several percent Node vs Deno. The visible spread is largely
-					confined to the JSON-materializing parse rows, where it reflects each JS engine's
-					<code>JSON.parse</code>
-					cost rather than the N-API-vs-FFI boundary: Deno and Bun edge out Node there. Node is the
-					headline as the default N-API path, not because it's the fastest native number.
-				</li>
-				<li>
-					tsv's own paths — native (N-API/FFI) and wasm — run on all three runtimes. Bun currently
-					fails to load two third-party wasm implementations (biome's wasm-bundler and oxc-parser's
-					wasm32-wasi binding), so they show <code>fail</code> in the Bun column.
-				</li>
-			</ul>
+			<p>
+				The <code>tsv-internal</code> rows cross the native binding boundary but materialize nothing
+				on the JS side, so a delta there is the binding boundary itself; the JSON-materializing
+				parse rows add each JS engine's <code>JSON.parse</code> cost on top. Node is the headline as
+				the default N-API path, not a speed pick.
+			</p>
 		</aside>
 		<BenchmarksCrossRuntime report={benchmarks_cross_runtime_json} />
 	</TomeSection>
