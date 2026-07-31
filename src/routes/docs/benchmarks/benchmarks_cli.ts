@@ -36,8 +36,6 @@ export interface CliScenario {
 	target: string;
 	/** One-line description of what makes the comparison fair. */
 	description: string;
-	/** Whether every formatter is effectively single-threaded here (one input file). */
-	single_threaded: boolean;
 	/** Results ascending by wall-clock time, tsv-relative ratios computed by the component. */
 	results: Array<CliFormatterResult>;
 }
@@ -59,14 +57,12 @@ const SCENARIO_COPY: Record<string, Omit<CliScenario, 'key' | 'target' | 'result
 	'typescript-only-tsv-fair': {
 		heading: 'TypeScript repo',
 		description:
-			'Every formatter scoped to the same file set, with a preflight parse check confirming none reject anything — the fair way to put tsv on a real multi-file repo.',
-		single_threaded: false
+			'Every formatter scoped to the same file set, with a preflight parse check confirming none reject anything — the fair way to put tsv on a real multi-file repo.'
 	},
 	'large-single-file': {
 		heading: 'Large single file',
 		description:
-			'With a single input every formatter is effectively single-threaded, so wall-clock is close to an engine comparison here.',
-		single_threaded: true
+			'With a single input every formatter is effectively single-threaded, so wall-clock is close to an engine comparison here.'
 	}
 };
 

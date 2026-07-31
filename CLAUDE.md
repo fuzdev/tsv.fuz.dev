@@ -64,7 +64,6 @@ src/
 │   ├── +layout.ts            # prerender: true, ssr: true
 │   ├── style.css             # global styles
 │   ├── library.ts            # builds library_json from virtual:svelte-docinfo + pkg.json
-│   ├── example.test.ts       # placeholder test
 │   └── docs/
 │       ├── +layout.svelte    # Docs layout (Docs wrapper; sets library_context)
 │       ├── +page.svelte      # Docs index (DocsContent)
@@ -148,7 +147,7 @@ Key files in `src/routes/docs/benchmarks/`:
 - Uses fuz_ui tome system for docs navigation
 - `docs/tomes.ts` defines the doc sections: introduction, playground, benchmarks
 - Benchmark data lives in `src/routes/docs/benchmarks/benchmarks.json` (see [Benchmarks](#benchmarks))
-- The benchmarks page quotes no hand-written ratios — its prose computes them from the same reports the charts render, via `benchmark_data.ts`'s `benchmark_speedup`/`format_ratio_approx`/`format_ratio_range` and `benchmarks_cli.ts`'s `cli_speedup_vs_tsv`/`cli_memory_ratio_range`. A test gates that every pair the copy names still resolves
+- The benchmarks page quotes no hand-written ratios — its prose computes them from the same reports the charts render, via `benchmark_data.ts`'s `benchmark_speedup`/`format_ratio_approx`/`format_ratio_range`/`format_ratio_range_approx` and `benchmarks_cli.ts`'s `cli_speedup_vs_tsv`/`cli_memory_ratio_range`. A test gates that every pair the copy names still resolves
 - `library.ts` builds component metadata at runtime from the `virtual:svelte-docinfo` module (provided by the `svelte-docinfo` Vite plugin); the docs index passes it to `DocsContent`
 - The playground (`/docs/playground`) loads `@fuzdev/tsv_wasm` via a browser-only dynamic `import()` inside `Playground.svelte`, so the WASM code-splits into its own chunk fetched only on that route — the same lazy discipline `library.ts` uses for the heavy svelte-docinfo data, keeping `/docs` and the prerendered pages WASM-free. `@fuzdev/tsv_wasm` is in `vite.config.ts` `optimizeDeps.exclude` (like `blake3_wasm`)
 - The playground's editor is fuz_code's `CodeTextarea` (live syntax highlighting via the experimental CSS Custom Highlight API). It needs `@fuzdev/fuz_code/theme_highlight.css`, imported inside `Playground.svelte` rather than the root layout so it stays on this route only; `supports_css_highlight_api()` drives a graceful-degradation note where the API is unavailable (the editor still works, unstyled)

@@ -376,9 +376,8 @@
 					bake in each tool's parallelism and scale with core count — they're only meaningful
 					alongside the machine they ran on. The <code>vs tsv (CPU work)</code> column is the
 					parallelism-neutral view (total CPU time across threads): on the TypeScript repo tsv is
-					~{cli_ts_wall_vs_oxfmt}
-					Oxfmt in wall-clock but ~{cli_ts_cpu_vs_oxfmt} in CPU work, the rest being cores Oxfmt
-					uses and Prettier can't.
+					~{cli_ts_wall_vs_oxfmt} faster than Oxfmt in wall-clock but only ~{cli_ts_cpu_vs_oxfmt} in
+					CPU work, the rest being cores Oxfmt uses and Prettier can't.
 				</li>
 				<li>
 					Peak memory doesn't depend on thread count, so it's the most directly comparable figure —

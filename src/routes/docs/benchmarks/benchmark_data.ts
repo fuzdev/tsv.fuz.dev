@@ -1024,7 +1024,7 @@ export const category_color = (category: ImplementationCategory): string => {
  * once a hover re-baselines onto a larger build); any build at or above the baseline
  * reads yellow at the floor, ramping through orange to red as it grows.
  */
-export const size_ratio_color = (ratio: number): string => {
+const size_ratio_color = (ratio: number): string => {
 	if (ratio < 1) return 'var(--color_b_50)'; // green — smaller than baseline
 	if (ratio < 3) return 'var(--color_e_50)'; // yellow — larger
 	if (ratio < 10) return 'var(--color_h_50)'; // orange — much larger
@@ -1032,7 +1032,7 @@ export const size_ratio_color = (ratio: number): string => {
 };
 
 /** Returns a CSS color variable for the speedup ratio. */
-export const speedup_color = (ratio: number): string => {
+const speedup_color = (ratio: number): string => {
 	if (ratio < 0.5) return 'var(--color_c_50)'; // red — much slower
 	if (ratio < 1) return 'var(--color_h_50)'; // orange — slower
 	if (ratio < 2) return 'var(--color_e_50)'; // yellow — modest
@@ -1076,7 +1076,7 @@ export const compute_baseline_ratio = (
 ): number => (direction === 'speed' ? anchor_raw / entry_raw : entry_raw / anchor_raw);
 
 /** Plain size ratio (`2.3x`) — its own formatter since sizes never take the signed treatment. */
-export const format_size_ratio = (ratio: number): string => `${ratio.toFixed(1)}x`;
+const format_size_ratio = (ratio: number): string => `${ratio.toFixed(1)}x`;
 
 /** Formats a baseline ratio for display in the given direction. */
 export const format_baseline_ratio = (direction: BaselineDirection, ratio: number): string =>
