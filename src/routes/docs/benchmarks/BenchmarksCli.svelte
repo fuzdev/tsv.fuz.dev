@@ -116,7 +116,7 @@
 	}
 	tr.tsv {
 		font-weight: 700;
-		background-color: var(--fg_1);
+		background-color: var(--fg_10);
 	}
 	.versions {
 		font-size: var(--font_size_sm);

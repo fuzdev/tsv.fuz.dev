@@ -898,6 +898,17 @@ export const format_ratio_range = (min: number, max: number): string =>
 	`${Math.floor(min)}–${Math.floor(max)}x`;
 
 /**
+ * A bracketing ratio range for prose (`4–5x`) — the min FLOORED and the max
+ * CEILED, so the stated integer range always contains the true range: the low
+ * end ("at least") is never overstated, and only the soft "up to" end rounds
+ * outward. Always paired with a `~` in the copy. Use `format_ratio_range` when
+ * neither bound may overstate; this one reads better when flooring both would
+ * collapse the range.
+ */
+export const format_ratio_range_approx = (min: number, max: number): string =>
+	`${Math.floor(min)}–${Math.ceil(max)}x`;
+
+/**
  * How many times faster `faster` is than `slower` within one `operation/language`
  * group, by mean time — the ratio the prose summaries quote.
  *

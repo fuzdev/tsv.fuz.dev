@@ -21,6 +21,7 @@
 		format_corpus_source_files,
 		format_ratio_approx,
 		format_ratio_range,
+		format_ratio_range_approx,
 		corpus_source_url
 	} from './benchmark_data.ts';
 	import BenchmarksSummary from './BenchmarksSummary.svelte';
@@ -71,7 +72,9 @@
 	const cli_ts_wall_vs_biome = format_ratio_approx(
 		cli_speedup_vs_tsv(CLI_TS_REPO_KEY, 'biome', 'wall_ms')
 	);
-	const cli_ts_memory = cli_memory_ratio_range(CLI_TS_REPO_KEY);
+	// scoped to the two tools the TLDR sentence names, so the range it quotes
+	// is measured over exactly them (the full-span figure lives in the CLI section)
+	const cli_ts_memory = cli_memory_ratio_range(CLI_TS_REPO_KEY, ['oxfmt', 'biome']);
 	const cli_memory = cli_memory_ratio_range();
 </script>
 
@@ -106,11 +109,11 @@
 				Biome (wasm-vs-wasm).
 			</li>
 			<li>
-				Formatting Svelte, tsv is is ~{format_svelte_vs_prettier} faster than Prettier (which
-				Oxfmt's Svelte path delegates to internally) and {format_svelte_vs_biome} faster than Biome.
+				Formatting Svelte, tsv is ~{format_svelte_vs_prettier} faster than Prettier (which Oxfmt's
+				Svelte path delegates to internally) and ~{format_svelte_vs_biome} faster than Biome.
 			</li>
 			<li>
-				Formatting CSS, it's ~{format_css_vs_oxfmt} faster than Oxfmt and {format_css_vs_biome}
+				Formatting CSS, it's ~{format_css_vs_oxfmt} faster than Oxfmt and ~{format_css_vs_biome}
 				faster than Biome.
 			</li>
 			<li>
@@ -124,10 +127,10 @@
 				</a>
 				is an end-to-end CLI benchmark with its own corpus. On a real TypeScript repo, tsv formats
 				~{cli_ts_wall_vs_oxfmt}
-				faster than Oxfmt and ~{cli_ts_wall_vs_biome} faster than Biome using
-				{cli_ts_memory ? format_ratio_range(cli_ts_memory.min, cli_ts_memory.max) : '—'} less
-				memory. Wall-clock measurements are warped by each tool's multi-file parallelism, so they
-				scale with core count and are machine-dependent, and could change with tuning.
+				faster than Oxfmt and ~{cli_ts_wall_vs_biome} faster than Biome using ~{cli_ts_memory
+					? format_ratio_range_approx(cli_ts_memory.min, cli_ts_memory.max)
+					: '—'} less memory than either. Wall-clock ratios bake in each tool's multi-file
+				parallelism — see the notes in <a href="#End-to-end-CLI-benchmark">that section</a>.
 			</li>
 		</ul>
 		<p>
@@ -218,12 +221,9 @@
 					expose a CSS parser, and it doesn't parse Svelte.
 				</li>
 				<li>
-					<code>tsv-json-no-locations</code> / <code>tsv_wasm-json-no-locations</code> are the fair,
-					payload-matched comparison with oxc-parser: they emit tsv's span-only wire (offsets, no
-					per-node <code>loc</code>), matching oxc's default AST shape. The plain
-					<code>tsv-json</code> entries carry the richer <code>loc</code>-bearing drop-in AST that
-					Svelte's compiler consumes for sourcemaps — a strictly larger deliverable, so a slower
-					number that isn't an engine-speed difference.
+					the <code>no-locs</code> entries are the payload-matched comparison with oxc-parser (see
+					above); the plain <code>tsv-json</code> entries carry the larger <code>loc</code>-bearing
+					AST, so their slower number isn't an engine-speed difference.
 				</li>
 				<li>
 					<code>tsv internal (node napi)</code> and <code>tsv_wasm internal</code> aren't a fair
@@ -424,8 +424,8 @@
 				<li>
 					tsv's native binding boundaries are at parity across runtimes — the
 					<code>tsv-internal</code> rows, which cross the boundary but hand nothing back to
-					materialize, sit within a few percent Node vs Deno. The visible spread is largely confined
-					to the JSON-materializing parse rows, where it reflects each JS engine's
+					materialize, sit within several percent Node vs Deno. The visible spread is largely
+					confined to the JSON-materializing parse rows, where it reflects each JS engine's
 					<code>JSON.parse</code>
 					cost rather than the N-API-vs-FFI boundary: Deno and Bun edge out Node there. Node is the
 					headline as the default N-API path, not because it's the fastest native number.

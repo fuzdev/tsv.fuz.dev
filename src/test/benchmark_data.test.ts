@@ -25,6 +25,7 @@ import {
 	format_coverage_percent,
 	format_ratio_approx,
 	format_ratio_range,
+	format_ratio_range_approx,
 	format_speedup_signed,
 	order_cross_runtime_runtimes,
 	OXC_FULL_LABEL,
@@ -580,7 +581,8 @@ describe('prose ratios resolve', () => {
 				`${CLI_TS_REPO_KEY}: ${label} ${metric}`
 			);
 		}
-		assert.isDefined(cli_memory_ratio_range(CLI_TS_REPO_KEY));
+		// the TLDR's "less memory than either" range, scoped to the tools it names
+		assert.isDefined(cli_memory_ratio_range(CLI_TS_REPO_KEY, ['oxfmt', 'biome']));
 		assert.isDefined(cli_memory_ratio_range());
 	});
 
@@ -590,5 +592,11 @@ describe('prose ratios resolve', () => {
 		assert.strictEqual(format_ratio_approx(undefined), '—');
 		// floored at both ends so the claim never overstates either bound
 		assert.strictEqual(format_ratio_range(3.001, 9.89), '3–9x');
+		// the approx variant brackets instead (floor min, ceil max), for ranges
+		// flooring both would collapse — the stated range always contains the truth
+		assert.strictEqual(format_ratio_range_approx(4.48, 4.86), '4–5x');
+		// floor keeps the "at least" end honest where nearest-integer would inflate it
+		assert.strictEqual(format_ratio_range_approx(4.6, 4.86), '4–5x');
+		assert.strictEqual(format_ratio_range_approx(3.001, 9.89), '3–10x');
 	});
 });

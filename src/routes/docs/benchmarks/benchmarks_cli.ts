@@ -124,18 +124,21 @@ export const cli_speedup_vs_tsv = (
 };
 
 /**
- * The span of "times less memory than tsv" across every non-tsv row, over one
- * scenario or all of them — the prose's `3–13x` claim.
+ * The span of "times less memory than tsv" across the non-tsv rows, over one
+ * scenario or all of them — the range claims the page's prose quotes. An
+ * optional `labels` list narrows the span to just those formatters, so a
+ * sentence naming specific tools quotes a range measured over exactly them.
  *
  * @returns the low and high ratio, or `undefined` when nothing was measured
  */
 export const cli_memory_ratio_range = (
-	scenario_key?: string
+	scenario_key?: string,
+	labels?: Array<string>
 ): { min: number; max: number } | undefined => {
 	const scenarios = benchmarks_cli.scenarios.filter((s) => !scenario_key || s.key === scenario_key);
 	const ratios = scenarios.flatMap((scenario) =>
 		scenario.results
-			.filter((r) => r.label !== 'tsv')
+			.filter((r) => r.label !== 'tsv' && (!labels || labels.includes(r.label)))
 			.map((r) => cli_speedup_vs_tsv(scenario.key, r.label, 'memory_mb'))
 			.filter((ratio) => ratio !== undefined)
 	);
