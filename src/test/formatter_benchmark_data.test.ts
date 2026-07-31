@@ -54,6 +54,39 @@ Benchmark 1: oxfmt
   Range (min … max):    7.622 s …  8.040 s    3 runs
 
 Mixed (embedded) benchmark complete!
+
+
+=========================================
+Benchmarking Svelte (tsv vs rsvelte-fmt)
+=========================================
+
+Target: third-party .svelte corpus (kit, svelte.dev, layerchart)
+- 2 warmup runs, 5 benchmark runs
+- Git reset before each run
+- .svelte only: the two Svelte-native formatters head-to-head
+
+
+Preflight (per-formatter parse check):
+  tsv: clean
+  rsvelte-fmt: CRASHED during check (exit 134)
+  → rsvelte-fmt crashed partway through its check — its coverage is unknown and its timed runs may crash too
+Benchmark 1: tsv
+  Time (mean ± σ):      52.3 ms ±   1.1 ms    [User: 255.0 ms, System: 194.2 ms]
+  Range (min … max):    50.9 ms …  53.6 ms    5 runs
+
+Benchmark 2: rsvelte-fmt
+  Time (mean ± σ):     272.9 ms ±   3.9 ms    [User: 1016.7 ms, System: 408.5 ms]
+  Range (min … max):   268.1 ms … 277.6 ms    5 runs
+
+Summary
+  tsv ran
+    5.22 ± 0.13 times faster than rsvelte-fmt
+
+Memory Usage:
+  tsv: 19.0 MB (min: 18.6 MB, max: 19.4 MB)
+  rsvelte-fmt: 61.1 MB (min: 60.2 MB, max: 62.0 MB, 3.22 ± 0.08 times more than tsv)
+
+Svelte benchmark complete!
 \`\`\`
 
 <!-- BENCHMARK_RESULTS_END -->
@@ -62,6 +95,7 @@ Mixed (embedded) benchmark complete!
 
 - **Prettier**: 3.9.1
 - **Biome**: 2.5.1
+- **rsvelte-fmt**: 0.7.4
 - **tsv**: 0.2.0
 
 _Measured on: Some CPU · 12 threads · linux x64 — the ratios below depend on the core count._
@@ -72,14 +106,19 @@ describe('parse_formatter_benchmarks', () => {
 		const parsed = parse_formatter_benchmarks(readme);
 		assert.deepEqual(
 			parsed.scenarios.map((s) => s.id),
-			['large-single-file']
+			['large-single-file', 'svelte-tsv-vs-rsvelte-fmt']
 		);
 	});
 
 	test('parses the machine and versions from below the results block', () => {
 		const parsed = parse_formatter_benchmarks(readme);
 		assert.equal(parsed.machine, 'Some CPU · 12 threads · linux x64');
-		assert.deepEqual(parsed.versions, { prettier: '3.9.1', biome: '2.5.1', tsv: '0.2.0' });
+		assert.deepEqual(parsed.versions, {
+			prettier: '3.9.1',
+			biome: '2.5.1',
+			'rsvelte-fmt': '0.7.4',
+			tsv: '0.2.0'
+		});
 	});
 
 	test('normalizes timings to milliseconds across units', () => {
@@ -104,9 +143,9 @@ describe('parse_formatter_benchmarks', () => {
 		assert.equal(scenario.warmup_runs, 2);
 		assert.equal(scenario.benchmark_runs, 5);
 		assert.deepEqual(scenario.preflight, [
-			{ name: 'biome', rejected: 0, unavailable: false },
-			{ name: 'oxfmt', rejected: 3, unavailable: false },
-			{ name: 'tsv', rejected: 0, unavailable: true }
+			{ name: 'biome', rejected: 0, unavailable: false, crashed: false },
+			{ name: 'oxfmt', rejected: 3, unavailable: false, crashed: false },
+			{ name: 'tsv', rejected: 0, unavailable: true, crashed: false }
 		]);
 		assert.equal(scenario.baseline, 'tsv');
 		assert.deepEqual(scenario.speedups, [{ name: 'biome', ratio: 55.41, ratio_stddev: 1.36 }]);
@@ -124,6 +163,33 @@ describe('parse_formatter_benchmarks', () => {
 		]);
 	});
 
+	test('parses a two-formatter scenario with a crashed preflight row', () => {
+		const scenario = parse_formatter_benchmarks(readme).scenarios[1]!;
+		assert.equal(scenario.name, 'Svelte (tsv vs rsvelte-fmt)');
+		assert.deepEqual(scenario.preflight, [
+			{ name: 'tsv', rejected: 0, unavailable: false, crashed: false },
+			{ name: 'rsvelte-fmt', rejected: 0, unavailable: false, crashed: true }
+		]);
+		assert.deepEqual(
+			scenario.timings.map((t) => t.name),
+			['tsv', 'rsvelte-fmt']
+		);
+		assert.equal(scenario.baseline, 'tsv');
+		assert.deepEqual(scenario.speedups, [{ name: 'rsvelte-fmt', ratio: 5.22, ratio_stddev: 0.13 }]);
+		// tsv is the memory baseline here, so the ratio sits on the rsvelte-fmt row
+		assert.deepEqual(scenario.memory, [
+			{ name: 'tsv', mean_mb: 19, min_mb: 18.6, max_mb: 19.4 },
+			{
+				name: 'rsvelte-fmt',
+				mean_mb: 61.1,
+				min_mb: 60.2,
+				max_mb: 62,
+				ratio: 3.22,
+				ratio_stddev: 0.08
+			}
+		]);
+	});
+
 	// A README that's present but drifted must fail the gen task rather than quietly
 	// publishing stale or scenario-stripped numbers — only a MISSING readme is benign,
 	// and that's the caller's call, not the parser's.
@@ -135,7 +201,7 @@ describe('parse_formatter_benchmarks', () => {
 	});
 
 	test('throws when no scenario includes tsv', () => {
-		const without_tsv = readme.replace(/^Benchmark 2: tsv$/m, 'Benchmark 2: oxfmt');
+		const without_tsv = readme.replace(/^Benchmark (\d+): tsv$/gm, 'Benchmark $1: oxfmt');
 		assert.throws(() => parse_formatter_benchmarks(without_tsv), /no scenario includes a tsv row/);
 	});
 

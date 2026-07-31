@@ -116,7 +116,11 @@ gro gen
 `benchmarks_formatters.gen.json.ts` parses that README and writes
 `benchmarks_formatters.json`, keeping only the scenarios tsv participates in
 (it has no JSX/TSX parser, so the harness runs it on the JSX-free corpora
-only).
+only). That includes the harness's Svelte scenario, which benches tsv against
+rsvelte-fmt (`@rsvelte/fmt`); a scenario renders on the page only once it has
+an entry in `SCENARIO_COPY` (`benchmarks_cli.ts`), and prose claims about the
+Svelte head-to-head are conditional on its data being present, so the site
+stays correct whether or not the harness README has been regenerated with it.
 
 A **missing** sibling checkout is the one tolerated case — generation is
 skipped, the committed JSON stands, and `gro gen --check` passes on any machine

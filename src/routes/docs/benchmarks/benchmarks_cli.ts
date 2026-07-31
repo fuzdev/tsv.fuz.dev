@@ -8,7 +8,8 @@
 // biome parallelize across files while prettier is effectively serial, so the
 // wall-clock ratios scale with core count and are machine-dependent — the
 // parallelism-neutral view is CPU work (hyperfine `User` time). tsv runs only in
-// the JSX-free scenarios (it has no JSX/TSX parser).
+// the JSX-free scenarios (it has no JSX/TSX parser); the Svelte scenario benches
+// it against rsvelte-fmt (`@rsvelte/fmt`), the other Rust Svelte-native formatter.
 //
 // The numbers come from `benchmarks_formatters.json`, generated from that
 // harness's README by `benchmarks_formatters.gen.json.ts`; only the prose below
@@ -53,6 +54,13 @@ export interface BenchmarksCliReport {
  * the harness runs them in. A scenario missing from here is dropped rather than
  * rendered unexplained.
  */
+/**
+ * The tsv-vs-rsvelte-fmt Svelte scenario's id. Absent from the generated data
+ * until the harness README is regenerated with it, so prose about it must be
+ * conditional on the scenario actually being present.
+ */
+export const CLI_SVELTE_KEY = 'svelte-tsv-vs-rsvelte-fmt';
+
 const SCENARIO_COPY: Record<string, Omit<CliScenario, 'key' | 'target' | 'results'>> = {
 	'typescript-only-tsv-fair': {
 		heading: 'TypeScript repo',
@@ -63,6 +71,11 @@ const SCENARIO_COPY: Record<string, Omit<CliScenario, 'key' | 'target' | 'result
 		heading: 'Large single file',
 		description:
 			'With a single input every formatter is effectively single-threaded, so wall-clock is close to an engine comparison here.'
+	},
+	[CLI_SVELTE_KEY]: {
+		heading: 'Svelte corpus',
+		description:
+			'The two Rust Svelte-native formatters head-to-head on a third-party .svelte corpus, with rsvelte-fmt configured to tsv’s fixed style (width 100, tabs, single quotes) so both do comparable line-break work.'
 	}
 };
 
@@ -84,8 +97,17 @@ const to_results = (scenario: FormatterScenario): Array<CliFormatterResult> =>
 		}))
 		.sort((a, b) => a.wall_ms - b.wall_ms);
 
-/** The scenarios the page has prose for; every one must resolve to generated data. */
+/** The scenarios the page has prose for; every non-optional one must resolve to generated data. */
 export const CLI_SCENARIO_KEYS = Object.keys(SCENARIO_COPY);
+
+/**
+ * The copy entries allowed to be absent from the generated data — prose staged
+ * ahead of the harness README carrying the scenario, so this repo can land
+ * support for a new scenario before the harness's numbers are regenerated.
+ * Every other `SCENARIO_COPY` entry must resolve; the shape test enforces
+ * exactly that split.
+ */
+export const CLI_OPTIONAL_SCENARIO_KEYS: Array<string> = [CLI_SVELTE_KEY];
 
 const to_scenarios = (): Array<CliScenario> =>
 	Object.entries(SCENARIO_COPY).flatMap(([key, copy]) => {

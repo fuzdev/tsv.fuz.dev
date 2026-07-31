@@ -7,6 +7,7 @@ import { benchmarks_formatters_json } from '$routes/docs/benchmarks/benchmarks_f
 import {
 	benchmarks_cli,
 	CLI_LABELS,
+	CLI_OPTIONAL_SCENARIO_KEYS,
 	CLI_SCENARIO_KEYS,
 	cli_memory_ratio_range,
 	cli_speedup_vs_tsv,
@@ -483,11 +484,22 @@ describe('benchmarks_cross_runtime.json shape', () => {
 // `tsv` reference row and render an empty table rather than fail to typecheck.
 describe('benchmarks_cli shape', () => {
 	test('every scenario the page has prose for resolved to generated data', () => {
-		// a copy entry with no matching scenario id drops silently from the table
+		// a copy entry with no matching scenario id drops silently from the table, so
+		// every required entry must resolve; optional entries (prose staged ahead of
+		// the harness publishing the scenario) may be absent but never misordered
+		const rendered = benchmarks_cli.scenarios.map((s) => s.key);
 		assert.deepEqual(
-			benchmarks_cli.scenarios.map((s) => s.key),
-			CLI_SCENARIO_KEYS
+			rendered,
+			CLI_SCENARIO_KEYS.filter((key) => rendered.includes(key))
 		);
+		for (const key of CLI_SCENARIO_KEYS) {
+			if (CLI_OPTIONAL_SCENARIO_KEYS.includes(key)) continue;
+			assert.ok(rendered.includes(key), `scenario copy for "${key}" resolved no generated data`);
+		}
+		// an optional key must still name a real copy entry, or it guards nothing
+		for (const key of CLI_OPTIONAL_SCENARIO_KEYS) {
+			assert.ok(CLI_SCENARIO_KEYS.includes(key), `optional key "${key}" has no copy entry`);
+		}
 	});
 
 	test('every scenario carries a tsv reference row with positive metrics', () => {

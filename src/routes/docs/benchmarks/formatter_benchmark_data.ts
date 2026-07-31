@@ -1,5 +1,5 @@
 // Types and parser for the formatter comparison benchmark — Prettier, Biome,
-// Oxfmt, and tsv on shared corpora. Unlike the tsv bench reports, that harness
+// Oxfmt, rsvelte-fmt, and tsv on shared corpora. Unlike the tsv bench reports, that harness
 // emits no JSON: its numbers exist only as the hyperfine console dump embedded
 // in its README between the `BENCHMARK_RESULTS_START`/`END` markers, plus a
 // `## Versions` list and a `_Measured on: …_` machine line. This module turns
@@ -45,6 +45,8 @@ export interface FormatterPreflight {
 	rejected: number;
 	/** The formatter's binary never launched, so its timing row is meaningless. */
 	unavailable: boolean;
+	/** The check pass crashed partway (exit ≥ 128), so its coverage is unknown. */
+	crashed: boolean;
 }
 
 /** One benchmark scenario — a corpus benched across every formatter that supports it. */
@@ -109,7 +111,7 @@ const SPEEDUP_RE = /^\s*([\d.]+) ± ([\d.]+) times faster than (.+)$/gm;
 const MEMORY_RE =
 	/^\s*(\S+): ([\d.]+) MB \(min: ([\d.]+) MB, max: ([\d.]+) MB(?:, ([\d.]+) ± ([\d.]+) times more than \S+)?\)$/gm;
 const PREFLIGHT_HEADING = 'Preflight (per-formatter parse check):';
-const PREFLIGHT_RE = /^\s{2}(\S+): (clean|unavailable|\d+ rejected)/gm;
+const PREFLIGHT_RE = /^\s{2}(\S+): (clean|unavailable|\d+ rejected|CRASHED)/gm;
 const VERSIONS_RE = /^## Versions\n\n((?:- \*\*.+\*\*: .+\n)+)/m;
 const VERSION_RE = /^- \*\*(.+?)\*\*: (.+)$/gm;
 const MACHINE_RE = /^_Measured on: (.+?)(?: — |_$)/m;
@@ -141,7 +143,8 @@ const parse_preflight = (block: string): Array<FormatterPreflight> =>
 	[...slice_section(block, PREFLIGHT_HEADING, 'Benchmark 1:').matchAll(PREFLIGHT_RE)].map((m) => ({
 		name: m[1]!,
 		rejected: Number.parseInt(m[2]!, 10) || 0,
-		unavailable: m[2] === 'unavailable'
+		unavailable: m[2] === 'unavailable',
+		crashed: m[2] === 'CRASHED'
 	}));
 
 const parse_memory = (block: string): Array<FormatterMemory> =>

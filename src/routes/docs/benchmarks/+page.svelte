@@ -12,7 +12,8 @@
 		benchmarks_cli,
 		cli_memory_ratio_range,
 		cli_speedup_vs_tsv,
-		CLI_TS_REPO_KEY
+		CLI_TS_REPO_KEY,
+		CLI_SVELTE_KEY
 	} from './benchmarks_cli.ts';
 	import {
 		benchmark_speedup,
@@ -93,6 +94,10 @@
 	// is measured over exactly them (the full-span figure lives in the CLI section)
 	const cli_ts_memory = cli_memory_ratio_range(CLI_TS_REPO_KEY, ['oxfmt', 'biome']);
 	const cli_memory = cli_memory_ratio_range();
+	// The Svelte head-to-head is absent until the harness README is regenerated
+	// with it, so every claim about it is conditional on the data being present.
+	const cli_svelte_wall = cli_speedup_vs_tsv(CLI_SVELTE_KEY, 'rsvelte-fmt', 'wall_ms');
+	const cli_svelte_memory = cli_speedup_vs_tsv(CLI_SVELTE_KEY, 'rsvelte-fmt', 'memory_mb');
 </script>
 
 <TomeContent {tome}>
@@ -150,6 +155,15 @@
 				parallelism — see the notes in
 				<a href="#{docs_slugify(CLI_SECTION_TITLE)}">that section</a>.
 			</li>
+			{#if cli_svelte_wall != null && cli_svelte_memory != null}
+				<li>
+					The fork's Svelte scenario benches tsv against rsvelte-fmt, the other Rust Svelte-native
+					formatter, on a third-party <code>.svelte</code> corpus: tsv formats
+					~{format_ratio_approx(cli_svelte_wall)} faster using ~{format_ratio_approx(
+						cli_svelte_memory
+					)} less memory.
+				</li>
+			{/if}
 		</ul>
 		<p>
 			Each section below has notes that attempt to fairly contextualize its numbers. The charts show
@@ -363,7 +377,7 @@
 			<a href="https://github.com/ryanatkn/oxc-bench-formatter" rel="external">adds tsv</a>, timing
 			the whole CLI end-to-end — process spawn, file discovery, I/O, and each tool's default
 			multi-file parallelism — plus peak memory. It's the "what you experience typing the command"
-			measure, run on real repositories. tsv appears in the two JSX-free scenarios (it has no
+			measure, run on real repositories. tsv appears only in the JSX-free scenarios (it has no
 			JSX/TSX parser).
 		</p>
 		<BenchmarksCli report={benchmarks_cli} />
@@ -382,16 +396,19 @@
 				<li>
 					Peak memory doesn't depend on thread count, so it's the most directly comparable figure —
 					tsv uses {cli_memory ? format_ratio_range(cli_memory.min, cli_memory.max) : '—'} less than
-					every other tool across both scenarios.
+					every other tool in every scenario.
 				</li>
 				<li>
 					Formatting width isn't identical: prettier, biome, and oxfmt format at width 80 (oxfmt
 					explicitly, the others by default), while tsv is non-configurable at width 100. Different
 					widths mean different line-break work — a real if small asymmetry with no fix on tsv's
-					side.
+					side.{#if cli_svelte_wall != null}
+						The Svelte scenario is the exception: rsvelte-fmt is configurable, so it runs at tsv's
+						style there and that head-to-head has no width asymmetry.
+					{/if}
 				</li>
 				<li>
-					Errors aren't penalized by the harness, but both tsv scenarios run a preflight parse check
+					Errors aren't penalized by the harness, but the tsv scenarios run a preflight parse check
 					first and every formatter accepts the whole corpus, so nothing is skipped. tsv is left out
 					of the fork's other three scenarios because they contain JSX/TSX or measure work tsv
 					doesn't do (embedded-language formatting, import and Tailwind-class sorting).
