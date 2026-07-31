@@ -70,8 +70,8 @@ reconstruct_locations(ast, 'const x = 1;');`;
 			increasingly-native implementations.
 		</p>
 		<p>
-			This is an early release with many bugs (and many fixes to bugs in Prettier and
-			prettier-plugin-svelte), and reports and feedback are appreciated. ZZZSee the
+			This is an early release with many bugs (and fixes to bugs in Prettier and
+			prettier-plugin-svelte), and reports and feedback are appreciated. See the
 			<a href="https://github.com/fuzdev/tsv/issues">issues</a> and
 			<a href="https://github.com/fuzdev/tsv/discussions">discussions</a>.
 		</p>
