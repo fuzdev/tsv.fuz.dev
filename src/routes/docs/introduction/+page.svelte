@@ -66,11 +66,12 @@ reconstruct_locations(ast, 'const x = 1;');`;
 		<p>
 			See the <TomeLink slug="benchmarks" /> for stats. Compared to Oxc and Biome, tsv is faster,
 			smaller, and uses less memory to parse and format its supported languages. One reason for tsv
-			to exist is to help find the performance bonuses being left on the table in the Web
-			ecosystem's increasingly-native implementations.
+			to exist is to help find the performance bonuses left on the table in the Web ecosystem's
+			increasingly-native implementations.
 		</p>
 		<p>
-			This is an early release, and reports and feedback are appreciated — see the
+			This is an early release with many bugs (and many fixes to bugs in Prettier and
+			prettier-plugin-svelte), and reports and feedback are appreciated. ZZZSee the
 			<a href="https://github.com/fuzdev/tsv/issues">issues</a> and
 			<a href="https://github.com/fuzdev/tsv/discussions">discussions</a>.
 		</p>
@@ -139,8 +140,8 @@ reconstruct_locations(ast, 'const x = 1;');`;
 			<ul>
 				<li>
 					Span-only drops the per-node <code>loc</code> object (and <code>name_loc</code> on Svelte
-					nodes), mirroring acorn's <code>locations: false</code>. Everything else is unchanged —
-					every node keeps its <code>start</code>/<code>end</code> offsets.
+					nodes), mirroring acorn's <code>locations: false</code>. The rest is unchanged, so every
+					node keeps its <code>start</code>/<code>end</code> offsets.
 				</li>
 				<li>
 					<code>reconstruct_locations(ast, source)</code> walks the tree and adds <code>loc</code>
