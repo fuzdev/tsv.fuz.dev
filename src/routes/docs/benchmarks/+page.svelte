@@ -211,6 +211,17 @@
 					This times the engine, not the <code>deno fmt</code> CLI: a subprocess per file would
 					measure process startup instead of formatting.
 				</li>
+				<li>
+					<a href="https://github.com/baseballyama/rsvelte" rel="external">rsvelte-fmt</a>, the
+					other Rust-native Svelte formatter, is grayed out for a different reason than dprint: it
+					ran over every file, but isn't timed. It ships no in-process API, so each file costs a
+					fresh process, incompatible with tsv's single-threaded benchmarks. Its row reports
+					coverage only.{#if cli_svelte_wall != null}
+						For multi-threaded CLI speed, see the <a href="#{docs_slugify(CLI_SECTION_TITLE)}">
+							CLI section
+						</a>.
+					{/if}
+				</li>
 			</ul>
 		</aside>
 	</TomeSection>
@@ -356,6 +367,18 @@
 				<li>
 					oxfmt has no wasm build as of {report_month}, so it's shown grayed-out under Formatter,
 					holding its slot beside <code>oxfmt (napi)</code>
+				</li>
+				<li>
+					<code>rsvelte-fmt (binary)</code> is the widest scope mismatch here — a standalone
+					executable carrying a CLI and the whole oxc formatter beside its Svelte engine, where the
+					tsv entries are bare libraries
+				</li>
+				<li>
+					<code>rsvelte-fmt + oxfmt</code> is what you install to format a project, and the fairer
+					comparison to tsv's single build: over a directory it delegates non-Svelte files to
+					<code>oxfmt</code> and errors without it (hence the peer dependency). A single
+					<code>.svelte</code> file needs no oxfmt — it formats the embedded
+					<code>&lt;script&gt;</code> and <code>&lt;style&gt;</code> itself
 				</li>
 				<li>
 					tsv doesn't publish native artifacts yet, but it builds them for benchmarking — an N-API

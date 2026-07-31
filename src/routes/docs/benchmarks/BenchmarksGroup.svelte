@@ -26,7 +26,8 @@
 			value: format_ns(e.mean_ns),
 			raw: e.mean_ns,
 			annotation: undefined,
-			disabled: e.disabled ?? false
+			disabled: e.disabled ?? false,
+			coverage_only: e.coverage_only ?? false
 		}))
 	);
 </script>

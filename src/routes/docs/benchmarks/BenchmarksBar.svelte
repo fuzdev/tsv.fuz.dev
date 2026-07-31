@@ -15,6 +15,7 @@
 		ratio_color,
 		annotation,
 		disabled = false,
+		coverage_only = false,
 		on_enter,
 		on_leave
 	}: {
@@ -30,6 +31,12 @@
 		// a grayed-out, inert placeholder (a tool that doesn't run in this group) —
 		// no bar, no value, no ratio, just the label held in its shared slot
 		disabled?: boolean;
+		// inert for a different reason: the tool DID run over the whole corpus but
+		// was deliberately never timed (no in-process API, so a per-file row would
+		// have measured process spawn). Reads `not timed` rather than `n/a`, since
+		// "we chose not to measure this" and "this tool wasn't here" are different
+		// claims and the gray alone can't tell them apart
+		coverage_only?: boolean;
 		// hover-to-rebaseline: fired when the pointer enters/leaves the row so the
 		// group can adopt this row as its ratio anchor; omitted on inert placeholders
 		on_enter?: (() => void) | undefined;
@@ -72,7 +79,7 @@
 	</div>
 	<span class="bar-value">
 		{#if disabled}
-			<span class="text_40">n/a</span>
+			<span class="text_40">{coverage_only ? 'not timed' : 'n/a'}</span>
 		{:else}
 			{value.value} <span class="text_50">{value.unit}</span>
 		{/if}

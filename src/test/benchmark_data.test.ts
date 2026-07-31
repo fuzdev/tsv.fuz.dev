@@ -30,6 +30,8 @@ import {
 	format_speedup_signed,
 	order_cross_runtime_runtimes,
 	OXC_FULL_LABEL,
+	RSVELTE_INSTALL_LABEL,
+	RSVELTE_LABEL,
 	OXFMT_WASM_LABEL
 } from '$routes/docs/benchmarks/benchmark_data.ts';
 
@@ -181,7 +183,46 @@ describe('benchmarks.json shape', () => {
 		}
 	});
 
-	test('format/parse rows follow the fixed canonical → biome → dprint → oxc → json → internal order', () => {
+	test('the coverage-only rsvelte-fmt row is inert but keeps its real coverage', () => {
+		const groups = derive_benchmark_groups(benchmarks_json);
+		const svelte_format = groups.find((g) => g.operation === 'format' && g.language === 'svelte');
+		assert.ok(svelte_format, 'svelte format group missing');
+		const rsvelte = svelte_format.entries.find((e) => e.name === 'rsvelte-fmt');
+
+		// The row postdates older reports; refreshing the report promotes this to
+		// the full assertion, exactly as the dprint test above works.
+		if (!rsvelte) return;
+
+		// Inert: no bar, and never the ratio anchor — it has no timing to anchor on.
+		assert.ok(rsvelte.disabled, 'rsvelte-fmt should render inert');
+		assert.ok(rsvelte.coverage_only, 'rsvelte-fmt should be flagged coverage-only');
+		assert.strictEqual(rsvelte.bar_fraction, 0, 'rsvelte-fmt bar');
+
+		// ...but unlike a plain placeholder it DID run, so its coverage is real.
+		// This is the distinction the page renders as `not timed` rather than `n/a`.
+		assert.isNumber(rsvelte.files_processed, 'rsvelte-fmt coverage should be present');
+		assert.isNumber(rsvelte.files_total, 'rsvelte-fmt total should be present');
+
+		// It must not have become the group's bar scale: an untimed row coerces to
+		// mean_ns 0, so a regression that let it into `slowest` would silently
+		// rescale every real bar in the group.
+		const timed = svelte_format.entries.filter((e) => !e.disabled);
+		assert.ok(
+			timed.some((e) => e.bar_fraction === 1),
+			'some timed row must still be the full-width bar'
+		);
+
+		// Only format/svelte carries it — it formats nothing else here.
+		for (const group of groups) {
+			if (group === svelte_format) continue;
+			assert.isEmpty(
+				group.entries.filter((e) => e.name === 'rsvelte-fmt'),
+				`${group.operation}/${group.language} should carry no rsvelte-fmt row`
+			);
+		}
+	});
+
+	test('format/parse rows follow the fixed canonical → biome → dprint → oxc → rsvelte → json → internal order', () => {
 		// independently mirrors the requested row order so a regression in the
 		// derivation's comparator fails here
 		const tier = (name: string, category: string): number => {
@@ -189,9 +230,10 @@ describe('benchmarks.json shape', () => {
 			if (category === 'biome') return 1;
 			if (category === 'dprint') return 2;
 			if (category === 'oxc') return 3;
-			if (name.endsWith('-no-locations')) return 4; // tsv json, span-only wire
-			if (name.endsWith('-json')) return 5; // tsv json, loc-carrying wire
-			return 6; // tsv internal engine
+			if (category === 'rsvelte') return 4;
+			if (name.endsWith('-no-locations')) return 5; // tsv json, span-only wire
+			if (name.endsWith('-json')) return 6; // tsv json, loc-carrying wire
+			return 7; // tsv internal engine
 		};
 		for (const group of derive_benchmark_groups(benchmarks_json)) {
 			const key = `${group.operation}/${group.language}`;
@@ -270,6 +312,50 @@ describe('benchmarks.json shape', () => {
 		// native build, colored as oxc
 		assert.strictEqual(combined.kind, 'native');
 		assert.strictEqual(combined.category, 'oxc');
+	});
+
+	test('formatter group carries rsvelte-fmt both bare and summed with the oxfmt it needs for a project', () => {
+		const sizes = benchmarks_json.binary_sizes;
+		const groups = derive_size_groups(sizes);
+		const formatter = groups.find((g) => g.capability === 'formatter');
+		assert.ok(formatter, 'formatter group missing');
+
+		const bare = formatter.entries.find((e) => e.label === RSVELTE_LABEL);
+		// The rsvelte rows postdate older reports; refreshing the report promotes
+		// this to the full assertion, as the dprint test above works.
+		if (!bare) {
+			assert.isEmpty(
+				formatter.entries.filter((e) => e.label === RSVELTE_INSTALL_LABEL),
+				'must not synthesize the rsvelte pair when the report carries no rsvelte build'
+			);
+			return;
+		}
+
+		const combined = formatter.entries.find((e) => e.label === RSVELTE_INSTALL_LABEL);
+		assert.ok(combined, 'rsvelte-fmt + oxfmt entry missing from formatter group');
+
+		const oxfmt = sizes.find((s) => s.label === 'oxfmt (napi)');
+		assert.ok(oxfmt, 'source oxfmt build missing');
+		assert.strictEqual(combined.bytes, bare.bytes + oxfmt.bytes);
+		assert.strictEqual(combined.gzip_bytes, bare.gzip_bytes! + oxfmt.gzip_bytes!);
+
+		// both are real measured builds, not placeholders — the pair is the project
+		// figure, the bare binary the single-file one
+		assert.isNotOk(bare.disabled, 'bare rsvelte-fmt should be a real entry');
+		assert.isNotOk(combined.disabled, 'rsvelte pair should be a real entry');
+		assert.strictEqual(combined.kind, 'native');
+		for (const e of [bare, combined]) {
+			assert.strictEqual(e.category, 'rsvelte', `${e.label} category`);
+		}
+
+		// the sum must sort after its own bare half — a group ordered smallest-first
+		// would otherwise be reporting a sum smaller than one of its addends
+		const labels = formatter.entries.map((e) => e.label);
+		assert.isAbove(
+			labels.indexOf(RSVELTE_INSTALL_LABEL),
+			labels.indexOf(RSVELTE_LABEL),
+			'the rsvelte pair should sort after the bare binary'
+		);
 	});
 
 	test('formatter group gets a disabled oxfmt (wasm) placeholder just above oxfmt (napi), since oxfmt has no wasm build', () => {

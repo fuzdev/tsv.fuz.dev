@@ -148,7 +148,8 @@ export type ImplementationCategory =
 	| 'tsv_wasm_json'
 	| 'biome'
 	| 'dprint'
-	| 'oxc';
+	| 'oxc'
+	| 'rsvelte';
 
 export interface BenchmarkGroup {
 	operation: string;
@@ -170,8 +171,17 @@ export interface BenchmarkDisplayEntry {
 	// A placeholder entry mirrored from another language's group for a tool that
 	// doesn't run in this one (e.g. `oxc-parser` under svelte/css parse) — rendered
 	// grayed-out and inert so the parse groups share one entry order. Absent on real,
-	// measured entries.
+	// measured entries. Also set on a `coverage_only` row, which shares the inert
+	// rendering for a different reason (see below).
 	disabled?: boolean;
+	// The harness measured this tool's COVERAGE but deliberately never timed it —
+	// it ships no in-process API, so a per-file row would have measured process
+	// spawn rather than format work (`rsvelte-fmt`; see the tsv harness's
+	// §Coverage-only rows). Distinct from a plain `disabled` placeholder: that one
+	// never ran here at all, while this one ran over the whole corpus and has real
+	// `files_processed`/`files_total` to show. Both render inert; only this one
+	// carries a coverage annotation and needs the page to explain itself.
+	coverage_only?: boolean;
 }
 
 export interface SpeedupRow {
@@ -199,7 +209,8 @@ const CATEGORY_BY_NAME: Record<string, ImplementationCategory> = {
 	'dprint-wasm': 'dprint',
 	'oxc-parser': 'oxc',
 	'oxc-parser-wasm': 'oxc',
-	oxfmt: 'oxc'
+	oxfmt: 'oxc',
+	'rsvelte-fmt': 'rsvelte'
 };
 
 export const categorize_name = (name: string): ImplementationCategory =>
@@ -211,6 +222,7 @@ export const categorize_size = (label: string): ImplementationCategory => {
 	if (label.startsWith('tsv')) return 'tsv_native';
 	if (label.startsWith('biome')) return 'biome';
 	if (label.startsWith('dprint')) return 'dprint';
+	if (label.startsWith('rsvelte')) return 'rsvelte';
 	return 'oxc'; // oxc-parser / oxfmt, and any unrecognized label
 };
 
@@ -242,9 +254,10 @@ const speed_entry_rank = (entry: BenchmarkDisplayEntry): number => {
 	if (entry.category === 'biome') return 1;
 	if (entry.category === 'dprint') return 2;
 	if (entry.category === 'oxc') return 3;
-	if (entry.name.endsWith('-no-locations')) return 4; // tsv json, span-only wire
-	if (entry.name.endsWith('-json')) return 5; // tsv json, loc-carrying wire
-	return 6; // tsv-internal / tsv_wasm-internal — raw in-engine, no JS materialization
+	if (entry.category === 'rsvelte') return 4;
+	if (entry.name.endsWith('-no-locations')) return 5; // tsv json, span-only wire
+	if (entry.name.endsWith('-json')) return 6; // tsv json, loc-carrying wire
+	return 7; // tsv-internal / tsv_wasm-internal — raw in-engine, no JS materialization
 };
 
 /**
@@ -284,18 +297,30 @@ export const derive_benchmark_groups = (baseline: BenchmarkBaseline): Array<Benc
 		// anchor; the shared component reads that default off the first row and
 		// recomputes every ratio, re-baselining onto whichever row is hovered. (Size
 		// groups lead with their smallest build; see `derive_size_groups`.)
-		// `?? 0` coerces the coverage-only null (unreachable on a perf report, the
-		// only kind this runs on) so the display entry's `mean_ns` stays a number.
+		// `?? 0` coerces a null timing so the display entry's `mean_ns` stays a
+		// number. On a perf report the nulls are exactly the COVERAGE-ONLY rows —
+		// a tool measured for what it accepts but never timed (see
+		// `BenchmarkDisplayEntry.coverage_only`) — and a 0 there is inert: those
+		// rows render without a bar, value, or ratio, so the coerced number is
+		// never displayed or divided by. It does keep them out of `slowest`, which
+		// is what we want — a row with no timing must not set the bar scale.
 		const slowest = Math.max(...entries.map((e) => e.mean_ns ?? 0));
 
-		const display_entries: Array<BenchmarkDisplayEntry> = entries.map((e) => ({
-			name: e.name,
-			mean_ns: e.mean_ns ?? 0,
-			bar_fraction: slowest > 0 ? (e.mean_ns ?? 0) / slowest : 0,
-			category: categorize_name(e.name),
-			files_processed: e.files_processed ?? null,
-			files_total: e.files_total ?? null
-		}));
+		const display_entries: Array<BenchmarkDisplayEntry> = entries.map((e) => {
+			// `mean_ns` is the timing the bars and ratios are built from, so its
+			// absence — not the tool's identity — is what marks a row untimed. That
+			// keeps this independent of which tools happen to be coverage-only.
+			const untimed = e.mean_ns == null;
+			return {
+				name: e.name,
+				mean_ns: e.mean_ns ?? 0,
+				bar_fraction: untimed || slowest <= 0 ? 0 : (e.mean_ns ?? 0) / slowest,
+				category: categorize_name(e.name),
+				files_processed: e.files_processed ?? null,
+				files_total: e.files_total ?? null,
+				...(untimed ? { disabled: true, coverage_only: true } : null)
+			};
+		});
 
 		// Fixed order (see `compare_speed_entries`): canonical leads as the default 1.0x
 		// anchor, then biome, oxc, tsv's json wires, then tsv's internal engine
@@ -567,6 +592,45 @@ const synthesize_oxc_full = (sizes: Array<BinarySize>): BinarySize | undefined =
 	};
 };
 
+/** The rsvelte-fmt binary on its own — the label the tsv harness emits. */
+export const RSVELTE_LABEL = 'rsvelte-fmt (binary)';
+
+/** Display label for the rsvelte-fmt + oxfmt install — see `synthesize_rsvelte_install`. */
+export const RSVELTE_INSTALL_LABEL = 'rsvelte-fmt + oxfmt (binary)';
+
+/**
+ * Synthesizes what installing rsvelte-fmt to format a project actually costs, by
+ * summing its own binary with the `oxfmt` it declares as a peer dependency.
+ *
+ * Both figures are shown because which one is honest depends on how you invoke
+ * it, and the difference is verifiable: pointed at a **single `.svelte` file** (or
+ * stdin) rsvelte-fmt needs no oxfmt at all — it formats the embedded
+ * `<script>` and `<style>` through its own linked-in oxc engines, byte-identically
+ * whether or not oxfmt is reachable. But pointed at a **directory** — how a
+ * formatter is actually run over a project, and what the CLI benchmark times — it
+ * delegates the non-`.svelte` files to oxfmt and exits non-zero without it, even
+ * when that directory holds nothing but `.svelte`. So the bare binary is the
+ * single-file/editor figure and the sum is the project figure.
+ *
+ * Returns `undefined` when either half is missing (an older baseline predating the
+ * rsvelte row), and sums gzip only when both carry it — same posture as
+ * `synthesize_oxc_full`.
+ */
+const synthesize_rsvelte_install = (sizes: Array<BinarySize>): BinarySize | undefined => {
+	const rsvelte = sizes.find((s) => s.label === RSVELTE_LABEL);
+	const formatter = sizes.find((s) => s.label === 'oxfmt (napi)');
+	if (!rsvelte || !formatter) return undefined;
+	return {
+		label: RSVELTE_INSTALL_LABEL,
+		bytes: rsvelte.bytes + formatter.bytes,
+		kind: 'native',
+		gzip_bytes:
+			rsvelte.gzip_bytes != null && formatter.gzip_bytes != null
+				? rsvelte.gzip_bytes + formatter.gzip_bytes
+				: null
+	};
+};
+
 /**
  * Groups the binary sizes by capability (full / formatter / parser), each group
  * mixing wasm and native builds sorted smallest-first. Bars scale to the group's
@@ -577,11 +641,14 @@ const synthesize_oxc_full = (sizes: Array<BinarySize>): BinarySize | undefined =
  * synthesized into the full-toolchain group, since oxc ships parse and format apart.
  * oxfmt has no wasm build, so the formatter group gets a disabled `oxfmt (wasm)`
  * placeholder slotted just above its real `oxfmt (napi)` entry, holding the slot
- * rather than omitting it.
+ * rather than omitting it. The formatter group likewise carries both rsvelte-fmt
+ * figures — the bare binary and the `+ oxfmt` install it needs to format a
+ * project (see `synthesize_rsvelte_install`).
  */
 export const derive_size_groups = (sizes: Array<BinarySize>): Array<SizeCapabilityGroup> => {
 	const oxc_full = synthesize_oxc_full(sizes);
-	const all_sizes = oxc_full ? [...sizes, oxc_full] : sizes;
+	const rsvelte_install = synthesize_rsvelte_install(sizes);
+	const all_sizes = [...sizes, oxc_full, rsvelte_install].filter((s) => s != null);
 	const groups: Array<SizeCapabilityGroup> = [];
 	for (const { capability, heading } of SIZE_CAPABILITY_ORDER) {
 		const items = all_sizes.filter((s) => categorize_size_capability(s.label) === capability);
@@ -944,7 +1011,7 @@ export const format_speedup_signed = (ratio: number): string => {
 };
 
 /** Hyphenated tool names that should preserve their hyphens in display labels. */
-const HYPHENATED_NAMES = ['acorn-typescript', 'oxc-parser'];
+const HYPHENATED_NAMES = ['acorn-typescript', 'oxc-parser', 'rsvelte-fmt'];
 
 /**
  * Display labels for the raw benchmark entry names in the main (Node) tables,
@@ -1015,6 +1082,8 @@ export const category_color = (category: ImplementationCategory): string => {
 			return 'var(--color_b_40)';
 		case 'oxc':
 			return 'var(--color_i_40)';
+		case 'rsvelte':
+			return 'var(--color_c_40)';
 	}
 };
 
@@ -1108,4 +1177,8 @@ export interface BaselineRow {
 	annotation: string | undefined;
 	// grayed-out, inert placeholder — never an anchor, no hover highlight
 	disabled: boolean;
+	// inert because the tool was measured for COVERAGE but deliberately never
+	// timed, not because it sat the group out — the bar reads `not timed` instead
+	// of `n/a` so the two aren't conflated. See `BenchmarkDisplayEntry.coverage_only`.
+	coverage_only?: boolean;
 }
