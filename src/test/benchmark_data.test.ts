@@ -461,6 +461,19 @@ describe('benchmarks_conformance.json shape', () => {
 		}
 	});
 
+	test('yuku reaches the typescript coverage group through its wasm binding', () => {
+		// The conformance report carries no yuku native row — that binding crashes the
+		// host process on this corpus, so tsv's harness omits it — and the page's note
+		// about it is unconditional. If the row name ever changes, the engine would
+		// silently vanish from the table instead of failing here.
+		const groups = derive_conformance_groups(benchmarks_conformance_json);
+		const ts = groups.find((g) => g.language === 'typescript');
+		assert.ok(
+			ts?.rows.some((r) => r.name === 'yuku-parser'),
+			'typescript coverage must carry a yuku-parser row'
+		);
+	});
+
 	test('coverage percent floors — only exact totality reads 100%', () => {
 		// 44219/44220 rounds to 100.00% but must not display as it: floor, so a
 		// visibly non-total count never sits beside a "100.00%" label.

@@ -318,6 +318,13 @@
 					native or wasm, so each tool appears once.
 				</li>
 				<li>
+					yuku-parser is measured here through its wasm binding — its native binding segfaults on
+					test262's escaped-identifier tests, where one identifier is a long run of braced unicode
+					escapes. Wasm runs the same parser with the fault contained, so the coverage number
+					stands; on the speed corpus above, which has no such identifiers, both bindings are
+					measured.
+				</li>
+				<li>
 					For Svelte, the corpus excludes the files svelte/compiler itself rejects, so its number is
 					100% by construction and the rest read as drop-in fidelity against it — higher is strictly
 					better. For TypeScript and CSS the canonical parser isn't a clean validity oracle

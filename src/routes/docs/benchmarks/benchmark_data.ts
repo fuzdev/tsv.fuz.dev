@@ -450,6 +450,9 @@ export const derive_benchmark_groups = (baseline: BenchmarkBaseline): Array<Benc
 
 export interface ConformanceRow {
 	name: string;
+	// dimmed qualifier rendered beside the name, for the one case where WHICH
+	// binding produced the row is worth saying — see `CONFORMANCE_ROW_NOTES`
+	note?: string;
 	files_processed: number;
 	files_total: number;
 	// files_processed / files_total, rendered as the coverage percentage
@@ -469,13 +472,28 @@ export interface ConformanceGroup {
  * native/wasm/internal variants — so the `-wasm` and `-internal` duplicates
  * are dropped and `tsv-json` stands in for tsv (relabeled plainly, since the
  * JSON-materialization qualifier is a speed concern, not a coverage one).
+ *
+ * Which binding stands in is therefore arbitrary — except for yuku, where the
+ * conformance report carries the wasm row alone: its native binding crashes the
+ * host process on this corpus's escaped-identifier tests, so tsv's harness omits
+ * that row there. Keying on `yuku-parser` would silently drop the engine.
  */
 const CONFORMANCE_ENGINE_NAMES: Record<string, string> = {
 	'svelte/compiler': 'svelte/compiler',
 	'acorn-typescript': 'acorn-typescript',
 	'tsv-json': 'tsv',
 	'oxc-parser': 'oxc-parser',
-	'yuku-parser': 'yuku-parser'
+	'yuku-parser-wasm': 'yuku-parser'
+};
+
+/**
+ * Qualifiers rendered beside a coverage row, keyed by report entry name. The
+ * table is per engine and says nothing about bindings — so a note here is for
+ * the case where the binding is the reason the row reads as it does, not a
+ * general "which binding ran" label.
+ */
+const CONFORMANCE_ROW_NOTES: Record<string, string> = {
+	'yuku-parser-wasm': 'wasm — native segfaults'
 };
 
 /**
