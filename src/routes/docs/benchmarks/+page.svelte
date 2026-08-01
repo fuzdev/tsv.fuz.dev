@@ -318,11 +318,10 @@
 					native or wasm, so each tool appears once.
 				</li>
 				<li>
-					yuku-parser is measured here through its wasm binding — its native binding segfaults on
-					test262's escaped-identifier tests, where one identifier is a long run of braced unicode
-					escapes. Wasm runs the same parser with the fault contained, so the coverage number
-					stands; on the speed corpus above, which has no such identifiers, both bindings are
-					measured.
+					The yuku-parser row is its wasm binding: the native one segfaults on test262's
+					escaped-identifier tests, where a single identifier is a long run of braced unicode
+					escapes. Wasm runs the same parser with the fault contained, so the number stands — and on
+					the speed corpus above, which has no such identifiers, both bindings are measured.
 				</li>
 				<li>
 					For Svelte, the corpus excludes the files svelte/compiler itself rejects, so its number is

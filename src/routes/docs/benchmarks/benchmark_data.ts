@@ -516,6 +516,7 @@ export const derive_conformance_groups = (baseline: BenchmarkBaseline): Array<Co
 		}
 		rows.push({
 			name: display_name,
+			note: CONFORMANCE_ROW_NOTES[entry.name],
 			files_processed: entry.files_processed,
 			files_total: entry.files_total,
 			coverage_fraction: entry.files_total > 0 ? entry.files_processed / entry.files_total : 0

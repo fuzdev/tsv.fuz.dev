@@ -468,10 +468,11 @@ describe('benchmarks_conformance.json shape', () => {
 		// silently vanish from the table instead of failing here.
 		const groups = derive_conformance_groups(benchmarks_conformance_json);
 		const ts = groups.find((g) => g.language === 'typescript');
-		assert.ok(
-			ts?.rows.some((r) => r.name === 'yuku-parser'),
-			'typescript coverage must carry a yuku-parser row'
-		);
+		const yuku = ts?.rows.find((r) => r.name === 'yuku-parser');
+		assert.ok(yuku, 'typescript coverage must carry a yuku-parser row');
+		// the row's own qualifier, so the table says which binding without the
+		// reader having to reach the note below it
+		assert.strictEqual(yuku.note, 'wasm — native segfaults');
 	});
 
 	test('coverage percent floors — only exact totality reads 100%', () => {

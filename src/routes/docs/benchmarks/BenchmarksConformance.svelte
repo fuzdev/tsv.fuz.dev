@@ -31,7 +31,11 @@
 			<tbody>
 				{#each group.rows as row (row.name)}
 					<tr>
-						<td>{row.name}</td>
+						<td>
+							{row.name}{#if row.note}
+								<span class="note">({row.note})</span>
+							{/if}
+						</td>
 						<td class="num">
 							{row.files_processed.toLocaleString('en-US')} / {row.files_total.toLocaleString(
 								'en-US'
@@ -64,6 +68,10 @@
 	td {
 		padding-block: var(--space_xs);
 		border-top: var(--border_width) solid var(--border_color);
+	}
+	.note {
+		font-size: var(--font_size_sm);
+		color: var(--text_40);
 	}
 	.num {
 		text-align: right;
