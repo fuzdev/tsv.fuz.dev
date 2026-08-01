@@ -15,6 +15,11 @@
 	// corpus total on older baselines (< version 4)
 	const count_label = $derived((group.files_iterated ?? total).toLocaleString('en-US'));
 
+	// a coverage-only row's accept rate is its entire measurement, so it renders as
+	// the row's annotation; siblings get an empty one so the grid's column template
+	// stays uniform across the group (same trick as BenchmarksSizes' gzip fallback)
+	const has_coverage_only = $derived(group.entries.some((e) => e.coverage_only));
+
 	const rows: Array<BaselineRow> = $derived(
 		group.entries.map((e) => ({
 			key: e.name,
@@ -25,7 +30,11 @@
 			// once, which is also what the ratios derive from via `raw`
 			value: format_ns(e.mean_ns),
 			raw: e.mean_ns,
-			annotation: undefined,
+			annotation: has_coverage_only
+				? e.coverage_only && e.files_processed != null && e.files_total != null
+					? `${e.files_processed.toLocaleString('en-US')}/${e.files_total.toLocaleString('en-US')} files`
+					: ''
+				: undefined,
 			disabled: e.disabled ?? false,
 			coverage_only: e.coverage_only ?? false
 		}))
