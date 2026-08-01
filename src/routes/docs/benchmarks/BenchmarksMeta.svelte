@@ -17,7 +17,9 @@
 	// everything else hyphenates (`oxc_parser` → `oxc-parser`).
 	const VERSION_LABELS: Record<string, string> = {
 		acorn_ts: 'acorn-typescript',
-		prettier_svelte: 'prettier-plugin-svelte'
+		prettier_svelte: 'prettier-plugin-svelte',
+		// the wasm binding is its own scoped package, not a hyphenated suffix
+		yuku_parser_wasm: '@yuku-parser/wasm'
 	};
 
 	// every tool version the report carries, in report order, so a tool added

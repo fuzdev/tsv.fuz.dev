@@ -32,7 +32,8 @@ import {
 	OXC_FULL_LABEL,
 	RSVELTE_INSTALL_LABEL,
 	RSVELTE_LABEL,
-	OXFMT_WASM_LABEL
+	OXFMT_WASM_LABEL,
+	type CrossRuntimeReport
 } from '$routes/docs/benchmarks/benchmark_data.ts';
 
 // Shape gate for the committed benchmarks.json: the bench report format drifts
@@ -113,6 +114,27 @@ describe('benchmarks.json shape', () => {
 			const first_json = names.findIndex((n) => n.endsWith('-json') || n.endsWith('-no-locations'));
 			assert.strictEqual(first_oxc, first_biome + 1, `${language} oxc directly after biome`);
 			assert.isBelow(first_oxc, first_json, `${language} oxc before the tsv json entries`);
+		}
+	});
+
+	test('yuku appears in the typescript parse group only, and is never mirrored elsewhere', () => {
+		const groups = derive_benchmark_groups(benchmarks_json);
+
+		// The page's yuku prose is unconditional, so the copied report must carry the
+		// rows it describes — this failing means the report needs a refresh.
+		const ts = groups.find((g) => g.operation === 'parse' && g.language === 'typescript');
+		const ts_yuku = ts?.entries.filter((e) => e.category === 'yuku') ?? [];
+		assert.isNotEmpty(ts_yuku, 'typescript parse must carry yuku rows');
+		for (const e of ts_yuku) assert.isNotOk(e.disabled, `${e.name} should be a real entry`);
+
+		// A grayed-out slot says a tool with WIDER scope is missing this language —
+		// true of biome and oxc, not of a parser that claims nothing wider.
+		for (const group of groups) {
+			if (group.operation !== 'parse' || group.language === 'typescript') continue;
+			assert.isEmpty(
+				group.entries.filter((e) => e.category === 'yuku'),
+				`${group.language} parse must hold no yuku slot`
+			);
 		}
 	});
 
@@ -222,7 +244,7 @@ describe('benchmarks.json shape', () => {
 		}
 	});
 
-	test('format/parse rows follow the fixed canonical → biome → dprint → oxc → rsvelte → json → internal order', () => {
+	test('format/parse rows follow the fixed canonical → biome → dprint → oxc → rsvelte → yuku → json → internal order', () => {
 		// independently mirrors the requested row order so a regression in the
 		// derivation's comparator fails here
 		const tier = (name: string, category: string): number => {
@@ -231,9 +253,10 @@ describe('benchmarks.json shape', () => {
 			if (category === 'dprint') return 2;
 			if (category === 'oxc') return 3;
 			if (category === 'rsvelte') return 4;
-			if (name.endsWith('-no-locations')) return 5; // tsv json, span-only wire
-			if (name.endsWith('-json')) return 6; // tsv json, loc-carrying wire
-			return 7; // tsv internal engine
+			if (category === 'yuku') return 5;
+			if (name.endsWith('-no-locations')) return 6; // tsv json, span-only wire
+			if (name.endsWith('-json')) return 7; // tsv json, loc-carrying wire
+			return 8; // tsv internal engine
 		};
 		for (const group of derive_benchmark_groups(benchmarks_json)) {
 			const key = `${group.operation}/${group.language}`;
@@ -561,6 +584,57 @@ describe('benchmarks_cross_runtime.json shape', () => {
 				assert.strictEqual(row.ratio_vs_base.node, 1, `${group.group}/${row.name} node anchor`);
 			}
 		}
+	});
+
+	test('the committed reports timed identical file sets across runtimes', () => {
+		// a mismatch means part of a published ratio is corpus composition, not
+		// runtime — recompose from same-box, same-commit siblings rather than
+		// committing a report that needs the ⚠ files annotation
+		const groups = derive_cross_runtime_groups(benchmarks_cross_runtime_json);
+		for (const group of groups) {
+			for (const row of group.rows) {
+				assert.isNull(row.files_iterated_mismatch, `${group.group}/${row.name} file-set mismatch`);
+			}
+		}
+	});
+});
+
+// The per-row file-set-mismatch annotation (the site rendering of the composer's
+// `⚠ files a/b/c`), on a synthetic report since the committed one is healthy.
+describe('derive_cross_runtime_groups files_iterated_mismatch', () => {
+	const report = (
+		files_iterated: CrossRuntimeReport['rows'][number]['files_iterated']
+	): CrossRuntimeReport => ({
+		version: 7,
+		kind: 'combined',
+		generated: '2026-01-01T00:00:00.000Z',
+		runtimes: ['deno', 'node', 'bun'],
+		sources: [],
+		rows: [
+			{
+				group: 'parse/typescript',
+				name: 'tsv-json',
+				ops_per_second: { deno: 1, node: 2, bun: 3 },
+				mean_ns: { deno: 3, node: 2, bun: 1 },
+				files_iterated
+			}
+		]
+	});
+
+	const derive_row = (files_iterated: CrossRuntimeReport['rows'][number]['files_iterated']) =>
+		derive_cross_runtime_groups(report(files_iterated))[0]!.rows[0]!;
+
+	test('equal counts across runtimes derive null', () => {
+		assert.isNull(derive_row({ deno: 767, node: 767, bun: 767 }).files_iterated_mismatch);
+	});
+
+	test('unequal counts surface the raw per-runtime counts', () => {
+		const mismatch = { deno: 765, node: 767, bun: 767 };
+		assert.deepStrictEqual(derive_row(mismatch).files_iterated_mismatch, mismatch);
+	});
+
+	test('a null count (untimed runtime) is not a mismatch by itself', () => {
+		assert.isNull(derive_row({ deno: null, node: 767, bun: 767 }).files_iterated_mismatch);
 	});
 });
 

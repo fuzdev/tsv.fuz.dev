@@ -16,6 +16,12 @@ export interface BenchmarkBaseline {
 	// Counts of silenced third-party stderr noise, keyed by message pattern.
 	// Present from baseline `version` 4 on; not rendered, kept for parity.
 	suppressed_noise?: Record<string, number>;
+	// Same-engine native/wasm pairs whose pre-flight accept sets disagreed —
+	// `[]` when healthy. A non-empty list is a binding-boundary bug in the
+	// producing bench (see tsv's `warn_variant_parity`), caught at review time
+	// in the copied report's diff; not rendered, kept for parity. Absent on
+	// older reports — treat as optional.
+	variant_parity?: Array<VariantParityFinding>;
 	// Which corpus/surface produced the report: `perf` (real-world corpus,
 	// format + parse) or `conformance` (the deliberately-hard fixture suites,
 	// disjoint from the perf corpus, parse only). Present from `version` 6 on.
@@ -28,6 +34,18 @@ export interface BenchmarkBaseline {
 	// The throughput numbers are machine-relative, so this is the environment the
 	// meta panel discloses. Present from `version` 7 on (absent on older reports).
 	machine?: Machine;
+}
+
+// A same-engine native/wasm variant pair whose pre-flight accept sets disagreed
+// — mirrors the bench's `VariantParityFinding` (see `BenchmarkBaseline.variant_parity`).
+export interface VariantParityFinding {
+	group: string;
+	native: string;
+	wasm: string;
+	// files only the native variant accepted
+	native_only: number;
+	// files only the wasm variant accepted
+	wasm_only: number;
 }
 
 // The hardware/runtime a report was measured on. Excludes hostname (the reports
@@ -48,8 +66,9 @@ export interface CorpusSource {
 	// only the `files` total, so treat it as optional.
 	by_language?: Partial<Record<string, number>>;
 	// The source's GitHub origin, git-detected by the bench at report-build time
-	// (URL + commit + subpath). Present from `version` 8 on; absent on older
-	// reports and on sources with no GitHub remote — treat as optional.
+	// (URL + commit + subpath). Absent on older reports and on sources with no
+	// GitHub remote — presence keys on the field, not the report `version`
+	// (current `version` 7 reports carry it), so treat it as optional.
 	repo?: CorpusRepoRef;
 }
 
@@ -123,10 +142,18 @@ export interface BaselineVersions {
 	prettier_svelte: string;
 	oxc_parser?: string;
 	oxfmt?: string;
+	// `yuku-parser` (N-API) and `@yuku-parser/wasm` — one Zig engine behind two
+	// bindings, versioned in lockstep upstream. Absent on reports produced before
+	// the yuku rows.
+	yuku_parser?: string;
+	yuku_parser_wasm?: string;
 	biome?: string;
 	// `@dprint/typescript` — the plugin version (the host `@dprint/formatter` is
 	// just the Wasm loader). Absent on reports produced before the dprint row.
 	dprint?: string;
+	// `@rsvelte/fmt` — the coverage-only Svelte formatter row. Absent on reports
+	// produced before the rsvelte-fmt row.
+	rsvelte_fmt?: string;
 }
 
 export interface BinarySize {
@@ -149,7 +176,8 @@ export type ImplementationCategory =
 	| 'biome'
 	| 'dprint'
 	| 'oxc'
-	| 'rsvelte';
+	| 'rsvelte'
+	| 'yuku';
 
 export interface BenchmarkGroup {
 	operation: string;
@@ -210,7 +238,9 @@ const CATEGORY_BY_NAME: Record<string, ImplementationCategory> = {
 	'oxc-parser': 'oxc',
 	'oxc-parser-wasm': 'oxc',
 	oxfmt: 'oxc',
-	'rsvelte-fmt': 'rsvelte'
+	'rsvelte-fmt': 'rsvelte',
+	'yuku-parser': 'yuku',
+	'yuku-parser-wasm': 'yuku'
 };
 
 export const categorize_name = (name: string): ImplementationCategory =>
@@ -223,6 +253,7 @@ export const categorize_size = (label: string): ImplementationCategory => {
 	if (label.startsWith('biome')) return 'biome';
 	if (label.startsWith('dprint')) return 'dprint';
 	if (label.startsWith('rsvelte')) return 'rsvelte';
+	if (label.startsWith('yuku')) return 'yuku';
 	return 'oxc'; // oxc-parser / oxfmt, and any unrecognized label
 };
 
@@ -245,9 +276,9 @@ const LANGUAGE_ORDER: Record<string, number> = {
  * Fixed slot for a format/parse row, applied in place of a size-ordered sort so the
  * rows read in a stable, meaningful sequence across every group: the canonical
  * reference first (the default 1.0x anchor), then the cross-tool comparisons
- * (alphabetically: biome, dprint, then oxc), then tsv's JSON-materializing wires (the
- * span-only `no-locations` wire before the default `loc`-carrying one), then tsv's raw
- * internal engine.
+ * (alphabetically: biome, dprint, oxc, rsvelte, yuku), then tsv's JSON-materializing
+ * wires (the span-only `no-locations` wire before the default `loc`-carrying one),
+ * then tsv's raw internal engine.
  */
 const speed_entry_rank = (entry: BenchmarkDisplayEntry): number => {
 	if (entry.category === 'canonical') return 0;
@@ -255,9 +286,10 @@ const speed_entry_rank = (entry: BenchmarkDisplayEntry): number => {
 	if (entry.category === 'dprint') return 2;
 	if (entry.category === 'oxc') return 3;
 	if (entry.category === 'rsvelte') return 4;
-	if (entry.name.endsWith('-no-locations')) return 5; // tsv json, span-only wire
-	if (entry.name.endsWith('-json')) return 6; // tsv json, loc-carrying wire
-	return 7; // tsv-internal / tsv_wasm-internal — raw in-engine, no JS materialization
+	if (entry.category === 'yuku') return 5;
+	if (entry.name.endsWith('-no-locations')) return 6; // tsv json, span-only wire
+	if (entry.name.endsWith('-json')) return 7; // tsv json, loc-carrying wire
+	return 8; // tsv-internal / tsv_wasm-internal — raw in-engine, no JS materialization
 };
 
 /**
@@ -352,6 +384,11 @@ export const derive_benchmark_groups = (baseline: BenchmarkBaseline): Array<Benc
 	// only where it's missing — then re-sort so they fall into their fixed slots
 	// (biome then oxc, right after the canonical row), giving all three parse groups
 	// one shared entry order.
+	//
+	// `yuku-parser` is deliberately NOT mirrored, though it is TypeScript/JS-only too.
+	// A grayed-out slot states a SCOPE gap: biome and oxc are broad web toolchains, so
+	// a missing Svelte or CSS parser is worth showing. yuku claims nothing wider, so
+	// an empty slot would invent a shortfall against a promise it never made.
 	const ts_parse = result.find((g) => g.operation === 'parse' && g.language === 'typescript');
 	const oxc_templates = ts_parse?.entries.filter((e) => e.category === 'oxc') ?? [];
 	for (const group of result) {
@@ -437,7 +474,8 @@ const CONFORMANCE_ENGINE_NAMES: Record<string, string> = {
 	'svelte/compiler': 'svelte/compiler',
 	'acorn-typescript': 'acorn-typescript',
 	'tsv-json': 'tsv',
-	'oxc-parser': 'oxc-parser'
+	'oxc-parser': 'oxc-parser',
+	'yuku-parser': 'yuku-parser'
 };
 
 /**
@@ -635,9 +673,9 @@ const synthesize_rsvelte_install = (sizes: Array<BinarySize>): BinarySize | unde
  * Groups the binary sizes by capability (full / formatter / parser), each group
  * mixing wasm and native builds sorted smallest-first. Bars scale to the group's
  * largest build; the `vs` ratio anchors on the group's single smallest build, so
- * exactly one entry reads 1.0x and every other is a multiple of it. (In the current
- * data that smallest build is always one of tsv's, so tsv reads 1.0x and the heavier
- * competitors read >1.0x.) A combined `oxc-parser + oxfmt` entry is
+ * exactly one entry reads 1.0x and every other is a multiple of it — whichever tool
+ * that is. (It is not always tsv: yuku-parser's parse-only builds undercut tsv's,
+ * which carry Svelte and CSS parsers besides.) A combined `oxc-parser + oxfmt` entry is
  * synthesized into the full-toolchain group, since oxc ships parse and format apart.
  * oxfmt has no wasm build, so the formatter group gets a disabled `oxfmt (wasm)`
  * placeholder slotted just above its real `oxfmt (napi)` entry, holding the slot
@@ -723,6 +761,12 @@ export interface CrossRuntimeDisplayRow {
 	ops_per_second: Partial<Record<BenchmarkRuntime, number>>;
 	// ratio of each runtime vs the base (first present) runtime; `> 1` = faster
 	ratio_vs_base: Partial<Record<BenchmarkRuntime, number>>;
+	// The per-runtime timed file counts, set ONLY when they disagree — each
+	// runtime times the files its own impls passed preflight on, so unequal
+	// counts mean part of this row's ratio is file-set composition, not runtime
+	// (the composer's `⚠ files a/b/c` annotation in tsv's report.md). `null`
+	// when every present runtime timed the same count — the healthy, common case.
+	files_iterated_mismatch: Partial<Record<BenchmarkRuntime, number | null>> | null;
 }
 
 export interface CrossRuntimeGroup {
@@ -799,11 +843,15 @@ export const derive_cross_runtime_groups = (
 				ratio_vs_base[runtime] = ops / base_ops;
 			}
 		}
+		const iterated_counts = runtimes
+			.map((runtime) => row.files_iterated[runtime])
+			.filter((n): n is number => n != null);
 		rows.push({
 			name: row.name,
 			category: categorize_name(row.name),
 			ops_per_second: row.ops_per_second,
-			ratio_vs_base
+			ratio_vs_base,
+			files_iterated_mismatch: new Set(iterated_counts).size > 1 ? row.files_iterated : null
 		});
 	}
 
@@ -1011,7 +1059,7 @@ export const format_speedup_signed = (ratio: number): string => {
 };
 
 /** Hyphenated tool names that should preserve their hyphens in display labels. */
-const HYPHENATED_NAMES = ['acorn-typescript', 'oxc-parser', 'rsvelte-fmt'];
+const HYPHENATED_NAMES = ['acorn-typescript', 'oxc-parser', 'rsvelte-fmt', 'yuku-parser'];
 
 /**
  * Display labels for the raw benchmark entry names in the main (Node) tables,
@@ -1039,7 +1087,9 @@ const LABEL_OVERRIDES: Record<string, string> = {
 	oxfmt: 'oxfmt (node napi)',
 	'biome-wasm': 'biome (wasm)',
 	'dprint-wasm': 'dprint (wasm)',
-	'oxc-parser-wasm': 'oxc-parser (wasm)'
+	'oxc-parser-wasm': 'oxc-parser (wasm)',
+	'yuku-parser': 'yuku-parser (node napi)',
+	'yuku-parser-wasm': 'yuku-parser (wasm)'
 };
 
 export const format_label = (name: string): string => {
@@ -1084,6 +1134,8 @@ export const category_color = (category: ImplementationCategory): string => {
 			return 'var(--color_i_40)';
 		case 'rsvelte':
 			return 'var(--color_c_40)';
+		case 'yuku':
+			return 'var(--color_j_40)';
 	}
 };
 

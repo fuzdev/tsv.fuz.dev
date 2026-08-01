@@ -79,6 +79,9 @@
 	const format_css_vs_oxfmt = speedup('format/css', 'oxfmt', 'tsv');
 	const format_css_vs_biome = speedup('format/css', 'biome-wasm', 'tsv_wasm');
 	const parse_ts_vs_oxc = speedup('parse/typescript', 'oxc-parser', 'tsv-json-no-locations');
+	// The one entry that leads tsv's span-only wire, so the tldr quotes it in the
+	// direction the data actually runs rather than only naming what tsv beats.
+	const parse_ts_yuku_vs_tsv = speedup('parse/typescript', 'tsv-json-no-locations', 'yuku-parser');
 
 	// The end-to-end CLI claims, from the formatter-comparison report.
 	const cli_ts_wall_vs_oxfmt = format_ratio_approx(
@@ -105,8 +108,13 @@
 		<p>
 			tsv is a toolchain for TypeScript/JS, CSS, and Svelte in Rust. After correctness, performance
 			is tsv's next priority. This page shows how it measures up against Prettier, which tsv closely
-			follows, and against Oxc and Biome, which are similar tools with wider language support (tsv
-			doesn't support JSX/TSX/SCSS/etc).
+			follows, and against <a href="https://oxc.rs/">Oxc</a> and
+			<a href="https://biomejs.dev/">Biome</a>, which are similar tools with wider language support
+			(tsv doesn't support JSX/TSX/SCSS/etc). Also included for comparison:
+			<a href="https://baseballyama.github.io/rsvelte/">rsvelte</a> (Svelte parser/formatter),
+			<a href="https://yuku.fyi/">Yuku</a> (TypeScript/JS parser), and
+			<a href="https://dprint.dev/">dprint-typescript</a>
+			(TypeScript/JS formatter).
 		</p>
 	</section>
 
@@ -139,9 +147,11 @@
 				faster than Biome.
 			</li>
 			<li>
-				Parsing TypeScript to JSON, tsv is ~{parse_ts_vs_oxc} faster than Oxc; Biome doesn't expose
-				its parser to JS. tsv's default AST adds a per-node line/column <code>loc</code> for drop-in
-				Svelte compatibility, with a fast path to reconstruct locs in JS.
+				Parsing TypeScript to JSON, tsv is ~{parse_ts_vs_oxc} faster than Oxc, and
+				~{parse_ts_yuku_vs_tsv} slower than yuku-parser, which hands its AST to JS as a compact
+				binary buffer where tsv and Oxc both go through JSON; Biome doesn't expose its parser to JS.
+				tsv's default AST adds a per-node line/column <code>loc</code> for drop-in Svelte
+				compatibility, with a fast path to reconstruct locs in JS.
 			</li>
 			<li>
 				A <a href="https://github.com/ryanatkn/oxc-bench-formatter" rel="external">
@@ -242,6 +252,14 @@
 			AST but skip JS-side materialization, so they show raw in-engine speed rather than a
 			cross-tool comparison.
 		</p>
+		<p class="mb_xl5">
+			yuku-parser, a JS/TS parser written in Zig, emits the same span-only AST as oxc, so it too
+			compares against the <code>no-locs</code> entries rather than tsv's <code>loc</code>-bearing
+			default. It reaches that AST differently: instead of serializing to JSON it returns a compact
+			binary buffer that its JS side decodes into objects. The deliverable is the same fully
+			materialized tree, so the entries stay comparable — though every one of them times parsing and
+			the hand-off into JS together, and this benchmark doesn't split the two.
+		</p>
 		{#each parse_groups as group (group.language)}
 			<BenchmarksGroup {group} {corpus} />
 		{/each}
@@ -261,6 +279,10 @@
 				<li>
 					oxc-parser only parses TypeScript and JS (and JSX, not measured here). oxc-parser doesn't
 					expose a CSS parser, and it doesn't parse Svelte.
+				</li>
+				<li>
+					yuku-parser is a TypeScript and JS parser and doesn't set out to be more — no CSS, no
+					Svelte, no formatter — so it appears in the TypeScript parse group only.
 				</li>
 				<li>
 					the <code>no-locs</code> entries are the payload-matched comparison with oxc-parser (see
@@ -342,6 +364,11 @@
 			<ul>
 				<li>apples-to-apples comparisons are difficult here because of differing scope</li>
 				<li>oxc-parser only parses TypeScript and JS/JSX; oxfmt is its separate formatter</li>
+				<li>
+					yuku-parser parses TypeScript and JS and ships no formatter, so both its builds sit under
+					Parser — but tsv's parse-only builds beside them carry parsers for Svelte and CSS too, so
+					the gap there is scope as much as engine
+				</li>
 				<li>tsv and tsv_wasm include a parser and formatter for Svelte, TypeScript/JS, and CSS</li>
 				<li>
 					Biome bundles a parser, formatter, and linter for many languages, but its native engine

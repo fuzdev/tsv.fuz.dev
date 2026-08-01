@@ -7,6 +7,7 @@
 		format_cross_runtime_label,
 		format_speedup,
 		order_cross_runtime_runtimes,
+		type BenchmarkRuntime,
 		type CrossRuntimeReport
 	} from './benchmark_data.ts';
 
@@ -32,6 +33,12 @@
 
 	const group_label = (operation: string, language: string): string =>
 		`${operation === 'format' ? 'Format' : 'Parse'} ${language}`;
+
+	// the per-runtime timed counts in column order, for a row whose runtimes
+	// timed different file sets (see `CrossRuntimeDisplayRow.files_iterated_mismatch`)
+	const files_mismatch_label = (
+		mismatch: Partial<Record<BenchmarkRuntime, number | null>>
+	): string => runtimes.map((runtime) => mismatch[runtime] ?? '—').join('/');
 </script>
 
 <div class="cross-runtime">
@@ -75,6 +82,16 @@
 							<td>
 								<i class="swatch" style:background={category_color(row.category)}></i>
 								{format_cross_runtime_label(row.name)}
+								{#if row.files_iterated_mismatch}
+									<small
+										class="files-mismatch"
+										title="the runtimes timed different file sets ({runtimes.join(
+											'/'
+										)}) — each runtime times the files its own binding accepted, so part of this row's ratio is file-set composition, not runtime"
+									>
+										⚠ files {files_mismatch_label(row.files_iterated_mismatch)}
+									</small>
+								{/if}
 							</td>
 							{#each runtimes as runtime (runtime)}
 								<td class="num">{format_ops(row.ops_per_second[runtime])}</td>
@@ -142,5 +159,10 @@
 		height: 1.2rem;
 		border-radius: var(--border_radius_xs);
 		vertical-align: middle;
+	}
+	/* same warning tint as the mixed-vintage asides */
+	.files-mismatch {
+		margin-left: var(--space_xs);
+		color: var(--color_c_50);
 	}
 </style>
