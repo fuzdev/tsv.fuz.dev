@@ -25,10 +25,10 @@ const formatted = format_svelte('<script>\\nconst   x=1\\n<\\/script>');`;
 
 const ast: Root = parse_svelte('<script>const x = 1;<\\/script>');`;
 
-	const no_locations_example = `import {parse_typescript_no_locations, reconstruct_locations} from '@fuzdev/tsv_parse_wasm';
+	const no_locations_example = `import {parse_typescript, reconstruct_locations} from '@fuzdev/tsv_parse_wasm';
 
 // span-only AST: start/end offsets, no per-node loc (~46% smaller)
-const ast = parse_typescript_no_locations('const x = 1;');
+const ast = parse_typescript('const x = 1;', {locations: false});
 
 // derive line/column back when you need it, no re-parse
 reconstruct_locations(ast, 'const x = 1;');`;
@@ -117,24 +117,26 @@ reconstruct_locations(ast, 'const x = 1;');`;
 			<p>
 				<code>format_typescript</code>, <code>format_css</code>, <code>parse_typescript</code>, and
 				<code>parse_css</code> work the same way, and the parsers return Svelte-compatible JSON ASTs
-				with bundled TS types. Everything works zero-config in Node.js, Bun, and Deno (sync
-				auto-init); browsers and bundlers call <code>await init()</code> once first.
+				with bundled TS types. Every parser also takes an acorn-style options object —
+				<code>{'{locations: false}'}</code> for the span-only wire (below), plus TypeScript's
+				<code>{"{goal: 'script' | 'module'}"}</code>. Everything works zero-config in Node.js, Bun,
+				and Deno (sync auto-init); browsers and bundlers call <code>await init()</code> once first.
 			</p>
 		</TomeSection>
 		<TomeSection>
 			<TomeSectionHeader text="Span-only parsing" />
 			<p>
-				For efficiency, the TypeScript and Svelte parsers have a span-only mode that skips the
-				per-node line/column, making the AST ~46% smaller and faster to materialize. You can derive
-				line and column later without re-parsing. This is the default in oxc-parser.
+				For efficiency, the parsers have a span-only mode that skips the per-node line/column,
+				making the AST ~46% smaller and faster to materialize. You can derive line and column later
+				without re-parsing. This is the default in oxc-parser.
 			</p>
 			<Code lang="ts" content={no_locations_example} />
 			<p>
-				Using <code>parse_typescript_no_locations</code> is faster than
-				<code>parse_typescript</code>, because there's fewer bytes to emit and parse. Even when you
-				need line/column, reconstructing in JS beats the
+				Passing <code>{'{locations: false}'}</code> is faster than the default, because there's
+				fewer bytes to emit and parse. Even when you need line/column, reconstructing in JS beats
+				the
 				<code>loc</code>-bearing wire end-to-end by ~1.7x on TypeScript (~2.2x for a few positions).
-				tsv's primary API emits <code>loc</code> so that the default AST is a drop-in for Svelte's.
+				tsv's default emits <code>loc</code> so that the bare call is a drop-in for Svelte's parser.
 			</p>
 			<p>Details:</p>
 			<ul>
@@ -151,7 +153,10 @@ reconstruct_locations(ast, 'const x = 1;');`;
 					For sparse lookups, <code>create_locator(source)</code> reuses one line table across
 					calls, so you pay for the positions you actually ask for.
 				</li>
-				<li>CSS nodes carry no <code>loc</code> to begin with, so there's no span-only variant.</li>
+				<li>
+					CSS nodes carry no <code>loc</code> to begin with, so <code>{'{locations: false}'}</code>
+					is accepted as an inert no-op there.
+				</li>
 			</ul>
 		</TomeSection>
 		<TomeSection>
