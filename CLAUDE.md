@@ -47,7 +47,7 @@ tsv.fuz.dev is the public face of the tsv tool:
 - Docs section (introduction, playground, benchmarks)
 - Interactive playground (`/docs/playground`) — edit a deliberately-unformatted Svelte example in a syntax-highlighted editor (fuz_code's `CodeTextarea`); the formatted output and parsed AST update live alongside it; runs `@fuzdev/tsv_wasm` as lazily-loaded WASM
 - Theme controls via fuz_ui's `ThemeRoot` in the root layout (no separate about/settings page)
-- Shows install instructions led by the native `@fuzdev/tsv` (prebuilt N-API addon for Node/Bun), then `@fuzdev/tsv_wasm` (universal + the `tsv` CLI) and the format/parse subsets
+- Shows install instructions led by the native `@fuzdev/tsv` (prebuilt N-API addon for Node/Bun, ships the `tsv` CLI), then `@fuzdev/tsv_wasm` (universal, same `tsv` CLI) and the format/parse subsets
 
 ### What tsv.fuz.dev does NOT include (yet)
 

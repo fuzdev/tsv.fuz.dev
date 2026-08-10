@@ -80,28 +80,30 @@ reconstruct_locations(ast, 'const x = 1;');`;
 			high-effort project that prioritizes quality.
 		</p>
 		<p>
-			These docs are a work in progress. For design details see the <a
-				href="https://github.com/fuzdev/tsv"
-			>
-				readme
-			</a>.
+			These docs are a work in progress. For design details see the
+			<a href="https://github.com/fuzdev/tsv">readme</a>.
 		</p>
 		<TomeSection>
 			<TomeSectionHeader text="Install" />
 			<p>On Node.js and Bun, tsv installs as a native addon with prebuilt binaries:</p>
-			<Code lang="sh" content={'npm i -D @fuzdev/tsv'} />
+			<Code
+				lang="sh"
+				content={'npm i -D @fuzdev/tsv\nnpx tsv format src\nnpx tsv parse src/foo.svelte'}
+			/>
 			<p>
 				The right binary installs automatically. Prebuilt for Linux (x64, arm64, and x64 musl),
-				macOS arm64, and Windows x64 — anywhere else, use the WASM build below.
+				macOS arm64, and Windows x64 — anywhere else, use the WASM build below. The
+				<code>tsv</code> command here is tsv's real native CLI binary, shipped in the platform
+				package and exec'd directly — multi-file parallelism (<code>--jobs</code>), parallel
+				discovery, the works. It ships beside the addon because neither can play the other's role:
+				an addon can't be exec'd as a process, and an executable can't be loaded as an in-process
+				module.
 			</p>
 			<p>
 				tsv also ships as WASM, which runs everywhere including browsers and Deno, and carries the
-				<code>tsv</code> CLI:
+				same <code>tsv</code> CLI:
 			</p>
-			<Code
-				lang="sh"
-				content={'npm i -D @fuzdev/tsv_wasm\nnpx tsv format src\nnpx tsv parse src/foo.svelte'}
-			/>
+			<Code lang="sh" content={'npm i -D @fuzdev/tsv_wasm\nnpx tsv format src'} />
 			<p>For smaller builds, the formatter and parser also ship solo:</p>
 			<Code
 				lang="sh"
@@ -114,9 +116,10 @@ reconstruct_locations(ast, 'const x = 1;');`;
 		<TomeSection>
 			<TomeSectionHeader text="Usage" />
 			<p>
-				All four packages share the same API — <code>@fuzdev/tsv</code> and
-				<code>@fuzdev/tsv_wasm</code> are drop-in swaps for each other, same export names, same
-				options, same errors. Both export the formatter and parser together:
+				All four packages share the same formatter and parser API — <code>@fuzdev/tsv</code> and
+				<code>@fuzdev/tsv_wasm</code>
+				are drop-in swaps for each other, same function names, same options, same errors. Both
+				export the formatter and parser together:
 			</p>
 			<Code lang="ts" content={usage_example} />
 			<p>The formatter alone:</p>
@@ -144,11 +147,10 @@ reconstruct_locations(ast, 'const x = 1;');`;
 			<p>
 				Passing <code>{'{locations: false}'}</code> is faster than the default, because there's
 				fewer bytes to emit and parse. Even when you need line/column, reconstructing in JS beats
-				the
-				<code>loc</code>-bearing wire end-to-end by ~1.7x on TypeScript (~2.2x for a few positions).
-				tsv's default emits <code>loc</code> so that the bare call is a drop-in for Svelte's parser.
-				The <code>reconstruct_locations</code> helper ships in the WASM packages; the wire is
-				identical, so it also works on the native package's output.
+				the <code>loc</code>-bearing wire end-to-end by ~1.7x on TypeScript (~2.2x for a few
+				positions). tsv's default emits <code>loc</code> so that the bare call is a drop-in for
+				Svelte's parser. The <code>reconstruct_locations</code> helper is bundled in every package
+				that parses, native and WASM alike.
 			</p>
 			<p>Details:</p>
 			<ul>
