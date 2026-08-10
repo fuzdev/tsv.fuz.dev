@@ -36,16 +36,19 @@ export interface BenchmarkBaseline {
 	machine?: Machine;
 }
 
-// A same-engine native/wasm variant pair whose pre-flight accept sets disagreed
-// — mirrors the bench's `VariantParityFinding` (see `BenchmarkBaseline.variant_parity`).
+// A same-engine pair whose pre-flight accept sets disagreed — one engine behind
+// two bindings (native/wasm), or one binding under two options. Mirrors the
+// bench's `VariantParityFinding` (see `BenchmarkBaseline.variant_parity`); the
+// neutral keys arrived with report `version` 9, which is also when the check
+// started pairing options (older reports spell them `native`/`wasm`).
 export interface VariantParityFinding {
 	group: string;
-	native: string;
-	wasm: string;
-	// files only the native variant accepted
-	native_only: number;
-	// files only the wasm variant accepted
-	wasm_only: number;
+	impl: string;
+	sibling: string;
+	// files only `impl` accepted
+	impl_only: number;
+	// files only `sibling` accepted
+	sibling_only: number;
 }
 
 // The hardware/runtime a report was measured on. Excludes hostname (the reports
@@ -154,6 +157,22 @@ export interface BaselineVersions {
 	// `@rsvelte/fmt` — the coverage-only Svelte formatter row. Absent on reports
 	// produced before the rsvelte-fmt row.
 	rsvelte_fmt?: string;
+	// `dprint-plugin-malva` — dprint's CSS formatter plugin, over the same Wasm
+	// host as `dprint` above. Absent on reports produced before the malva row.
+	malva?: string;
+	// `postcss` — the CSS parser row. Absent on reports produced before it.
+	postcss?: string;
+	// `@rsvelte/vite-plugin-svelte-native` — the N-API addon behind the Svelte
+	// PARSE rows, a different package from `@rsvelte/fmt` above and versioned
+	// independently. Absent on reports produced before those rows.
+	rsvelte_parse?: string;
+	// The upstream Svelte version that addon targets (its own `VERSION` export),
+	// which is not its package version — a drift from the `svelte` pin means those
+	// rows parse to a different Svelte than the svelte/compiler row beside them.
+	rsvelte_parse_svelte_target?: string;
+	// `@swc/core` — the TypeScript/JS parser row. Absent on reports produced
+	// before it.
+	swc?: string;
 }
 
 export interface BinarySize {
@@ -176,7 +195,9 @@ export type ImplementationCategory =
 	| 'biome'
 	| 'dprint'
 	| 'oxc'
+	| 'postcss'
 	| 'rsvelte'
+	| 'swc'
 	| 'yuku';
 
 export interface BenchmarkGroup {
@@ -235,10 +256,20 @@ const CATEGORY_BY_NAME: Record<string, ImplementationCategory> = {
 	'tsv_wasm-internal': 'tsv_wasm',
 	'biome-wasm': 'biome',
 	'dprint-wasm': 'dprint',
+	// malva is dprint's own CSS plugin, loaded through the same Wasm host, so it
+	// shares dprint's category rather than claiming a hue of its own — the palette
+	// has ten and all ten are spoken for.
+	'malva-wasm': 'dprint',
 	'oxc-parser': 'oxc',
 	'oxc-parser-wasm': 'oxc',
 	oxfmt: 'oxc',
+	postcss: 'postcss',
 	'rsvelte-fmt': 'rsvelte',
+	// The parse rows come from a different package than `rsvelte-fmt`, but the same
+	// tool, so one category covers all three.
+	'rsvelte-parse': 'rsvelte',
+	'rsvelte-parse-skip-expr-loc': 'rsvelte',
+	swc: 'swc',
 	'yuku-parser': 'yuku',
 	'yuku-parser-wasm': 'yuku'
 };
@@ -252,7 +283,10 @@ export const categorize_size = (label: string): ImplementationCategory => {
 	if (label.startsWith('tsv')) return 'tsv_native';
 	if (label.startsWith('biome')) return 'biome';
 	if (label.startsWith('dprint')) return 'dprint';
+	if (label.startsWith('malva')) return 'dprint'; // dprint's CSS plugin — see CATEGORY_BY_NAME
+	// Covers both `rsvelte-fmt (binary)` and `rsvelte compiler (napi)`.
 	if (label.startsWith('rsvelte')) return 'rsvelte';
+	if (label.startsWith('swc')) return 'swc';
 	if (label.startsWith('yuku')) return 'yuku';
 	return 'oxc'; // oxc-parser / oxfmt, and any unrecognized label
 };
@@ -276,7 +310,8 @@ const LANGUAGE_ORDER: Record<string, number> = {
  * Fixed slot for a format/parse row, applied in place of a size-ordered sort so the
  * rows read in a stable, meaningful sequence across every group: the canonical
  * reference first (the default 1.0x anchor), then the cross-tool comparisons
- * (alphabetically: biome, dprint, oxc, rsvelte, yuku), then tsv's JSON-materializing
+ * (alphabetically: biome, dprint — whose category malva shares — oxc, postcss,
+ * rsvelte, swc, yuku), then tsv's JSON-materializing
  * wires (the span-only `no-locations` wire before the default `loc`-carrying one),
  * then tsv's raw internal engine.
  */
@@ -285,11 +320,13 @@ const speed_entry_rank = (entry: BenchmarkDisplayEntry): number => {
 	if (entry.category === 'biome') return 1;
 	if (entry.category === 'dprint') return 2;
 	if (entry.category === 'oxc') return 3;
-	if (entry.category === 'rsvelte') return 4;
-	if (entry.category === 'yuku') return 5;
-	if (entry.name.endsWith('-no-locations')) return 6; // tsv json, span-only wire
-	if (entry.name.endsWith('-json')) return 7; // tsv json, loc-carrying wire
-	return 8; // tsv-internal / tsv_wasm-internal — raw in-engine, no JS materialization
+	if (entry.category === 'postcss') return 4;
+	if (entry.category === 'rsvelte') return 5;
+	if (entry.category === 'swc') return 6;
+	if (entry.category === 'yuku') return 7;
+	if (entry.name.endsWith('-no-locations')) return 8; // tsv json, span-only wire
+	if (entry.name.endsWith('-json')) return 9; // tsv json, loc-carrying wire
+	return 10; // tsv-internal / tsv_wasm-internal — raw in-engine, no JS materialization
 };
 
 /**
@@ -483,17 +520,28 @@ const CONFORMANCE_ENGINE_NAMES: Record<string, string> = {
 	'acorn-typescript': 'acorn-typescript',
 	'tsv-json': 'tsv',
 	'oxc-parser': 'oxc-parser',
-	'yuku-parser-wasm': 'yuku-parser'
+	'yuku-parser-wasm': 'yuku-parser',
+	// rsvelte's two parse rows are one engine under two options, so only the
+	// default-wire one stands in — the option changes the payload, never the
+	// verdict.
+	'rsvelte-parse': 'rsvelte',
+	swc: 'swc',
+	postcss: 'PostCSS'
 };
 
 /**
  * Qualifiers rendered beside a coverage row, keyed by report entry name. The
  * table is per engine and says nothing about bindings — so a note here is for
- * the case where the binding is the reason the row reads as it does, not a
- * general "which binding ran" label.
+ * when the row's reading needs a caveat the coverage number can't carry, whether
+ * that's the binding or the grammar being measured.
  */
 const CONFORMANCE_ROW_NOTES: Record<string, string> = {
-	'yuku-parser-wasm': 'wasm — native segfaults'
+	'yuku-parser-wasm': 'wasm — native segfaults',
+	// The CSS group's reference row is svelte/compiler's `parseCss`, which is not a
+	// validity oracle in either direction — so PostCSS sitting slightly above it is
+	// a grammar difference, not a conformance verdict. Spelled out in the notes
+	// below the tables.
+	postcss: 'a different CSS grammar'
 };
 
 /**
@@ -1106,9 +1154,16 @@ const LABEL_OVERRIDES: Record<string, string> = {
 	oxfmt: 'oxfmt (node napi)',
 	'biome-wasm': 'biome (wasm)',
 	'dprint-wasm': 'dprint (wasm)',
+	'malva-wasm': 'malva (wasm)',
 	'oxc-parser-wasm': 'oxc-parser (wasm)',
 	'yuku-parser': 'yuku-parser (node napi)',
-	'yuku-parser-wasm': 'yuku-parser (wasm)'
+	'yuku-parser-wasm': 'yuku-parser (wasm)',
+	swc: 'swc (node napi)',
+	// both rsvelte parse rows are the same N-API addon, distinguished by the option
+	// the second one passes — kept in the label, since that option IS the row
+	'rsvelte-parse': 'rsvelte-parse (node napi)',
+	'rsvelte-parse-skip-expr-loc': 'rsvelte-parse skip-expr-loc (node napi)'
+	// `postcss` needs no entry: it's plain JS with no binding to name, like `prettier`
 };
 
 export const format_label = (name: string): string => {
@@ -1155,6 +1210,18 @@ export const category_color = (category: ImplementationCategory): string => {
 			return 'var(--color_c_40)';
 		case 'yuku':
 			return 'var(--color_j_40)';
+		// The palette has ten hues and the categories above spend all ten, so these
+		// two reuse a hue at a lighter shade. The pairing is chosen so a collision
+		// can't show up in a speed group: `swc` and `postcss` are parse-only, while
+		// `biome` and `dprint` are format-only, and placeholder rows mirror only
+		// within an operation. They DO meet in the binary-size table, which lists
+		// both operations' tools — hence the distinct shade rather than a bare reuse.
+		// A future biome/dprint parse row (or an swc formatter) would break that, and
+		// would need a real hue freed up.
+		case 'swc':
+			return 'var(--color_a_50)'; // biome's hue, lighter
+		case 'postcss':
+			return 'var(--color_b_50)'; // dprint's hue, lighter
 	}
 };
 

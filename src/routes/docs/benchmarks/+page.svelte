@@ -112,9 +112,13 @@
 			<a href="https://biomejs.dev/">Biome</a>, which are similar tools with wider language support
 			(tsv doesn't support JSX/TSX/SCSS/etc). Also included for comparison:
 			<a href="https://baseballyama.github.io/rsvelte/">rsvelte</a> (Svelte parser/formatter),
-			<a href="https://yuku.fyi/">Yuku</a> (TypeScript/JS parser), and
+			<a href="https://yuku.fyi/">Yuku</a> (TypeScript/JS parser),
+			<a href="https://swc.rs/">swc</a> (TypeScript/JS parser),
 			<a href="https://dprint.dev/">dprint-typescript</a>
-			(TypeScript/JS formatter).
+			(TypeScript/JS formatter),
+			<a href="https://github.com/g-plane/malva">malva</a> (CSS formatter, dprint's CSS plugin), and
+			<a href="https://postcss.org/">PostCSS</a>
+			(CSS parser).
 		</p>
 	</section>
 
@@ -216,10 +220,16 @@
 					The dprint entry is <a href="https://dprint.dev/plugins/typescript/">
 						dprint-plugin-typescript
 					</a>, the engine <code>deno fmt</code> runs for TypeScript and JS, loaded in-process as
-					its wasm plugin. It formats TypeScript and JS only — the plugin rejects CSS and Svelte,
-					and dprint's CSS and HTML plugins are separate — so it's grayed out in those two groups.
-					This times the engine, not the <code>deno fmt</code> CLI: a subprocess per file would
-					measure process startup instead of formatting.
+					its wasm plugin. It formats TypeScript and JS only — the plugin rejects CSS and Svelte —
+					so it's grayed out in those two groups. This times the engine, not the
+					<code>deno fmt</code>
+					CLI: a subprocess per file would measure process startup instead of formatting.
+				</li>
+				<li>
+					dprint's CSS work lives in a separate plugin, <a href="https://github.com/g-plane/malva">
+						malva
+					</a>, which gets its own CSS entry over the same wasm host. Its HTML plugin isn't included
+					— it doesn't format Svelte.
 				</li>
 				<li>
 					<a href="https://github.com/baseballyama/rsvelte" rel="external">rsvelte-fmt</a>, the
@@ -281,8 +291,41 @@
 					expose a CSS parser, and it doesn't parse Svelte.
 				</li>
 				<li>
-					yuku-parser is a TypeScript and JS parser and doesn't set out to be more — no CSS, no
-					Svelte, no formatter — so it appears in the TypeScript parse group only.
+					yuku-parser and swc both parse TypeScript and JS and nothing else — no CSS, no Svelte, no
+					formatter — so they appear in the TypeScript parse group only.
+				</li>
+				<li>
+					rsvelte's parser is the only other engine here that parses Svelte, and it's matched to
+					tsv's default wire on both counts that matter: it also hands JS a compact JSON string, and
+					on a real component the two payloads are within a couple of percent. So
+					<code>rsvelte-parse</code>
+					compares against <code>tsv-json</code> directly, not against the <code>no-locs</code>
+					entries. Its second entry passes rsvelte's own <code>skipExpressionLoc</code>, which drops
+					<code>loc</code>
+					only on embedded JS expressions and keeps the top-level offsets — a different trade than
+					tsv's span-only wire, which is why that entry is named for the option rather than for
+					tsv's.
+				</li>
+				<li>
+					swc parses into its own AST shape — a <code>Module</code> root carrying <code>span</code>
+					offsets rather than ESTree's <code>loc</code>/<code>range</code> — so it isn't
+					payload-matched to either tsv wire.
+				</li>
+				<li>
+					PostCSS is the only other CSS parser here, and the only kind available: no Rust CSS parser
+					exposes an AST to JS. Lightning CSS transforms rather than handing back a tree, Biome
+					doesn't surface a parser at all, and malva is a formatter. It's also the parser behind
+					Prettier's CSS printer, which makes it the parse-side counterpart to the Prettier entry in
+					the format group.
+				</li>
+				<li>
+					a CSS coverage gap is a grammar difference, not a verdict. The CSS reference row is
+					Svelte's <code>parseCss</code>, which tsv is a drop-in for — and unlike Svelte's parser on
+					the Svelte side, it isn't an authority on what valid CSS is in either direction. PostCSS
+					rejects a handful of files <code>parseCss</code> accepts (unclosed strings, a missing
+					semicolon) and accepts more that it rejects, mostly modern CSS Svelte's parser doesn't
+					implement yet — <code>@supports selector(…)</code>, mixins — rather than anything
+					malformed. So PostCSS landing a shade above tsv here is two grammars, not a gap.
 				</li>
 				<li>
 					the <code>no-locs</code> entries are the payload-matched comparison with oxc-parser (see

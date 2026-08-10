@@ -12,7 +12,7 @@
 
 	const tome = tome_get_by_slug(LIBRARY_ITEM_NAME);
 
-	const usage_example = `import {format_svelte, parse_svelte, type Root} from '@fuzdev/tsv_wasm';
+	const usage_example = `import {format_svelte, parse_svelte, type Root} from '@fuzdev/tsv';
 
 const formatted = format_svelte('<script>\\nconst   x=1\\n<\\/script>');
 const ast: Root = parse_svelte('<script>const x = 1;<\\/script>');`;
@@ -88,7 +88,16 @@ reconstruct_locations(ast, 'const x = 1;');`;
 		</p>
 		<TomeSection>
 			<TomeSectionHeader text="Install" />
-			<p>tsv ships as WASM packages on npm, a CLI with a formatter and parser:</p>
+			<p>On Node.js and Bun, tsv installs as a native addon with prebuilt binaries:</p>
+			<Code lang="sh" content={'npm i -D @fuzdev/tsv'} />
+			<p>
+				The right binary installs automatically. Prebuilt for Linux (x64, arm64, and x64 musl),
+				macOS arm64, and Windows x64 — anywhere else, use the WASM build below.
+			</p>
+			<p>
+				tsv also ships as WASM, which runs everywhere including browsers and Deno, and carries the
+				<code>tsv</code> CLI:
+			</p>
 			<Code
 				lang="sh"
 				content={'npm i -D @fuzdev/tsv_wasm\nnpx tsv format src\nnpx tsv parse src/foo.svelte'}
@@ -101,14 +110,14 @@ reconstruct_locations(ast, 'const x = 1;');`;
 			<p>
 				See the <TomeLink slug="benchmarks" /> for size and performance details.
 			</p>
-			<p>
-				Native builds will be published soon, follow
-				<a href="https://github.com/fuzdev/tsv/issues/139">issue 139</a>.
-			</p>
 		</TomeSection>
 		<TomeSection>
 			<TomeSectionHeader text="Usage" />
-			<p>All three packages share the same API. The full package exports both halves:</p>
+			<p>
+				All four packages share the same API — <code>@fuzdev/tsv</code> and
+				<code>@fuzdev/tsv_wasm</code> are drop-in swaps for each other, same export names, same
+				options, same errors. Both export the formatter and parser together:
+			</p>
 			<Code lang="ts" content={usage_example} />
 			<p>The formatter alone:</p>
 			<Code lang="ts" content={format_example} />
@@ -119,8 +128,9 @@ reconstruct_locations(ast, 'const x = 1;');`;
 				<code>parse_css</code> work the same way, and the parsers return Svelte-compatible JSON ASTs
 				with bundled TS types. Every parser also takes an acorn-style options object —
 				<code>{'{locations: false}'}</code> for the span-only wire (below), plus TypeScript's
-				<code>{"{goal: 'script' | 'module'}"}</code>. Everything works zero-config in Node.js, Bun,
-				and Deno (sync auto-init); browsers and bundlers call <code>await init()</code> once first.
+				<code>{"{goal: 'script' | 'module'}"}</code>. The native package needs no initialization;
+				the WASM packages work zero-config in Node.js, Bun, and Deno (sync auto-init), and browsers
+				and bundlers call <code>await init()</code> once first.
 			</p>
 		</TomeSection>
 		<TomeSection>
@@ -137,6 +147,8 @@ reconstruct_locations(ast, 'const x = 1;');`;
 				the
 				<code>loc</code>-bearing wire end-to-end by ~1.7x on TypeScript (~2.2x for a few positions).
 				tsv's default emits <code>loc</code> so that the bare call is a drop-in for Svelte's parser.
+				The <code>reconstruct_locations</code> helper ships in the WASM packages; the wire is
+				identical, so it also works on the native package's output.
 			</p>
 			<p>Details:</p>
 			<ul>

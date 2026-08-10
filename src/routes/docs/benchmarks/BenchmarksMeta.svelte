@@ -19,7 +19,15 @@
 		acorn_ts: 'acorn-typescript',
 		prettier_svelte: 'prettier-plugin-svelte',
 		// the wasm binding is its own scoped package, not a hyphenated suffix
-		yuku_parser_wasm: '@yuku-parser/wasm'
+		yuku_parser_wasm: '@yuku-parser/wasm',
+		malva: 'dprint-plugin-malva',
+		swc: '@swc/core',
+		// the Svelte PARSE rows come from a package whose name says "vite plugin" —
+		// it's the N-API addon, and a different package from `@rsvelte/fmt`
+		rsvelte_parse: '@rsvelte/vite-plugin-svelte-native',
+		// not a tool version at all: the upstream Svelte that addon targets, worth
+		// showing beside the svelte pin the oracle row uses
+		rsvelte_parse_svelte_target: "rsvelte's upstream svelte"
 	};
 
 	// every tool version the report carries, in report order, so a tool added
