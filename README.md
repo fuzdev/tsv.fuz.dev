@@ -7,3 +7,11 @@
 [tsv.fuz.dev](https://tsv.fuz.dev/)
 
 This repo has only the website, the code is at [fuzdev/tsv](https://github.com/fuzdev/tsv).
+
+## Contributing
+
+[fuz.dev/contributing](https://www.fuz.dev/contributing)
+
+## License [🐦](https://wikipedia.org/wiki/Free_and_open-source_software)
+
+[MIT](LICENSE)
