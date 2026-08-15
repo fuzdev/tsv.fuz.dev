@@ -342,8 +342,11 @@
 			Separate from the speed numbers above that use a real-world corpus of code, this section
 			measures parse <em>coverage</em>: how much of a much larger, deliberately hard corpus each
 			parser accepts — Prettier's format-test suites, Svelte's compiler test suite, CSS extracted
-			from <a href="https://github.com/web-platform-tests/wpt">web-platform-tests</a>, and
-			<a href="https://github.com/tc39/test262">test262</a>'s expected-valid strict-mode tests.
+			from <a href="https://github.com/web-platform-tests/wpt">web-platform-tests</a>,
+			<a href="https://github.com/tc39/test262">test262</a>'s expected-valid strict-mode tests, and
+			the single-file cases from the
+			<a href="https://github.com/microsoft/TypeScript">TypeScript compiler</a>'s own test suite
+			that tsc itself parses cleanly.
 		</p>
 		<BenchmarksConformance groups={conformance_groups} />
 		<aside class="mt_xl5">
@@ -366,6 +369,14 @@
 					(acorn-typescript trails modern syntax, Svelte's CSS parser is lenient), so those suites
 					keep intentionally-invalid and out-of-scope inputs — read them relative to each other, not
 					as an absolute target.
+				</li>
+				<li>
+					The <code>tsc</code> row is the TypeScript compiler's own parser, which appears here and
+					nowhere else on this page — a verdict rather than a speed. It selected the compiler slice of
+					this corpus (only the cases it parses cleanly are kept), so it scores 100% there by
+					construction, the way svelte/compiler does on the Svelte set; the rest of its number comes
+					from corpora it didn't select, where it rejects JSX and stage-1 proposals in Prettier's
+					JavaScript fixtures and a small tail of test262. That blend is why it doesn't read 100%.
 				</li>
 				<li>
 					Accepting a file says nothing about producing the <em>right</em> AST — tsv's output is
@@ -447,6 +458,20 @@
 					<code>oxfmt</code> and errors without it (hence the peer dependency). A single
 					<code>.svelte</code> file needs no oxfmt — it formats the embedded
 					<code>&lt;script&gt;</code> and <code>&lt;style&gt;</code> itself
+				</li>
+				<li>
+					<code>dprint (wasm)</code> and <code>malva (wasm)</code> are two plugins for the same
+					dprint formatter host — TypeScript/JS and CSS respectively — and neither exposes a parser,
+					so both sit under Formatter beside tsv's format-only wasm build. That build does Svelte,
+					TypeScript/JS and CSS in one artifact, so each gap there is scope before it's engine
+				</li>
+				<li>
+					<code>swc (napi)</code> and <code>rsvelte compiler (napi)</code> are the widest scope
+					mismatches in the table. Both back parse rows and ship no formatter, so they're grouped
+					under Parser, but each artifact is far larger than what's measured: swc's is an entire
+					compiler (transforms, minifier, bundler) where the benchmark calls only its parser, and
+					rsvelte's carries the Svelte compiler plus svelte2tsx, HMR diffing and a resolver. Read
+					them as what those addons ship, not as parser size
 				</li>
 				<li>
 					tsv's N-API addon for Node and Bun ships as <code>@fuzdev/tsv</code> (prebuilt

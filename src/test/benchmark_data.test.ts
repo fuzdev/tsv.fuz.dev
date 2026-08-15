@@ -23,7 +23,9 @@ import {
 	derive_cross_runtime_groups,
 	derive_size_groups,
 	derive_speedup_summary,
+	derive_unavailable_by_runtime,
 	format_coverage_percent,
+	is_impl_unavailable,
 	format_ratio_approx,
 	format_ratio_range,
 	format_ratio_range_approx,
@@ -475,6 +477,22 @@ describe('benchmarks_conformance.json shape', () => {
 		assert.strictEqual(yuku.note, 'wasm — native segfaults');
 	});
 
+	test('tsc reaches the typescript coverage group, and only it, with its oracle note', () => {
+		// tsc parses TypeScript/JS alone and rides this surface only (it is a verdict,
+		// not a speed). It also SELECTED one slice of this corpus, where it scores 100%
+		// by construction — the note is what keeps the blended aggregate from reading as
+		// one achieved number, so a silent note rename must fail here rather than on the
+		// published page.
+		const groups = derive_conformance_groups(benchmarks_conformance_json);
+		const row_named = (language: string) =>
+			groups.find((g) => g.language === language)?.rows.find((r) => r.name === 'tsc');
+		const tsc = row_named('typescript');
+		assert.ok(tsc, 'typescript coverage must carry a tsc row');
+		assert.strictEqual(tsc.note, 'oracle for part of this corpus');
+		assert.isUndefined(row_named('svelte'), 'tsc parses no Svelte');
+		assert.isUndefined(row_named('css'), 'tsc parses no CSS');
+	});
+
 	test('coverage percent floors — only exact totality reads 100%', () => {
 		// 44219/44220 rounds to 100.00% but must not display as it: floor, so a
 		// visibly non-total count never sits beside a "100.00%" label.
@@ -610,6 +628,94 @@ describe('benchmarks_cross_runtime.json shape', () => {
 				assert.isNull(row.files_iterated_mismatch, `${group.group}/${row.name} file-set mismatch`);
 			}
 		}
+	});
+});
+
+// Per-runtime load failures (the composer's `unavailable_by_runtime`, combined
+// `version` 9+ — it carried init-line labels under `impls` at 8, which matched no
+// row name). Synthetic reports: the committed one predates the field, and the
+// point of these is the DISTINCTION the field draws — a runtime that couldn't load
+// the impl behind a row versus a report that simply has no such row. Both render
+// as `fail`.
+describe('derive_unavailable_by_runtime', () => {
+	const report = (
+		unavailable_by_runtime?: CrossRuntimeReport['unavailable_by_runtime']
+	): CrossRuntimeReport => ({
+		version: 9,
+		kind: 'combined',
+		generated: '2026-01-01T00:00:00.000Z',
+		runtimes: ['deno', 'node', 'bun'],
+		unavailable_by_runtime,
+		sources: [],
+		rows: []
+	});
+
+	test('lists each runtime in the site column order, not the report storage order', () => {
+		// the report stores deno-first; the tables read node-first, and a disclosure
+		// listing runtimes in a different order than the columns invites misreading
+		const derived = derive_unavailable_by_runtime(
+			report([
+				{ runtime: 'bun', rows: ['biome-wasm', 'oxc-parser-wasm'] },
+				{ runtime: 'node', rows: ['biome-wasm'] }
+			])
+		);
+		assert.deepStrictEqual(
+			derived.map((entry) => entry.runtime),
+			['node', 'bun']
+		);
+	});
+
+	test('an empty row list is not a disclosure', () => {
+		assert.isEmpty(derive_unavailable_by_runtime(report([{ runtime: 'bun', rows: [] }])));
+	});
+
+	test('a report predating the field discloses nothing — silence, not an all-clear', () => {
+		assert.isEmpty(derive_unavailable_by_runtime(report(undefined)));
+	});
+
+	test('is_impl_unavailable answers per runtime, and never guesses on an older report', () => {
+		// keyed by ROW name (`biome-wasm`), which is what the tables render — the
+		// bench's init label (`Biome`) would match no cell
+		const recorded = report([{ runtime: 'bun', rows: ['biome-wasm'] }]);
+		assert.isTrue(is_impl_unavailable(recorded, 'bun', 'biome-wasm'));
+		assert.isFalse(is_impl_unavailable(recorded, 'node', 'biome-wasm'));
+		assert.isFalse(is_impl_unavailable(recorded, 'bun', 'oxfmt'));
+		// absent field → every cell reads as "not measured here", which is the only
+		// claim the data supports
+		assert.isFalse(is_impl_unavailable(report(undefined), 'bun', 'biome-wasm'));
+	});
+});
+
+// Binary-size capability grouping. The heuristic reads the tool's NAME, so the
+// tools not named after their job are the ones that can silently land under a
+// heading that misdescribes them (a formatter filed as "parse + format").
+describe('categorize_size_capability', () => {
+	test('reads the job out of a label that names it', () => {
+		assert.strictEqual(categorize_size_capability('tsv parse (ffi)'), 'parser');
+		assert.strictEqual(categorize_size_capability('tsv_format_wasm'), 'formatter');
+		assert.strictEqual(categorize_size_capability('oxfmt (napi)'), 'formatter');
+		assert.strictEqual(categorize_size_capability(OXC_FULL_LABEL), 'full');
+		assert.strictEqual(categorize_size_capability('tsv (napi)'), 'full');
+	});
+
+	test('the tools whose names say nothing are stated, not guessed', () => {
+		// each of these would otherwise fall through to `full` — a "parse + format"
+		// heading over four builds, two shipping only a formatter and two no formatter
+		assert.strictEqual(categorize_size_capability('dprint (wasm)'), 'formatter');
+		assert.strictEqual(categorize_size_capability('malva (wasm)'), 'formatter');
+		assert.strictEqual(categorize_size_capability('swc (napi)'), 'parser');
+		assert.strictEqual(categorize_size_capability('rsvelte compiler (napi)'), 'parser');
+	});
+
+	test('the two dprint plugins share a bucket', () => {
+		// `dprint (wasm)` and `malva (wasm)` are the same kind of artifact — plugins
+		// over the one @dprint/formatter host, neither exposing a parser — so they
+		// must never be filed apart. Only `malva` reads as a formatter to a human
+		// eye, which is exactly how `dprint` sat under "parse + format" alone.
+		assert.strictEqual(
+			categorize_size_capability('dprint (wasm)'),
+			categorize_size_capability('malva (wasm)')
+		);
 	});
 });
 

@@ -1,9 +1,9 @@
 {
-	"version": 7,
+	"version": 11,
 	"runtime": "node",
 	"corpus_kind": "conformance",
-	"timestamp": "2026-07-22T09:27:46.776Z",
-	"git_commit": "d063479a",
+	"timestamp": "2026-08-15T15:54:13.464Z",
+	"git_commit": "79ab41d8",
 	"machine": {
 		"cpu_model": "AMD Ryzen 5 PRO 7530U with Radeon Graphics",
 		"os": "linux",
@@ -11,8 +11,8 @@
 		"runtime_version": "24.14.1"
 	},
 	"corpus": {
-		"svelte": 4539,
-		"typescript": 44224,
+		"svelte": 4556,
+		"typescript": 52321,
 		"css": 22641
 	},
 	"corpus_sources": [
@@ -93,16 +93,16 @@
 		},
 		{
 			"path": "../svelte/packages/svelte/tests",
-			"files": 4455,
+			"files": 4472,
 			"by_language": {
-				"svelte": 4137,
+				"svelte": 4154,
 				"typescript": 137,
 				"css": 181
 			},
 			"repo": {
 				"url": "https://github.com/sveltejs/svelte",
 				"slug": "sveltejs/svelte",
-				"commit": "b4d1583ae20f3869a88a731d9a265c546c099f66",
+				"commit": "20b341f10048cf1016a2028ac7eee5595cfef6a5",
 				"subpath": "packages/svelte/tests"
 			}
 		},
@@ -135,68 +135,585 @@
 				"commit": "",
 				"subpath": ""
 			}
+		},
+		{
+			"path": "benches/js/.cache/ts_repo_files.json",
+			"files": 8097,
+			"by_language": {
+				"svelte": 0,
+				"typescript": 8097,
+				"css": 0
+			}
 		}
 	],
+	"coverage_by_source": {
+		"parse/svelte": {
+			"../prettier-plugin-svelte/test": {
+				"svelte/compiler": {
+					"processed": 318,
+					"total": 318
+				},
+				"tsv-json": {
+					"processed": 318,
+					"total": 318
+				},
+				"tsv_wasm-json": {
+					"processed": 318,
+					"total": 318
+				},
+				"tsv-json-no-locations": {
+					"processed": 318,
+					"total": 318
+				},
+				"tsv_wasm-json-no-locations": {
+					"processed": 318,
+					"total": 318
+				},
+				"tsv-internal": {
+					"processed": 318,
+					"total": 318
+				},
+				"tsv_wasm-internal": {
+					"processed": 318,
+					"total": 318
+				},
+				"rsvelte-parse": {
+					"processed": 318,
+					"total": 318
+				},
+				"rsvelte-parse-skip-expr-loc": {
+					"processed": 318,
+					"total": 318
+				}
+			},
+			"../prettier/tests/format/html": {
+				"svelte/compiler": {
+					"processed": 84,
+					"total": 84
+				},
+				"tsv-json": {
+					"processed": 84,
+					"total": 84
+				},
+				"tsv_wasm-json": {
+					"processed": 84,
+					"total": 84
+				},
+				"tsv-json-no-locations": {
+					"processed": 84,
+					"total": 84
+				},
+				"tsv_wasm-json-no-locations": {
+					"processed": 84,
+					"total": 84
+				},
+				"tsv-internal": {
+					"processed": 84,
+					"total": 84
+				},
+				"tsv_wasm-internal": {
+					"processed": 84,
+					"total": 84
+				},
+				"rsvelte-parse": {
+					"processed": 84,
+					"total": 84
+				},
+				"rsvelte-parse-skip-expr-loc": {
+					"processed": 84,
+					"total": 84
+				}
+			},
+			"../svelte/packages/svelte/tests": {
+				"svelte/compiler": {
+					"processed": 4154,
+					"total": 4154
+				},
+				"tsv-json": {
+					"processed": 4154,
+					"total": 4154
+				},
+				"tsv_wasm-json": {
+					"processed": 4154,
+					"total": 4154
+				},
+				"tsv-json-no-locations": {
+					"processed": 4154,
+					"total": 4154
+				},
+				"tsv_wasm-json-no-locations": {
+					"processed": 4154,
+					"total": 4154
+				},
+				"tsv-internal": {
+					"processed": 4154,
+					"total": 4154
+				},
+				"tsv_wasm-internal": {
+					"processed": 4154,
+					"total": 4154
+				},
+				"rsvelte-parse": {
+					"processed": 4153,
+					"total": 4154
+				},
+				"rsvelte-parse-skip-expr-loc": {
+					"processed": 4153,
+					"total": 4154
+				}
+			}
+		},
+		"parse/typescript": {
+			"../prettier/tests/format/typescript": {
+				"acorn-typescript": {
+					"processed": 714,
+					"total": 793
+				},
+				"tsv-json": {
+					"processed": 779,
+					"total": 793
+				},
+				"tsv_wasm-json": {
+					"processed": 779,
+					"total": 793
+				},
+				"tsv-json-no-locations": {
+					"processed": 779,
+					"total": 793
+				},
+				"tsv_wasm-json-no-locations": {
+					"processed": 779,
+					"total": 793
+				},
+				"tsv-internal": {
+					"processed": 779,
+					"total": 793
+				},
+				"tsv_wasm-internal": {
+					"processed": 779,
+					"total": 793
+				},
+				"oxc-parser": {
+					"processed": 767,
+					"total": 793
+				},
+				"oxc-parser-wasm": {
+					"processed": 767,
+					"total": 793
+				},
+				"tsc": {
+					"processed": 789,
+					"total": 793
+				},
+				"yuku-parser-wasm": {
+					"processed": 780,
+					"total": 793
+				},
+				"swc": {
+					"processed": 756,
+					"total": 793
+				}
+			},
+			"../prettier/tests/format/js": {
+				"acorn-typescript": {
+					"processed": 860,
+					"total": 1103
+				},
+				"tsv-json": {
+					"processed": 922,
+					"total": 1103
+				},
+				"tsv_wasm-json": {
+					"processed": 922,
+					"total": 1103
+				},
+				"tsv-json-no-locations": {
+					"processed": 922,
+					"total": 1103
+				},
+				"tsv_wasm-json-no-locations": {
+					"processed": 922,
+					"total": 1103
+				},
+				"tsv-internal": {
+					"processed": 922,
+					"total": 1103
+				},
+				"tsv_wasm-internal": {
+					"processed": 922,
+					"total": 1103
+				},
+				"oxc-parser": {
+					"processed": 933,
+					"total": 1103
+				},
+				"oxc-parser-wasm": {
+					"processed": 933,
+					"total": 1103
+				},
+				"tsc": {
+					"processed": 948,
+					"total": 1103
+				},
+				"yuku-parser-wasm": {
+					"processed": 935,
+					"total": 1103
+				},
+				"swc": {
+					"processed": 906,
+					"total": 1103
+				}
+			},
+			"../prettier/tests/format/css": {
+				"acorn-typescript": {
+					"processed": 78,
+					"total": 78
+				},
+				"tsv-json": {
+					"processed": 78,
+					"total": 78
+				},
+				"tsv_wasm-json": {
+					"processed": 78,
+					"total": 78
+				},
+				"tsv-json-no-locations": {
+					"processed": 78,
+					"total": 78
+				},
+				"tsv_wasm-json-no-locations": {
+					"processed": 78,
+					"total": 78
+				},
+				"tsv-internal": {
+					"processed": 78,
+					"total": 78
+				},
+				"tsv_wasm-internal": {
+					"processed": 78,
+					"total": 78
+				},
+				"oxc-parser": {
+					"processed": 78,
+					"total": 78
+				},
+				"oxc-parser-wasm": {
+					"processed": 78,
+					"total": 78
+				},
+				"tsc": {
+					"processed": 78,
+					"total": 78
+				},
+				"yuku-parser-wasm": {
+					"processed": 78,
+					"total": 78
+				},
+				"swc": {
+					"processed": 78,
+					"total": 78
+				}
+			},
+			"../svelte/packages/svelte/tests": {
+				"acorn-typescript": {
+					"processed": 137,
+					"total": 137
+				},
+				"tsv-json": {
+					"processed": 137,
+					"total": 137
+				},
+				"tsv_wasm-json": {
+					"processed": 137,
+					"total": 137
+				},
+				"tsv-json-no-locations": {
+					"processed": 137,
+					"total": 137
+				},
+				"tsv_wasm-json-no-locations": {
+					"processed": 137,
+					"total": 137
+				},
+				"tsv-internal": {
+					"processed": 137,
+					"total": 137
+				},
+				"tsv_wasm-internal": {
+					"processed": 137,
+					"total": 137
+				},
+				"oxc-parser": {
+					"processed": 137,
+					"total": 137
+				},
+				"oxc-parser-wasm": {
+					"processed": 137,
+					"total": 137
+				},
+				"tsc": {
+					"processed": 137,
+					"total": 137
+				},
+				"yuku-parser-wasm": {
+					"processed": 137,
+					"total": 137
+				},
+				"swc": {
+					"processed": 137,
+					"total": 137
+				}
+			},
+			"benches/js/.cache/test262_files.json": {
+				"acorn-typescript": {
+					"processed": 41864,
+					"total": 42113
+				},
+				"tsv-json": {
+					"processed": 42113,
+					"total": 42113
+				},
+				"tsv_wasm-json": {
+					"processed": 42113,
+					"total": 42113
+				},
+				"tsv-json-no-locations": {
+					"processed": 42113,
+					"total": 42113
+				},
+				"tsv_wasm-json-no-locations": {
+					"processed": 42113,
+					"total": 42113
+				},
+				"tsv-internal": {
+					"processed": 42113,
+					"total": 42113
+				},
+				"tsv_wasm-internal": {
+					"processed": 42113,
+					"total": 42113
+				},
+				"oxc-parser": {
+					"processed": 42099,
+					"total": 42113
+				},
+				"oxc-parser-wasm": {
+					"processed": 42099,
+					"total": 42113
+				},
+				"tsc": {
+					"processed": 42058,
+					"total": 42113
+				},
+				"yuku-parser-wasm": {
+					"processed": 42089,
+					"total": 42113
+				},
+				"swc": {
+					"processed": 41953,
+					"total": 42113
+				}
+			},
+			"benches/js/.cache/ts_repo_files.json": {
+				"acorn-typescript": {
+					"processed": 7772,
+					"total": 8097
+				},
+				"tsv-json": {
+					"processed": 8017,
+					"total": 8097
+				},
+				"tsv_wasm-json": {
+					"processed": 8017,
+					"total": 8097
+				},
+				"tsv-json-no-locations": {
+					"processed": 8017,
+					"total": 8097
+				},
+				"tsv_wasm-json-no-locations": {
+					"processed": 8017,
+					"total": 8097
+				},
+				"tsv-internal": {
+					"processed": 8017,
+					"total": 8097
+				},
+				"tsv_wasm-internal": {
+					"processed": 8017,
+					"total": 8097
+				},
+				"oxc-parser": {
+					"processed": 8000,
+					"total": 8097
+				},
+				"oxc-parser-wasm": {
+					"processed": 8000,
+					"total": 8097
+				},
+				"tsc": {
+					"processed": 8097,
+					"total": 8097
+				},
+				"yuku-parser-wasm": {
+					"processed": 7991,
+					"total": 8097
+				},
+				"swc": {
+					"processed": 7932,
+					"total": 8097
+				}
+			}
+		},
+		"parse/css": {
+			"../prettier/tests/format/css": {
+				"svelte/compiler": {
+					"processed": 120,
+					"total": 150
+				},
+				"tsv-json": {
+					"processed": 123,
+					"total": 150
+				},
+				"tsv_wasm-json": {
+					"processed": 123,
+					"total": 150
+				},
+				"tsv-internal": {
+					"processed": 123,
+					"total": 150
+				},
+				"tsv_wasm-internal": {
+					"processed": 123,
+					"total": 150
+				},
+				"postcss": {
+					"processed": 142,
+					"total": 150
+				}
+			},
+			"../svelte/packages/svelte/tests": {
+				"svelte/compiler": {
+					"processed": 181,
+					"total": 181
+				},
+				"tsv-json": {
+					"processed": 181,
+					"total": 181
+				},
+				"tsv_wasm-json": {
+					"processed": 181,
+					"total": 181
+				},
+				"tsv-internal": {
+					"processed": 181,
+					"total": 181
+				},
+				"tsv_wasm-internal": {
+					"processed": 181,
+					"total": 181
+				},
+				"postcss": {
+					"processed": 181,
+					"total": 181
+				}
+			},
+			"benches/js/.cache/wpt_css": {
+				"svelte/compiler": {
+					"processed": 22101,
+					"total": 22310
+				},
+				"tsv-json": {
+					"processed": 22153,
+					"total": 22310
+				},
+				"tsv_wasm-json": {
+					"processed": 22153,
+					"total": 22310
+				},
+				"tsv-internal": {
+					"processed": 22153,
+					"total": 22310
+				},
+				"tsv_wasm-internal": {
+					"processed": 22153,
+					"total": 22310
+				},
+				"postcss": {
+					"processed": 22210,
+					"total": 22310
+				}
+			}
+		}
+	},
 	"versions": {
 		"tsv": "0.2.0",
-		"svelte": "5.56.4",
+		"svelte": "5.56.9",
 		"acorn": "8.16.0",
-		"acorn_ts": "1.0.11",
-		"prettier": "3.9.5",
+		"acorn_ts": "1.0.13",
+		"prettier": "3.9.6",
 		"prettier_svelte": "4.1.1",
-		"oxc_parser": "0.140.0",
-		"oxfmt": "0.60.0",
-		"biome": "2.5.4",
-		"dprint": "0.96.1"
+		"oxc_parser": "0.142.0",
+		"oxfmt": "0.63.0",
+		"yuku_parser": "0.8.7",
+		"yuku_parser_wasm": "0.8.7",
+		"biome": "2.5.8",
+		"dprint": "0.96.1",
+		"malva": "0.16.0",
+		"postcss": "8.5.26",
+		"rsvelte_fmt": "0.7.11",
+		"rsvelte_parse": "0.3.7",
+		"rsvelte_parse_svelte_target": "5.56.9",
+		"swc": "1.16.0"
 	},
 	"binary_sizes": [
 		{
 			"label": "tsv (ffi)",
-			"bytes": 3346544,
+			"bytes": 3437328,
 			"kind": "native",
-			"gzip_bytes": 1442507
+			"gzip_bytes": 1490124
 		},
 		{
 			"label": "tsv format (ffi)",
-			"bytes": 3095968,
+			"bytes": 3143264,
 			"kind": "native",
-			"gzip_bytes": 1339168
+			"gzip_bytes": 1360396
 		},
 		{
 			"label": "tsv parse (ffi)",
-			"bytes": 1606912,
+			"bytes": 1529744,
 			"kind": "native",
-			"gzip_bytes": 703248
+			"gzip_bytes": 663669
 		},
 		{
 			"label": "tsv (napi)",
-			"bytes": 3479392,
+			"bytes": 3758464,
 			"kind": "native",
-			"gzip_bytes": 1486322
+			"gzip_bytes": 1614573
 		},
 		{
 			"label": "tsv_format_wasm",
-			"bytes": 2216330,
+			"bytes": 2170436,
 			"kind": "wasm",
-			"gzip_bytes": 787915
+			"gzip_bytes": 801265
 		},
 		{
 			"label": "tsv_parse_wasm",
-			"bytes": 1052601,
+			"bytes": 926719,
 			"kind": "wasm",
-			"gzip_bytes": 388661
+			"gzip_bytes": 363414
 		},
 		{
 			"label": "tsv_wasm",
-			"bytes": 2444292,
+			"bytes": 2422474,
 			"kind": "wasm",
-			"gzip_bytes": 867803
+			"gzip_bytes": 892683
 		},
 		{
 			"label": "biome (wasm)",
-			"bytes": 38584187,
+			"bytes": 44601353,
 			"kind": "wasm",
-			"gzip_bytes": 9281487
+			"gzip_bytes": 11087699
 		},
 		{
 			"label": "dprint (wasm)",
@@ -206,23 +723,60 @@
 		},
 		{
 			"label": "oxc-parser (napi)",
-			"bytes": 2354904,
+			"bytes": 2145768,
 			"kind": "native",
-			"gzip_bytes": 954754
+			"gzip_bytes": 885666
 		},
 		{
 			"label": "oxfmt (napi)",
-			"bytes": 8844056,
+			"bytes": 9048936,
 			"kind": "native",
-			"gzip_bytes": 3575335
+			"gzip_bytes": 3669088
 		},
 		{
 			"label": "oxc-parser (wasm)",
-			"bytes": 1531455,
+			"bytes": 1486624,
 			"kind": "wasm",
-			"gzip_bytes": 495227
+			"gzip_bytes": 481382
+		},
+		{
+			"label": "yuku-parser (napi)",
+			"bytes": 741128,
+			"kind": "native",
+			"gzip_bytes": 310369
+		},
+		{
+			"label": "yuku-parser (wasm)",
+			"bytes": 673905,
+			"kind": "wasm",
+			"gzip_bytes": 200268
+		},
+		{
+			"label": "rsvelte-fmt (binary)",
+			"bytes": 8338072,
+			"kind": "native",
+			"gzip_bytes": 3288148
+		},
+		{
+			"label": "malva (wasm)",
+			"bytes": 1465125,
+			"kind": "wasm",
+			"gzip_bytes": 414019
+		},
+		{
+			"label": "rsvelte compiler (napi)",
+			"bytes": 14524864,
+			"kind": "native",
+			"gzip_bytes": 6034856
+		},
+		{
+			"label": "swc (napi)",
+			"bytes": 31941888,
+			"kind": "native",
+			"gzip_bytes": 11886133
 		}
 	],
+	"binary_sizes_absent": [],
 	"entries": [
 		{
 			"name": "svelte/compiler",
@@ -239,9 +793,9 @@
 			"cv": null,
 			"ops_per_second": null,
 			"sample_size": null,
-			"files_processed": 4539,
-			"files_total": 4539,
-			"files_iterated": 4539,
+			"files_processed": 4556,
+			"files_total": 4556,
+			"files_iterated": 4555,
 			"runtime": "node"
 		},
 		{
@@ -259,29 +813,9 @@
 			"cv": null,
 			"ops_per_second": null,
 			"sample_size": null,
-			"files_processed": 4539,
-			"files_total": 4539,
-			"files_iterated": 4539,
-			"runtime": "node"
-		},
-		{
-			"name": "tsv-json-no-locations",
-			"group": "parse/svelte",
-			"mean_ns": null,
-			"p50_ns": null,
-			"p75_ns": null,
-			"p90_ns": null,
-			"p95_ns": null,
-			"p99_ns": null,
-			"min_ns": null,
-			"max_ns": null,
-			"std_dev_ns": null,
-			"cv": null,
-			"ops_per_second": null,
-			"sample_size": null,
-			"files_processed": 4539,
-			"files_total": 4539,
-			"files_iterated": 4539,
+			"files_processed": 4556,
+			"files_total": 4556,
+			"files_iterated": 4555,
 			"runtime": "node"
 		},
 		{
@@ -299,9 +833,29 @@
 			"cv": null,
 			"ops_per_second": null,
 			"sample_size": null,
-			"files_processed": 4539,
-			"files_total": 4539,
-			"files_iterated": 4539,
+			"files_processed": 4556,
+			"files_total": 4556,
+			"files_iterated": 4555,
+			"runtime": "node"
+		},
+		{
+			"name": "tsv-json-no-locations",
+			"group": "parse/svelte",
+			"mean_ns": null,
+			"p50_ns": null,
+			"p75_ns": null,
+			"p90_ns": null,
+			"p95_ns": null,
+			"p99_ns": null,
+			"min_ns": null,
+			"max_ns": null,
+			"std_dev_ns": null,
+			"cv": null,
+			"ops_per_second": null,
+			"sample_size": null,
+			"files_processed": 4556,
+			"files_total": 4556,
+			"files_iterated": 4555,
 			"runtime": "node"
 		},
 		{
@@ -319,9 +873,9 @@
 			"cv": null,
 			"ops_per_second": null,
 			"sample_size": null,
-			"files_processed": 4539,
-			"files_total": 4539,
-			"files_iterated": 4539,
+			"files_processed": 4556,
+			"files_total": 4556,
+			"files_iterated": 4555,
 			"runtime": "node"
 		},
 		{
@@ -339,9 +893,9 @@
 			"cv": null,
 			"ops_per_second": null,
 			"sample_size": null,
-			"files_processed": 4539,
-			"files_total": 4539,
-			"files_iterated": 4539,
+			"files_processed": 4556,
+			"files_total": 4556,
+			"files_iterated": 4555,
 			"runtime": "node"
 		},
 		{
@@ -359,9 +913,49 @@
 			"cv": null,
 			"ops_per_second": null,
 			"sample_size": null,
-			"files_processed": 4539,
-			"files_total": 4539,
-			"files_iterated": 4539,
+			"files_processed": 4556,
+			"files_total": 4556,
+			"files_iterated": 4555,
+			"runtime": "node"
+		},
+		{
+			"name": "rsvelte-parse",
+			"group": "parse/svelte",
+			"mean_ns": null,
+			"p50_ns": null,
+			"p75_ns": null,
+			"p90_ns": null,
+			"p95_ns": null,
+			"p99_ns": null,
+			"min_ns": null,
+			"max_ns": null,
+			"std_dev_ns": null,
+			"cv": null,
+			"ops_per_second": null,
+			"sample_size": null,
+			"files_processed": 4555,
+			"files_total": 4556,
+			"files_iterated": 4555,
+			"runtime": "node"
+		},
+		{
+			"name": "rsvelte-parse-skip-expr-loc",
+			"group": "parse/svelte",
+			"mean_ns": null,
+			"p50_ns": null,
+			"p75_ns": null,
+			"p90_ns": null,
+			"p95_ns": null,
+			"p99_ns": null,
+			"min_ns": null,
+			"max_ns": null,
+			"std_dev_ns": null,
+			"cv": null,
+			"ops_per_second": null,
+			"sample_size": null,
+			"files_processed": 4555,
+			"files_total": 4556,
+			"files_iterated": 4555,
 			"runtime": "node"
 		},
 		{
@@ -379,9 +973,9 @@
 			"cv": null,
 			"ops_per_second": null,
 			"sample_size": null,
-			"files_processed": 43647,
-			"files_total": 44224,
-			"files_iterated": 43619,
+			"files_processed": 51425,
+			"files_total": 52321,
+			"files_iterated": 51101,
 			"runtime": "node"
 		},
 		{
@@ -399,29 +993,9 @@
 			"cv": null,
 			"ops_per_second": null,
 			"sample_size": null,
-			"files_processed": 44023,
-			"files_total": 44224,
-			"files_iterated": 43619,
-			"runtime": "node"
-		},
-		{
-			"name": "tsv-json-no-locations",
-			"group": "parse/typescript",
-			"mean_ns": null,
-			"p50_ns": null,
-			"p75_ns": null,
-			"p90_ns": null,
-			"p95_ns": null,
-			"p99_ns": null,
-			"min_ns": null,
-			"max_ns": null,
-			"std_dev_ns": null,
-			"cv": null,
-			"ops_per_second": null,
-			"sample_size": null,
-			"files_processed": 44023,
-			"files_total": 44224,
-			"files_iterated": 43619,
+			"files_processed": 52046,
+			"files_total": 52321,
+			"files_iterated": 51101,
 			"runtime": "node"
 		},
 		{
@@ -439,9 +1013,29 @@
 			"cv": null,
 			"ops_per_second": null,
 			"sample_size": null,
-			"files_processed": 44023,
-			"files_total": 44224,
-			"files_iterated": 43619,
+			"files_processed": 52046,
+			"files_total": 52321,
+			"files_iterated": 51101,
+			"runtime": "node"
+		},
+		{
+			"name": "tsv-json-no-locations",
+			"group": "parse/typescript",
+			"mean_ns": null,
+			"p50_ns": null,
+			"p75_ns": null,
+			"p90_ns": null,
+			"p95_ns": null,
+			"p99_ns": null,
+			"min_ns": null,
+			"max_ns": null,
+			"std_dev_ns": null,
+			"cv": null,
+			"ops_per_second": null,
+			"sample_size": null,
+			"files_processed": 52046,
+			"files_total": 52321,
+			"files_iterated": 51101,
 			"runtime": "node"
 		},
 		{
@@ -459,9 +1053,9 @@
 			"cv": null,
 			"ops_per_second": null,
 			"sample_size": null,
-			"files_processed": 44023,
-			"files_total": 44224,
-			"files_iterated": 43619,
+			"files_processed": 52046,
+			"files_total": 52321,
+			"files_iterated": 51101,
 			"runtime": "node"
 		},
 		{
@@ -479,9 +1073,9 @@
 			"cv": null,
 			"ops_per_second": null,
 			"sample_size": null,
-			"files_processed": 44023,
-			"files_total": 44224,
-			"files_iterated": 43619,
+			"files_processed": 52046,
+			"files_total": 52321,
+			"files_iterated": 51101,
 			"runtime": "node"
 		},
 		{
@@ -499,9 +1093,9 @@
 			"cv": null,
 			"ops_per_second": null,
 			"sample_size": null,
-			"files_processed": 44023,
-			"files_total": 44224,
-			"files_iterated": 43619,
+			"files_processed": 52046,
+			"files_total": 52321,
+			"files_iterated": 51101,
 			"runtime": "node"
 		},
 		{
@@ -519,9 +1113,9 @@
 			"cv": null,
 			"ops_per_second": null,
 			"sample_size": null,
-			"files_processed": 44014,
-			"files_total": 44224,
-			"files_iterated": 43619,
+			"files_processed": 52014,
+			"files_total": 52321,
+			"files_iterated": 51101,
 			"runtime": "node"
 		},
 		{
@@ -539,9 +1133,69 @@
 			"cv": null,
 			"ops_per_second": null,
 			"sample_size": null,
-			"files_processed": 44014,
-			"files_total": 44224,
-			"files_iterated": 43619,
+			"files_processed": 52014,
+			"files_total": 52321,
+			"files_iterated": 51101,
+			"runtime": "node"
+		},
+		{
+			"name": "tsc",
+			"group": "parse/typescript",
+			"mean_ns": null,
+			"p50_ns": null,
+			"p75_ns": null,
+			"p90_ns": null,
+			"p95_ns": null,
+			"p99_ns": null,
+			"min_ns": null,
+			"max_ns": null,
+			"std_dev_ns": null,
+			"cv": null,
+			"ops_per_second": null,
+			"sample_size": null,
+			"files_processed": 52107,
+			"files_total": 52321,
+			"files_iterated": 51101,
+			"runtime": "node"
+		},
+		{
+			"name": "yuku-parser-wasm",
+			"group": "parse/typescript",
+			"mean_ns": null,
+			"p50_ns": null,
+			"p75_ns": null,
+			"p90_ns": null,
+			"p95_ns": null,
+			"p99_ns": null,
+			"min_ns": null,
+			"max_ns": null,
+			"std_dev_ns": null,
+			"cv": null,
+			"ops_per_second": null,
+			"sample_size": null,
+			"files_processed": 52010,
+			"files_total": 52321,
+			"files_iterated": 51101,
+			"runtime": "node"
+		},
+		{
+			"name": "swc",
+			"group": "parse/typescript",
+			"mean_ns": null,
+			"p50_ns": null,
+			"p75_ns": null,
+			"p90_ns": null,
+			"p95_ns": null,
+			"p99_ns": null,
+			"min_ns": null,
+			"max_ns": null,
+			"std_dev_ns": null,
+			"cv": null,
+			"ops_per_second": null,
+			"sample_size": null,
+			"files_processed": 51762,
+			"files_total": 52321,
+			"files_iterated": 51101,
 			"runtime": "node"
 		},
 		{
@@ -561,7 +1215,7 @@
 			"sample_size": null,
 			"files_processed": 22402,
 			"files_total": 22641,
-			"files_iterated": 22388,
+			"files_iterated": 22386,
 			"runtime": "node"
 		},
 		{
@@ -581,7 +1235,7 @@
 			"sample_size": null,
 			"files_processed": 22457,
 			"files_total": 22641,
-			"files_iterated": 22388,
+			"files_iterated": 22386,
 			"runtime": "node"
 		},
 		{
@@ -601,7 +1255,7 @@
 			"sample_size": null,
 			"files_processed": 22457,
 			"files_total": 22641,
-			"files_iterated": 22388,
+			"files_iterated": 22386,
 			"runtime": "node"
 		},
 		{
@@ -621,7 +1275,7 @@
 			"sample_size": null,
 			"files_processed": 22457,
 			"files_total": 22641,
-			"files_iterated": 22388,
+			"files_iterated": 22386,
 			"runtime": "node"
 		},
 		{
@@ -641,10 +1295,31 @@
 			"sample_size": null,
 			"files_processed": 22457,
 			"files_total": 22641,
-			"files_iterated": 22388,
+			"files_iterated": 22386,
+			"runtime": "node"
+		},
+		{
+			"name": "postcss",
+			"group": "parse/css",
+			"mean_ns": null,
+			"p50_ns": null,
+			"p75_ns": null,
+			"p90_ns": null,
+			"p95_ns": null,
+			"p99_ns": null,
+			"min_ns": null,
+			"max_ns": null,
+			"std_dev_ns": null,
+			"cv": null,
+			"ops_per_second": null,
+			"sample_size": null,
+			"files_processed": 22533,
+			"files_total": 22641,
+			"files_iterated": 22386,
 			"runtime": "node"
 		}
 	],
 	"suppressed_noise": {},
-	"variant_parity": []
+	"variant_parity": [],
+	"unavailable": []
 }

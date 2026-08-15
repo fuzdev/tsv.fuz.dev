@@ -1,3 +1,21 @@
+<!--
+	TODO: show per-corpus-source coverage, not just the per-language aggregate.
+
+	Each group's aggregate blends corpora that answer different questions, so the
+	single percentage below is a summary rather than the finding. `parse/typescript`
+	is mostly test262 — ECMAScript, not TypeScript — so a real TS gap moves the
+	number by tenths of a point and reads as noise. And on the corpus a tool's own
+	parser selected, that tool scores 100% BY CONSTRUCTION rather than by
+	achievement (tsc on the tsc corpus, svelte/compiler on the Svelte set), which
+	the aggregate presents as if it were a result.
+
+	The data is already here: the report carries `coverage_by_source`
+	(`group → source → impl → {processed, total}`) from `version` 8 on — the
+	machine-readable half of the per-source tables in tsv's own markdown report,
+	which splits exactly this way and for exactly this reason. It needs a
+	`derive_*` in `benchmark_data.ts` plus a nested table or a per-source
+	breakdown under each group.
+-->
 <script lang="ts">
 	import { format_coverage_percent, type ConformanceGroup } from './benchmark_data.ts';
 

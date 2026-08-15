@@ -34,6 +34,45 @@ export interface BenchmarkBaseline {
 	// The throughput numbers are machine-relative, so this is the environment the
 	// meta panel discloses. Present from `version` 7 on (absent on older reports).
 	machine?: Machine;
+	// Per-corpus-source coverage — `group → source → impl → {processed, total}`,
+	// the machine-readable half of the per-source tables in tsv's own markdown
+	// report. Conformance reports only (the perf surface is 100% by construction).
+	// Present from `version` 8 on; not rendered — this page shows each group's
+	// aggregate, which blends corpora answering different questions, so these rows
+	// are the sharper view if it ever grows one.
+	coverage_by_source?: Record<string, Record<string, Record<string, SourceCoverageCell>>>;
+	// Artifacts the size table reached for and didn't find. That table's
+	// COMPOSITION varies by the producing machine — a row exists only for a built
+	// artifact — so this is what tells a missing row apart from an artifact that
+	// stopped being produced. Present from `version` 11 on; not rendered, kept for
+	// parity.
+	binary_sizes_absent?: Array<string>;
+	// Implementations that failed to initialize on the producing machine, as
+	// `{impl, reason, rows}`. An impl that doesn't load contributes NO row, so
+	// without this a tool that broke upstream is indistinguishable from one that was
+	// never measured (the Node report should be `[]`; Bun's carries its two known
+	// load failures). Present from `version` 10 on, `rows` from `version` 12; not
+	// rendered here, kept for parity.
+	unavailable?: Array<UnavailableImpl>;
+}
+
+// Per-impl coverage for one corpus source (see `coverage_by_source`).
+export interface SourceCoverageCell {
+	processed: number;
+	total: number;
+}
+
+// One implementation that failed to load on the machine that produced a report
+// (see `BenchmarkBaseline.unavailable`). Mirrors the bench's `UnavailableImpl`.
+//
+// `impl` is the bench's init-line LABEL (`Biome`, `OXC WASM`) and matches no row
+// name — `rows` is the joinable identity, and the only one to look a row up by.
+export interface UnavailableImpl {
+	impl: string;
+	reason: string;
+	// The row names this failure removed from the tables. Absent on `version` 11
+	// and older reports.
+	rows?: Array<string>;
 }
 
 // A same-engine pair whose pre-flight accept sets disagreed — one engine behind
@@ -70,8 +109,8 @@ export interface CorpusSource {
 	by_language?: Partial<Record<string, number>>;
 	// The source's GitHub origin, git-detected by the bench at report-build time
 	// (URL + commit + subpath). Absent on older reports and on sources with no
-	// GitHub remote — presence keys on the field, not the report `version`
-	// (current `version` 7 reports carry it), so treat it as optional.
+	// GitHub remote — presence keys on the field, not the report `version` (it
+	// arrived without one and is not tied to any), so treat it as optional.
 	repo?: CorpusRepoRef;
 }
 
@@ -526,6 +565,10 @@ const CONFORMANCE_ENGINE_NAMES: Record<string, string> = {
 	// verdict.
 	'rsvelte-parse': 'rsvelte',
 	swc: 'swc',
+	// The TypeScript compiler's own parser, which appears on this surface alone —
+	// a verdict rather than a speed, so it carries no throughput row. Its reading
+	// changes by corpus source, which the note below spells out.
+	tsc: 'tsc',
 	postcss: 'PostCSS'
 };
 
@@ -537,6 +580,13 @@ const CONFORMANCE_ENGINE_NAMES: Record<string, string> = {
  */
 const CONFORMANCE_ROW_NOTES: Record<string, string> = {
 	'yuku-parser-wasm': 'wasm — native segfaults',
+	// tsc selected part of this corpus, where it therefore scores 100% by
+	// construction — the same shape as svelte/compiler on the Svelte set, but
+	// invisible here because it holds for only a SLICE of the TypeScript group
+	// rather than the whole of it. Without the note the blended number reads as
+	// one achieved result, and its shortfall reads as a defect in the corpus
+	// rather than as the corpora tsc never selected. Spelled out below the tables.
+	tsc: 'oracle for part of this corpus',
 	// The CSS group's reference row is svelte/compiler's `parseCss`, which is not a
 	// validity oracle in either direction — so PostCSS sitting slightly above it is
 	// a grammar difference, not a conformance verdict. Spelled out in the notes
@@ -629,19 +679,61 @@ export const derive_speedup_summary = (groups: Array<BenchmarkGroup>): Array<Spe
 export type SizeCapability = 'full' | 'formatter' | 'parser';
 
 /**
+ * Capability for the labels whose NAME doesn't say what the build does, so the
+ * keyword heuristic below can't reach them.
+ *
+ * The heuristic reads `parse`/`format`/`fmt` out of the label, which works only
+ * while a tool is named after its job. These four aren't, and the fallback for an
+ * unreadable label is `full` — a heading that reads "parse + format" over builds
+ * that ship no formatter at all, or none but a formatter. So each one is stated
+ * instead:
+ *
+ * - `dprint` and `malva` are the SAME kind of artifact and must land in the same
+ *   bucket: both are dprint plugins loaded over the one `@dprint/formatter` host,
+ *   and neither exposes a parser. dprint's covers TypeScript/JS, malva's CSS —
+ *   each a slice of what tsv's format-only build does, so pair both against
+ *   `tsv_format_wasm` and read the gap as scope before engine.
+ * - `swc` and rsvelte's addon back parse rows and ship no formatter. Both are far
+ *   wider than what the rows measure — swc's `.node` is an entire compiler
+ *   (transforms, minifier, bundler) and rsvelte's carries the compiler plus
+ *   svelte2tsx, HMR diffing and a resolver — so `parser` is the least-wrong
+ *   heading rather than a claim of scope match. The notes beside the table say so.
+ *
+ * `biome` is deliberately NOT here, though its js-api exposes no parser either: the
+ * bucket sizes what an ARTIFACT ships, and Biome's wasm build really is the whole
+ * toolchain (parser, formatter, linter) whether or not this page calls all of it.
+ * A dprint plugin is a formatter that happens to parse internally — the opposite
+ * shape, and the reason it can't ride the same fallback.
+ */
+const SIZE_CAPABILITY_BY_LABEL: Record<string, SizeCapability> = {
+	'dprint (wasm)': 'formatter',
+	'malva (wasm)': 'formatter',
+	'swc (napi)': 'parser',
+	'rsvelte compiler (napi)': 'parser'
+};
+
+/**
  * Buckets a binary-size label by capability so each build lands next to its
  * closest competitor: `parser` (tsv's parse-only build, `oxc-parser`),
  * `formatter` (tsv's format-only build, `oxfmt`), else `full` (the flagship
  * parse+format builds, `biome`, and the combined `oxc-parser + oxfmt` entry).
+ *
+ * A label naming neither job is looked up in `SIZE_CAPABILITY_BY_LABEL` first —
+ * the keyword read below can only answer for tools named after what they do.
  */
 export const categorize_size_capability = (label: string): SizeCapability => {
+	const stated = SIZE_CAPABILITY_BY_LABEL[label];
+	if (stated) return stated;
 	const has_parse = label.includes('parse');
 	const has_format = label.includes('format') || label.includes('fmt');
 	// a build that does both is a full toolchain (e.g. the combined oxc-parser + oxfmt entry)
 	if (has_parse && has_format) return 'full';
 	if (has_parse) return 'parser'; // tsv parse (ffi), tsv_parse_wasm, oxc-parser
 	if (has_format) return 'formatter'; // tsv format, oxfmt
-	return 'full'; // tsv (napi/ffi), tsv_wasm, biome
+	// Reaching here must be a DECISION, not a name the heuristic couldn't read:
+	// every label that lands in `full` this way ships both operations (biome's whole
+	// toolchain included). Anything else belongs in the table above.
+	return 'full'; // tsv (napi/ffi), tsv_wasm, biome (wasm)
 };
 
 export interface SizeDisplayEntry extends BinarySize {
@@ -811,6 +903,19 @@ export interface CrossRuntimeReport {
 	// The sibling reports were produced on different hardware — ratios are not
 	// comparable. Present from combined `version` 7 on.
 	mixed_machine?: boolean;
+	// Which ROWS lost their implementation to a load failure on which runtime,
+	// folded from the siblings' own `unavailable` lists. Present from combined
+	// `version` 8 on (as `impls`, carrying the bench's init-line labels, which
+	// matched no row name and so never joined; `rows` from `version` 9); `[]` when
+	// every sibling loaded everything, and absent on older reports — which is "not
+	// recorded", not a claim that nothing was missing.
+	//
+	// This is what tells the table's two kinds of gap apart. A row with no number
+	// for a runtime renders the same either way, but it means one of: that runtime
+	// couldn't load the impl behind it (recorded here), or that sibling's report
+	// simply has no such row — an older run predating it, which mixed vintages make
+	// likely.
+	unavailable_by_runtime?: Array<RuntimeUnavailable>;
 	sources: Array<{
 		runtime: BenchmarkRuntime;
 		timestamp: string;
@@ -818,9 +923,51 @@ export interface CrossRuntimeReport {
 		tsv: string | null;
 		// The producing box's machine block; present from combined `version` 7 on.
 		machine?: Machine | null;
+		// That sibling's own load failures, with reasons; `null` when the sibling
+		// predates the field. `unavailable_by_runtime` above is the folded view.
+		unavailable?: Array<UnavailableImpl> | null;
 	}>;
 	rows: Array<CrossRuntimeRow>;
 }
+
+/**
+ * One runtime's load failures, named by the ROWS they cost (`bun` → `biome-wasm`,
+ * `oxc-parser-wasm`) — the identity the tables are keyed by, so a lookup can match.
+ */
+export interface RuntimeUnavailable {
+	runtime: BenchmarkRuntime;
+	rows: Array<string>;
+}
+
+/**
+ * The rows each runtime couldn't measure, in the site's column order, for the
+ * disclosure above the tables. Empty when nothing was recorded — including on a
+ * report predating the field, where absence is silence rather than an all-clear.
+ */
+export const derive_unavailable_by_runtime = (
+	report: CrossRuntimeReport
+): Array<RuntimeUnavailable> => {
+	const by_runtime = new Map(
+		(report.unavailable_by_runtime ?? []).map((entry) => [entry.runtime, entry])
+	);
+	return order_cross_runtime_runtimes(report.runtimes)
+		.map((runtime) => by_runtime.get(runtime))
+		.filter((entry): entry is RuntimeUnavailable => entry != null && entry.rows.length > 0);
+};
+
+/**
+ * Did `runtime` record `name` as a load failure? The table renders an absent
+ * number the same either way, so this is what lets a cell say WHICH gap it is —
+ * a binding that couldn't load, or a row that runtime's report never carried.
+ */
+export const is_impl_unavailable = (
+	report: CrossRuntimeReport,
+	runtime: BenchmarkRuntime,
+	name: string
+): boolean =>
+	(report.unavailable_by_runtime ?? []).some(
+		(entry) => entry.runtime === runtime && entry.rows.includes(name)
+	);
 
 export interface CrossRuntimeDisplayRow {
 	name: string;

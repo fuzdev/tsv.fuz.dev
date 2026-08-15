@@ -4,8 +4,10 @@
 		cross_runtime_ratio_background,
 		derive_cross_runtime_groups,
 		derive_runtime_versions,
+		derive_unavailable_by_runtime,
 		format_cross_runtime_label,
 		format_speedup,
+		is_impl_unavailable,
 		order_cross_runtime_runtimes,
 		type BenchmarkRuntime,
 		type CrossRuntimeReport
@@ -29,7 +31,20 @@
 
 	const groups = $derived(derive_cross_runtime_groups(report));
 
+	// Which runtimes couldn't load which implementations — the difference between
+	// a missing number that means "this binding is broken here" and one that means
+	// "this runtime's report has no such row" (an older sibling, say).
+	const unavailable = $derived(derive_unavailable_by_runtime(report));
+
 	const format_ops = (n: number | undefined): string => (n == null ? 'fail' : n.toFixed(2));
+
+	// An absent number reads as a load failure only when the report says so; every
+	// other gap is a row that runtime never measured, which a mixed-vintage set
+	// makes ordinary. Both render as `fail`, so the title carries the difference.
+	const missing_cell_title = (name: string, runtime: BenchmarkRuntime): string =>
+		is_impl_unavailable(report, runtime, name)
+			? `${name} failed to load under ${runtime}, so it contributes no row there`
+			: `${runtime}'s report carries no ${name} row — not measured there`;
 
 	const group_label = (operation: string, language: string): string =>
 		`${operation === 'format' ? 'Format' : 'Parse'} ${language}`;
@@ -52,6 +67,18 @@
 		<aside class="mixed-vintage">
 			⚠ The per-runtime reports backing these tables were produced on different hardware, so the
 			ratios are not comparable until every runtime is re-run on one machine.
+		</aside>
+	{/if}
+	{#if unavailable.length}
+		<aside class="mixed-vintage">
+			⚠ Some implementations don't load on every runtime:
+			<ul class="unavailable">
+				{#each unavailable as { runtime, rows } (runtime)}
+					<li><code>{runtime}</code> — {rows.join(', ')}</li>
+				{/each}
+			</ul>
+			These rows are unmeasured there, so a gap in those columns is a load failure rather than a
+			speed result.
 		</aside>
 	{/if}
 	{#if runtime_versions.length}
@@ -94,7 +121,10 @@
 								{/if}
 							</td>
 							{#each runtimes as runtime (runtime)}
-								<td class="num">{format_ops(row.ops_per_second[runtime])}</td>
+								{@const ops = row.ops_per_second[runtime]}
+								<td class="num" title={ops == null ? missing_cell_title(row.name, runtime) : undefined}>
+									{format_ops(ops)}
+								</td>
 							{/each}
 							{#each others as runtime (runtime)}
 								{@const ratio = row.ratio_vs_base[runtime]}
@@ -116,7 +146,8 @@
 	<p class="text_40">
 		sweeps/sec — one sweep is a full pass over the group's timed file set (higher is faster); ratios
 		are vs <code>{base}</code> (&gt; 1 = faster than {base}). A
-		<code>fail</code> is an implementation that runtime can't load. The
+		<code>fail</code> is a row that runtime contributed no number for — an implementation it can't
+		load (listed above when the report records it), or one its report doesn't carry. The
 		<code>native</code> rows load each runtime's idiomatic binding of the same engine — the N-API
 		addon under <code>node</code> and <code>bun</code> (<code>tsv (node napi)</code>), the C-FFI
 		library under <code>deno</code> (<code>tsv (deno ffi)</code>) — so the <code>deno</code> column
@@ -128,6 +159,10 @@
 	/* the warning red tint over fuz_css's base aside styling */
 	.mixed-vintage {
 		border-left-color: var(--color_c_50);
+	}
+	/* the per-runtime load failures inside the disclosure aside */
+	.unavailable {
+		margin-block: var(--space_xs);
 	}
 	/* the runtime versions the columns were measured under — a compact horizontal row */
 	.versions {
