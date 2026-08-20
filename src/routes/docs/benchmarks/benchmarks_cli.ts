@@ -10,6 +10,10 @@
 // parallelism-neutral view is CPU work (hyperfine `User` time). tsv runs only in
 // the JSX-free scenarios (it has no JSX/TSX parser); the Svelte scenario benches
 // it against rsvelte-fmt (`@rsvelte/fmt`), the other Rust Svelte-native formatter.
+// tsv is non-configurable, so in every scenario it appears in, the formatters it
+// is compared against are pinned to its fixed style — width 100, tabs, single
+// quotes, no trailing commas — and before timing anything the harness asserts that
+// every formatter reporting a file count reports the same one.
 //
 // The numbers come from `benchmarks_formatters.json`, generated from that
 // harness's README by `benchmarks_formatters.gen.json.ts`; only the prose below
@@ -61,15 +65,30 @@ export interface BenchmarksCliReport {
  */
 export const CLI_SVELTE_KEY = "svelte-tsv-vs-rsvelte-fmt";
 
+/**
+ * The multi-file TypeScript repo scenario's id, in both spellings. The harness
+ * renamed it from "TypeScript-only (tsv-fair)" to "TypeScript-only (non-JSX
+ * subset)" — the name describes the corpus rather than the motive — and the
+ * generated data carries whichever the README was last regenerated with, so both
+ * are kept while that regeneration is pending. Once the data has the new id,
+ * delete the legacy entry and drop both from `CLI_OPTIONAL_SCENARIO_KEYS`.
+ */
+const CLI_TS_REPO_KEY_CURRENT = "typescript-only-non-jsx-subset";
+const CLI_TS_REPO_KEY_LEGACY = "typescript-only-tsv-fair";
+
+/** Shared by both ids above; only ever one of them is present in the data. */
+const TS_REPO_COPY = {
+  heading: "TypeScript repo",
+  description:
+    "Every formatter scoped to the same file set and pinned to tsv’s fixed style, so they make the same break decisions over the same files; a preflight check aborts the scenario rather than publish a comparison the tools didn’t run on equal work.",
+};
+
 const SCENARIO_COPY: Record<
   string,
   Omit<CliScenario, "key" | "target" | "results">
 > = {
-  "typescript-only-tsv-fair": {
-    heading: "TypeScript repo",
-    description:
-      "Every formatter scoped to the same file set, with a preflight parse check confirming none reject anything — the fair way to put tsv on a real multi-file repo.",
-  },
+  [CLI_TS_REPO_KEY_CURRENT]: TS_REPO_COPY,
+  [CLI_TS_REPO_KEY_LEGACY]: TS_REPO_COPY,
   "large-single-file": {
     heading: "Large single file",
     description:
@@ -111,7 +130,15 @@ export const CLI_SCENARIO_KEYS = Object.keys(SCENARIO_COPY);
  * Every other `SCENARIO_COPY` entry must resolve; the shape test enforces
  * exactly that split.
  */
-export const CLI_OPTIONAL_SCENARIO_KEYS: Array<string> = [CLI_SVELTE_KEY];
+export const CLI_OPTIONAL_SCENARIO_KEYS: Array<string> = [
+  CLI_SVELTE_KEY,
+  // Exactly one of the two TypeScript-repo ids is in the data at a time, so each
+  // has to be allowed to be absent. Nothing is weakened by that: `CLI_TS_REPO_KEY`
+  // still has to resolve to whichever one is present, and the ratio tests below
+  // fail loudly if neither is.
+  CLI_TS_REPO_KEY_CURRENT,
+  CLI_TS_REPO_KEY_LEGACY,
+];
 
 const to_scenarios = (): Array<CliScenario> =>
   Object.entries(SCENARIO_COPY).flatMap(([key, copy]) => {
@@ -136,8 +163,16 @@ export const benchmarks_cli: BenchmarksCliReport = {
   scenarios: to_scenarios(),
 };
 
-/** The scenario id the page's prose calls "the TypeScript repo" — the multi-file, real-repo run. */
-export const CLI_TS_REPO_KEY = "typescript-only-tsv-fair";
+/**
+ * The scenario id the page's prose calls "the TypeScript repo" — the multi-file,
+ * real-repo run. Resolved against the generated data rather than hardcoded, so
+ * the page's ratios keep working across the harness's rename in either direction.
+ */
+export const CLI_TS_REPO_KEY = benchmarks_formatters_json.scenarios.some(
+  (s) => s.id === CLI_TS_REPO_KEY_CURRENT,
+)
+  ? CLI_TS_REPO_KEY_CURRENT
+  : CLI_TS_REPO_KEY_LEGACY;
 
 /**
  * How many times faster or lighter tsv is than `label` in one CLI scenario, by
