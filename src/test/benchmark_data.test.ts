@@ -12,6 +12,7 @@ import {
   cli_memory_ratio_range,
   cli_speedup_vs_tsv,
   CLI_TS_REPO_KEY,
+  CLI_TS_REPO_KEY_LEGACY,
 } from "$routes/docs/benchmarks/benchmarks_cli.ts";
 import {
   benchmark_speedup,
@@ -917,6 +918,18 @@ describe("benchmarks_cli shape", () => {
         `optional key "${key}" has no copy entry`,
       );
     }
+  });
+
+  test("the renamed TypeScript-repo scenario retires its legacy id", () => {
+    // the harness renamed this scenario, and both ids are carried while its README
+    // still publishes the old one. the moment a regenerated README resolves the
+    // key to the new id, this fails — so the transitional entry is deleted then,
+    // rather than outliving the migration as a comment nobody rereads
+    if (CLI_TS_REPO_KEY === CLI_TS_REPO_KEY_LEGACY) return;
+    assert.ok(
+      !CLI_SCENARIO_KEYS.includes(CLI_TS_REPO_KEY_LEGACY),
+      `the generated data now uses "${CLI_TS_REPO_KEY}", so delete CLI_TS_REPO_KEY_LEGACY along with its SCENARIO_COPY and CLI_OPTIONAL_SCENARIO_KEYS entries`,
+    );
   });
 
   test("every scenario carries a tsv reference row with positive metrics", () => {

@@ -71,10 +71,18 @@ export const CLI_SVELTE_KEY = "svelte-tsv-vs-rsvelte-fmt";
  * subset)" — the name describes the corpus rather than the motive — and the
  * generated data carries whichever the README was last regenerated with, so both
  * are kept while that regeneration is pending. Once the data has the new id,
- * delete the legacy entry and drop both from `CLI_OPTIONAL_SCENARIO_KEYS`.
+ * delete the legacy entry and drop both from `CLI_OPTIONAL_SCENARIO_KEYS` — a
+ * test fails at exactly that point so the transitional pair can't outlive the
+ * migration.
  */
 const CLI_TS_REPO_KEY_CURRENT = "typescript-only-non-jsx-subset";
-const CLI_TS_REPO_KEY_LEGACY = "typescript-only-tsv-fair";
+
+/**
+ * Exported only so a test can retire it. `benchmark_data.test.ts` fails the
+ * moment the generated data resolves to `CLI_TS_REPO_KEY_CURRENT`, which is what
+ * turns the deletion above from a comment nobody rereads into a gate.
+ */
+export const CLI_TS_REPO_KEY_LEGACY = "typescript-only-tsv-fair";
 
 /** Shared by both ids above; only ever one of them is present in the data. */
 const TS_REPO_COPY = {
