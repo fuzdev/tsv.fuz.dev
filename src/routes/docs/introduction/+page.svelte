@@ -38,8 +38,8 @@ reconstruct_locations(ast, 'const x = 1;');`;
 	<section>
 		<Svg data={logo_tsv} size="var(--icon_size_xl2)" class="float:right ml_lg mb_lg" />
 		<p>
-			tsv is a toolchain for TypeScript/JS, CSS, and Svelte in Rust. The first release has a
-			formatter that closely follows <a href="https://prettier.io/">Prettier</a> +
+			tsv is a toolchain for TypeScript/JS, CSS, and Svelte in Rust. It ships a formatter that
+			closely follows <a href="https://prettier.io/">Prettier</a> +
 			<a href="https://github.com/sveltejs/prettier-plugin-svelte">prettier-plugin-svelte</a>, and a
 			drop-in replacement for <a href="https://svelte.dev/">Svelte</a>'s parser +
 			<a href="https://github.com/acornjs/acorn">acorn</a> +
@@ -92,12 +92,11 @@ reconstruct_locations(ast, 'const x = 1;');`;
 			/>
 			<p>
 				The right binary installs automatically. Prebuilt for Linux (x64, arm64, and x64 musl),
-				macOS arm64, and Windows x64 — anywhere else, use the WASM build below. The
-				<code>tsv</code> command here is tsv's real native CLI binary, shipped in the platform
-				package and exec'd directly — multi-file parallelism (<code>--jobs</code>), parallel
-				discovery, the works. It ships beside the addon because neither can play the other's role:
-				an addon can't be exec'd as a process, and an executable can't be loaded as an in-process
-				module.
+				macOS arm64, and Windows x64 — anywhere else, use the WASM build below. The <code>tsv</code>
+				command here is tsv's real native CLI binary, shipped in the platform package and exec'd
+				directly — multi-file parallelism (<code>--jobs</code>), parallel discovery, the works. It
+				ships beside the addon because neither can play the other's role: an addon can't be exec'd
+				as a process, and an executable can't be loaded as an in-process module.
 			</p>
 			<p>
 				tsv also ships as WASM, which runs everywhere including browsers and Deno, and carries the
@@ -117,9 +116,8 @@ reconstruct_locations(ast, 'const x = 1;');`;
 			<TomeSectionHeader text="Usage" />
 			<p>
 				All four packages share the same formatter and parser API — <code>@fuzdev/tsv</code> and
-				<code>@fuzdev/tsv_wasm</code>
-				are drop-in swaps for each other, same function names, same options, same errors. Both
-				export the formatter and parser together:
+				<code>@fuzdev/tsv_wasm</code> are drop-in swaps for each other, same function names, same
+				options, same errors. Both export the formatter and parser together:
 			</p>
 			<Code lang="ts" content={usage_example} />
 			<p>The formatter alone:</p>

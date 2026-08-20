@@ -1,6 +1,6 @@
-import { assert, describe, test } from 'vitest';
+import { assert, describe, test } from "vitest";
 
-import { parse_formatter_benchmarks } from '$routes/docs/benchmarks/formatter_benchmark_data.ts';
+import { parse_formatter_benchmarks } from "$routes/docs/benchmarks/formatter_benchmark_data.ts";
 
 // A trimmed stand-in for the bench harness's README — one scenario tsv runs in,
 // one it sits out, plus the versions and machine lines below the results block.
@@ -101,130 +101,148 @@ Svelte benchmark complete!
 _Measured on: Some CPU · 12 threads · linux x64 — the ratios below depend on the core count._
 `;
 
-describe('parse_formatter_benchmarks', () => {
-	test('keeps only the scenarios tsv runs in', () => {
-		const parsed = parse_formatter_benchmarks(readme);
-		assert.deepEqual(
-			parsed.scenarios.map((s) => s.id),
-			['large-single-file', 'svelte-tsv-vs-rsvelte-fmt']
-		);
-	});
+describe("parse_formatter_benchmarks", () => {
+  test("keeps only the scenarios tsv runs in", () => {
+    const parsed = parse_formatter_benchmarks(readme);
+    assert.deepEqual(
+      parsed.scenarios.map((s) => s.id),
+      ["large-single-file", "svelte-tsv-vs-rsvelte-fmt"],
+    );
+  });
 
-	test('parses the machine and versions from below the results block', () => {
-		const parsed = parse_formatter_benchmarks(readme);
-		assert.equal(parsed.machine, 'Some CPU · 12 threads · linux x64');
-		assert.deepEqual(parsed.versions, {
-			prettier: '3.9.1',
-			biome: '2.5.1',
-			'rsvelte-fmt': '0.7.4',
-			tsv: '0.2.0'
-		});
-	});
+  test("parses the machine and versions from below the results block", () => {
+    const parsed = parse_formatter_benchmarks(readme);
+    assert.equal(parsed.machine, "Some CPU · 12 threads · linux x64");
+    assert.deepEqual(parsed.versions, {
+      prettier: "3.9.1",
+      biome: "2.5.1",
+      "rsvelte-fmt": "0.7.4",
+      tsv: "0.2.0",
+    });
+  });
 
-	test('normalizes timings to milliseconds across units', () => {
-		const parsed = parse_formatter_benchmarks(readme);
-		const [biome, tsv] = parsed.scenarios[0]!.timings;
-		assert.deepEqual(biome, {
-			name: 'biome',
-			mean_ms: 1597,
-			stddev_ms: 15,
-			user_ms: 1583,
-			system_ms: 846,
-			min_ms: 1581,
-			max_ms: 1614
-		});
-		assert.equal(tsv!.mean_ms, 28.8);
-	});
+  test("normalizes timings to milliseconds across units", () => {
+    const parsed = parse_formatter_benchmarks(readme);
+    const [biome, tsv] = parsed.scenarios[0]!.timings;
+    assert.deepEqual(biome, {
+      name: "biome",
+      mean_ms: 1597,
+      stddev_ms: 15,
+      user_ms: 1583,
+      system_ms: 846,
+      min_ms: 1581,
+      max_ms: 1614,
+    });
+    assert.equal(tsv!.mean_ms, 28.8);
+  });
 
-	test('parses the scenario header, preflight, speedups, and memory', () => {
-		const scenario = parse_formatter_benchmarks(readme).scenarios[0]!;
-		assert.equal(scenario.name, 'Large Single File');
-		assert.equal(scenario.target, 'TypeScript compiler parser.ts (~540KB)');
-		assert.equal(scenario.warmup_runs, 2);
-		assert.equal(scenario.benchmark_runs, 5);
-		assert.deepEqual(scenario.preflight, [
-			{ name: 'biome', rejected: 0, unavailable: false, crashed: false },
-			{ name: 'oxfmt', rejected: 3, unavailable: false, crashed: false },
-			{ name: 'tsv', rejected: 0, unavailable: true, crashed: false }
-		]);
-		assert.equal(scenario.baseline, 'tsv');
-		assert.deepEqual(scenario.speedups, [{ name: 'biome', ratio: 55.41, ratio_stddev: 1.36 }]);
-		// the lowest-memory formatter is the ratio baseline, so it carries no ratio
-		assert.deepEqual(scenario.memory, [
-			{
-				name: 'biome',
-				mean_mb: 303.2,
-				min_mb: 291.5,
-				max_mb: 319.4,
-				ratio: 13.12,
-				ratio_stddev: 0.62
-			},
-			{ name: 'tsv', mean_mb: 23.1, min_mb: 22.5, max_mb: 23.9 }
-		]);
-	});
+  test("parses the scenario header, preflight, speedups, and memory", () => {
+    const scenario = parse_formatter_benchmarks(readme).scenarios[0]!;
+    assert.equal(scenario.name, "Large Single File");
+    assert.equal(scenario.target, "TypeScript compiler parser.ts (~540KB)");
+    assert.equal(scenario.warmup_runs, 2);
+    assert.equal(scenario.benchmark_runs, 5);
+    assert.deepEqual(scenario.preflight, [
+      { name: "biome", rejected: 0, unavailable: false, crashed: false },
+      { name: "oxfmt", rejected: 3, unavailable: false, crashed: false },
+      { name: "tsv", rejected: 0, unavailable: true, crashed: false },
+    ]);
+    assert.equal(scenario.baseline, "tsv");
+    assert.deepEqual(scenario.speedups, [
+      { name: "biome", ratio: 55.41, ratio_stddev: 1.36 },
+    ]);
+    // the lowest-memory formatter is the ratio baseline, so it carries no ratio
+    assert.deepEqual(scenario.memory, [
+      {
+        name: "biome",
+        mean_mb: 303.2,
+        min_mb: 291.5,
+        max_mb: 319.4,
+        ratio: 13.12,
+        ratio_stddev: 0.62,
+      },
+      { name: "tsv", mean_mb: 23.1, min_mb: 22.5, max_mb: 23.9 },
+    ]);
+  });
 
-	test('parses a two-formatter scenario with a crashed preflight row', () => {
-		const scenario = parse_formatter_benchmarks(readme).scenarios[1]!;
-		assert.equal(scenario.name, 'Svelte (tsv vs rsvelte-fmt)');
-		assert.deepEqual(scenario.preflight, [
-			{ name: 'tsv', rejected: 0, unavailable: false, crashed: false },
-			{ name: 'rsvelte-fmt', rejected: 0, unavailable: false, crashed: true }
-		]);
-		assert.deepEqual(
-			scenario.timings.map((t) => t.name),
-			['tsv', 'rsvelte-fmt']
-		);
-		assert.equal(scenario.baseline, 'tsv');
-		assert.deepEqual(scenario.speedups, [{ name: 'rsvelte-fmt', ratio: 5.22, ratio_stddev: 0.13 }]);
-		// tsv is the memory baseline here, so the ratio sits on the rsvelte-fmt row
-		assert.deepEqual(scenario.memory, [
-			{ name: 'tsv', mean_mb: 19, min_mb: 18.6, max_mb: 19.4 },
-			{
-				name: 'rsvelte-fmt',
-				mean_mb: 61.1,
-				min_mb: 60.2,
-				max_mb: 62,
-				ratio: 3.22,
-				ratio_stddev: 0.08
-			}
-		]);
-	});
+  test("parses a two-formatter scenario with a crashed preflight row", () => {
+    const scenario = parse_formatter_benchmarks(readme).scenarios[1]!;
+    assert.equal(scenario.name, "Svelte (tsv vs rsvelte-fmt)");
+    assert.deepEqual(scenario.preflight, [
+      { name: "tsv", rejected: 0, unavailable: false, crashed: false },
+      { name: "rsvelte-fmt", rejected: 0, unavailable: false, crashed: true },
+    ]);
+    assert.deepEqual(
+      scenario.timings.map((t) => t.name),
+      ["tsv", "rsvelte-fmt"],
+    );
+    assert.equal(scenario.baseline, "tsv");
+    assert.deepEqual(scenario.speedups, [
+      { name: "rsvelte-fmt", ratio: 5.22, ratio_stddev: 0.13 },
+    ]);
+    // tsv is the memory baseline here, so the ratio sits on the rsvelte-fmt row
+    assert.deepEqual(scenario.memory, [
+      { name: "tsv", mean_mb: 19, min_mb: 18.6, max_mb: 19.4 },
+      {
+        name: "rsvelte-fmt",
+        mean_mb: 61.1,
+        min_mb: 60.2,
+        max_mb: 62,
+        ratio: 3.22,
+        ratio_stddev: 0.08,
+      },
+    ]);
+  });
 
-	// A README that's present but drifted must fail the gen task rather than quietly
-	// publishing stale or scenario-stripped numbers — only a MISSING readme is benign,
-	// and that's the caller's call, not the parser's.
-	test('throws when the results markers are missing', () => {
-		assert.throws(
-			() => parse_formatter_benchmarks('# Benchmark\n\nno results here\n'),
-			/no <!-- BENCHMARK_RESULTS_START/
-		);
-	});
+  // A README that's present but drifted must fail the gen task rather than quietly
+  // publishing stale or scenario-stripped numbers — only a MISSING readme is benign,
+  // and that's the caller's call, not the parser's.
+  test("throws when the results markers are missing", () => {
+    assert.throws(
+      () => parse_formatter_benchmarks("# Benchmark\n\nno results here\n"),
+      /no <!-- BENCHMARK_RESULTS_START/,
+    );
+  });
 
-	test('throws when no scenario includes tsv', () => {
-		const without_tsv = readme.replace(/^Benchmark (\d+): tsv$/gm, 'Benchmark $1: oxfmt');
-		assert.throws(() => parse_formatter_benchmarks(without_tsv), /no scenario includes a tsv row/);
-	});
+  test("throws when no scenario includes tsv", () => {
+    const without_tsv = readme.replace(
+      /^Benchmark (\d+): tsv$/gm,
+      "Benchmark $1: oxfmt",
+    );
+    assert.throws(
+      () => parse_formatter_benchmarks(without_tsv),
+      /no scenario includes a tsv row/,
+    );
+  });
 
-	test('throws when a scenario banner carries no parseable timings', () => {
-		const drifted = readme.replace(/^Benchmark \d+: /gm, 'Bench $&');
-		assert.throws(() => parse_formatter_benchmarks(drifted), /no parseable timings/);
-	});
+  test("throws when a scenario banner carries no parseable timings", () => {
+    const drifted = readme.replace(/^Benchmark \d+: /gm, "Bench $&");
+    assert.throws(
+      () => parse_formatter_benchmarks(drifted),
+      /no parseable timings/,
+    );
+  });
 
-	test('throws when a present memory section yields no rows', () => {
-		const drifted = readme
-			.replace(/^ {2}biome: 303\.2 MB.*$/m, '  biome: 303.2 megabytes')
-			.replace(/^ {2}tsv: 23\.1 MB.*$/m, '  tsv: 23.1 megabytes');
-		assert.throws(() => parse_formatter_benchmarks(drifted), /unparseable memory section/);
-	});
+  test("throws when a present memory section yields no rows", () => {
+    const drifted = readme
+      .replace(/^ {2}biome: 303\.2 MB.*$/m, "  biome: 303.2 megabytes")
+      .replace(/^ {2}tsv: 23\.1 MB.*$/m, "  tsv: 23.1 megabytes");
+    assert.throws(
+      () => parse_formatter_benchmarks(drifted),
+      /unparseable memory section/,
+    );
+  });
 
-	test('throws when the machine line or tsv version is missing', () => {
-		assert.throws(
-			() => parse_formatter_benchmarks(readme.replace(/^_Measured on: .*$/m, '')),
-			/machine line/
-		);
-		assert.throws(
-			() => parse_formatter_benchmarks(readme.replace(/^- \*\*tsv\*\*: .*$/m, '')),
-			/no tsv version/
-		);
-	});
+  test("throws when the machine line or tsv version is missing", () => {
+    assert.throws(
+      () =>
+        parse_formatter_benchmarks(readme.replace(/^_Measured on: .*$/m, "")),
+      /machine line/,
+    );
+    assert.throws(
+      () =>
+        parse_formatter_benchmarks(readme.replace(/^- \*\*tsv\*\*: .*$/m, "")),
+      /no tsv version/,
+    );
+  });
 });
