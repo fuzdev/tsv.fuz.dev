@@ -348,6 +348,12 @@
 			<a href="https://github.com/microsoft/TypeScript">TypeScript compiler</a>'s own test suite
 			that tsc itself parses cleanly.
 		</p>
+		{#if benchmarks_cross_runtime_json.conformance_vintage?.stale}
+			<aside class="mixed-vintage">
+				⚠ The conformance report backing this section comes from a different commit than the
+				speed reports above, so the two sections describe different builds until it is re-run.
+			</aside>
+		{/if}
 		<BenchmarksConformance groups={conformance_groups} />
 		<aside class="mt_xl5">
 			<p>Reading these numbers:</p>
@@ -581,3 +587,10 @@
 		<BenchmarksCrossRuntime report={benchmarks_cross_runtime_json} />
 	</TomeSection>
 </TomeContent>
+
+<style>
+	/* the warning red tint over fuz_css's base aside styling (same as BenchmarksCrossRuntime) */
+	.mixed-vintage {
+		border-left-color: var(--color_c_50);
+	}
+</style>

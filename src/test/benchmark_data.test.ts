@@ -202,56 +202,67 @@ describe("benchmarks.json shape", () => {
     }
   });
 
-  test("svelte/css format groups get disabled dprint placeholders, typescript keeps real ones", () => {
+  test("svelte gets a disabled dprint placeholder; typescript keeps dprint and css keeps malva real", () => {
     const groups = derive_benchmark_groups(benchmarks_json);
     const format = (language: string) =>
       groups.find((g) => g.operation === "format" && g.language === language);
+    const dprint_rows = (language: string) =>
+      format(language)?.entries.filter((e) => e.category === "dprint") ?? [];
 
     // typescript actually runs dprint — its entry is real, not a placeholder
-    const ts = format("typescript");
-    const ts_dprint = ts?.entries.filter((e) => e.category === "dprint") ?? [];
+    const ts_dprint = dprint_rows("typescript");
 
     // The dprint row postdates older reports. With no measured entry there is
     // nothing to mirror, and the derivation deliberately leaves every group
     // untouched — so assert exactly that (no invented rows) and stop. Refreshing
     // the report is what promotes this to the full assertion below.
     if (ts_dprint.length === 0) {
-      for (const language of ["svelte", "css"]) {
-        const group = format(language);
-        assert.isEmpty(
-          group?.entries.filter((e) => e.category === "dprint") ?? [],
-          `${language} must not invent a dprint row when the report carries none`,
-        );
-      }
+      assert.isEmpty(
+        dprint_rows("svelte"),
+        "svelte must not invent a dprint row when the report carries none",
+      );
       return;
     }
-
     for (const e of ts_dprint)
       assert.isNotOk(e.disabled, `${e.name} should be a real entry`);
 
-    // svelte and css mirror it in, disabled: dprint's `@dprint/typescript` plugin
-    // rejects CSS and Svelte outright, so those groups have no real entry
+    // css runs dprint's own CSS plugin, malva, through the same Wasm host — a REAL
+    // row that shares dprint's category (see CATEGORY_BY_NAME), so css gets no
+    // placeholder: the mirror only fills a group with no dprint-category entry
+    const css_dprint = dprint_rows("css");
+    assert.deepEqual(
+      css_dprint.map((e) => e.name),
+      ["malva-wasm"],
+      "css carries malva-wasm and no dprint placeholder",
+    );
+    for (const e of css_dprint)
+      assert.isNotOk(e.disabled, `${e.name} should be a real entry`);
+
+    // svelte mirrors the typescript entry in, disabled: `@dprint/typescript`
+    // rejects Svelte outright and the bench loads no Svelte plugin for the host
+    const svelte_dprint = dprint_rows("svelte");
+    assert.strictEqual(
+      svelte_dprint.length,
+      ts_dprint.length,
+      "svelte dprint placeholder count",
+    );
+    for (const e of svelte_dprint) {
+      assert.ok(e.disabled, `svelte ${e.name} should be disabled`);
+      assert.strictEqual(e.bar_fraction, 0, `svelte ${e.name} bar`);
+    }
+
+    // in every group the dprint-category row sits directly after biome in the
+    // shared cross-tool ordering, real or placeholder alike
     for (const language of ["svelte", "css"]) {
-      const group = format(language);
-      assert.ok(group, `${language} format group missing`);
-      const dprint = group.entries.filter((e) => e.category === "dprint");
-      assert.strictEqual(
-        dprint.length,
-        ts_dprint.length,
-        `${language} dprint placeholder count`,
-      );
-      for (const e of dprint) {
-        assert.ok(e.disabled, `${language} ${e.name} should be disabled`);
-        assert.strictEqual(e.bar_fraction, 0, `${language} ${e.name} bar`);
-      }
-      // dprint sits between biome and oxc in the shared cross-tool ordering
-      const names = group.entries.map((e) => e.name);
+      const names = format(language)!.entries.map((e) => e.name);
       const first_biome = names.findIndex((n) => n.includes("biome"));
-      const first_dprint = names.findIndex((n) => n.includes("dprint"));
+      const first_dprint = names.findIndex(
+        (n) => n.includes("dprint") || n.includes("malva"),
+      );
       assert.strictEqual(
         first_dprint,
         first_biome + 1,
-        `${language} dprint directly after biome`,
+        `${language} dprint-category row directly after biome`,
       );
     }
   });
@@ -303,19 +314,21 @@ describe("benchmarks.json shape", () => {
     }
   });
 
-  test("format/parse rows follow the fixed canonical → biome → dprint → oxc → rsvelte → yuku → json → internal order", () => {
-    // independently mirrors the requested row order so a regression in the
-    // derivation's comparator fails here
+  test("format/parse rows follow the fixed canonical → biome → dprint → oxc → postcss → rsvelte → swc → yuku → json → internal order", () => {
+    // independently mirrors the requested row order (`speed_entry_rank`) so a
+    // regression in the derivation's comparator fails here
     const tier = (name: string, category: string): number => {
       if (category === "canonical") return 0;
       if (category === "biome") return 1;
       if (category === "dprint") return 2;
       if (category === "oxc") return 3;
-      if (category === "rsvelte") return 4;
-      if (category === "yuku") return 5;
-      if (name.endsWith("-no-locations")) return 6; // tsv json, span-only wire
-      if (name.endsWith("-json")) return 7; // tsv json, loc-carrying wire
-      return 8; // tsv internal engine
+      if (category === "postcss") return 4;
+      if (category === "rsvelte") return 5;
+      if (category === "swc") return 6;
+      if (category === "yuku") return 7;
+      if (name.endsWith("-no-locations")) return 8; // tsv json, span-only wire
+      if (name.endsWith("-json")) return 9; // tsv json, loc-carrying wire
+      return 10; // tsv internal engine
     };
     for (const group of derive_benchmark_groups(benchmarks_json)) {
       const key = `${group.operation}/${group.language}`;
@@ -698,6 +711,19 @@ describe("benchmarks_cross_runtime.json shape", () => {
     // runtime and recompose rather than committing a mixed set (the site would
     // show the unreliable-ratios warning banner)
     assert.notStrictEqual(benchmarks_cross_runtime_json.mixed_vintage, true);
+  });
+
+  test("the conformance report is same-vintage with the perf siblings", () => {
+    // combined `version` 13 records it; a stale one means `update-benchmarks`
+    // copied a conformance report from a different refresh than the perf trio
+    // (the site would show the parse-conformance section's warning banner)
+    const vintage = benchmarks_cross_runtime_json.conformance_vintage;
+    assert.isOk(vintage, "conformance_vintage recorded");
+    assert.notStrictEqual(vintage!.stale, true);
+    assert.strictEqual(
+      vintage!.git_commit,
+      benchmarks_conformance_json.git_commit,
+    );
   });
 
   test("runtimes include the flagship and its cross-runtime peers", () => {

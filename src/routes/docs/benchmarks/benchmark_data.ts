@@ -523,13 +523,15 @@ export const derive_benchmark_groups = (
     group.entries.sort(compare_speed_entries);
   }
 
-  // The format-side analogue: `dprint` formats TypeScript/JS only — its
-  // `@dprint/typescript` plugin rejects CSS and Svelte outright (dprint's CSS and
-  // HTML plugins are separate Wasm plugins the bench doesn't load) — so the svelte
-  // and css FORMAT groups have no real dprint entry. Mirror it in as a disabled
-  // placeholder so all three format groups share one entry order, exactly as
-  // oxc-parser is mirrored into the svelte/css parse groups above. Guarded on the
-  // template existing, so a report predating the dprint row renders unchanged.
+  // The format-side analogue: `@dprint/typescript` formats TypeScript/JS only and
+  // rejects Svelte outright, so the svelte FORMAT group has no real dprint entry.
+  // Mirror it in as a disabled placeholder so the format groups share one entry
+  // order, exactly as oxc-parser is mirrored into the svelte/css parse groups
+  // above. css is NOT filled: the bench runs dprint's own CSS plugin, malva,
+  // through the same Wasm host, and that row shares dprint's category
+  // (`CATEGORY_BY_NAME`), so the "no dprint-category entry" guard below already
+  // leaves it alone. Guarded on the template existing, so a report predating the
+  // dprint row renders unchanged.
   const ts_format = result.find(
     (g) => g.operation === "format" && g.language === "typescript",
   );
@@ -1003,6 +1005,14 @@ export interface CrossRuntimeReport {
   // prints rather than adding one. Present from combined `version` 11 on; not
   // rendered, kept for parity.
   within_noise?: Array<WithinNoiseCell>;
+  // The conformance report's vintage beside the perf siblings'. The composer does
+  // not fold `report.conformance.node.json` (a coverage report, not a timing
+  // sibling), but this site publishes it from the same directory, and
+  // `mixed_vintage` above cannot see it — `stale` is that flag's perf/conformance
+  // analog: the conformance commit differs from some perf sibling's. `null` when
+  // the composer found no conformance report. Present from combined `version` 13
+  // on; rendered as the parse-conformance section's banner.
+  conformance_vintage?: ConformanceVintage | null;
   sources: Array<{
     runtime: BenchmarkRuntime;
     timestamp: string;
@@ -1015,6 +1025,15 @@ export interface CrossRuntimeReport {
     unavailable?: Array<UnavailableImpl> | null;
   }>;
   rows: Array<CrossRuntimeRow>;
+}
+
+/** The conformance report's provenance (see `CrossRuntimeReport.conformance_vintage`). */
+export interface ConformanceVintage {
+  git_commit: string | null;
+  timestamp: string;
+  tsv: string | null;
+  // The conformance commit differs from some perf sibling's.
+  stale: boolean;
 }
 
 /**
