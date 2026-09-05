@@ -132,7 +132,9 @@
 			formats one file at a time (isolating engine speed from multi-core parallelism), measured over
 			a large collection of real-world repos: {corpus_file_count.toLocaleString('en-US')} files
 			including Svelte's official repos (svelte, kit, svelte.dev) and the
-			<a href="https://github.com/fuzdev">fuz.dev repos</a>. On that basis:
+			<a href="https://github.com/fuzdev">fuz.dev repos</a>, vendored at one pinned commit in the
+			<a href="https://github.com/fuzdev/corpora">fuzdev/corpora</a> snapshot so the corpus behind
+			every number here can be reproduced with one clone. On that basis:
 		</p>
 		<ul>
 			<li>
