@@ -1,30 +1,43 @@
 <script lang="ts">
-	import {
-		format_coverage,
-		format_ns,
-		format_speedup,
-		speedup_color,
-		type BenchmarkGroup,
-	} from './benchmark_data.ts';
-	import BenchmarksBar from './BenchmarksBar.svelte';
+	import { format_ns, type BaselineRow, type BenchmarkGroup } from './benchmark_data.ts';
+	import BenchmarksBaselineGroup from './BenchmarksBaselineGroup.svelte';
 
 	const {
 		group,
-		corpus,
+		corpus
 	}: {
 		group: BenchmarkGroup;
 		corpus: Record<string, number>;
 	} = $props();
 
-	// coverage annotations only appear on baselines that carry them (version 3+)
-	const has_coverage = $derived(group.entries.some((e) => e.files_total != null));
-
 	const total = $derived(corpus[group.language] ?? 0);
-	// the timed benchmark runs on the per-group intersection (`files_iterated`), a
-	// subset of the discovered corpus; show "<timed> of <total>" when we have it,
-	// falling back to the corpus total on older baselines (< version 4)
-	const count_label = $derived(
-		group.files_iterated != null ? `${group.files_iterated} of ${total}` : `${total}`,
+	// the count of files actually benchmarked (`files_iterated`), falling back to the
+	// corpus total on older baselines (< version 4)
+	const count_label = $derived((group.files_iterated ?? total).toLocaleString('en-US'));
+
+	// a coverage-only row's accept rate is its entire measurement, so it renders as
+	// the row's annotation; siblings get an empty one so the grid's column template
+	// stays uniform across the group (same trick as BenchmarksSizes' gzip fallback)
+	const has_coverage_only = $derived(group.entries.some((e) => e.coverage_only));
+
+	const rows: Array<BaselineRow> = $derived(
+		group.entries.map((e) => ({
+			key: e.name,
+			label: e.name,
+			category: e.category,
+			bar_fraction: e.bar_fraction,
+			// the whole-sweep mean — total time to process the group's iterated corpus
+			// once, which is also what the ratios derive from via `raw`
+			value: format_ns(e.mean_ns),
+			raw: e.mean_ns,
+			annotation: has_coverage_only
+				? e.coverage_only && e.files_processed != null && e.files_total != null
+					? `${e.files_processed.toLocaleString('en-US')}/${e.files_total.toLocaleString('en-US')} files`
+					: ''
+				: undefined,
+			disabled: e.disabled ?? false,
+			coverage_only: e.coverage_only ?? false
+		}))
 	);
 </script>
 
@@ -33,27 +46,9 @@
 		<span>
 			{group.operation === 'format' ? 'Formatting' : 'Parsing'}
 			{count_label}
-			{group.language} files</span
-		>
-		{#if has_coverage}<span class="text_40" style:text-align="right"
-				>files handled / total &nbsp;&middot;&nbsp; speed</span
-			>{/if}
+			{group.language} files
+		</span>
+		<span class="text_40" style:text-align="right">total time &nbsp;&middot;&nbsp; speed</span>
 	</p>
-	<div class="column gap_xs">
-		{#each group.entries as entry (entry.name)}
-			<BenchmarksBar
-				label={entry.name}
-				bar_fraction={entry.bar_fraction}
-				category={entry.category}
-				value={format_ns(entry.mean_ns)}
-				ratio_text={entry.speedup_vs_canonical != null
-					? format_speedup(entry.speedup_vs_canonical)
-					: '1.0x'}
-				ratio_color={entry.speedup_vs_canonical != null
-					? speedup_color(entry.speedup_vs_canonical)
-					: 'var(--text_40)'}
-				annotation={format_coverage(entry.files_processed, entry.files_total)}
-			/>
-		{/each}
-	</div>
+	<BenchmarksBaselineGroup {rows} direction="speed" />
 </div>

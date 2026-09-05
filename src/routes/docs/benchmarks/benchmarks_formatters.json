@@ -1,0 +1,262 @@
+{
+  "machine": "AMD Ryzen 5 PRO 7530U with Radeon Graphics · 12 threads · linux x64",
+  "versions": {
+    "prettier": "3.9.5",
+    "biome": "2.5.4",
+    "oxfmt": "0.60.0",
+    "rsvelte-fmt": "0.7.4",
+    "tsv": "0.1.0"
+  },
+  "scenarios": [
+    {
+      "id": "large-single-file",
+      "name": "Large Single File",
+      "target": "TypeScript compiler parser.ts (~540KB)",
+      "warmup_runs": 2,
+      "benchmark_runs": 5,
+      "preflight": [
+        {
+          "name": "prettier",
+          "rejected": 0,
+          "unavailable": false,
+          "crashed": false
+        },
+        {
+          "name": "prettier+oxc-parser",
+          "rejected": 0,
+          "unavailable": false,
+          "crashed": false
+        },
+        {
+          "name": "biome",
+          "rejected": 0,
+          "unavailable": false,
+          "crashed": false
+        },
+        {
+          "name": "oxfmt",
+          "rejected": 0,
+          "unavailable": false,
+          "crashed": false
+        },
+        { "name": "tsv", "rejected": 0, "unavailable": false, "crashed": false }
+      ],
+      "timings": [
+        {
+          "name": "prettier",
+          "mean_ms": 1605,
+          "stddev_ms": 22,
+          "user_ms": 1541,
+          "system_ms": 858,
+          "min_ms": 1572,
+          "max_ms": 1623
+        },
+        {
+          "name": "prettier+oxc-parser",
+          "mean_ms": 985,
+          "stddev_ms": 4.8,
+          "user_ms": 889,
+          "system_ms": 462.3,
+          "min_ms": 977.6,
+          "max_ms": 990
+        },
+        {
+          "name": "biome",
+          "mean_ms": 113.9,
+          "stddev_ms": 1.7,
+          "user_ms": 87.1,
+          "system_ms": 34.6,
+          "min_ms": 112.2,
+          "max_ms": 116.7
+        },
+        {
+          "name": "oxfmt",
+          "mean_ms": 195.8,
+          "stddev_ms": 9.4,
+          "user_ms": 354.4,
+          "system_ms": 201.4,
+          "min_ms": 188.1,
+          "max_ms": 211.9
+        },
+        {
+          "name": "tsv",
+          "mean_ms": 23.8,
+          "stddev_ms": 0.2,
+          "user_ms": 14.9,
+          "system_ms": 8.8,
+          "min_ms": 23.6,
+          "max_ms": 24.1
+        }
+      ],
+      "baseline": "tsv",
+      "speedups": [
+        { "name": "biome", "ratio": 4.79, "ratio_stddev": 0.08 },
+        { "name": "oxfmt", "ratio": 8.24, "ratio_stddev": 0.4 },
+        { "name": "prettier+oxc-parser", "ratio": 41.44, "ratio_stddev": 0.43 },
+        { "name": "prettier", "ratio": 67.55, "ratio_stddev": 1.13 }
+      ],
+      "memory": [
+        {
+          "name": "prettier",
+          "mean_mb": 305.9,
+          "min_mb": 293.4,
+          "max_mb": 313.3,
+          "ratio": 12.34,
+          "ratio_stddev": 0.44
+        },
+        {
+          "name": "prettier+oxc-parser",
+          "mean_mb": 196.2,
+          "min_mb": 194.6,
+          "max_mb": 197.9,
+          "ratio": 7.91,
+          "ratio_stddev": 0.19
+        },
+        {
+          "name": "biome",
+          "mean_mb": 101,
+          "min_mb": 98,
+          "max_mb": 104,
+          "ratio": 4.07,
+          "ratio_stddev": 0.13
+        },
+        {
+          "name": "oxfmt",
+          "mean_mb": 118.6,
+          "min_mb": 118.6,
+          "max_mb": 118.7,
+          "ratio": 4.79,
+          "ratio_stddev": 0.11
+        },
+        { "name": "tsv", "mean_mb": 24.8, "min_mb": 24.2, "max_mb": 25.6 }
+      ]
+    },
+    {
+      "id": "typescript-only-tsv-fair",
+      "name": "TypeScript-only (tsv-fair)",
+      "target": "Outline repository (non-JSX JS/TS subset)",
+      "warmup_runs": 2,
+      "benchmark_runs": 5,
+      "preflight": [
+        {
+          "name": "prettier",
+          "rejected": 0,
+          "unavailable": false,
+          "crashed": false
+        },
+        {
+          "name": "prettier+oxc-parser",
+          "rejected": 0,
+          "unavailable": false,
+          "crashed": false
+        },
+        {
+          "name": "biome",
+          "rejected": 0,
+          "unavailable": false,
+          "crashed": false
+        },
+        {
+          "name": "oxfmt",
+          "rejected": 0,
+          "unavailable": false,
+          "crashed": false
+        },
+        { "name": "tsv", "rejected": 0, "unavailable": false, "crashed": false }
+      ],
+      "timings": [
+        {
+          "name": "prettier",
+          "mean_ms": 8250,
+          "stddev_ms": 118,
+          "user_ms": 13524,
+          "system_ms": 882,
+          "min_ms": 8121,
+          "max_ms": 8382
+        },
+        {
+          "name": "prettier+oxc-parser",
+          "mean_ms": 6740,
+          "stddev_ms": 24,
+          "user_ms": 8533,
+          "system_ms": 560,
+          "min_ms": 6710,
+          "max_ms": 6768
+        },
+        {
+          "name": "biome",
+          "mean_ms": 361.6,
+          "stddev_ms": 1.4,
+          "user_ms": 2510.6,
+          "system_ms": 350.3,
+          "min_ms": 359.7,
+          "max_ms": 363.1
+        },
+        {
+          "name": "oxfmt",
+          "mean_ms": 278.2,
+          "stddev_ms": 12.2,
+          "user_ms": 867.6,
+          "system_ms": 433.7,
+          "min_ms": 260.9,
+          "max_ms": 293
+        },
+        {
+          "name": "tsv",
+          "mean_ms": 65.4,
+          "stddev_ms": 2.9,
+          "user_ms": 439.2,
+          "system_ms": 137.6,
+          "min_ms": 63.2,
+          "max_ms": 70.2
+        }
+      ],
+      "baseline": "tsv",
+      "speedups": [
+        { "name": "oxfmt", "ratio": 4.25, "ratio_stddev": 0.26 },
+        { "name": "biome", "ratio": 5.53, "ratio_stddev": 0.25 },
+        {
+          "name": "prettier+oxc-parser",
+          "ratio": 102.99,
+          "ratio_stddev": 4.59
+        },
+        { "name": "prettier", "ratio": 126.06, "ratio_stddev": 5.88 }
+      ],
+      "memory": [
+        {
+          "name": "prettier",
+          "mean_mb": 472.9,
+          "min_mb": 385.2,
+          "max_mb": 529.1,
+          "ratio": 10.01,
+          "ratio_stddev": 1.38
+        },
+        {
+          "name": "prettier+oxc-parser",
+          "mean_mb": 302.5,
+          "min_mb": 300.6,
+          "max_mb": 304.4,
+          "ratio": 6.4,
+          "ratio_stddev": 0.37
+        },
+        {
+          "name": "biome",
+          "mean_mb": 211.6,
+          "min_mb": 207.1,
+          "max_mb": 213.7,
+          "ratio": 4.48,
+          "ratio_stddev": 0.26
+        },
+        {
+          "name": "oxfmt",
+          "mean_mb": 229.5,
+          "min_mb": 215.2,
+          "max_mb": 243.2,
+          "ratio": 4.86,
+          "ratio_stddev": 0.37
+        },
+        { "name": "tsv", "mean_mb": 47.3, "min_mb": 44.2, "max_mb": 50.2 }
+      ]
+    }
+  ]
+}

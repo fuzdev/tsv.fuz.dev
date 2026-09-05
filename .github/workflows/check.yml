@@ -7,7 +7,7 @@ on:
   push:
     branches: [main]
   pull_request:
-    branches: ['**']
+    branches: ["**"]
   # Allow manually re-running the check from the Actions tab.
   workflow_dispatch:
 
@@ -28,7 +28,7 @@ jobs:
 
     strategy:
       matrix:
-        node-version: ['24.14']
+        node-version: ["24.14"]
 
     steps:
       # persist-credentials: false keeps the GITHUB_TOKEN out of .git/config, so a

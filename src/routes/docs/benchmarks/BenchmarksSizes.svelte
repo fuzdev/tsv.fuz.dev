@@ -2,83 +2,54 @@
 	import {
 		format_bytes,
 		format_gzip_size,
-		categorize_size,
-		size_ratio_color,
-		type BinarySize,
+		derive_size_groups,
+		type BaselineRow,
+		type BinarySize
 	} from './benchmark_data.ts';
-	import BenchmarksBar from './BenchmarksBar.svelte';
+	import BenchmarksBaselineGroup from './BenchmarksBaselineGroup.svelte';
 
 	const {
-		sizes,
+		sizes
 	}: {
 		sizes: Array<BinarySize>;
 	} = $props();
 
-	const wasm_sizes = $derived(sizes.filter((s) => s.kind === 'wasm'));
-	const native_sizes = $derived(sizes.filter((s) => s.kind === 'native'));
+	// grouped by capability (full toolchain / formatter / parser) so each build
+	// sits beside its closest competitor; wasm and native mix within a group
+	const size_groups = $derived(derive_size_groups(sizes));
 
-	const make_display = (items: Array<BinarySize>) => {
-		const sorted = items.toSorted((a, b) => a.bytes - b.bytes);
-		const max = Math.max(0, ...items.map((s) => s.bytes));
-		// anchor "vs tsv" ratios on the headline build per kind - `tsv_wasm` (the
-		// flagship full build the bench executes) for wasm, `tsv (native)` for native —
-		// matching the report.md table; `tsv_format_wasm` covers reports generated
-		// before shape v2 added the third build, then any tsv-prefixed label.
-		// Without this the wasm group anchors on whatever sorts largest and every
-		// ratio disagrees with the report.
-		const tsv =
-			sorted.find((s) => s.label === 'tsv_wasm' || s.label === 'tsv (native)') ??
-			sorted.find((s) => s.label === 'tsv_format_wasm') ??
-			sorted.find((s) => s.label.startsWith('tsv'));
-		return sorted.map((s) => ({
-			...s,
-			bar_fraction: max > 0 ? s.bytes / max : 0,
-			ratio_vs_tsv: tsv && s !== tsv ? s.bytes / tsv.bytes : undefined,
-			category: categorize_size(s.label),
+	// a disabled placeholder (e.g. oxfmt's absent wasm build) has no gzip size of its
+	// own; when its group's other entries do carry one, fall back to 'n/a' rather than
+	// omitting the annotation entirely - otherwise that row drops the annotation
+	// column and its bar-track renders wider than its siblings'
+	const has_gzip = (entries: ReadonlyArray<{ gzip_bytes: number | null }>) =>
+		entries.some((e) => e.gzip_bytes != null);
+
+	const to_rows = (group: (typeof size_groups)[number]): Array<BaselineRow> => {
+		const group_has_gzip = has_gzip(group.entries);
+		return group.entries.map((s) => ({
+			key: s.label,
+			label: s.label,
+			category: s.category,
+			bar_fraction: s.bar_fraction,
+			value: format_bytes(s.bytes),
+			raw: s.bytes,
+			annotation: s.disabled
+				? group_has_gzip
+					? 'n/a'
+					: undefined
+				: format_gzip_size(s.gzip_bytes),
+			disabled: s.disabled ?? false
 		}));
 	};
-
-	const wasm_display = $derived(make_display(wasm_sizes));
-	const native_display = $derived(make_display(native_sizes));
 </script>
 
-{#if wasm_display.length > 0}
+{#each size_groups as group (group.capability)}
 	<div class="size-group">
-		<h3>wasm</h3>
-		<div class="column gap_xs">
-			{#each wasm_display as s (s.label)}
-				<BenchmarksBar
-					label={s.label}
-					bar_fraction={s.bar_fraction}
-					category={s.category}
-					value={format_bytes(s.bytes)}
-					ratio_text={s.ratio_vs_tsv != null ? `${s.ratio_vs_tsv.toFixed(1)}x` : '1.0x'}
-					ratio_color={s.ratio_vs_tsv != null ? size_ratio_color(s.ratio_vs_tsv) : 'var(--text_40)'}
-					annotation={format_gzip_size(s.gzip_bytes)}
-				/>
-			{/each}
-		</div>
+		<h3>{group.heading}</h3>
+		<BenchmarksBaselineGroup rows={to_rows(group)} direction="size" />
 	</div>
-{/if}
-
-{#if native_display.length > 0}
-	<div class="size-group">
-		<h3>native</h3>
-		<div class="column gap_xs">
-			{#each native_display as s (s.label)}
-				<BenchmarksBar
-					label={s.label}
-					bar_fraction={s.bar_fraction}
-					category={s.category}
-					value={format_bytes(s.bytes)}
-					ratio_text={s.ratio_vs_tsv != null ? `${s.ratio_vs_tsv.toFixed(1)}x` : '1.0x'}
-					ratio_color={s.ratio_vs_tsv != null ? size_ratio_color(s.ratio_vs_tsv) : 'var(--text_40)'}
-					annotation={format_gzip_size(s.gzip_bytes)}
-				/>
-			{/each}
-		</div>
-	</div>
-{/if}
+{/each}
 
 <style>
 	.size-group {
