@@ -130,8 +130,9 @@ export interface CorpusSource {
   // `files`). Present on reports whose loader emitted it; older reports carry
   // only the `files` total, so treat it as optional.
   by_language?: Partial<Record<string, number>>;
-  // The source's GitHub origin, git-detected by the bench at report-build time
-  // (URL + commit + subpath). Absent on older reports and on sources with no
+  // The source's GitHub origin, detected by the bench at report-build time (URL +
+  // commit + subpath): for a `fuzdev/corpora` collection the UPSTREAM its manifest
+  // names, read from that manifest; for any other checkout, git. Absent on older reports and on sources with no
   // GitHub remote — presence keys on the field, not the report `version` (it
   // arrived without one and is not tied to any), so treat it as optional.
   repo?: CorpusRepoRef;
