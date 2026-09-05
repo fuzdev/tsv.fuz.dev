@@ -1029,6 +1029,11 @@ export interface CrossRuntimeReport {
     timestamp: string;
     git_commit: string | null;
     tsv: string | null;
+    // The `fuzdev/corpora` commit that sibling's real-code corpus was read from —
+    // a third axis of `mixed_vintage`, since the bench reads whatever snapshot is
+    // checked out. Present from combined `version` 14 on; `null` when the sibling
+    // predates its own `corpus_snapshot` field.
+    corpus_snapshot?: string | null;
     // The producing box's machine block; present from combined `version` 7 on.
     machine?: Machine | null;
     // That sibling's own load failures, with reasons; `null` when the sibling
