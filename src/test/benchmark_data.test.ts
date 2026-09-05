@@ -634,12 +634,30 @@ describe("derive_corpus_repos", () => {
     }
   });
 
-  test("collapses shared repos and drops sources with no mapped repo", () => {
+  test("collapses shared repos and drops sources with no detected repo", () => {
+    const ref = (slug: string, subpath: string) => ({
+      url: `https://github.com/${slug}`,
+      slug,
+      commit: "0123456789abcdef0123456789abcdef01234567",
+      subpath,
+    });
     const repos = derive_corpus_repos([
-      { path: "../zzz/src", files: 1 },
-      { path: "../svelte.dev/apps/svelte.dev/src", files: 1 },
-      { path: "../svelte.dev/packages/repl/src", files: 1 }, // same repo → collapsed
-      { path: "benches/js/.cache/svelte_styles", files: 1 }, // not a repo → dropped
+      {
+        path: "../corpora/collections/zzz/src",
+        files: 1,
+        repo: ref("fuzdev/zzz", "src"),
+      },
+      {
+        path: "../corpora/collections/svelte.dev/apps/svelte.dev/src",
+        files: 1,
+        repo: ref("sveltejs/svelte.dev", "apps/svelte.dev/src"),
+      },
+      {
+        path: "../corpora/collections/svelte.dev/packages/repl/src",
+        files: 1,
+        repo: ref("sveltejs/svelte.dev", "packages/repl/src"), // same repo → collapsed
+      },
+      { path: "benches/js/.cache/svelte_styles", files: 1 }, // no detected repo → dropped
     ]);
     assert.deepStrictEqual(repos, [
       { url: "https://github.com/fuzdev/zzz", label: "fuzdev/zzz" },

@@ -1,7 +1,11 @@
 <script lang="ts">
 	import { site_context } from '@fuzdev/fuz_ui/site.svelte.ts';
 
-	import { type BenchmarkBaseline, derive_corpus_repos } from './benchmark_data.ts';
+	import {
+		type BenchmarkBaseline,
+		corpus_repo_ref_url,
+		derive_corpus_repos
+	} from './benchmark_data.ts';
 
 	const {
 		baseline
@@ -98,6 +102,15 @@
 	{#if corpus_repos.length}
 		<div class="meta-section corpus-repos">
 			<h4 class="mt_0 mb_sm">corpus repos</h4>
+			{#if baseline.corpus_snapshot}
+				<p class="mt_0 mb_sm">
+					snapshot
+					<!-- eslint-disable-next-line svelte/no-navigation-without-resolve -->
+					<a href={corpus_repo_ref_url(baseline.corpus_snapshot)}
+						>{baseline.corpus_snapshot.slug}@{baseline.corpus_snapshot.commit.slice(0, 9)}</a
+					>
+				</p>
+			{/if}
 			<ul class="repos">
 				{#each corpus_repos as repo (repo.url)}
 					<li>

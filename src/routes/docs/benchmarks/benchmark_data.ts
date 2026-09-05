@@ -30,6 +30,11 @@ export interface BenchmarkBaseline {
   // sources were present on the machine that produced the report. Present
   // from `version` 6 on.
   corpus_sources?: Array<CorpusSource>;
+  // The real-code snapshot every `real`/`framework` source was read from — the
+  // `fuzdev/corpora` checkout at its commit (`subpath` empty), one roll-up commit
+  // for the whole real-code corpus. Present from `version` 14 on; absent on
+  // conformance-only reports (no real code).
+  corpus_snapshot?: CorpusRepoRef;
   // The machine that produced the report — CPU model, OS/arch, runtime version.
   // The throughput numbers are machine-relative, so this is the environment the
   // meta panel discloses. Present from `version` 7 on (absent on older reports).
@@ -146,19 +151,24 @@ export interface CorpusRepoRef {
 }
 
 /**
- * The GitHub URL for a corpus source, pinned to the measured commit + subpath
- * (`…/tree/<commit>/<subpath>`) when detected, or the repo root for a
- * canonical-upstream cache (empty `commit`). `undefined` when the source has no
- * detected origin (older reports, or the local `svelte_styles` cache).
+ * The GitHub URL for a repo ref, pinned to its commit + subpath
+ * (`…/tree/<commit>/<subpath>`), or the repo root when the ref carries no commit
+ * (a canonical-upstream cache).
  */
-export const corpus_source_url = (source: CorpusSource): string | undefined => {
-  const repo = source.repo;
-  if (!repo) return undefined;
+export const corpus_repo_ref_url = (repo: CorpusRepoRef): string => {
   if (!repo.commit) return repo.url;
   return repo.subpath
     ? `${repo.url}/tree/${repo.commit}/${repo.subpath}`
     : `${repo.url}/tree/${repo.commit}`;
 };
+
+/**
+ * The GitHub URL for a corpus source, pinned to the measured commit + subpath when
+ * detected. `undefined` when the source has no detected origin (the local
+ * `svelte_styles` cache).
+ */
+export const corpus_source_url = (source: CorpusSource): string | undefined =>
+  source.repo ? corpus_repo_ref_url(source.repo) : undefined;
 
 export interface BaselineEntry {
   name: string;
@@ -1271,7 +1281,7 @@ export const format_corpus_source_files = (source: CorpusSource): string => {
   return parts.length > 0 ? parts.join(", ") : total;
 };
 
-// Corpus source repos (site-owned path → URL mapping)
+// Corpus source repos
 
 export interface CorpusRepo {
   // public repo URL the entry links to
@@ -1281,66 +1291,23 @@ export interface CorpusRepo {
 }
 
 /**
- * Maps a corpus source's on-disk path to its public repo URL. The bench records
- * only local paths (`../zzz/src`), so the site owns this mapping — the links then
- * survive an `update-benchmarks` refresh without touching the copied JSON. Keyed by
- * the repo's directory prefix, each ending in a slash so siblings like `../fuz_css/`
- * and `../fuz_code/`, and `../svelte/` vs `../svelte.dev/`, stay distinct. A source
- * matching no prefix — the derived `svelte_styles` CSS cache, which isn't a single
- * repo — is dropped from the repos list rather than shown unlinked.
- */
-const CORPUS_REPO_URL_BY_PREFIX: ReadonlyArray<readonly [string, string]> = [
-  ["../zzz/", "https://github.com/fuzdev/zzz"],
-  ["../fuz_app/", "https://github.com/fuzdev/fuz_app"],
-  ["../fuz_blog/", "https://github.com/fuzdev/fuz_blog"],
-  ["../fuz_code/", "https://github.com/fuzdev/fuz_code"],
-  ["../fuz_css/", "https://github.com/fuzdev/fuz_css"],
-  ["../fuz_docs/", "https://github.com/fuzdev/fuz_docs"],
-  ["../fuz_gitops/", "https://github.com/fuzdev/fuz_gitops"],
-  ["../fuz_mastodon/", "https://github.com/fuzdev/fuz_mastodon"],
-  ["../fuz_template/", "https://github.com/fuzdev/fuz_template"],
-  ["../fuz_ui/", "https://github.com/fuzdev/fuz_ui"],
-  ["../fuz_util/", "https://github.com/fuzdev/fuz_util"],
-  ["../mdz/", "https://github.com/fuzdev/mdz"],
-  ["../gro/", "https://github.com/fuzdev/gro"],
-  ["../svelte-docinfo/", "https://github.com/fuzdev/svelte-docinfo"],
-  ["../tsv.fuz.dev/", "https://github.com/fuzdev/tsv.fuz.dev"],
-  ["../ryanatkn.com/", "https://github.com/ryanatkn/ryanatkn.com"],
-  ["../webdevladder.net/", "https://github.com/ryanatkn/webdevladder.net"],
-  ["../kit/", "https://github.com/sveltejs/kit"],
-  ["../svelte.dev/", "https://github.com/sveltejs/svelte.dev"],
-  ["../svelte/", "https://github.com/sveltejs/svelte"],
-];
-
-/** The repo URL for a corpus source path, or `undefined` when it maps to no repo. */
-const corpus_repo_url = (path: string): string | undefined =>
-  CORPUS_REPO_URL_BY_PREFIX.find(([prefix]) => path.startsWith(prefix))?.[1];
-
-/** `org/name` from a `https://github.com/org/name` URL — the linkified label. */
-const corpus_repo_label = (url: string): string =>
-  new URL(url).pathname.slice(1);
-
-/**
  * The distinct source repos behind a report's corpus, one entry per URL in
  * first-seen order (the author's ecosystem leads, the upstream framework repos
  * trail, matching the source order). Sources sharing a repo (svelte.dev's several
- * packages) collapse to one entry; sources with no mapped repo (the `svelte_styles`
- * CSS cache) are dropped. URLs come from the site-owned `CORPUS_REPO_URL_BY_PREFIX`,
- * not the report, so the links survive a refresh.
+ * packages) collapse to one entry; a source with no detected repo (the
+ * `svelte_styles` CSS cache) is dropped. Every URL comes from the report's own
+ * `repo` — for a snapshot collection that is the UPSTREAM the snapshot vendored,
+ * so the list still names the projects, not the snapshot repo (which
+ * `corpus_snapshot` names once).
  */
 export const derive_corpus_repos = (
   sources: Array<CorpusSource> | undefined,
 ): Array<CorpusRepo> => {
   const by_url: Map<string, CorpusRepo> = new Map();
   for (const source of sources ?? []) {
-    // Prefer the report's git-detected repo; fall back to the legacy prefix
-    // map for reports predating `version` 8 (which lack `source.repo`).
-    const url = source.repo?.url ?? corpus_repo_url(source.path);
-    if (!url || by_url.has(url)) continue;
-    by_url.set(url, {
-      url,
-      label: source.repo?.slug ?? corpus_repo_label(url),
-    });
+    const repo = source.repo;
+    if (!repo || by_url.has(repo.url)) continue;
+    by_url.set(repo.url, { url: repo.url, label: repo.slug });
   }
   return [...by_url.values()];
 };
