@@ -129,9 +129,13 @@ reconstruct_locations(ast, 'const x = 1;');`;
 				<code>parse_css</code> work the same way, and the parsers return Svelte-compatible JSON ASTs
 				with bundled TS types. Every parser also takes an acorn-style options object —
 				<code>{'{locations: false}'}</code> for the span-only wire (below), plus TypeScript's
-				<code>{"{goal: 'script' | 'module'}"}</code>. The native package needs no initialization;
-				the WASM packages work zero-config in Node.js, Bun, and Deno (sync auto-init), and browsers
-				and bundlers call <code>await init()</code> once first.
+				<code>{"{sourceType: 'script' | 'module'}"}</code>, which <code>format_typescript</code>
+				takes too. Strictness follows the spec: a module is strict, a script is sloppy until its own
+				<code>"use strict"</code> prologue. Parsing defaults to <code>'module'</code>; formatting
+				with no <code>sourceType</code> parses as a module and retries as a script only if that
+				fails, so a legacy sloppy script formats with no options at all. The native package needs no
+				initialization; the WASM packages work zero-config in Node.js, Bun, and Deno (sync
+				auto-init), and browsers and bundlers call <code>await init()</code> once first.
 			</p>
 		</TomeSection>
 		<TomeSection>

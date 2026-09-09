@@ -199,7 +199,7 @@
 			<a href="https://oxc.rs/docs/guide/usage/formatter.html">Oxfmt</a>,
 			<a href="https://biomejs.dev/formatter/">Biome</a>, and
 			<a href="https://dprint.dev/plugins/typescript/">dprint</a>. It formats Svelte, TypeScript,
-			and CSS, plus JS as strict-mode TypeScript:
+			and CSS, plus JS through the same TypeScript parser:
 		</p>
 		{#each format_groups as group (group.language)}
 			<BenchmarksGroup {group} {corpus} />
@@ -345,8 +345,8 @@
 			measures parse <em>coverage</em>: how much of a much larger, deliberately hard corpus each
 			parser accepts — Prettier's format-test suites, Svelte's compiler test suite, CSS extracted
 			from <a href="https://github.com/web-platform-tests/wpt">web-platform-tests</a>,
-			<a href="https://github.com/tc39/test262">test262</a>'s expected-valid strict-mode tests, and
-			the single-file cases from the
+			<a href="https://github.com/tc39/test262">test262</a>'s expected-valid tests, parsed at the
+			goal each declares, and the single-file cases from the
 			<a href="https://github.com/microsoft/TypeScript">TypeScript compiler</a>'s own test suite
 			that tsc itself parses cleanly.
 		</p>
