@@ -54,7 +54,8 @@ reconstruct_locations(ast, 'const x = 1;');`;
 		<p>
 			Compared to <a href="https://github.com/baseballyama/rsvelte">rsvelte</a>, tsv has its own
 			TS/JS/CSS parsers instead of using Oxc, and rsvelte additionally has a compiler and
-			linter/typechecker integration (tsv has some in-progress work here, scope unknown).
+			linter/typechecker integration (tsv has some in-progress work here, scope unknown, may never
+			ship).
 		</p>
 		<p>tsv prioritizes, in order:</p>
 		<ol>
@@ -64,10 +65,10 @@ reconstruct_locations(ast, 'const x = 1;');`;
 			<li>extensibility (valued but deprioritized), modularity, and reusability</li>
 		</ol>
 		<p>
-			See the <TomeLink slug="benchmarks" /> for stats. Compared to Oxc and Biome, tsv is faster,
-			smaller, and uses less memory to parse and format its supported languages. One reason for tsv
-			to exist is to help find the performance bonuses left on the table in the Web ecosystem's
-			increasingly-native implementations.
+			See the <TomeLink slug="benchmarks" /> for stats. Compared to Oxc and Biome, tsv is smaller
+			and faster at parsing and formatting its supported languages, but lacks their features and
+			broad language support. One reason for tsv to exist is to help find the performance bonuses
+			left on the table in the Web ecosystem's increasingly-native implementations.
 		</p>
 		<p>
 			This is an early release with many bugs (and fixes to bugs in Prettier and
@@ -85,7 +86,7 @@ reconstruct_locations(ast, 'const x = 1;');`;
 		</p>
 		<TomeSection>
 			<TomeSectionHeader text="Install" />
-			<p>On Node.js and Bun, tsv installs as a native addon with prebuilt binaries:</p>
+			<p>On Node.js (22+) and Bun, tsv installs as a native addon with prebuilt binaries:</p>
 			<Code
 				lang="sh"
 				content={'npm i -D @fuzdev/tsv\nnpx tsv format src\nnpx tsv parse src/foo.svelte'}
@@ -94,13 +95,19 @@ reconstruct_locations(ast, 'const x = 1;');`;
 				The right binary installs automatically. Prebuilt for Linux (x64, arm64, and x64 musl),
 				macOS arm64, and Windows x64 — anywhere else, use the WASM build below. The <code>tsv</code>
 				command here is tsv's real native CLI binary, shipped in the platform package and exec'd
-				directly — multi-file parallelism (<code>--jobs</code>), parallel discovery, the works. It
-				ships beside the addon because neither can play the other's role: an addon can't be exec'd
-				as a process, and an executable can't be loaded as an in-process module.
+				directly, with native multi-file parallelism (<code>--jobs</code>) and parallel discovery.
+				It ships beside the addon because neither can play the other's role: an addon can't be
+				exec'd as a process, and an executable can't be loaded as an in-process module.
+			</p>
+			<p>
+				The same CLI binaries are also attached to each
+				<a href="https://github.com/fuzdev/tsv/releases">GitHub Release</a> with a
+				<code>SHA256SUMS</code> and a build provenance attestation, for use without npm.
 			</p>
 			<p>
 				tsv also ships as WASM, which runs everywhere including browsers and Deno, and carries the
-				same <code>tsv</code> CLI:
+				same <code>tsv</code> CLI (formatting across worker threads, so <code>--jobs</code> works
+				there too):
 			</p>
 			<Code lang="sh" content={'npm i -D @fuzdev/tsv_wasm\nnpx tsv format src'} />
 			<p>For smaller builds, the formatter and parser also ship solo:</p>
@@ -149,8 +156,8 @@ reconstruct_locations(ast, 'const x = 1;');`;
 			<p>
 				Passing <code>{'{locations: false}'}</code> is faster than the default, because there's
 				fewer bytes to emit and parse. Even when you need line/column, reconstructing in JS beats
-				the <code>loc</code>-bearing wire end-to-end by ~1.7x on TypeScript (~2.2x for a few
-				positions). tsv's default emits <code>loc</code> so that the bare call is a drop-in for
+				the <code>loc</code>-bearing wire end-to-end by ~1.7x on TypeScript (~2.2x if you need few
+				or none). tsv's default emits <code>loc</code> so that the bare call is a drop-in for
 				Svelte's parser. The <code>reconstruct_locations</code> helper is bundled in every package
 				that parses, native and WASM alike.
 			</p>

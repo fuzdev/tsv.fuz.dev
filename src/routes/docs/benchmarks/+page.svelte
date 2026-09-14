@@ -122,8 +122,9 @@
 	<TomeSection>
 		<TomeSectionHeader text="tldr" />
 		<p>
-			Compared to Oxc and Biome, tsv is faster, smaller, and uses less memory to parse and format
-			its supported languages. This section has a prose summary; skip ahead for charts.
+			Compared to Oxc and Biome, tsv is smaller and faster at parsing and formatting its supported
+			languages, but lacks their features and broad language support. This section has a prose
+			summary; skip ahead for charts.
 		</p>
 		<p>
 			The measurements on this page are single-threaded and in-process, where each tool parses or
@@ -290,12 +291,13 @@
 				<li>
 					rsvelte's parser is the only other engine here that parses Svelte, and it's matched to
 					tsv's default wire on both counts that matter: it also hands JS a compact JSON string, and
-					on a real component the two payloads are within a couple of percent. So
-					<code>rsvelte-parse</code> compares against <code>tsv-json</code> directly, not against
-					the <code>no-locs</code> entries. Its second entry passes rsvelte's own
-					<code>skipExpressionLoc</code>, which drops <code>loc</code> only on embedded JS
-					expressions and keeps the top-level offsets — a different trade than tsv's span-only wire,
-					which is why that entry is named for the option rather than for tsv's.
+					when last measured (on an earlier rsvelte release) the two payloads were within a couple
+					of percent on a real component. So <code>rsvelte-parse</code> compares against
+					<code>tsv-json</code> directly, not against the <code>no-locs</code> entries. Its second
+					entry passes rsvelte's own <code>skipExpressionLoc</code>, which drops <code>loc</code>
+					only on embedded JS expressions and keeps the top-level offsets — a different trade than
+					tsv's span-only wire, which is why that entry is named for the option rather than for
+					tsv's.
 				</li>
 				<li>
 					swc parses into its own AST shape — a <code>Module</code> root carrying <code>span</code>
@@ -497,8 +499,9 @@
 			timing the whole CLI end-to-end — process spawn, file discovery, I/O, and each tool's default
 			multi-file parallelism — plus peak memory. It's the "what you experience typing the command"
 			measure, run on real repositories. tsv appears only in the JSX-free scenarios (it has no
-			JSX/TSX parser). The tsv binary measured here is the same one <code>@fuzdev/tsv</code> ships
-			in its platform packages and execs from <code>npx tsv</code> — the npx path just adds Node's
+			JSX/TSX parser). The tsv binary measured here is the same native CLI that
+			<code>@fuzdev/tsv</code> ships in its platform packages and execs from <code>npx tsv</code>,
+			built from source for the run rather than installed from npm — the npx path just adds Node's
 			~20&nbsp;ms launcher on top.
 		</p>
 		<BenchmarksCli report={benchmarks_cli} />

@@ -55,8 +55,8 @@ export interface BenchmarkBaseline {
 	// Implementations that failed to initialize on the producing machine, as
 	// `{impl, reason, rows}`. An impl that doesn't load contributes NO row, so
 	// without this a tool that broke upstream is indistinguishable from one that was
-	// never measured (the Node report should be `[]`; Bun's carries its two known
-	// load failures). Present from `version` 10 on, `rows` from `version` 12; not
+	// never measured (the Node report should be `[]`; Bun's carries its known
+	// `biome-wasm` load failure). Present from `version` 10 on, `rows` from `version` 12; not
 	// rendered here, kept for parity.
 	unavailable?: Array<UnavailableImpl>;
 	// Files a byte-graded row ACCEPTED whose output the producing bench's

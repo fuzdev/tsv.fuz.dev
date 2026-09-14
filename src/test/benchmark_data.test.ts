@@ -39,14 +39,23 @@ import {
 	type CrossRuntimeReport
 } from '$routes/docs/benchmarks/benchmark_data.ts';
 
+// The report shape versions the committed copies are pinned to — tsv's
+// `REPORT_SCHEMA_VERSION` (per-runtime and conformance reports) and its composer's
+// `COMBINED_SCHEMA_VERSION`. Exact rather than floors, so `npm run update-benchmarks`
+// pulling a newer shape fails here until `benchmark_data.ts` mirrors the new fields
+// and these are re-pinned together.
+const REPORT_VERSION = 14;
+const COMBINED_VERSION = 14;
+
 // Shape gate for the committed benchmarks.json: the bench report format drifts
 // (it once went 3 months stale across a key rename that rendered as `undefined`),
 // and `benchmarks.ts` casts the JSON, so typechecking alone won't catch it.
 // When `npm run update-benchmarks` pulls in a new shape, these fail loudly.
 describe('benchmarks.json shape', () => {
 	test('baseline version is current', () => {
-		// version 5 is the first per-runtime report shape (carries `runtime`)
-		assert.isAtLeast(benchmarks_json.version, 5);
+		// pinned exactly: a bump in tsv's `REPORT_SCHEMA_VERSION` must be a deliberate
+		// re-pin here, after `benchmark_data.ts` gains the new fields' version-notes
+		assert.strictEqual(benchmarks_json.version, REPORT_VERSION);
 	});
 
 	test('binary sizes include the flagship tsv builds', () => {
@@ -434,7 +443,7 @@ describe('benchmarks.json shape', () => {
 // canonical-rejects), consumed by the Parse conformance section.
 describe('benchmarks_conformance.json shape', () => {
 	test('report is the conformance surface at the current version', () => {
-		assert.isAtLeast(benchmarks_conformance_json.version, 6);
+		assert.strictEqual(benchmarks_conformance_json.version, REPORT_VERSION);
 		assert.strictEqual(benchmarks_conformance_json.corpus_kind, 'conformance');
 		assert.strictEqual(benchmarks_conformance_json.runtime, 'node');
 	});
@@ -622,7 +631,7 @@ describe('order_cross_runtime_runtimes', () => {
 // per-runtime baseline, consumed by the Cross-runtime section.
 describe('benchmarks_cross_runtime.json shape', () => {
 	test('combined report carries the current version and kind', () => {
-		assert.isAtLeast(benchmarks_cross_runtime_json.version, 5);
+		assert.strictEqual(benchmarks_cross_runtime_json.version, COMBINED_VERSION);
 		assert.strictEqual(benchmarks_cross_runtime_json.kind, 'combined');
 		// the committed fixture must be same-vintage — if this trips, re-run every
 		// runtime and recompose rather than committing a mixed set (the site would
@@ -636,8 +645,20 @@ describe('benchmarks_cross_runtime.json shape', () => {
 		// (the site would show the parse-conformance section's warning banner)
 		const vintage = benchmarks_cross_runtime_json.conformance_vintage;
 		assert.isOk(vintage, 'conformance_vintage recorded');
-		assert.notStrictEqual(vintage!.stale, true);
-		assert.strictEqual(vintage!.git_commit, benchmarks_conformance_json.git_commit);
+		assert.notStrictEqual(vintage.stale, true);
+		assert.strictEqual(vintage.git_commit, benchmarks_conformance_json.git_commit);
+	});
+
+	test('the flagship report is the node sibling the combined report was composed from', () => {
+		// `update-benchmarks` copies three files from one `deno task bench`; if a copy
+		// is skipped or taken from another worktree, the detailed view and the
+		// cross-runtime tables silently describe different builds. The composer
+		// can't see the copied files, so this is the site-side vintage gate
+		const node = benchmarks_cross_runtime_json.sources.find((s) => s.runtime === 'node');
+		assert.isOk(node, 'combined report carries a node source');
+		assert.strictEqual(node.git_commit, benchmarks_json.git_commit);
+		assert.strictEqual(node.timestamp, benchmarks_json.timestamp);
+		assert.strictEqual(node.tsv, benchmarks_json.versions.tsv);
 	});
 
 	test('runtimes include the flagship and its cross-runtime peers', () => {

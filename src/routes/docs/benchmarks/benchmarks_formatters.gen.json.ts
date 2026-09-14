@@ -34,7 +34,9 @@ export const gen: Gen = {
 
 		const benchmarks = parse_formatter_benchmarks(readme);
 		log.info(`parsed ${benchmarks.scenarios.length} tsv scenario(s) from ${path}`);
-		return JSON.stringify(benchmarks);
+		// indented here: gro's gen formats no JSON (tsv has no JSON formatter yet), so
+		// the output is committed exactly as returned, tab-indented like the copied reports
+		return JSON.stringify(benchmarks, null, '\t') + '\n';
 	},
 	dependencies: { files: [resolve(README_PATH)] }
 };
