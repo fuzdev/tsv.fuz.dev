@@ -9,11 +9,8 @@
 </script>
 
 <p>
-	tsv's formatter is inspired by and borrows architectural patterns from <a
-		href="https://prettier.io/"
-	>
-		Prettier
-	</a>, and we're grateful for the hard work of its
+	tsv's formatter is inspired by and borrows architectural patterns from
+	<a href="https://prettier.io/">Prettier</a>, and we're grateful for the hard work of its
 	<a href="https://github.com/prettier/prettier/graphs/contributors">contributors</a>.
 	Single-threaded on the benchmarked corpus, tsv is this much faster than Prettier:
 </p>

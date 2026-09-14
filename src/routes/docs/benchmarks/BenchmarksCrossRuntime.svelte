@@ -122,7 +122,10 @@
 							</td>
 							{#each runtimes as runtime (runtime)}
 								{@const ops = row.ops_per_second[runtime]}
-								<td class="num" title={ops == null ? missing_cell_title(row.name, runtime) : undefined}>
+								<td
+									class="num"
+									title={ops == null ? missing_cell_title(row.name, runtime) : undefined}
+								>
 									{format_ops(ops)}
 								</td>
 							{/each}
@@ -145,13 +148,13 @@
 	{/each}
 	<p class="text_40">
 		sweeps/sec — one sweep is a full pass over the group's timed file set (higher is faster); ratios
-		are vs <code>{base}</code> (&gt; 1 = faster than {base}). A
-		<code>fail</code> is a row that runtime contributed no number for — an implementation it can't
-		load (listed above when the report records it), or one its report doesn't carry. The
-		<code>native</code> rows load each runtime's idiomatic binding of the same engine — the N-API
-		addon under <code>node</code> and <code>bun</code> (<code>tsv (node napi)</code>), the C-FFI
-		library under <code>deno</code> (<code>tsv (deno ffi)</code>) — so the <code>deno</code> column
-		is a first-class FFI-vs-N-API comparison, not a re-run of the same binding.
+		are vs <code>{base}</code> (&gt; 1 = faster than {base}). A <code>fail</code> is a row that
+		runtime contributed no number for — an implementation it can't load (listed above when the
+		report records it), or one its report doesn't carry. The <code>native</code> rows load each
+		runtime's idiomatic binding of the same engine — the N-API addon under <code>node</code> and
+		<code>bun</code> (<code>tsv (node napi)</code>), the C-FFI library under <code>deno</code>
+		(<code>tsv (deno ffi)</code>) — so the <code>deno</code> column is a first-class FFI-vs-N-API
+		comparison, not a re-run of the same binding.
 	</p>
 </div>
 

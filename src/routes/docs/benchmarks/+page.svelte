@@ -112,12 +112,10 @@
 			<a href="https://biomejs.dev/">Biome</a>, which are similar tools with wider language support
 			(tsv doesn't support JSX/TSX/SCSS/etc). Also included for comparison:
 			<a href="https://baseballyama.github.io/rsvelte/">rsvelte</a> (Svelte parser/formatter),
-			<a href="https://yuku.fyi/">Yuku</a> (TypeScript/JS parser),
-			<a href="https://swc.rs/">swc</a> (TypeScript/JS parser),
-			<a href="https://dprint.dev/">dprint-typescript</a> (TypeScript/JS formatter),
-			<a href="https://github.com/g-plane/malva">malva</a> (CSS formatter, dprint's CSS plugin), and
-			<a href="https://postcss.org/">PostCSS</a>
-			(CSS parser).
+			<a href="https://yuku.fyi/">Yuku</a> (TypeScript/JS parser), <a href="https://swc.rs/">swc</a>
+			(TypeScript/JS parser), <a href="https://dprint.dev/">dprint-typescript</a> (TypeScript/JS
+			formatter), <a href="https://github.com/g-plane/malva">malva</a> (CSS formatter, dprint's CSS
+			plugin), and <a href="https://postcss.org/">PostCSS</a> (CSS parser).
 		</p>
 	</section>
 
@@ -164,9 +162,8 @@
 				</a>
 				is an end-to-end CLI benchmark with its own corpus. On a real TypeScript repo, tsv formats
 				~{cli_ts_wall_vs_oxfmt} faster than Oxfmt and ~{cli_ts_wall_vs_biome} faster than Biome
-				using ~{cli_ts_memory
-					? format_ratio_range_approx(cli_ts_memory.min, cli_ts_memory.max)
-					: '—'}
+				using
+				~{cli_ts_memory ? format_ratio_range_approx(cli_ts_memory.min, cli_ts_memory.max) : '—'}
 				less memory than either. Wall-clock ratios bake in each tool's multi-file parallelism — see
 				the notes in <a href="#{docs_slugify(CLI_SECTION_TITLE)}">that section</a>.
 			</li>
@@ -174,9 +171,8 @@
 				<li>
 					The fork's Svelte scenario benches tsv against rsvelte-fmt, the other Rust Svelte-native
 					formatter, on a third-party <code>.svelte</code> corpus: tsv formats
-					~{format_ratio_approx(cli_svelte_wall)} faster using ~{format_ratio_approx(
-						cli_svelte_memory
-					)} less memory.
+					~{format_ratio_approx(cli_svelte_wall)} faster using
+					~{format_ratio_approx(cli_svelte_memory)} less memory.
 				</li>
 			{/if}
 		</ul>
@@ -253,12 +249,11 @@
 			<code>tsv_wasm-json</code>) carries a per-node <code>loc</code> (line/column) object that
 			oxc-parser's default span-only AST omits, and that <code>loc</code> is roughly half the wire
 			bytes and most of its JSON.parse cost. The <code>tsv-json-no-locations</code> /
-			<code>tsv_wasm-json-no-locations</code>
-			entries drop it, emitting the same span-only shape oxc does, so those are the payload-matched,
-			apples-to-apples comparison with oxc-parser (line/column stays derivable from the offsets plus
-			source, so nothing is lost). The tsv-internal and tsv_wasm-internal entries build the native
-			AST but skip JS-side materialization, so they show raw in-engine speed rather than a
-			cross-tool comparison.
+			<code>tsv_wasm-json-no-locations</code> entries drop it, emitting the same span-only shape oxc
+			does, so those are the payload-matched, apples-to-apples comparison with oxc-parser
+			(line/column stays derivable from the offsets plus source, so nothing is lost). The
+			tsv-internal and tsv_wasm-internal entries build the native AST but skip JS-side
+			materialization, so they show raw in-engine speed rather than a cross-tool comparison.
 		</p>
 		<p class="mb_xl5">
 			yuku-parser, a JS/TS parser written in Zig, emits the same span-only AST as oxc, so it too
@@ -280,9 +275,9 @@
 				</li>
 				<li>
 					Biome is shown grayed-out across all three parse groups because its
-					<code>@biomejs/js-api</code>
-					package doesn't expose a parser to JS (only formatting and linting). Biome parses
-					internally but never surfaces the AST across the JS boundary, so it can't be measured.
+					<code>@biomejs/js-api</code> package doesn't expose a parser to JS (only formatting and
+					linting). Biome parses internally but never surfaces the AST across the JS boundary, so it
+					can't be measured.
 				</li>
 				<li>
 					oxc-parser only parses TypeScript and JS (and JSX, not measured here). oxc-parser doesn't
@@ -352,8 +347,8 @@
 		</p>
 		{#if benchmarks_cross_runtime_json.conformance_vintage?.stale}
 			<aside class="mixed-vintage">
-				⚠ The conformance report backing this section comes from a different commit than the
-				speed reports above, so the two sections describe different builds until it is re-run.
+				⚠ The conformance report backing this section comes from a different commit than the speed
+				reports above, so the two sections describe different builds until it is re-run.
 			</aside>
 		{/if}
 		<BenchmarksConformance groups={conformance_groups} />
@@ -380,8 +375,8 @@
 				</li>
 				<li>
 					The <code>tsc</code> row is the TypeScript compiler's own parser, which appears here and
-					nowhere else on this page — a verdict rather than a speed. It selected the compiler slice of
-					this corpus (only the cases it parses cleanly are kept), so it scores 100% there by
+					nowhere else on this page — a verdict rather than a speed. It selected the compiler slice
+					of this corpus (only the cases it parses cleanly are kept), so it scores 100% there by
 					construction, the way svelte/compiler does on the Svelte set; the rest of its number comes
 					from corpora it didn't select, where it rejects JSX and stage-1 proposals in Prettier's
 					JavaScript fixtures and a small tail of test262. That blend is why it doesn't read 100%.
@@ -446,10 +441,9 @@
 				<li>
 					that combined figure is a little unfair to oxc: oxfmt statically links its own copy of the
 					same oxc parser (it has to parse to format) but doesn't depend on the
-					<code>oxc-parser</code>
-					package or expose parsing through its API. The two are independently compiled, so the sum
-					counts the parser's compiled code twice — more than a single build exposing both
-					operations (like tsv's) would need
+					<code>oxc-parser</code> package or expose parsing through its API. The two are
+					independently compiled, so the sum counts the parser's compiled code twice — more than a
+					single build exposing both operations (like tsv's) would need
 				</li>
 				<li>
 					oxfmt has no wasm build as of {report_month}, so it's shown grayed-out under Formatter,
@@ -484,8 +478,8 @@
 				<li>
 					tsv's N-API addon for Node and Bun ships as <code>@fuzdev/tsv</code> (prebuilt
 					per-platform packages, which also carry the native <code>tsv</code> CLI binary that
-					<code>npx tsv</code>
-					runs); the C-FFI library Deno loads is built for benchmarking and not published
+					<code>npx tsv</code> runs); the C-FFI library Deno loads is built for benchmarking and not
+					published
 				</li>
 			</ul>
 		</aside>
@@ -558,13 +552,12 @@
 			sources: the author's libraries, apps, and sites (the fuz.dev ecosystem plus personal
 			SvelteKit sites), and upstream framework source (Svelte, SvelteKit, and the svelte.dev site).
 			The CSS set also includes real-authored CSS extracted from those components'
-			<code>&lt;style&gt;</code>
-			blocks, concatenated per repo — standalone CSS files are rare in this ecosystem, and the same
-			bytes appear in the Svelte rows (rows are never summed). Test files count as real code and
-			stay in; fixture files (the formatter test suites that used to be part of this corpus, and
-			fixture subtrees inside the measured repos) are excluded — deliberately tricky edge cases
-			measure conformance, not typical throughput, and are covered by the parse-conformance section
-			above.
+			<code>&lt;style&gt;</code> blocks, concatenated per repo — standalone CSS files are rare in
+			this ecosystem, and the same bytes appear in the Svelte rows (rows are never summed). Test
+			files count as real code and stay in; fixture files (the formatter test suites that used to be
+			part of this corpus, and fixture subtrees inside the measured repos) are excluded —
+			deliberately tricky edge cases measure conformance, not typical throughput, and are covered by
+			the parse-conformance section above.
 		</p>
 		<BenchmarksMeta baseline={benchmarks_json} />
 	</TomeSection>

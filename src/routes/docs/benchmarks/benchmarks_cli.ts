@@ -20,35 +20,35 @@
 // is authored here. To refresh: run `pnpm run update-readme` in the harness, then
 // `gro gen` here.
 
-import { benchmarks_formatters_json } from "./benchmarks_formatters.ts";
-import type { FormatterScenario } from "./formatter_benchmark_data.ts";
+import { benchmarks_formatters_json } from './benchmarks_formatters.ts';
+import type { FormatterScenario } from './formatter_benchmark_data.ts';
 
 export interface CliFormatterResult {
-  /** Display label; `tsv` is the reference row every ratio is computed against. */
-  label: string;
-  /** hyperfine wall-clock mean, in milliseconds — what you experience typing the command. */
-  wall_ms: number;
-  /** hyperfine `User` time (total CPU across all threads), in ms — the parallelism-neutral view. */
-  cpu_ms: number;
-  /** Peak resident set size (RSS), in megabytes; `null` when the harness measured no memory. */
-  memory_mb: number | null;
+	/** Display label; `tsv` is the reference row every ratio is computed against. */
+	label: string;
+	/** hyperfine wall-clock mean, in milliseconds — what you experience typing the command. */
+	wall_ms: number;
+	/** hyperfine `User` time (total CPU across all threads), in ms — the parallelism-neutral view. */
+	cpu_ms: number;
+	/** Peak resident set size (RSS), in megabytes; `null` when the harness measured no memory. */
+	memory_mb: number | null;
 }
 
 export interface CliScenario {
-  key: string;
-  heading: string;
-  /** The harness's own one-line corpus label, rendered beside the heading. */
-  target: string;
-  /** One-line description of what makes the comparison fair. */
-  description: string;
-  /** Results ascending by wall-clock time, tsv-relative ratios computed by the component. */
-  results: Array<CliFormatterResult>;
+	key: string;
+	heading: string;
+	/** The harness's own one-line corpus label, rendered beside the heading. */
+	target: string;
+	/** One-line description of what makes the comparison fair. */
+	description: string;
+	/** Results ascending by wall-clock time, tsv-relative ratios computed by the component. */
+	results: Array<CliFormatterResult>;
 }
 
 export interface BenchmarksCliReport {
-  machine: string;
-  versions: Record<string, string>;
-  scenarios: Array<CliScenario>;
+	machine: string;
+	versions: Record<string, string>;
+	scenarios: Array<CliScenario>;
 }
 
 /**
@@ -63,7 +63,7 @@ export interface BenchmarksCliReport {
  * until the harness README is regenerated with it, so prose about it must be
  * conditional on the scenario actually being present.
  */
-export const CLI_SVELTE_KEY = "svelte-tsv-vs-rsvelte-fmt";
+export const CLI_SVELTE_KEY = 'svelte-tsv-vs-rsvelte-fmt';
 
 /**
  * The multi-file TypeScript repo scenario's id, in both spellings. The harness
@@ -75,38 +75,35 @@ export const CLI_SVELTE_KEY = "svelte-tsv-vs-rsvelte-fmt";
  * test fails at exactly that point so the transitional pair can't outlive the
  * migration.
  */
-const CLI_TS_REPO_KEY_CURRENT = "typescript-only-non-jsx-subset";
+const CLI_TS_REPO_KEY_CURRENT = 'typescript-only-non-jsx-subset';
 
 /**
  * Exported only so a test can retire it. `benchmark_data.test.ts` fails the
  * moment the generated data resolves to `CLI_TS_REPO_KEY_CURRENT`, which is what
  * turns the deletion above from a comment nobody rereads into a gate.
  */
-export const CLI_TS_REPO_KEY_LEGACY = "typescript-only-tsv-fair";
+export const CLI_TS_REPO_KEY_LEGACY = 'typescript-only-tsv-fair';
 
 /** Shared by both ids above; only ever one of them is present in the data. */
 const TS_REPO_COPY = {
-  heading: "TypeScript repo",
-  description:
-    "Every formatter scoped to the same file set and pinned to tsv’s fixed style, so they make the same break decisions over the same files; a preflight check aborts the scenario rather than publish a comparison the tools didn’t run on equal work.",
+	heading: 'TypeScript repo',
+	description:
+		'Every formatter scoped to the same file set and pinned to tsv’s fixed style, so they make the same break decisions over the same files; a preflight check aborts the scenario rather than publish a comparison the tools didn’t run on equal work.'
 };
 
-const SCENARIO_COPY: Record<
-  string,
-  Omit<CliScenario, "key" | "target" | "results">
-> = {
-  [CLI_TS_REPO_KEY_CURRENT]: TS_REPO_COPY,
-  [CLI_TS_REPO_KEY_LEGACY]: TS_REPO_COPY,
-  "large-single-file": {
-    heading: "Large single file",
-    description:
-      "With a single input every formatter is effectively single-threaded, so wall-clock is close to an engine comparison here.",
-  },
-  [CLI_SVELTE_KEY]: {
-    heading: "Svelte corpus",
-    description:
-      "The two Rust Svelte-native formatters head-to-head on a third-party .svelte corpus, with rsvelte-fmt configured to tsv’s fixed style (width 100, tabs, single quotes) so both do comparable line-break work.",
-  },
+const SCENARIO_COPY: Record<string, Omit<CliScenario, 'key' | 'target' | 'results'>> = {
+	[CLI_TS_REPO_KEY_CURRENT]: TS_REPO_COPY,
+	[CLI_TS_REPO_KEY_LEGACY]: TS_REPO_COPY,
+	'large-single-file': {
+		heading: 'Large single file',
+		description:
+			'With a single input every formatter is effectively single-threaded, so wall-clock is close to an engine comparison here.'
+	},
+	[CLI_SVELTE_KEY]: {
+		heading: 'Svelte corpus',
+		description:
+			'The two Rust Svelte-native formatters head-to-head on a third-party .svelte corpus, with rsvelte-fmt configured to tsv’s fixed style (width 100, tabs, single quotes) so both do comparable line-break work.'
+	}
 };
 
 /**
@@ -114,19 +111,18 @@ const SCENARIO_COPY: Record<
  * spaced out in a table. Names absent here are displayed as-is.
  */
 export const CLI_LABELS: Record<string, string> = {
-  "prettier+oxc-parser": "prettier + oxc-parser",
+	'prettier+oxc-parser': 'prettier + oxc-parser'
 };
 
 const to_results = (scenario: FormatterScenario): Array<CliFormatterResult> =>
-  scenario.timings
-    .map((timing) => ({
-      label: CLI_LABELS[timing.name] ?? timing.name,
-      wall_ms: timing.mean_ms,
-      cpu_ms: timing.user_ms,
-      memory_mb:
-        scenario.memory.find((m) => m.name === timing.name)?.mean_mb ?? null,
-    }))
-    .sort((a, b) => a.wall_ms - b.wall_ms);
+	scenario.timings
+		.map((timing) => ({
+			label: CLI_LABELS[timing.name] ?? timing.name,
+			wall_ms: timing.mean_ms,
+			cpu_ms: timing.user_ms,
+			memory_mb: scenario.memory.find((m) => m.name === timing.name)?.mean_mb ?? null
+		}))
+		.sort((a, b) => a.wall_ms - b.wall_ms);
 
 /** The scenarios the page has prose for; every non-optional one must resolve to generated data. */
 export const CLI_SCENARIO_KEYS = Object.keys(SCENARIO_COPY);
@@ -139,36 +135,34 @@ export const CLI_SCENARIO_KEYS = Object.keys(SCENARIO_COPY);
  * exactly that split.
  */
 export const CLI_OPTIONAL_SCENARIO_KEYS: Array<string> = [
-  CLI_SVELTE_KEY,
-  // Exactly one of the two TypeScript-repo ids is in the data at a time, so each
-  // has to be allowed to be absent. Nothing is weakened by that: `CLI_TS_REPO_KEY`
-  // still has to resolve to whichever one is present, and the ratio tests below
-  // fail loudly if neither is.
-  CLI_TS_REPO_KEY_CURRENT,
-  CLI_TS_REPO_KEY_LEGACY,
+	CLI_SVELTE_KEY,
+	// Exactly one of the two TypeScript-repo ids is in the data at a time, so each
+	// has to be allowed to be absent. Nothing is weakened by that: `CLI_TS_REPO_KEY`
+	// still has to resolve to whichever one is present, and the ratio tests below
+	// fail loudly if neither is.
+	CLI_TS_REPO_KEY_CURRENT,
+	CLI_TS_REPO_KEY_LEGACY
 ];
 
 const to_scenarios = (): Array<CliScenario> =>
-  Object.entries(SCENARIO_COPY).flatMap(([key, copy]) => {
-    const scenario = benchmarks_formatters_json.scenarios.find(
-      (s) => s.id === key,
-    );
-    return scenario
-      ? [
-          {
-            key,
-            ...copy,
-            target: scenario.target,
-            results: to_results(scenario),
-          },
-        ]
-      : [];
-  });
+	Object.entries(SCENARIO_COPY).flatMap(([key, copy]) => {
+		const scenario = benchmarks_formatters_json.scenarios.find((s) => s.id === key);
+		return scenario
+			? [
+					{
+						key,
+						...copy,
+						target: scenario.target,
+						results: to_results(scenario)
+					}
+				]
+			: [];
+	});
 
 export const benchmarks_cli: BenchmarksCliReport = {
-  machine: benchmarks_formatters_json.machine,
-  versions: benchmarks_formatters_json.versions,
-  scenarios: to_scenarios(),
+	machine: benchmarks_formatters_json.machine,
+	versions: benchmarks_formatters_json.versions,
+	scenarios: to_scenarios()
 };
 
 /**
@@ -177,10 +171,10 @@ export const benchmarks_cli: BenchmarksCliReport = {
  * the page's ratios keep working across the harness's rename in either direction.
  */
 export const CLI_TS_REPO_KEY = benchmarks_formatters_json.scenarios.some(
-  (s) => s.id === CLI_TS_REPO_KEY_CURRENT,
+	(s) => s.id === CLI_TS_REPO_KEY_CURRENT
 )
-  ? CLI_TS_REPO_KEY_CURRENT
-  : CLI_TS_REPO_KEY_LEGACY;
+	? CLI_TS_REPO_KEY_CURRENT
+	: CLI_TS_REPO_KEY_LEGACY;
 
 /**
  * How many times faster or lighter tsv is than `label` in one CLI scenario, by
@@ -190,17 +184,15 @@ export const CLI_TS_REPO_KEY = benchmarks_formatters_json.scenarios.some(
  * side's measurement is absent
  */
 export const cli_speedup_vs_tsv = (
-  scenario_key: string,
-  label: string,
-  metric: keyof Omit<CliFormatterResult, "label">,
+	scenario_key: string,
+	label: string,
+	metric: keyof Omit<CliFormatterResult, 'label'>
 ): number | undefined => {
-  const results = benchmarks_cli.scenarios.find(
-    (s) => s.key === scenario_key,
-  )?.results;
-  const tsv = results?.find((r) => r.label === "tsv")?.[metric];
-  const other = results?.find((r) => r.label === label)?.[metric];
-  if (tsv == null || other == null || !tsv) return undefined;
-  return other / tsv;
+	const results = benchmarks_cli.scenarios.find((s) => s.key === scenario_key)?.results;
+	const tsv = results?.find((r) => r.label === 'tsv')?.[metric];
+	const other = results?.find((r) => r.label === label)?.[metric];
+	if (tsv == null || other == null || !tsv) return undefined;
+	return other / tsv;
 };
 
 /**
@@ -212,18 +204,16 @@ export const cli_speedup_vs_tsv = (
  * @returns the low and high ratio, or `undefined` when nothing was measured
  */
 export const cli_memory_ratio_range = (
-  scenario_key?: string,
-  labels?: Array<string>,
+	scenario_key?: string,
+	labels?: Array<string>
 ): { min: number; max: number } | undefined => {
-  const scenarios = benchmarks_cli.scenarios.filter(
-    (s) => !scenario_key || s.key === scenario_key,
-  );
-  const ratios = scenarios.flatMap((scenario) =>
-    scenario.results
-      .filter((r) => r.label !== "tsv" && (!labels || labels.includes(r.label)))
-      .map((r) => cli_speedup_vs_tsv(scenario.key, r.label, "memory_mb"))
-      .filter((ratio) => ratio !== undefined),
-  );
-  if (ratios.length === 0) return undefined;
-  return { min: Math.min(...ratios), max: Math.max(...ratios) };
+	const scenarios = benchmarks_cli.scenarios.filter((s) => !scenario_key || s.key === scenario_key);
+	const ratios = scenarios.flatMap((scenario) =>
+		scenario.results
+			.filter((r) => r.label !== 'tsv' && (!labels || labels.includes(r.label)))
+			.map((r) => cli_speedup_vs_tsv(scenario.key, r.label, 'memory_mb'))
+			.filter((ratio) => ratio !== undefined)
+	);
+	if (ratios.length === 0) return undefined;
+	return { min: Math.min(...ratios), max: Math.max(...ratios) };
 };

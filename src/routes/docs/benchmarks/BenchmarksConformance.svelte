@@ -55,9 +55,8 @@
 							{/if}
 						</td>
 						<td class="num">
-							{row.files_processed.toLocaleString('en-US')} / {row.files_total.toLocaleString(
-								'en-US'
-							)}
+							{row.files_processed.toLocaleString('en-US')} /
+							{row.files_total.toLocaleString('en-US')}
 						</td>
 						<td class="num percent">{format_coverage_percent(row.coverage_fraction)}</td>
 					</tr>

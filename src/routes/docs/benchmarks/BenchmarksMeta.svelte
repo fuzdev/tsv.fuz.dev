@@ -22,6 +22,8 @@
 	const VERSION_LABELS: Record<string, string> = {
 		acorn_ts: 'acorn-typescript',
 		prettier_svelte: 'prettier-plugin-svelte',
+		// the oxc-parser wasm row's binding, its own scoped package
+		oxc_parser_wasm: '@oxc-parser/binding-wasm32-wasi',
 		// the wasm binding is its own scoped package, not a hyphenated suffix
 		yuku_parser_wasm: '@yuku-parser/wasm',
 		malva: 'dprint-plugin-malva',
@@ -106,9 +108,9 @@
 				<p class="mt_0 mb_sm">
 					snapshot
 					<!-- eslint-disable-next-line svelte/no-navigation-without-resolve -->
-					<a href={corpus_repo_ref_url(baseline.corpus_snapshot)}
-						>{baseline.corpus_snapshot.slug}@{baseline.corpus_snapshot.commit.slice(0, 9)}</a
-					>
+					<a href={corpus_repo_ref_url(baseline.corpus_snapshot)}>
+						{baseline.corpus_snapshot.slug}@{baseline.corpus_snapshot.commit.slice(0, 9)}
+					</a>
 				</p>
 			{/if}
 			<ul class="repos">
