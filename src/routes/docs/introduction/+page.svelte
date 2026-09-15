@@ -59,16 +59,17 @@ reconstruct_locations(ast, 'const x = 1;');`;
 		</p>
 		<p>tsv prioritizes, in order:</p>
 		<ol>
-			<li>correctness (Svelte and TypeScript conformance, spec adherence for HTML/CSS/JS)</li>
+			<li>correctness (spec conformance for HTML/CSS/JS, Svelte and TypeScript adherence)</li>
 			<li>speed</li>
 			<li>binary size and memory usage</li>
 			<li>extensibility (valued but deprioritized), modularity, and reusability</li>
 		</ol>
 		<p>
-			See the <TomeLink slug="benchmarks" /> for stats. Compared to Oxc and Biome, tsv is smaller
-			and faster at parsing and formatting its supported languages, but lacks their features and
-			broad language support. One reason for tsv to exist is to help find the performance bonuses
-			left on the table in the Web ecosystem's increasingly-native implementations.
+			See the <TomeLink slug="benchmarks" /> for measurements. Compared to Oxc and Biome, tsv is
+			smaller and faster at formatting its supported languages, and faster at parsing for the same
+			AST payload (the like-for-like rows in the report), but lacks their features and broad
+			language support. One reason for tsv to exist is to help find the performance bonuses left on
+			the table in the Web ecosystem's increasingly-native implementations.
 		</p>
 		<p>
 			This is an early release with many bugs (and fixes to bugs in Prettier and
@@ -122,9 +123,9 @@ reconstruct_locations(ast, 'const x = 1;');`;
 		<TomeSection>
 			<TomeSectionHeader text="Usage" />
 			<p>
-				All four packages share the same formatter and parser API — <code>@fuzdev/tsv</code> and
-				<code>@fuzdev/tsv_wasm</code> are drop-in swaps for each other, same function names, same
-				options, same errors. Both export the formatter and parser together:
+				All four packages share one API — the same function names, options, and errors — so
+				<code>@fuzdev/tsv</code> and <code>@fuzdev/tsv_wasm</code> are drop-in swaps for each other.
+				Both export the formatter and parser together:
 			</p>
 			<Code lang="ts" content={usage_example} />
 			<p>The formatter alone:</p>
@@ -140,7 +141,8 @@ reconstruct_locations(ast, 'const x = 1;');`;
 				takes too. Strictness follows the spec: a module is strict, a script is sloppy until its own
 				<code>"use strict"</code> prologue. Parsing defaults to <code>'module'</code>; formatting
 				with no <code>sourceType</code> parses as a module and retries as a script only if that
-				fails, so a legacy sloppy script formats with no options at all. The native package needs no
+				fails (a <code>.mjs</code>/<code>.mts</code> path is a module by name and takes no retry),
+				so a legacy sloppy script formats with no options at all. The native package needs no
 				initialization; the WASM packages work zero-config in Node.js, Bun, and Deno (sync
 				auto-init), and browsers and bundlers call <code>await init()</code> once first.
 			</p>

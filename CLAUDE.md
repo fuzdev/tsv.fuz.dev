@@ -117,10 +117,13 @@ gro gen
 `benchmarks_formatters.json`, keeping only the scenarios tsv participates in
 (it has no JSX/TSX parser, so the harness runs it on the JSX-free corpora
 only). That includes the harness's Svelte scenario, which benches tsv against
-rsvelte-fmt (`@rsvelte/fmt`); a scenario renders on the page only once it has
-an entry in `SCENARIO_COPY` (`benchmarks_cli.ts`), and prose claims about the
-Svelte head-to-head are conditional on its data being present, so the site
-stays correct whether or not the harness README has been regenerated with it.
+rsvelte-fmt (`@rsvelte/fmt`), and its tsv-only delivery scenario (the native
+binary vs `@fuzdev/tsv`'s Node dispatcher vs `@fuzdev/tsv_wasm`, flagged
+`tsv_only` so "every other tool" claims skip it); a scenario renders on the
+page only once it has an entry in `SCENARIO_COPY` (`benchmarks_cli.ts`), and
+prose claims about the Svelte head-to-head are conditional on its data being
+present, so the site stays correct whether or not the harness README has been
+regenerated with it.
 
 A **missing** sibling checkout is the one tolerated case — generation is
 skipped, the committed JSON stands, and `gro gen --check` passes on any machine

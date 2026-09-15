@@ -9,7 +9,9 @@
 // wall-clock ratios scale with core count and are machine-dependent — the
 // parallelism-neutral view is CPU work (hyperfine `User` time). tsv runs only in
 // the JSX-free scenarios (it has no JSX/TSX parser); the Svelte scenario benches
-// it against rsvelte-fmt (`@rsvelte/fmt`), the other Rust Svelte-native formatter.
+// it against rsvelte-fmt (`@rsvelte/fmt`), the other Rust Svelte-native formatter,
+// and the delivery scenario benches tsv against itself — the native binary, the
+// same binary through `@fuzdev/tsv`'s Node dispatcher, and `@fuzdev/tsv_wasm`.
 // tsv is non-configurable, so in every scenario it appears in, the formatters it
 // is compared against are pinned to its fixed style — width 100, tabs, single
 // quotes, no trailing commas — and before timing anything the harness asserts that
@@ -44,6 +46,11 @@ export interface CliScenario {
 	/** Results ascending by wall-clock time, tsv-relative ratios computed by the component. */
 	results: Array<CliFormatterResult>;
 	/**
+	 * Every row is a tsv distribution, so the scenario compares tsv with itself and
+	 * says nothing about other tools — claims spanning "every other tool" skip it.
+	 */
+	tsv_only: boolean;
+	/**
 	 * Why the harness stopped early, when it did. Before timing, `results` is
 	 * empty and the sentence names the formatter its preflight faulted; after
 	 * timing (a memory run crashed) `results` carry times but no memory. Either
@@ -70,27 +77,49 @@ export const CLI_SVELTE_KEY = 'svelte-tsv-vs-rsvelte-fmt';
 export const CLI_TS_REPO_KEY = 'typescript-only-non-jsx-subset';
 
 /**
+ * The tsv-only delivery scenario's id: the native binary against the same binary
+ * through `@fuzdev/tsv`'s Node dispatcher and against `@fuzdev/tsv_wasm`, on one
+ * file. It measures what each way of installing tsv costs, not another tool.
+ */
+export const CLI_DELIVERY_KEY = 'tsv-delivery-paths';
+
+/** The delivery scenario's npm-dispatcher row, as displayed. */
+export const CLI_TSV_NPM_LABEL = 'tsv via npm dispatcher';
+
+/** The delivery scenario's WASM row, as displayed. */
+export const CLI_TSV_WASM_LABEL = 'tsv_wasm';
+
+/**
  * The prose framing for each scenario, keyed by its generated scenario id — the
  * harness measures the numbers but doesn't explain them. Also fixes the page
- * order, which is by narrative weight (the multi-file repo leads), not the order
- * the harness runs them in. A scenario missing from here is dropped rather than
- * rendered unexplained.
+ * order, which is by narrative weight (the multi-file repo leads, the tsv-only
+ * delivery comparison closes), not the order the harness runs them in. A
+ * scenario missing from here is dropped rather than rendered unexplained.
  */
 const SCENARIO_COPY: Record<string, Omit<CliScenario, 'key' | 'target' | 'results' | 'aborted'>> = {
 	[CLI_TS_REPO_KEY]: {
 		heading: 'TypeScript repo',
 		description:
-			'Every formatter scoped to the same file set and pinned to tsv’s fixed style, so they make the same break decisions over the same files; a preflight check aborts the scenario rather than publish a comparison the tools didn’t run on equal work.'
+			'Every formatter scoped to the same file set and pinned to tsv’s fixed style, so they make the same break decisions over the same files; a preflight check aborts the scenario rather than publish a comparison the tools didn’t run on equal work.',
+		tsv_only: false
 	},
 	'large-single-file': {
 		heading: 'Large single file',
 		description:
-			'With a single input every formatter is effectively single-threaded, so wall-clock is close to an engine comparison here.'
+			'With a single input every formatter is effectively single-threaded, so wall-clock is close to an engine comparison here.',
+		tsv_only: false
 	},
 	[CLI_SVELTE_KEY]: {
 		heading: 'Svelte corpus',
 		description:
-			'The two Rust Svelte-native formatters head-to-head on a third-party .svelte corpus, with rsvelte-fmt configured to tsv’s fixed style (width 100, tabs, single quotes) so both do comparable line-break work.'
+			'The two Rust Svelte-native formatters head-to-head on a third-party .svelte corpus, with rsvelte-fmt configured to tsv’s fixed style (width 100, tabs, single quotes) so both do comparable line-break work. rsvelte-fmt 0.7.x crashes nondeterministically on this corpus, so a run either completes or is published aborted, never retried into a clean-looking result.',
+		tsv_only: false
+	},
+	[CLI_DELIVERY_KEY]: {
+		heading: 'tsv delivery paths',
+		description:
+			'Not a comparison with other tools — every row is tsv: the native binary, the same binary reached through @fuzdev/tsv’s Node dispatcher (how npx tsv runs it), and @fuzdev/tsv_wasm, the same CLI over a WASM engine that platforms without a prebuilt binary fall back to. One file, so every row is single-threaded and the gaps are launch and engine cost, not parallelism.',
+		tsv_only: true
 	}
 };
 
@@ -99,7 +128,9 @@ const SCENARIO_COPY: Record<string, Omit<CliScenario, 'key' | 'target' | 'result
  * spaced out in a table. Names absent here are displayed as-is.
  */
 export const CLI_LABELS: Record<string, string> = {
-	'prettier+oxc-parser': 'prettier + oxc-parser'
+	'prettier+oxc-parser': 'prettier + oxc-parser',
+	'tsv-npm': CLI_TSV_NPM_LABEL,
+	'tsv-wasm': CLI_TSV_WASM_LABEL
 };
 
 const to_results = (scenario: FormatterScenario): Array<CliFormatterResult> =>
@@ -191,9 +222,11 @@ export const cli_speedup_vs_tsv = (
 
 /**
  * The span of "times less memory than tsv" across the non-tsv rows, over one
- * scenario or all of them — the range claims the page's prose quotes. An
- * optional `labels` list narrows the span to just those formatters, so a
- * sentence naming specific tools quotes a range measured over exactly them.
+ * scenario or every scenario that faces other tools — the range claims the
+ * page's prose quotes. Unscoped, it skips the tsv-only scenarios, whose rows are
+ * tsv's own distributions rather than "every other tool"; name one explicitly to
+ * span it. An optional `labels` list narrows the span to just those formatters,
+ * so a sentence naming specific tools quotes a range measured over exactly them.
  *
  * @returns the low and high ratio, or `undefined` when nothing was measured
  */
@@ -201,7 +234,9 @@ export const cli_memory_ratio_range = (
 	scenario_key?: string,
 	labels?: Array<string>
 ): { min: number; max: number } | undefined => {
-	const scenarios = benchmarks_cli.scenarios.filter((s) => !scenario_key || s.key === scenario_key);
+	const scenarios = benchmarks_cli.scenarios.filter((s) =>
+		scenario_key ? s.key === scenario_key : !s.tsv_only
+	);
 	const ratios = scenarios.flatMap((scenario) =>
 		scenario.results
 			.filter((r) => r.label !== 'tsv' && (!labels || labels.includes(r.label)))
