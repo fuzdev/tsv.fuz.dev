@@ -25,7 +25,10 @@ import {
 	derive_size_groups,
 	derive_speedup_summary,
 	derive_unavailable_by_runtime,
+	derive_unstable_cells,
+	derive_unstable_entries,
 	format_coverage_percent,
+	is_entry_unstable,
 	is_impl_unavailable,
 	format_ratio_approx,
 	format_ratio_range,
@@ -935,6 +938,48 @@ describe('prose ratios resolve', () => {
 			const ratio = benchmark_speedup(benchmarks_json, group, slower, faster);
 			assert.isDefined(ratio, `${group}: ${slower} vs ${faster}`);
 			assert.isAbove(ratio, 1, `${group}: ${slower} vs ${faster}`);
+		}
+	});
+
+	test('every in-process pair the TLDR quotes was measured stably', () => {
+		// A headline ratio divides two means; a row the bench flagged as unstable (a
+		// cv past 10%, cleaned or raw, or a drift past 5% — a cost that moved while
+		// the row was measured) publishes a mean that may sit between two modes. The
+		// bench discloses it in its report; nothing on the page read that field, and
+		// a "~10x" once shipped off a row that was 8x by median. Re-run the runtime
+		// (`deno task bench:node:run && deno task bench:compose`) and re-publish.
+		for (const [group, slower, faster] of IN_PROCESS_PAIRS) {
+			for (const name of [slower, faster]) {
+				const entry = benchmarks_json.entries.find((e) => e.group === group && e.name === name);
+				assert(entry, `${group}/${name} is missing`);
+				assert.isFalse(
+					is_entry_unstable(entry),
+					`${group}/${name} was not measured stably (cv ${entry.cv}, raw cv ${entry.cv_raw}, ` +
+						`drift ${entry.drift}, n=${entry.sample_size}) — re-run before publishing`
+				);
+			}
+		}
+	});
+
+	test('the unstable disclosures read the report fields they claim to', () => {
+		// `derive_unstable_entries` must agree with the per-row predicate over the
+		// whole report, and the combined report's `unstable_cells` must name only rows
+		// the tables carry — the disclosure can't point at a row a reader can't find.
+		const flagged = derive_unstable_entries(benchmarks_json);
+		for (const entry of benchmarks_json.entries) {
+			assert.strictEqual(
+				flagged.includes(entry),
+				is_entry_unstable(entry),
+				`${entry.group}/${entry.name}`
+			);
+		}
+		const row_keys = new Set(benchmarks_cross_runtime_json.rows.map((r) => `${r.group}/${r.name}`));
+		for (const cell of derive_unstable_cells(benchmarks_cross_runtime_json)) {
+			assert(row_keys.has(`${cell.group}/${cell.name}`), `${cell.group}/${cell.name}`);
+			assert(
+				benchmarks_cross_runtime_json.runtimes.includes(cell.runtime),
+				`${cell.runtime} is not a runtime the report carries`
+			);
 		}
 	});
 

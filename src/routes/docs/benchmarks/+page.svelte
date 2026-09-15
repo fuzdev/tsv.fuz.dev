@@ -20,6 +20,8 @@
 		derive_benchmark_groups,
 		derive_conformance_groups,
 		derive_speedup_summary,
+		derive_unstable_entries,
+		format_unstable_readings,
 		format_corpus_source_files,
 		format_ratio_approx,
 		format_ratio_range,
@@ -78,6 +80,10 @@
 	const format_svelte_vs_biome = speedup('format/svelte', 'biome-wasm', 'tsv_wasm');
 	const format_css_vs_oxfmt = speedup('format/css', 'oxfmt', 'tsv');
 	const format_css_vs_biome = speedup('format/css', 'biome-wasm', 'tsv_wasm');
+
+	// The rows the report itself flagged as unstable (see `is_entry_unstable`) —
+	// disclosed beside the headline ratios, since each divides two of these means.
+	const unstable_entries = derive_unstable_entries(benchmarks_json);
 	const parse_ts_vs_oxc = speedup('parse/typescript', 'oxc-parser', 'tsv-json-no-locations');
 	// The one entry that leads tsv's span-only wire, so the tldr quotes it in the
 	// direction the data actually runs rather than only naming what tsv beats.
@@ -187,6 +193,21 @@
 	<TomeSection>
 		<TomeSectionHeader text="Like Prettier but speedier" />
 		<BenchmarksSummary rows={speedup_rows} />
+		{#if unstable_entries.length}
+			<aside class="mixed-vintage">
+				⚠ Some rows in the {node_display} report were not measured stably, so the ratios through
+				them are approximate:
+				<ul class="unstable">
+					{#each unstable_entries as entry (entry.group + '/' + entry.name)}
+						<li>
+							<code>{entry.group}/{entry.name}</code> — {format_unstable_readings(entry)}
+						</li>
+					{/each}
+				</ul>
+				A drift is a cost that moved while the row was being measured, which the cleaned cv cannot
+				see; the number published for such a row is a mean that may sit between two modes.
+			</aside>
+		{/if}
 	</TomeSection>
 
 	<TomeSection>
@@ -382,6 +403,15 @@
 					construction, the way svelte/compiler does on the Svelte set; the rest of its number comes
 					from corpora it didn't select, where it rejects JSX and stage-1 proposals in Prettier's
 					JavaScript fixtures and a small tail of test262. That blend is why it doesn't read 100%.
+				</li>
+				<li>
+					The test262 slice is tsv's own: the cache it is read from keeps the expected-valid subset
+					of the tests tsv's runner grades, which drops the tests outside tsv's scope before the
+					split — every Annex B <code>noStrict</code> positive among them, a web-compatibility
+					grammar tsv declines as a non-browser host and that acorn, oxc, swc, tsc and yuku all
+					parse. So tsv reads 100% on that source by construction, the same way tsc does on the
+					compiler slice, and another parser's number there is its rate on tsv's slice rather than
+					on test262.
 				</li>
 				<li>
 					Accepting a file says nothing about producing the <em>right</em> AST — tsv's output is

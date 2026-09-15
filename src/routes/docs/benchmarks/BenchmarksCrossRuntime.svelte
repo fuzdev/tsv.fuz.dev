@@ -5,6 +5,8 @@
 		derive_cross_runtime_groups,
 		derive_runtime_versions,
 		derive_unavailable_by_runtime,
+		derive_unstable_cells,
+		format_unstable_readings,
 		format_cross_runtime_label,
 		format_speedup,
 		is_impl_unavailable,
@@ -35,6 +37,9 @@
 	// a missing number that means "this binding is broken here" and one that means
 	// "this runtime's report has no such row" (an older sibling, say).
 	const unavailable = $derived(derive_unavailable_by_runtime(report));
+	const unstable = $derived(derive_unstable_cells(report));
+	const is_unstable = (name: string, runtime: BenchmarkRuntime): boolean =>
+		unstable.some((c) => `${c.group}/${c.name}` === name && c.runtime === runtime);
 
 	const format_ops = (n: number | undefined): string => (n == null ? 'fail' : n.toFixed(2));
 
@@ -81,6 +86,21 @@
 			speed result.
 		</aside>
 	{/if}
+	{#if unstable.length}
+		<aside class="mixed-vintage">
+			⚠ Some measurements were not stable, so every ratio through them is unreadable:
+			<ul class="unavailable">
+				{#each unstable as cell (cell.group + '/' + cell.name + '/' + cell.runtime)}
+					<li>
+						<code>{cell.runtime}</code> — {cell.group}/{cell.name}
+						({format_unstable_readings(cell)})
+					</li>
+				{/each}
+			</ul>
+			A drift is a cost that moved while the row was being measured; the cell is marked ⚠ below and
+			its ratio should be read as unmeasured until that runtime is re-run.
+		</aside>
+	{/if}
 	{#if runtime_versions.length}
 		<ul class="versions">
 			{#each runtime_versions as { runtime, version } (runtime)}
@@ -122,11 +142,16 @@
 							</td>
 							{#each runtimes as runtime (runtime)}
 								{@const ops = row.ops_per_second[runtime]}
+								{@const cell_unstable = is_unstable(group.group + '/' + row.name, runtime)}
 								<td
 									class="num"
-									title={ops == null ? missing_cell_title(row.name, runtime) : undefined}
+									title={ops == null
+										? missing_cell_title(row.name, runtime)
+										: cell_unstable
+											? 'this measurement was not stable — see the note above the tables'
+											: undefined}
 								>
-									{format_ops(ops)}
+									{format_ops(ops)}{cell_unstable ? ' ⚠' : ''}
 								</td>
 							{/each}
 							{#each others as runtime (runtime)}

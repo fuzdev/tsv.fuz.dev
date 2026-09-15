@@ -188,6 +188,20 @@ export interface BaselineEntry {
 	cv: number | null;
 	ops_per_second: number | null;
 	sample_size: number | null;
+	// Stability read from the RAW timings (report `version` 15 on): the cv before
+	// outlier removal and the second-half-over-first-half `drift`, which see a cost
+	// that moved WHILE the row was measured — the cleaned `cv` above cannot, since
+	// the bench's outlier cleaner deletes or blends a second mode rather than
+	// reporting it. With them: the timing count before cleaning, the share removed,
+	// the protocol the row ran under, and a hash of the timed path set. Absent on
+	// older reports.
+	cv_raw?: number | null;
+	drift?: number | null;
+	raw_sample_size?: number | null;
+	outlier_ratio?: number | null;
+	warmup_iterations?: number | null;
+	min_iterations?: number | null;
+	files_iterated_digest?: string | null;
 	// Per-implementation preflight coverage: files this impl processed / the
 	// language's total discovered files. Present from baseline `version` 3 on;
 	// absent (or `null`) in older baselines.
@@ -963,6 +977,13 @@ export interface CrossRuntimeReport {
 	// prints rather than adding one. Present from combined `version` 11 on; not
 	// rendered, kept for parity.
 	within_noise?: Array<WithinNoiseCell>;
+	// Per-runtime measurements that were NOT stable — a cv (cleaned or raw) past 10%
+	// or a |drift| past 5% — collected ahead of `within_noise`'s sample gate, so a
+	// row measured on five timings that disagree is named rather than silenced.
+	// Every ratio through such a cell is unreadable. `[]` when every measurement was
+	// stable. Present from combined `version` 15 on; rendered as a banner over the
+	// cross-runtime tables and a `⚠` on the cell.
+	unstable_cells?: Array<UnstableCell>;
 	// The conformance report's vintage beside the perf siblings'. The composer does
 	// not fold `report.conformance.node.json` (a coverage report, not a timing
 	// sibling), but this site publishes it from the same directory, and
@@ -1026,10 +1047,103 @@ export interface PartialRow {
 export interface WithinNoiseCell {
 	group: string;
 	name: string;
-	runtime: BenchmarkRuntime;
+	// The two runtimes the cell divides, in the composer's canonical order. Combined
+	// `version` 15 classifies every PAIR of runtimes; before it, a single `runtime`
+	// named the non-base side against the ratio base — both optional so a report of
+	// either vintage types, and neither is rendered.
+	runtimes?: [BenchmarkRuntime, BenchmarkRuntime];
+	runtime?: BenchmarkRuntime;
 	delta: number;
 	noise: number;
 }
+
+/**
+ * One per-runtime measurement that was not stable (see
+ * `CrossRuntimeReport.unstable_cells`). `cv`, `cv_raw` and `drift` are fractions;
+ * the raw two are `null` on a sibling predating them.
+ */
+export interface UnstableCell {
+	group: string;
+	name: string;
+	runtime: BenchmarkRuntime;
+	cv: number | null;
+	cv_raw: number | null;
+	drift: number | null;
+	sample_size: number | null;
+}
+
+/**
+ * The bench's own instability thresholds, restated: a cleaned or raw cv at or past
+ * `UNSTABLE_CV_THRESHOLD`, or a |drift| at or past `UNSTABLE_DRIFT_THRESHOLD`, and
+ * the row's mean may be neither of two modes it blended. Mirrors `bench.ts`.
+ */
+export const UNSTABLE_CV_THRESHOLD = 0.1;
+export const UNSTABLE_DRIFT_THRESHOLD = 0.05;
+/**
+ * Below this many raw timings the raw cv counts too: with few samples one deviant
+ * sweep is a real share of the row; with hundreds it is an isolated pause the
+ * cleaner rightly removes, and `drift` (a median-based level shift) is the detector.
+ */
+export const RAW_CV_SAMPLE_CEILING = 30;
+
+/**
+ * Whether a timed row's measurement was stable enough to divide by — the gate every
+ * headline ratio on the page should pass. A coverage-only row (null timing) is not
+ * unstable, it is untimed.
+ */
+export const is_entry_unstable = (entry: BaselineEntry): boolean => {
+	if (entry.cv == null) return false;
+	if (entry.cv >= UNSTABLE_CV_THRESHOLD) return true;
+	if (
+		entry.cv_raw != null &&
+		entry.cv_raw >= UNSTABLE_CV_THRESHOLD &&
+		entry.raw_sample_size != null &&
+		entry.raw_sample_size < RAW_CV_SAMPLE_CEILING
+	) {
+		return true;
+	}
+	if (entry.drift != null && Math.abs(entry.drift) >= UNSTABLE_DRIFT_THRESHOLD) return true;
+	return false;
+};
+
+/**
+ * The timed rows of a per-runtime report whose measurement was not stable, worst
+ * first — the page's disclosure beside the numbers built from that report.
+ */
+export const derive_unstable_entries = (baseline: BenchmarkBaseline): Array<BaselineEntry> =>
+	baseline.entries
+		.filter(is_entry_unstable)
+		.sort(
+			(a, b) =>
+				Math.max(b.cv ?? 0, b.cv_raw ?? 0, Math.abs(b.drift ?? 0)) -
+				Math.max(a.cv ?? 0, a.cv_raw ?? 0, Math.abs(a.drift ?? 0))
+		);
+
+/**
+ * The combined report's unstable cells, in the site's runtime column order — empty on
+ * a report predating the field, where absence is silence rather than an all-clear.
+ */
+export const derive_unstable_cells = (report: CrossRuntimeReport): Array<UnstableCell> => {
+	const order = order_cross_runtime_runtimes(report.runtimes);
+	return [...(report.unstable_cells ?? [])].sort(
+		(a, b) => order.indexOf(a.runtime) - order.indexOf(b.runtime)
+	);
+};
+
+/** `cv 47.8%, raw 52%, drift +38%` — the readings behind an unstable row, absent ones omitted. */
+export const format_unstable_readings = (entry: {
+	cv: number | null;
+	cv_raw?: number | null;
+	drift?: number | null;
+}): string => {
+	const parts: Array<string> = [];
+	if (entry.cv != null) parts.push(`cv ${(entry.cv * 100).toFixed(1)}%`);
+	if (entry.cv_raw != null) parts.push(`raw cv ${(entry.cv_raw * 100).toFixed(1)}%`);
+	if (entry.drift != null) {
+		parts.push(`drift ${entry.drift >= 0 ? '+' : ''}${(entry.drift * 100).toFixed(1)}%`);
+	}
+	return parts.join(', ');
+};
 
 /**
  * The rows each runtime couldn't measure, in the site's column order, for the
