@@ -1047,11 +1047,13 @@ export interface PartialRow {
 export interface WithinNoiseCell {
 	group: string;
 	name: string;
-	// The two runtimes the cell divides, in the composer's canonical order. Combined
-	// `version` 15 classifies every PAIR of runtimes; before it, a single `runtime`
-	// named the non-base side against the ratio base — both optional so a report of
-	// either vintage types, and neither is rendered.
-	runtimes?: [BenchmarkRuntime, BenchmarkRuntime];
+	// The two runtimes the cell divides, in the composer's canonical order — always
+	// exactly two, typed as an array rather than a pair because the report arrives
+	// as a JSON import, whose arrays never infer as tuples. Combined `version` 15
+	// classifies every PAIR of runtimes; before it, a single `runtime` named the
+	// non-base side against the ratio base — both optional so a report of either
+	// vintage types, and neither is rendered.
+	runtimes?: Array<BenchmarkRuntime>;
 	runtime?: BenchmarkRuntime;
 	delta: number;
 	noise: number;
@@ -1069,7 +1071,8 @@ export interface UnstableCell {
 	cv: number | null;
 	cv_raw: number | null;
 	drift: number | null;
-	sample_size: number | null;
+	/** The cleaned timing count behind the cv (`samples` in the composer's JSON). */
+	samples: number | null;
 }
 
 /**

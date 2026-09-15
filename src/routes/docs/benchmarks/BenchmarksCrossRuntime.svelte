@@ -97,8 +97,9 @@
 					</li>
 				{/each}
 			</ul>
-			A drift is a cost that moved while the row was being measured; the cell is marked ⚠ below and
-			its ratio should be read as unmeasured until that runtime is re-run.
+			A drift is a cost that moved while the row was being measured (negative: still warming up;
+			positive: degrading); the cell is marked ⚠ below and its ratio should be read as unmeasured
+			until that runtime is re-run.
 		</aside>
 	{/if}
 	{#if runtime_versions.length}

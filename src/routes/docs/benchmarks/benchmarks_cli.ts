@@ -43,6 +43,14 @@ export interface CliScenario {
 	description: string;
 	/** Results ascending by wall-clock time, tsv-relative ratios computed by the component. */
 	results: Array<CliFormatterResult>;
+	/**
+	 * Why the harness stopped early, when it did. Before timing, `results` is
+	 * empty and the sentence names the formatter its preflight faulted; after
+	 * timing (a memory run crashed) `results` carry times but no memory. Either
+	 * way the scenario is kept, so the gap reads as a reported abort rather than a
+	 * silently missing table.
+	 */
+	aborted?: string;
 }
 
 export interface BenchmarksCliReport {
@@ -52,48 +60,28 @@ export interface BenchmarksCliReport {
 }
 
 /**
+ * The tsv-vs-rsvelte-fmt Svelte scenario's id. The harness publishes it aborted
+ * whenever rsvelte-fmt's nondeterministic crash hits its preflight, so prose
+ * quoting its ratios must be conditional on them resolving.
+ */
+export const CLI_SVELTE_KEY = 'svelte-tsv-vs-rsvelte-fmt';
+
+/** The multi-file TypeScript repo scenario's id — what the page's prose calls "the TypeScript repo". */
+export const CLI_TS_REPO_KEY = 'typescript-only-non-jsx-subset';
+
+/**
  * The prose framing for each scenario, keyed by its generated scenario id — the
  * harness measures the numbers but doesn't explain them. Also fixes the page
  * order, which is by narrative weight (the multi-file repo leads), not the order
  * the harness runs them in. A scenario missing from here is dropped rather than
  * rendered unexplained.
  */
-/**
- * The tsv-vs-rsvelte-fmt Svelte scenario's id. Absent from the generated data
- * until the harness README is regenerated with it, so prose about it must be
- * conditional on the scenario actually being present.
- */
-export const CLI_SVELTE_KEY = 'svelte-tsv-vs-rsvelte-fmt';
-
-/**
- * The multi-file TypeScript repo scenario's id, in both spellings. The harness
- * renamed it from "TypeScript-only (tsv-fair)" to "TypeScript-only (non-JSX
- * subset)" — the name describes the corpus rather than the motive — and the
- * generated data carries whichever the README was last regenerated with, so both
- * are kept while that regeneration is pending. Once the data has the new id,
- * delete the legacy entry and drop both from `CLI_OPTIONAL_SCENARIO_KEYS` — a
- * test fails at exactly that point so the transitional pair can't outlive the
- * migration.
- */
-const CLI_TS_REPO_KEY_CURRENT = 'typescript-only-non-jsx-subset';
-
-/**
- * Exported only so a test can retire it. `benchmark_data.test.ts` fails the
- * moment the generated data resolves to `CLI_TS_REPO_KEY_CURRENT`, which is what
- * turns the deletion above from a comment nobody rereads into a gate.
- */
-export const CLI_TS_REPO_KEY_LEGACY = 'typescript-only-tsv-fair';
-
-/** Shared by both ids above; only ever one of them is present in the data. */
-const TS_REPO_COPY = {
-	heading: 'TypeScript repo',
-	description:
-		'Every formatter scoped to the same file set and pinned to tsv’s fixed style, so they make the same break decisions over the same files; a preflight check aborts the scenario rather than publish a comparison the tools didn’t run on equal work.'
-};
-
-const SCENARIO_COPY: Record<string, Omit<CliScenario, 'key' | 'target' | 'results'>> = {
-	[CLI_TS_REPO_KEY_CURRENT]: TS_REPO_COPY,
-	[CLI_TS_REPO_KEY_LEGACY]: TS_REPO_COPY,
+const SCENARIO_COPY: Record<string, Omit<CliScenario, 'key' | 'target' | 'results' | 'aborted'>> = {
+	[CLI_TS_REPO_KEY]: {
+		heading: 'TypeScript repo',
+		description:
+			'Every formatter scoped to the same file set and pinned to tsv’s fixed style, so they make the same break decisions over the same files; a preflight check aborts the scenario rather than publish a comparison the tools didn’t run on equal work.'
+	},
 	'large-single-file': {
 		heading: 'Large single file',
 		description:
@@ -124,25 +112,32 @@ const to_results = (scenario: FormatterScenario): Array<CliFormatterResult> =>
 		}))
 		.sort((a, b) => a.wall_ms - b.wall_ms);
 
-/** The scenarios the page has prose for; every non-optional one must resolve to generated data. */
+/**
+ * The scenarios the page has prose for; every one must resolve to generated
+ * data, timed or aborted — the harness publishes an aborted scenario too.
+ */
 export const CLI_SCENARIO_KEYS = Object.keys(SCENARIO_COPY);
 
 /**
- * The copy entries allowed to be absent from the generated data — prose staged
- * ahead of the harness README carrying the scenario, so this repo can land
- * support for a new scenario before the harness's numbers are regenerated.
- * Every other `SCENARIO_COPY` entry must resolve; the shape test enforces
- * exactly that split.
+ * The sentence an aborted scenario shows beside (or in place of) its table. A
+ * preflight abort names the fault per formatter in its rows and then only says
+ * it is aborting, so the cause is read back off those rows; an abort with every
+ * row clean — a memory run that crashed after timing, a scope mismatch — keeps
+ * the harness's own wording.
  */
-export const CLI_OPTIONAL_SCENARIO_KEYS: Array<string> = [
-	CLI_SVELTE_KEY,
-	// Exactly one of the two TypeScript-repo ids is in the data at a time, so each
-	// has to be allowed to be absent. Nothing is weakened by that: `CLI_TS_REPO_KEY`
-	// still has to resolve to whichever one is present, and the ratio tests below
-	// fail loudly if neither is.
-	CLI_TS_REPO_KEY_CURRENT,
-	CLI_TS_REPO_KEY_LEGACY
-];
+const to_abort_note = (scenario: FormatterScenario): string => {
+	const faults = scenario.preflight.flatMap((entry) => {
+		const label = CLI_LABELS[entry.name] ?? entry.name;
+		if (entry.crashed) return [`${label} crashed partway through its parse check`];
+		if (entry.unavailable) return [`${label} could not run`];
+		if (entry.rejected > 0) return [`${label} rejected ${entry.rejected} files`];
+		return [];
+	});
+	if (faults.length) return `Not timed: ${faults.join('; ')}.`;
+	return scenario.timings.length
+		? `Timed, but no memory was published: ${scenario.aborted}.`
+		: `Not timed: ${scenario.aborted}.`;
+};
 
 const to_scenarios = (): Array<CliScenario> =>
 	Object.entries(SCENARIO_COPY).flatMap(([key, copy]) => {
@@ -153,7 +148,8 @@ const to_scenarios = (): Array<CliScenario> =>
 						key,
 						...copy,
 						target: scenario.target,
-						results: to_results(scenario)
+						results: to_results(scenario),
+						...(scenario.aborted === undefined ? null : { aborted: to_abort_note(scenario) })
 					}
 				]
 			: [];
@@ -166,15 +162,13 @@ export const benchmarks_cli: BenchmarksCliReport = {
 };
 
 /**
- * The scenario id the page's prose calls "the TypeScript repo" — the multi-file,
- * real-repo run. Resolved against the generated data rather than hardcoded, so
- * the page's ratios keep working across the harness's rename in either direction.
+ * One rendered CLI scenario by its id — for prose that needs more than a ratio,
+ * such as whether the scenario was aborted.
+ *
+ * @returns the scenario, or `undefined` when the generated data doesn't carry it
  */
-export const CLI_TS_REPO_KEY = benchmarks_formatters_json.scenarios.some(
-	(s) => s.id === CLI_TS_REPO_KEY_CURRENT
-)
-	? CLI_TS_REPO_KEY_CURRENT
-	: CLI_TS_REPO_KEY_LEGACY;
+export const cli_scenario_find = (scenario_key: string): CliScenario | undefined =>
+	benchmarks_cli.scenarios.find((s) => s.key === scenario_key);
 
 /**
  * How many times faster or lighter tsv is than `label` in one CLI scenario, by
@@ -188,7 +182,7 @@ export const cli_speedup_vs_tsv = (
 	label: string,
 	metric: keyof Omit<CliFormatterResult, 'label'>
 ): number | undefined => {
-	const results = benchmarks_cli.scenarios.find((s) => s.key === scenario_key)?.results;
+	const results = cli_scenario_find(scenario_key)?.results;
 	const tsv = results?.find((r) => r.label === 'tsv')?.[metric];
 	const other = results?.find((r) => r.label === label)?.[metric];
 	if (tsv == null || other == null || !tsv) return undefined;

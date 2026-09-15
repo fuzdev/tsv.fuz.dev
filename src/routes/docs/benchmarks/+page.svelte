@@ -11,6 +11,7 @@
 	import {
 		benchmarks_cli,
 		cli_memory_ratio_range,
+		cli_scenario_find,
 		cli_speedup_vs_tsv,
 		CLI_TS_REPO_KEY,
 		CLI_SVELTE_KEY
@@ -103,8 +104,10 @@
 	// is measured over exactly them (the full-span figure lives in the CLI section)
 	const cli_ts_memory = cli_memory_ratio_range(CLI_TS_REPO_KEY, ['oxfmt', 'biome']);
 	const cli_memory = cli_memory_ratio_range();
-	// The Svelte head-to-head is absent until the harness README is regenerated
-	// with it, so every claim about it is conditional on the data being present.
+	// The Svelte head-to-head is published aborted whenever rsvelte-fmt's
+	// nondeterministic crash hits the harness's preflight, so its ratios can be
+	// absent while the scenario itself is present — the prose covers both cases.
+	const cli_svelte = cli_scenario_find(CLI_SVELTE_KEY);
 	const cli_svelte_wall = cli_speedup_vs_tsv(CLI_SVELTE_KEY, 'rsvelte-fmt', 'wall_ms');
 	const cli_svelte_memory = cli_speedup_vs_tsv(CLI_SVELTE_KEY, 'rsvelte-fmt', 'memory_mb');
 </script>
@@ -181,6 +184,20 @@
 					~{format_ratio_approx(cli_svelte_wall)} faster using
 					~{format_ratio_approx(cli_svelte_memory)} less memory.
 				</li>
+			{:else if cli_svelte_wall != null && cli_svelte?.aborted}
+				<li>
+					The fork's Svelte scenario benches tsv against rsvelte-fmt, the other Rust Svelte-native
+					formatter, on a third-party <code>.svelte</code> corpus: tsv formats
+					~{format_ratio_approx(cli_svelte_wall)} faster. No memory figure — {cli_svelte.aborted}
+					See <a href="#{docs_slugify(CLI_SECTION_TITLE)}">the CLI section</a>.
+				</li>
+			{:else if cli_svelte?.aborted}
+				<li>
+					The fork's Svelte scenario benches tsv against rsvelte-fmt, the other Rust Svelte-native
+					formatter, on a third-party <code>.svelte</code> corpus, but currently publishes no
+					numbers — the harness aborted it rather than time it. {cli_svelte.aborted} See
+					<a href="#{docs_slugify(CLI_SECTION_TITLE)}">the CLI section</a>.
+				</li>
 			{/if}
 		</ul>
 		<p>
@@ -205,7 +222,8 @@
 					{/each}
 				</ul>
 				A drift is a cost that moved while the row was being measured, which the cleaned cv cannot
-				see; the number published for such a row is a mean that may sit between two modes.
+				see (negative: the row got faster, still warming up; positive: slower, degrading); the
+				number published for such a row is a mean that may sit between two modes.
 			</aside>
 		{/if}
 	</TomeSection>
@@ -256,6 +274,10 @@
 					coverage only.{#if cli_svelte_wall != null}
 						For multi-threaded CLI speed, see the
 						<a href="#{docs_slugify(CLI_SECTION_TITLE)}">CLI section</a>.
+					{:else if cli_svelte?.aborted}
+						Its multi-threaded CLI run in the
+						<a href="#{docs_slugify(CLI_SECTION_TITLE)}">CLI section</a> is currently aborted rather
+						than timed.
 					{/if}
 				</li>
 			</ul>
@@ -531,8 +553,8 @@
 			measure, run on real repositories. tsv appears only in the JSX-free scenarios (it has no
 			JSX/TSX parser). The tsv binary measured here is the same native CLI that
 			<code>@fuzdev/tsv</code> ships in its platform packages and execs from <code>npx tsv</code>,
-			built from source for the run rather than installed from npm — the npx path just adds Node's
-			~20&nbsp;ms launcher on top.
+			installed from npm and pinned by the fork's lockfile like every other formatter here — the npx
+			path just adds Node's launcher on top.
 		</p>
 		<BenchmarksCli report={benchmarks_cli} />
 		<aside class="mt_xl5">
@@ -553,18 +575,18 @@
 					every other tool in every scenario.
 				</li>
 				<li>
-					Formatting width isn't identical: prettier, biome, and oxfmt format at width 80 (oxfmt
-					explicitly, the others by default), while tsv is non-configurable at width 100. Different
-					widths mean different line-break work — a real if small asymmetry with no fix on tsv's
-					side.{#if cli_svelte_wall != null}
-						The Svelte scenario is the exception: rsvelte-fmt is configurable, so it runs at tsv's
-						style there and that head-to-head has no width asymmetry.
-					{/if}
+					Formatting style is identical: tsv is non-configurable (width 100, tabs, single quotes, no
+					trailing commas), so every formatter it faces is configured to that same profile in its
+					own dialect, and all of them report the same number of files to change. The cost is that
+					these rows aren't comparable with upstream's published numbers, which use each tool's
+					defaults at width 80.
 				</li>
 				<li>
 					Errors aren't penalized by the harness, but the tsv scenarios run a preflight parse check
-					first and every formatter accepts the whole corpus, so nothing is skipped. tsv is left out
-					of the fork's other three scenarios because they contain JSX/TSX or measure work tsv
+					first and every formatter accepts the whole corpus, so nothing is skipped. A scenario
+					whose preflight fails is aborted before timing and shown here as aborted rather than
+					dropped — a crash in one formatter's check must not become a fast partial run. tsv is left
+					out of the fork's other three scenarios because they contain JSX/TSX or measure work tsv
 					doesn't do (embedded-language formatting, import and Tailwind-class sorting).
 				</li>
 			</ul>

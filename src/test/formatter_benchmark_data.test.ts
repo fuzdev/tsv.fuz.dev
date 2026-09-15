@@ -67,9 +67,9 @@ Target: third-party .svelte corpus (kit, svelte.dev, layerchart)
 
 
 Preflight (per-formatter parse check):
-  tsv: clean
-  rsvelte-fmt: CRASHED during check (exit 134)
-  → rsvelte-fmt crashed partway through its check — its coverage is unknown and its timed runs may crash too
+  tsv: clean (2226 files, 2041 would change)
+  rsvelte-fmt: clean (2226 files, 2023 would change)
+  → all formatters accept the whole corpus; nothing excluded
 Benchmark 1: tsv
   Time (mean ± σ):      52.3 ms ±   1.1 ms    [User: 255.0 ms, System: 194.2 ms]
   Range (min … max):    50.9 ms …  53.6 ms    5 runs
@@ -82,11 +82,29 @@ Summary
   tsv ran
     5.22 ± 0.13 times faster than rsvelte-fmt
 
-Memory Usage:
-  tsv: 19.0 MB (min: 18.6 MB, max: 19.4 MB)
-  rsvelte-fmt: 61.1 MB (min: 60.2 MB, max: 62.0 MB, 3.22 ± 0.08 times more than tsv)
+  → aborting: rsvelte-fmt crashed (killed by a signal) in 2 of 5 memory runs — a crash must fail the scenario, not thin its row
 
-Svelte benchmark complete!
+
+=========================================
+Benchmarking CSS (tsv vs oxfmt)
+=========================================
+
+Target: third-party .css corpus
+Corpus: 1a2b3c4 2026-09-01
+- 2 warmup runs, 5 benchmark runs
+- Git reset before each run
+
+
+Preflight (per-formatter parse check):
+  tsv: clean (312 files, 300 would change)
+  oxfmt: CRASHED during check (exit 134)
+  → oxfmt crashed partway through its check — its coverage is unknown and its timed runs may crash too
+  → aborting: this scenario would not measure every formatter on the same work
+
+
+=========================================
+All benchmarks complete!
+=========================================
 \`\`\`
 
 <!-- BENCHMARK_RESULTS_END -->
@@ -106,6 +124,39 @@ describe('parse_formatter_benchmarks', () => {
 		const parsed = parse_formatter_benchmarks(readme);
 		assert.deepEqual(
 			parsed.scenarios.map((s) => s.id),
+			['large-single-file', 'svelte-tsv-vs-rsvelte-fmt', 'css-tsv-vs-oxfmt']
+		);
+	});
+
+	test('keeps a scenario the harness aborted, with its reason and no numbers', () => {
+		const scenario = parse_formatter_benchmarks(readme).scenarios[2]!;
+		assert.equal(scenario.name, 'CSS (tsv vs oxfmt)');
+		assert.equal(scenario.target, 'third-party .css corpus');
+		assert.equal(scenario.warmup_runs, 2);
+		assert.equal(scenario.benchmark_runs, 5);
+		assert.equal(
+			scenario.aborted,
+			'this scenario would not measure every formatter on the same work'
+		);
+		// the preflight rows are what say which formatter caused the abort
+		assert.deepEqual(scenario.preflight, [
+			{ name: 'tsv', rejected: 0, unavailable: false, crashed: false },
+			{ name: 'oxfmt', rejected: 0, unavailable: false, crashed: true }
+		]);
+		assert.deepEqual(scenario.timings, []);
+		assert.equal(scenario.baseline, '');
+		assert.deepEqual(scenario.speedups, []);
+		assert.deepEqual(scenario.memory, []);
+	});
+
+	test('drops an aborted scenario tsv was not in', () => {
+		// with no timing rows, the preflight is the only sign tsv was part of it
+		const without_tsv = readme.replace(
+			/^ {2}tsv: clean \(312 files, 300 would change\)$/m,
+			'  biome: clean (312 files, 300 would change)'
+		);
+		assert.deepEqual(
+			parse_formatter_benchmarks(without_tsv).scenarios.map((s) => s.id),
 			['large-single-file', 'svelte-tsv-vs-rsvelte-fmt']
 		);
 	});
@@ -163,12 +214,12 @@ describe('parse_formatter_benchmarks', () => {
 		]);
 	});
 
-	test('parses a two-formatter scenario with a crashed preflight row', () => {
+	test('parses a two-formatter scenario aborted in its memory pass, keeping its timings', () => {
 		const scenario = parse_formatter_benchmarks(readme).scenarios[1]!;
 		assert.equal(scenario.name, 'Svelte (tsv vs rsvelte-fmt)');
 		assert.deepEqual(scenario.preflight, [
 			{ name: 'tsv', rejected: 0, unavailable: false, crashed: false },
-			{ name: 'rsvelte-fmt', rejected: 0, unavailable: false, crashed: true }
+			{ name: 'rsvelte-fmt', rejected: 0, unavailable: false, crashed: false }
 		]);
 		assert.deepEqual(
 			scenario.timings.map((t) => t.name),
@@ -176,18 +227,12 @@ describe('parse_formatter_benchmarks', () => {
 		);
 		assert.equal(scenario.baseline, 'tsv');
 		assert.deepEqual(scenario.speedups, [{ name: 'rsvelte-fmt', ratio: 5.22, ratio_stddev: 0.13 }]);
-		// tsv is the memory baseline here, so the ratio sits on the rsvelte-fmt row
-		assert.deepEqual(scenario.memory, [
-			{ name: 'tsv', mean_mb: 19, min_mb: 18.6, max_mb: 19.4 },
-			{
-				name: 'rsvelte-fmt',
-				mean_mb: 61.1,
-				min_mb: 60.2,
-				max_mb: 62,
-				ratio: 3.22,
-				ratio_stddev: 0.08
-			}
-		]);
+		// the harness stopped before its memory table, and said so
+		assert.equal(
+			scenario.aborted,
+			'rsvelte-fmt crashed (killed by a signal) in 2 of 5 memory runs — a crash must fail the scenario, not thin its row'
+		);
+		assert.deepEqual(scenario.memory, []);
 	});
 
 	// A README that's present but drifted must fail the gen task rather than quietly
@@ -208,6 +253,15 @@ describe('parse_formatter_benchmarks', () => {
 	test('throws when a scenario banner carries no parseable timings', () => {
 		const drifted = readme.replace(/^Benchmark \d+: /gm, 'Bench $&');
 		assert.throws(() => parse_formatter_benchmarks(drifted), /no parseable timings/);
+	});
+
+	test('throws when an aborted scenario has no readable preflight to blame', () => {
+		// an abort line with no preflight rows under the heading is a drifted row
+		// format, not a scenario the page can explain
+		const drifted = readme
+			.replace(/^ {2}tsv: clean \(312 files.*$/m, '  tsv — clean')
+			.replace(/^ {2}oxfmt: CRASHED.*$/m, '  oxfmt — crashed');
+		assert.throws(() => parse_formatter_benchmarks(drifted), /unparseable preflight section/);
 	});
 
 	test('throws when a present memory section yields no rows', () => {

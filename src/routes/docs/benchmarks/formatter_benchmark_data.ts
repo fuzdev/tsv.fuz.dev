@@ -22,7 +22,10 @@ export interface FormatterMemory {
 	mean_mb: number;
 	min_mb: number;
 	max_mb: number;
-	/** Ratio to the scenario's lowest-memory formatter; absent on that baseline row. */
+	/**
+	 * Ratio to the scenario's baseline formatter (tsv wherever tsv runs); absent on
+	 * that row. Below 1 means less memory than the baseline.
+	 */
 	ratio?: number;
 	ratio_stddev?: number;
 }
@@ -59,6 +62,13 @@ export interface FormatterScenario {
 	warmup_runs: number;
 	benchmark_runs: number;
 	preflight: Array<FormatterPreflight>;
+	/**
+	 * Why the harness stopped early — its own abort line. Before timing (preflight
+	 * failed) there are no timings, speedups, or memory rows and the `preflight`
+	 * entries say which formatter caused it; after timing (a memory run crashed)
+	 * timings and speedups are present and only `memory` is empty.
+	 */
+	aborted?: string;
 	timings: Array<FormatterTiming>;
 	/** The fastest formatter and its margin over each other one. */
 	baseline: string;
@@ -112,6 +122,10 @@ const MEMORY_RE =
 	/^\s*(\S+): ([\d.]+) MB \(min: ([\d.]+) MB, max: ([\d.]+) MB(?:, ([\d.]+) ± ([\d.]+) times more than \S+)?\)$/gm;
 const PREFLIGHT_HEADING = 'Preflight (per-formatter parse check):';
 const PREFLIGHT_RE = /^\s{2}(\S+): (clean|unavailable|\d+ rejected|CRASHED)/gm;
+// The harness's own verdict when it stops a scenario early: after the preflight
+// rows when a formatter failed its check, or after the `Summary` when a memory
+// run crashed. Either way it moves on to the next scenario, so nothing follows.
+const ABORTED_RE = /^\s*→ aborting: (.+)$/m;
 const VERSIONS_RE = /^## Versions\n\n((?:- \*\*.+\*\*: .+\n)+)/m;
 const VERSION_RE = /^- \*\*(.+?)\*\*: (.+)$/gm;
 const MACHINE_RE = /^_Measured on: (.+?)(?: — |_$)/m;
@@ -162,9 +176,11 @@ const parse_scenario = (name: string, block: string): FormatterScenario => {
 	const runs = RUNS_RE.exec(block);
 	const summary = slice_section(block, 'Summary\n', 'Memory Usage:', ' benchmark complete!');
 	const timings = parse_timings(block);
-	// A scenario banner with no timings under it means the timing lines changed
-	// shape, not that the harness measured nothing — hyperfine always prints them.
-	if (timings.length === 0) {
+	const aborted = ABORTED_RE.exec(block)?.[1]?.trim();
+	// A scenario banner with no timings under it is either the harness aborting
+	// before hyperfine ran — it says so, and the preflight block names the cause —
+	// or the timing lines changed shape; hyperfine always prints them otherwise.
+	if (timings.length === 0 && aborted === undefined) {
 		throw new Error(`formatter benchmarks: scenario "${name}" has no parseable timings`);
 	}
 	// Distinguish "not measured" from "misparsed": these sections are optional (no
@@ -180,6 +196,13 @@ const parse_scenario = (name: string, block: string): FormatterScenario => {
 			`formatter benchmarks: scenario "${name}" has an unparseable preflight section`
 		);
 	}
+	// An abort before timing is explained by its preflight rows alone, so a block
+	// with neither is one the page can't say anything about.
+	if (timings.length === 0 && preflight.length === 0) {
+		throw new Error(
+			`formatter benchmarks: scenario "${name}" aborted with an unparseable preflight section`
+		);
+	}
 	return {
 		id: to_slug(name),
 		name,
@@ -187,6 +210,7 @@ const parse_scenario = (name: string, block: string): FormatterScenario => {
 		warmup_runs: Number(runs?.[1] ?? 0),
 		benchmark_runs: Number(runs?.[2] ?? 0),
 		preflight,
+		...(aborted === undefined ? null : { aborted }),
 		timings,
 		baseline: SPEEDUP_BASELINE_RE.exec(block)?.[1] ?? '',
 		speedups: [...summary.matchAll(SPEEDUP_RE)].map((m) => ({
@@ -237,10 +261,14 @@ export const parse_formatter_benchmarks = (readme: string): FormatterBenchmarks 
 	// tsv has no JSX/TSX parser, so it sits out some scenarios by design — but if it
 	// ran in NONE of them, either the harness stopped benching tsv or the timing
 	// labels drifted, and the site would render a comparison without its subject.
-	const scenarios = parsed.filter((scenario) =>
-		scenario.timings.some((timing) => timing.name === 'tsv')
+	// An aborted scenario has no timing rows at all, so its preflight is what says
+	// whether tsv was in it.
+	const scenarios = parsed.filter(
+		(scenario) =>
+			scenario.timings.some((timing) => timing.name === 'tsv') ||
+			(scenario.aborted !== undefined && scenario.preflight.some((p) => p.name === 'tsv'))
 	);
-	if (scenarios.length === 0) {
+	if (!scenarios.some((scenario) => scenario.timings.some((timing) => timing.name === 'tsv'))) {
 		throw new Error(
 			`formatter benchmarks: no scenario includes a tsv row (found ${parsed
 				.map((s) => s.id)

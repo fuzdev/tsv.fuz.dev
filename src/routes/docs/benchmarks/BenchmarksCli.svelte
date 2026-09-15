@@ -51,38 +51,48 @@
 	<div class="scenario">
 		<h3>{scenario.heading}: {scenario.target}</h3>
 		<p>{scenario.description}</p>
-		<div class="table-scroll">
-			<table>
-				<thead>
-					<tr>
-						<th class="formatter">formatter</th>
-						<th>time</th>
-						<th>vs tsv</th>
-						<th>vs tsv (CPU work)</th>
-						<th>peak RSS</th>
-						<th>vs tsv</th>
-					</tr>
-				</thead>
-				<tbody>
-					{#each to_rows(scenario) as row (row.result.label)}
-						<tr class:tsv={row.is_tsv}>
-							<td class="formatter">{row.result.label}</td>
-							<td>{format_time(row.result.wall_ms)}</td>
-							<td class="speedup">
-								{row.wall_ratio == null ? '—' : format_speedup(row.wall_ratio)}
-							</td>
-							<td class="speedup">{row.cpu_ratio == null ? '—' : format_speedup(row.cpu_ratio)}</td>
-							<td>
-								{row.result.memory_mb == null ? '—' : `${Math.round(row.result.memory_mb)} MB`}
-							</td>
-							<td class="speedup">
-								{row.memory_ratio == null ? '—' : format_speedup(row.memory_ratio)}
-							</td>
+		{#if scenario.results.length > 0}
+			<div class="table-scroll">
+				<table>
+					<thead>
+						<tr>
+							<th class="formatter">formatter</th>
+							<th>time</th>
+							<th>vs tsv</th>
+							<th>vs tsv (CPU work)</th>
+							<th>peak RSS</th>
+							<th>vs tsv</th>
 						</tr>
-					{/each}
-				</tbody>
-			</table>
-		</div>
+					</thead>
+					<tbody>
+						{#each to_rows(scenario) as row (row.result.label)}
+							<tr class:tsv={row.is_tsv}>
+								<td class="formatter">{row.result.label}</td>
+								<td>{format_time(row.result.wall_ms)}</td>
+								<td class="speedup">
+									{row.wall_ratio == null ? '—' : format_speedup(row.wall_ratio)}
+								</td>
+								<td class="speedup">
+									{row.cpu_ratio == null ? '—' : format_speedup(row.cpu_ratio)}
+								</td>
+								<td>
+									{row.result.memory_mb == null ? '—' : `${Math.round(row.result.memory_mb)} MB`}
+								</td>
+								<td class="speedup">
+									{row.memory_ratio == null ? '—' : format_speedup(row.memory_ratio)}
+								</td>
+							</tr>
+						{/each}
+					</tbody>
+				</table>
+			</div>
+		{/if}
+		{#if scenario.aborted}
+			<p class="aborted">
+				{scenario.aborted} The harness aborts a scenario rather than publish numbers its formatters
+				didn't earn on the same work, and this page shows the abort rather than dropping it.
+			</p>
+		{/if}
 	</div>
 {/each}
 
@@ -113,6 +123,10 @@
 	}
 	.speedup {
 		font-weight: 600;
+	}
+	.aborted {
+		font-style: italic;
+		opacity: 0.8;
 	}
 	tr.tsv {
 		font-weight: 700;

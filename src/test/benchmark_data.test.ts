@@ -6,13 +6,10 @@ import { benchmarks_cross_runtime_json } from '$routes/docs/benchmarks/benchmark
 import { benchmarks_formatters_json } from '$routes/docs/benchmarks/benchmarks_formatters.ts';
 import {
 	benchmarks_cli,
-	CLI_LABELS,
-	CLI_OPTIONAL_SCENARIO_KEYS,
 	CLI_SCENARIO_KEYS,
 	cli_memory_ratio_range,
 	cli_speedup_vs_tsv,
-	CLI_TS_REPO_KEY,
-	CLI_TS_REPO_KEY_LEGACY
+	CLI_TS_REPO_KEY
 } from '$routes/docs/benchmarks/benchmarks_cli.ts';
 import {
 	benchmark_speedup,
@@ -47,8 +44,8 @@ import {
 // `COMBINED_SCHEMA_VERSION`. Exact rather than floors, so `npm run update-benchmarks`
 // pulling a newer shape fails here until `benchmark_data.ts` mirrors the new fields
 // and these are re-pinned together.
-const REPORT_VERSION = 14;
-const COMBINED_VERSION = 14;
+const REPORT_VERSION = 15;
+const COMBINED_VERSION = 15;
 
 // Shape gate for the committed benchmarks.json: the bench report format drifts
 // (it once went 3 months stale across a key rename that rendered as `undefined`),
@@ -830,40 +827,32 @@ describe('derive_cross_runtime_groups files_iterated_mismatch', () => {
 // or scenario id in the harness's README would silently drop a scenario or its
 // `tsv` reference row and render an empty table rather than fail to typecheck.
 describe('benchmarks_cli shape', () => {
-	test('every scenario the page has prose for resolved to generated data', () => {
+	test('every scenario the page has prose for resolved to generated data, in prose order', () => {
 		// a copy entry with no matching scenario id drops silently from the table, so
-		// every required entry must resolve; optional entries (prose staged ahead of
-		// the harness publishing the scenario) may be absent but never misordered
-		const rendered = benchmarks_cli.scenarios.map((s) => s.key);
+		// every entry must resolve — an aborted scenario resolves too, it just
+		// renders its abort note instead of a table
 		assert.deepEqual(
-			rendered,
-			CLI_SCENARIO_KEYS.filter((key) => rendered.includes(key))
+			benchmarks_cli.scenarios.map((s) => s.key),
+			CLI_SCENARIO_KEYS
 		);
-		for (const key of CLI_SCENARIO_KEYS) {
-			if (CLI_OPTIONAL_SCENARIO_KEYS.includes(key)) continue;
-			assert.ok(rendered.includes(key), `scenario copy for "${key}" resolved no generated data`);
-		}
-		// an optional key must still name a real copy entry, or it guards nothing
-		for (const key of CLI_OPTIONAL_SCENARIO_KEYS) {
-			assert.ok(CLI_SCENARIO_KEYS.includes(key), `optional key "${key}" has no copy entry`);
-		}
 	});
 
-	test('the renamed TypeScript-repo scenario retires its legacy id', () => {
-		// the harness renamed this scenario, and both ids are carried while its README
-		// still publishes the old one. the moment a regenerated README resolves the
-		// key to the new id, this fails — so the transitional entry is deleted then,
-		// rather than outliving the migration as a comment nobody rereads
-		if (CLI_TS_REPO_KEY === CLI_TS_REPO_KEY_LEGACY) return;
+	test('the TypeScript-repo scenario the prose quotes resolved to generated data', () => {
 		assert.ok(
-			!CLI_SCENARIO_KEYS.includes(CLI_TS_REPO_KEY_LEGACY),
-			`the generated data now uses "${CLI_TS_REPO_KEY}", so delete CLI_TS_REPO_KEY_LEGACY along with its SCENARIO_COPY and CLI_OPTIONAL_SCENARIO_KEYS entries`
+			benchmarks_cli.scenarios.some((s) => s.key === CLI_TS_REPO_KEY),
+			`no generated scenario has id "${CLI_TS_REPO_KEY}" — did the harness rename it?`
 		);
 	});
 
-	test('every scenario carries a tsv reference row with positive metrics', () => {
+	test('every timed scenario carries a tsv reference row with positive metrics', () => {
 		assert.isAtLeast(benchmarks_cli.scenarios.length, 1);
 		for (const scenario of benchmarks_cli.scenarios) {
+			// an aborted scenario carries its note; one aborted before timing has no
+			// rows to anchor, one aborted in its memory pass keeps its timed rows
+			if (scenario.aborted !== undefined) {
+				assert.isNotEmpty(scenario.aborted, `${scenario.key} aborted without a note`);
+				if (scenario.results.length === 0) continue;
+			}
 			// BenchmarksCli anchors every ratio on the tsv row; without it the table is empty
 			assert.ok(
 				scenario.results.some((r) => r.label === 'tsv'),
@@ -883,14 +872,22 @@ describe('benchmarks_cli shape', () => {
 		// raw timings. Recomputing them from the timings and comparing catches a
 		// misparse that would otherwise render plausible-but-wrong numbers.
 		for (const scenario of benchmarks_formatters_json.scenarios) {
+			if (scenario.timings.length === 0) {
+				// aborted before timing: no baseline and nothing to cross-check
+				assert.isDefined(scenario.aborted, `${scenario.id} has no timings and no abort`);
+				assert.isEmpty(scenario.speedups, `${scenario.id} aborted but carries speedups`);
+				continue;
+			}
 			assert.strictEqual(scenario.baseline, 'tsv', `${scenario.id} baseline`);
+			// from the raw timings, not the rendered report: the generated data also
+			// carries tsv scenarios the page has no copy for, and their numbers must
+			// parse just as soundly
+			const tsv = scenario.timings.find((t) => t.name === 'tsv');
+			assert(tsv, `${scenario.id} has no tsv timing row`);
 			for (const speedup of scenario.speedups) {
-				const derived = cli_speedup_vs_tsv(
-					scenario.id,
-					CLI_LABELS[speedup.name] ?? speedup.name,
-					'wall_ms'
-				);
-				assert.isDefined(derived, `${scenario.id}/${speedup.name}`);
+				const other = scenario.timings.find((t) => t.name === speedup.name);
+				assert(other, `${scenario.id}/${speedup.name} has no timing row`);
+				const derived = other.mean_ms / tsv.mean_ms;
 				// hyperfine derives its summary from full-precision means but prints the
 				// timings rounded, so recomputing from the printed numbers lands within a
 				// fraction of a percent — wide enough for that, far too tight to hide a
@@ -905,12 +902,17 @@ describe('benchmarks_cli shape', () => {
 		}
 	});
 
-	test('every formatter accepts the whole corpus, as the page claims', () => {
+	test('every formatter accepts the whole corpus in every timed scenario, as the page claims', () => {
 		// The page's notes say the preflight parse check found nothing rejected, so
-		// no formatter is credited for skipping files. That's a claim about the data.
+		// no formatter is credited for skipping files. That's a claim about the data —
+		// for the scenarios that were timed. An aborted one is the harness saying the
+		// opposite, and the page shows it as an abort, so its rows are exempt.
 		for (const scenario of benchmarks_formatters_json.scenarios) {
 			assert.isNotEmpty(scenario.preflight, `${scenario.id} ran no preflight`);
+			// aborted before timing — its rows are the fault, shown as such
+			if (scenario.timings.length === 0) continue;
 			for (const entry of scenario.preflight) {
+				assert.isFalse(entry.crashed, `${scenario.id}/${entry.name} crashed during its check`);
 				assert.strictEqual(entry.rejected, 0, `${scenario.id}/${entry.name} rejected files`);
 				assert.isFalse(entry.unavailable, `${scenario.id}/${entry.name} never launched`);
 			}
