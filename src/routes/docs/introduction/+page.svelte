@@ -159,9 +159,13 @@ reconstruct_locations(ast, 'const x = 1;');`;
 				Passing <code>{'{locations: false}'}</code> is faster than the default, because there's
 				fewer bytes to emit and parse. Even when you need line/column, reconstructing in JS beats
 				the <code>loc</code>-bearing wire end-to-end by ~1.7x on TypeScript (~2.2x if you need few
-				or none). tsv's default emits <code>loc</code> so that the bare call is a drop-in for
-				Svelte's parser. The <code>reconstruct_locations</code> helper is bundled in every package
-				that parses, native and WASM alike.
+				or none), per the consumer-side note in
+				<a href="https://github.com/fuzdev/tsv/blob/main/benches/js/results/report.node.md">
+					tsv's bench report
+				</a>, which measures it on the same corpus as the <TomeLink slug="benchmarks" />. tsv's
+				default emits <code>loc</code> so that the bare call is a drop-in for Svelte's parser. The
+				<code>reconstruct_locations</code> helper is bundled in every package that parses, native
+				and WASM alike.
 			</p>
 			<p>Details:</p>
 			<ul>

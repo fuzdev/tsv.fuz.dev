@@ -84,7 +84,7 @@ export interface FormatterScenario {
 export interface FormatterBenchmarks {
 	/**
 	 * The machine the numbers came from. The ratios move with it — Biome, Oxfmt,
-	 * and tsv scale across cores while Prettier is effectively serial.
+	 * and tsv scale across cores while Prettier formats files one at a time.
 	 */
 	machine: string;
 	/** Formatter name to version string, e.g. `prettier` to `3.9.1`. */

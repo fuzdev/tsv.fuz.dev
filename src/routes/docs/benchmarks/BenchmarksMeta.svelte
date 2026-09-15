@@ -61,7 +61,7 @@
 		<h4 class="mt_0 mb_sm">corpus stats</h4>
 		<ul>
 			{#each Object.entries(baseline.corpus) as [lang, count] (lang)}
-				<li>{lang}: {count} file{count !== 1 ? 's' : ''}</li>
+				<li>{lang}: {count.toLocaleString('en-US')} file{count !== 1 ? 's' : ''}</li>
 			{/each}
 		</ul>
 	</div>

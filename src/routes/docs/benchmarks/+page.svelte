@@ -64,10 +64,10 @@
 	const speedup_rows = derive_speedup_summary(groups);
 	const conformance_groups = derive_conformance_groups(benchmarks_conformance_json);
 
-	const corpus = $derived(benchmarks_json.corpus);
-	// Derived from the report so the "What's measured" figure can't drift from the
+	const corpus = benchmarks_json.corpus;
+	// Read off the report so the "What's measured" figure can't drift from the
 	// copied data (the report carries per-language file counts, not bytes).
-	const corpus_file_count = $derived(Object.values(corpus).reduce((sum, n) => sum + n, 0));
+	const corpus_file_count = Object.values(corpus).reduce((sum, n) => sum + n, 0);
 	const format_groups = groups.filter((g) => g.operation === 'format');
 	const parse_groups = groups.filter((g) => g.operation === 'parse');
 
@@ -157,8 +157,9 @@
 		<TomeSectionHeader text="tldr" />
 		<p>
 			Compared to Oxc and Biome, tsv is smaller and faster at formatting its supported languages,
-			and faster than Oxc's parser at parsing them (Biome exposes none), but lacks their features
-			and broad language support. This section has a prose summary; skip ahead for charts.
+			and faster than Oxc's parser on TypeScript/JS, the one language they share, when both emit the
+			same AST payload (Biome exposes no parser), but lacks their features and broad language
+			support. This section has a prose summary; skip ahead for charts.
 		</p>
 		<p>
 			Most measurements on this page are single-threaded and in-process, where each tool parses or
@@ -210,26 +211,23 @@
 				less memory than either. Wall-clock ratios bake in each tool's multi-file parallelism — see
 				the notes in <a href="#{docs_slugify(CLI_SECTION_TITLE)}">that section</a>.
 			</li>
-			{#if cli_svelte_wall != null && cli_svelte_memory != null}
+			{#if cli_svelte_wall != null || cli_svelte?.aborted}
 				<li>
 					The fork's Svelte scenario benches tsv against rsvelte-fmt, the other Rust Svelte-native
-					formatter, on a third-party <code>.svelte</code> corpus: tsv formats
-					~{format_ratio_approx(cli_svelte_wall)} faster using
-					~{format_ratio_approx(cli_svelte_memory)} less memory.
-				</li>
-			{:else if cli_svelte_wall != null && cli_svelte?.aborted}
-				<li>
-					The fork's Svelte scenario benches tsv against rsvelte-fmt, the other Rust Svelte-native
-					formatter, on a third-party <code>.svelte</code> corpus: tsv formats
-					~{format_ratio_approx(cli_svelte_wall)} faster. No memory figure — {cli_svelte.aborted}
-					See <a href="#{docs_slugify(CLI_SECTION_TITLE)}">the CLI section</a>.
-				</li>
-			{:else if cli_svelte?.aborted}
-				<li>
-					The fork's Svelte scenario benches tsv against rsvelte-fmt, the other Rust Svelte-native
-					formatter, on a third-party <code>.svelte</code> corpus, but currently publishes no
-					numbers — the harness aborted it rather than time it. {cli_svelte.aborted} See
-					<a href="#{docs_slugify(CLI_SECTION_TITLE)}">the CLI section</a>.
+					formatter, on a third-party <code>.svelte</code> corpus.
+					{#if cli_svelte_wall != null}
+						There tsv formats ~{format_ratio_approx(cli_svelte_wall)} faster
+						{#if cli_svelte_memory != null}
+							using ~{format_ratio_approx(cli_svelte_memory)} less memory.
+						{:else}
+							but has no memory figure — {cli_svelte?.aborted} See
+							<a href="#{docs_slugify(CLI_SECTION_TITLE)}">the CLI section</a>.
+						{/if}
+					{:else}
+						It currently publishes no numbers — the harness aborted it rather than time it.
+						{cli_svelte?.aborted} See
+						<a href="#{docs_slugify(CLI_SECTION_TITLE)}">the CLI section</a>.
+					{/if}
 				</li>
 			{/if}
 		</ul>
@@ -586,8 +584,8 @@
 			<ul>
 				<li>
 					This measures the whole command, not the engine in isolation. tsv, oxfmt, and biome
-					parallelize across files while prettier is effectively serial, so the wall-clock ratios
-					bake in each tool's parallelism and scale with core count — they're only meaningful
+					parallelize across files while prettier formats them one at a time, so the wall-clock
+					ratios bake in each tool's parallelism and scale with core count — they're only meaningful
 					alongside the machine they ran on. The <code>vs tsv (CPU work)</code> column is the
 					parallelism-neutral view (total CPU time across threads), and it cuts both ways: on the
 					TypeScript repo tsv is ~{cli_ts_wall_vs_oxfmt} faster than Oxfmt in wall-clock but

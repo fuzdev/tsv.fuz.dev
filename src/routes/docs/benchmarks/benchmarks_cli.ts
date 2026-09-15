@@ -5,7 +5,7 @@
 // neither tsv nor this analysis). Unlike the in-process, single-threaded numbers
 // elsewhere on this page, it measures the WHOLE CLI: process spawn, file
 // discovery, I/O, and each tool's default multi-file parallelism. tsv, oxfmt, and
-// biome parallelize across files while prettier is effectively serial, so the
+// biome parallelize across files while prettier formats them one at a time, so the
 // wall-clock ratios scale with core count and are machine-dependent — the
 // parallelism-neutral view is CPU work (hyperfine `User` time). tsv runs only in
 // the JSX-free scenarios (it has no JSX/TSX parser); the Svelte scenario benches

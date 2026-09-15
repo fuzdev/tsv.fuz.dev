@@ -110,13 +110,13 @@
 	{#if !ready}
 		<p>loading the formatter…</p>
 	{:else if error}
-		<p class="parse_error">{error}</p>
+		<p class="parse-error">{error}</p>
 	{:else}
 		<p>formatted</p>
 		<Code lang="svelte" content={formatted?.value ?? ''} />
 		<p>AST</p>
-		<div class="ast_output">
-			<CopyToClipboard text={ast?.value ?? ''} class="ast_copy" />
+		<div class="ast-output">
+			<CopyToClipboard text={ast?.value ?? ''} class="ast-copy" />
 			<Code lang="json" content={ast?.value ?? ''} class="ast" />
 		</div>
 	{/if}
@@ -140,10 +140,10 @@
 	}
 	/* float a copy button over the AST pane's top-right corner; it stays pinned as
 	   the pane scrolls since it's absolute to this wrapper, not inside the scroller */
-	.ast_output {
+	.ast-output {
 		position: relative;
 	}
-	.ast_output :global(.ast_copy) {
+	.ast-output :global(.ast-copy) {
 		--font_size: var(--font_size_lg);
 		position: absolute;
 		top: var(--space_xs);
@@ -152,15 +152,17 @@
 		z-index: 1;
 		background: var(--shade_00);
 	}
-	/* TODO hacky */
-	.ast_output :global(.ast_copy > div) {
+	/* TODO hacky: fuz_ui's CopyToClipboard sets an inline `style:width="100%"` on
+	   its icon wrapper div, which only `!important` can beat from here — drop this
+	   once that wrapper stops hardcoding its width */
+	.ast-output :global(.ast-copy > div) {
 		width: auto !important;
 	}
 	.error {
 		color: var(--color_e_40);
 		white-space: pre-wrap;
 	}
-	.parse_error {
+	.parse-error {
 		color: var(--color_c_50);
 		white-space: pre-wrap;
 	}

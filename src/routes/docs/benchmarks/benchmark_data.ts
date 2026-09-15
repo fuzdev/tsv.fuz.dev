@@ -475,7 +475,7 @@ export const derive_benchmark_groups = (baseline: BenchmarkBaseline): Array<Benc
 		});
 
 		// Fixed order (see `compare_speed_entries`): canonical leads as the default 1.0x
-		// anchor, then biome, oxc, tsv's json wires, then tsv's internal engine
+		// anchor, then the cross-tool rows, tsv's json wires, then tsv's internal engine
 		display_entries.sort(compare_speed_entries);
 
 		const iterated_counts = entries
@@ -1446,8 +1446,9 @@ const HYPHENATED_NAMES = ['acorn-typescript', 'oxc-parser', 'rsvelte-fmt', 'yuku
  * Display labels for the raw benchmark entry names in the main (Node) tables,
  * annotating each with the runtime **and** binding it runs under — the native
  * builds load the N-API addon under Node, so they read `(node napi)` to
- * distinguish them from the Deno FFI numbers the cross-runtime table surfaces
- * (`tsv (deno ffi)`); the third-party wasm builds are marked `(wasm)`. Mirrors
+ * distinguish them from the same rows under Deno, which loads the C-FFI library
+ * instead (see the cross-runtime table); the third-party wasm builds are marked
+ * `(wasm)`. Mirrors
  * the parenthesized suffixes the binary-size section's labels already carry.
  * tsv's own wasm entries keep their `tsv_wasm` package-name style, as in the size
  * groups, so they aren't listed here. The already-parenthesized size labels

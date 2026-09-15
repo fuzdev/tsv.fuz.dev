@@ -34,7 +34,7 @@ IMPORTANT for AI agents: Do NOT run `gro dev` - the developer will manage the de
 
 Note: `@fuzdev/tsv_wasm` is loaded only on `/docs/playground` via a browser-only dynamic `import()`, so the ~1MB-gzipped WASM (~2.8MB decoded) never weighs down `/docs` or the prerendered pages.
 
-Note: several devDependencies — `@webref/css` (CSS spec data), `zimmerframe` (AST traversal), `@sveltejs/acorn-typescript`, `zod`, and `@fuzdev/blake3_wasm` — are *optional peer dependencies* of `@fuzdev/fuz_css`'s `vite_plugin_fuz_css`, declared here so its build-time CSS generation resolves them (e.g. `css_literal.ts` imports `@webref/css`, `css_class_extractor.ts` walks ASTs with `zimmerframe`). They aren't imported by this app's own source, so don't mistake them for dead deps.
+Note: several devDependencies — `@webref/css` (CSS spec data), `zimmerframe` (AST traversal), `@sveltejs/acorn-typescript`, `zod`, and `@fuzdev/blake3_wasm` — are *optional peer dependencies* of `@fuzdev/fuz_css`'s `vite_plugin_fuz_css`, declared here so its build-time CSS generation resolves them (e.g. `css_literal.ts` imports `@webref/css`, `css_class_extractor.ts` walks ASTs with `zimmerframe`). They aren't imported by this app's own source, so don't mistake them for dead deps. Likewise `esm-env`, `@types/estree`, and `@types/node` are optional peers of `@fuzdev/fuz_util`, `@fuzdev/mdz`, and `@fuzdev/fuz_ui`, and `tslib` backs `tsconfig.json`'s `importHelpers` — none is imported here directly either.
 
 Note: `vite` is deliberately held at 7.x (with `@sveltejs/vite-plugin-svelte` 6.x) — vite 8 + plugin-svelte 7 was buggy with this app or SvelteKit's integration. Don't upgrade to vite 8 without deliberately re-verifying the site works.
 
@@ -70,9 +70,13 @@ src/
 │       ├── tomes.ts          # Docs structure (introduction, playground, benchmarks)
 │       ├── introduction/     # Introduction page (install + usage)
 │       ├── playground/       # Interactive playground (Playground.svelte + playground_example.ts; lazy @fuzdev/tsv_wasm)
-│       └── benchmarks/       # Benchmark visualizations (BenchmarksBar, BenchmarksGroup, etc.)
+│       └── benchmarks/       # Benchmarks page: the four JSON reports, benchmark_data.ts / benchmarks_cli.ts / formatter_benchmark_data.ts, the .gen.json.ts for the CLI harness, and the Benchmarks*.svelte visualizations (see Benchmarks below)
 └── test/
-    └── benchmark_data.test.ts # tests for benchmark-data derivations
+    ├── benchmark_data.test.ts       # unit tests for the pure derivations and formatters
+    ├── benchmark_data.shape.test.ts # shape gates over the committed JSON reports
+    ├── benchmark_data.prose.test.ts # gates every ratio the page's prose quotes
+    ├── benchmarks_cli.test.ts       # the CLI-harness data as the page consumes it
+    └── formatter_benchmark_data.test.ts # the harness README parser
 ```
 
 ## Benchmarks
@@ -92,8 +96,10 @@ siblings, the composed cross-runtime `report.{json,md}`, and the conformance
 coverage report `report.conformance.node.json` (committed to tsv).
 Step 2 copies three of them — `report.node.json` → `benchmarks.json`, the
 composed `report.json` → `benchmarks_cross_runtime.json`, and
-`report.conformance.node.json` → `benchmarks_conformance.json` — then runs
-`gro format` over the copies. Note the script's source paths are hardcoded to
+`report.conformance.node.json` → `benchmarks_conformance.json` — verbatim;
+tsv already writes them tab-indented, and Gro's formatter leaves JSON untouched,
+so the committed copies are byte-identical to tsv's reports and the tests
+gate their shape. Note the script's source paths are hardcoded to
 `../tsv` — if the reports were generated in a different worktree, copy them
 into `~/dev/tsv` (or copy manually) first.
 The JSON formats match the types in `benchmark_data.ts`.
@@ -153,7 +159,7 @@ Key files in `src/routes/docs/benchmarks/`:
 - Static SvelteKit app (`adapter-static`), deploys to GitHub Pages
 - Uses fuz_ui tome system for docs navigation
 - `docs/tomes.ts` defines the doc sections: introduction, playground, benchmarks
-- Benchmark data lives in `src/routes/docs/benchmarks/benchmarks.json` (see [Benchmarks](#benchmarks))
+- Benchmark data lives in `src/routes/docs/benchmarks/` as four JSON reports — three copied from tsv, one generated from the sibling CLI harness (see [Benchmarks](#benchmarks))
 - The benchmarks page quotes no hand-written ratios — its prose computes them from the same reports the charts render, via `benchmark_data.ts`'s `benchmark_speedup`/`format_ratio_approx`/`format_ratio_range`/`format_ratio_range_approx` and `benchmarks_cli.ts`'s `cli_speedup_vs_tsv`/`cli_memory_ratio_range`. A test gates that every pair the copy names still resolves
 - `library.ts` builds component metadata at runtime from the `virtual:svelte-docinfo` module (provided by the `svelte-docinfo` Vite plugin); the docs index passes it to `DocsContent`
 - The playground (`/docs/playground`) loads `@fuzdev/tsv_wasm` via a browser-only dynamic `import()` inside `Playground.svelte`, so the WASM code-splits into its own chunk fetched only on that route — the same lazy discipline `library.ts` uses for the heavy svelte-docinfo data, keeping `/docs` and the prerendered pages WASM-free. `@fuzdev/tsv_wasm` is in `vite.config.ts` `optimizeDeps.exclude` (like `blake3_wasm`)
