@@ -262,7 +262,7 @@ describe('benchmarks.json shape', () => {
 			if (category === 'yuku') return 7;
 			if (name.endsWith('-no-locations')) return 8; // tsv json, span-only wire
 			if (name.endsWith('-json')) return 9; // tsv json, loc-carrying wire
-			return 10; // tsv internal engine
+			return 10; // tsv's engine rows (`tsv`/`tsv-wasm`, `-internal`)
 		};
 		for (const group of derive_benchmark_groups(benchmarks_json)) {
 			const key = `${group.operation}/${group.language}`;

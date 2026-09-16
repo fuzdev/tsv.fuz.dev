@@ -34,7 +34,7 @@
 
 {#each groups as group (group.language)}
 	<div class="mb_xl5">
-		<p class="heading">
+		<p class="mb_xs">
 			Parsing {group.files_total.toLocaleString('en-US')}
 			{LANGUAGE_LABELS[group.language] ?? group.language} files
 		</p>
@@ -67,9 +67,6 @@
 {/each}
 
 <style>
-	.heading {
-		margin-bottom: var(--space_xs);
-	}
 	table {
 		width: 100%;
 		max-width: 40rem;

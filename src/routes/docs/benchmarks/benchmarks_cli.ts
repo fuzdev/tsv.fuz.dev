@@ -106,7 +106,7 @@ const SCENARIO_COPY: Record<string, Omit<CliScenario, 'key' | 'target' | 'result
 	'large-single-file': {
 		heading: 'Large single file',
 		description:
-			'With a single input every formatter is effectively single-threaded, so wall-clock is close to an engine comparison here.',
+			'With a single input no formatter can parallelize across files, so wall-clock is close to an engine-plus-startup comparison here.',
 		tsv_only: false
 	},
 	[CLI_SVELTE_KEY]: {
@@ -118,7 +118,7 @@ const SCENARIO_COPY: Record<string, Omit<CliScenario, 'key' | 'target' | 'result
 	[CLI_DELIVERY_KEY]: {
 		heading: 'tsv delivery paths',
 		description:
-			'Not a comparison with other tools — every row is tsv: the native binary, the same binary reached through @fuzdev/tsv’s Node dispatcher (how npx tsv runs it), and @fuzdev/tsv-wasm, the same CLI over a WASM engine that platforms without a prebuilt binary fall back to. One file, so every row is single-threaded and the gaps are launch and engine cost, not parallelism.',
+			'Not a comparison with other tools — every row is tsv: the native binary, the same binary reached through @fuzdev/tsv’s Node dispatcher (how npx tsv runs it), and @fuzdev/tsv-wasm, the same CLI over a WASM engine that platforms without a prebuilt binary fall back to. One file, so no row parallelizes across files and the gaps are launch and engine cost (the WASM row’s CPU time exceeds its wall-clock: V8 compiles the module on background threads), not file parallelism.',
 		tsv_only: true
 	}
 };
@@ -127,7 +127,7 @@ const SCENARIO_COPY: Record<string, Omit<CliScenario, 'key' | 'target' | 'result
  * Display labels for the harness's hyperfine command names, which read better
  * spaced out in a table. Names absent here are displayed as-is.
  */
-export const CLI_LABELS: Record<string, string> = {
+const CLI_LABELS: Record<string, string> = {
 	'prettier+oxc-parser': 'prettier + oxc-parser',
 	'tsv-npm': CLI_TSV_NPM_LABEL,
 	'tsv-wasm': CLI_TSV_WASM_LABEL
@@ -214,8 +214,23 @@ export const cli_speedup_vs_tsv = (
 	metric: keyof Omit<CliFormatterResult, 'label'>
 ): number | undefined => {
 	const results = cli_scenario_find(scenario_key)?.results;
-	const tsv = results?.find((r) => r.label === 'tsv')?.[metric];
-	const other = results?.find((r) => r.label === label)?.[metric];
+	return results && cli_ratio_vs_tsv(results, label, metric);
+};
+
+/**
+ * `label`'s measurement over tsv's, by one metric, within a scenario's rows — the
+ * ratio behind both the tables and `cli_speedup_vs_tsv`.
+ *
+ * @returns the ratio, or `undefined` when either row or either side's measurement is
+ * absent (a `null` memory figure, or a zero that can't be divided by)
+ */
+export const cli_ratio_vs_tsv = (
+	results: Array<CliFormatterResult>,
+	label: string,
+	metric: keyof Omit<CliFormatterResult, 'label'>
+): number | undefined => {
+	const tsv = results.find((r) => r.label === 'tsv')?.[metric];
+	const other = results.find((r) => r.label === label)?.[metric];
 	if (tsv == null || other == null || !tsv) return undefined;
 	return other / tsv;
 };

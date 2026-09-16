@@ -125,9 +125,16 @@ describe('prose ratios resolve', () => {
 				`${CLI_TS_REPO_KEY}: ${label} ${metric}`
 			);
 		}
-		// the TLDR's "less memory than either" range, scoped to the tools it names
-		assert.isDefined(cli_memory_ratio_range(CLI_TS_REPO_KEY, ['oxfmt', 'biome']));
-		assert.isDefined(cli_memory_ratio_range());
+		// the TLDR's "less memory than either" range, scoped to the tools it names, and
+		// the CLI note's "less than every other tool in every scenario" — both read as
+		// "less", so the LOW end must clear 1 or the floored range would print "0–Nx"
+		for (const range of [
+			cli_memory_ratio_range(CLI_TS_REPO_KEY, ['oxfmt', 'biome']),
+			cli_memory_ratio_range()
+		]) {
+			assert.isDefined(range);
+			assert.isAbove(range.min, 1);
+		}
 		// the delivery note's three ratios, tsv against its own distributions
 		for (const [label, metric] of [
 			[CLI_TSV_NPM_LABEL, 'wall_ms'],

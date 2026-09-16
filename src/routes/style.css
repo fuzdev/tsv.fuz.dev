@@ -1,9 +1,7 @@
-/* global stylesheet imported by `src/routes/+layout.svelte */
+/* global stylesheet imported by `src/routes/+layout.svelte` */
 
-/*
-
-:root {
-  --some_stylish_property: 100%;
+/* a warning aside: the red tint over fuz_css's base aside styling, shared by the
+   benchmarks page and its cross-runtime tables */
+.mixed-vintage {
+	border-left-color: var(--color_c_50);
 }
-
-*/

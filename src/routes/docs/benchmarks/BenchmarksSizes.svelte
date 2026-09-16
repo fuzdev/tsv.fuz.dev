@@ -45,14 +45,8 @@
 </script>
 
 {#each size_groups as group (group.capability)}
-	<div class="size-group">
+	<div class="mb_lg">
 		<h3>{group.heading}</h3>
 		<BenchmarksBaselineGroup rows={to_rows(group)} direction="size" />
 	</div>
 {/each}
-
-<style>
-	.size-group {
-		margin-bottom: var(--space_lg);
-	}
-</style>

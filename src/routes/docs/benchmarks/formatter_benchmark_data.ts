@@ -118,8 +118,10 @@ const TIMING_RE =
 	/^Benchmark \d+: (.+)\n\s*Time \(mean ± σ\):\s*([\d.]+) (\S+) ±\s*([\d.]+) (\S+)\s*\[User: ([\d.]+) (\S+), System: ([\d.]+) (\S+)\]\n\s*Range \(min … max\):\s*([\d.]+) (\S+) …\s*([\d.]+) (\S+)/gm;
 const SPEEDUP_BASELINE_RE = /^Summary\n\s*(.+?) ran$/m;
 const SPEEDUP_RE = /^\s*([\d.]+) ± ([\d.]+) times faster than (.+)$/gm;
+// the name is `(.+?)` like `TIMING_RE`'s, so a command name with a space parses on
+// both lines rather than timing without a memory row
 const MEMORY_RE =
-	/^\s*(\S+): ([\d.]+) MB \(min: ([\d.]+) MB, max: ([\d.]+) MB(?:, ([\d.]+) ± ([\d.]+) times more than \S+)?\)$/gm;
+	/^\s*(.+?): ([\d.]+) MB \(min: ([\d.]+) MB, max: ([\d.]+) MB(?:, ([\d.]+) ± ([\d.]+) times more than .+)?\)$/gm;
 const PREFLIGHT_HEADING = 'Preflight (per-formatter parse check):';
 const PREFLIGHT_RE = /^\s{2}(\S+): (clean|unavailable|\d+ rejected|CRASHED)/gm;
 // The harness's own verdict when it stops a scenario early: after the preflight

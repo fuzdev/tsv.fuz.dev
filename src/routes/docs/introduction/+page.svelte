@@ -94,11 +94,12 @@ reconstruct_locations(ast, 'const x = 1;');`;
 			/>
 			<p>
 				The right binary installs automatically. Prebuilt for Linux (x64, arm64, and x64 musl),
-				macOS arm64, and Windows x64 — anywhere else, use the WASM build below. The <code>tsv</code>
-				command here is tsv's real native CLI binary, shipped in the platform package and exec'd
-				directly, with native multi-file parallelism (<code>--jobs</code>) and parallel discovery.
-				It ships beside the addon because neither can play the other's role: an addon can't be
-				exec'd as a process, and an executable can't be loaded as an in-process module.
+				macOS (arm64 and x64), and Windows x64 — anywhere else, use the WASM build below. The
+				<code>tsv</code> command here is tsv's real native CLI binary, shipped in the platform
+				package and exec'd directly, with native multi-file parallelism (<code>--jobs</code>) and
+				parallel discovery. It ships beside the addon because neither can play the other's role: an
+				addon can't be exec'd as a process, and an executable can't be loaded as an in-process
+				module.
 			</p>
 			<p>
 				The same CLI binaries are also attached to each

@@ -396,7 +396,8 @@ const LANGUAGE_ORDER: Record<string, number> = {
  * (alphabetically: biome, dprint — whose category malva shares — oxc, postcss,
  * rsvelte, swc, yuku), then tsv's JSON-materializing
  * wires (the span-only `no-locations` wire before the default `loc`-carrying one),
- * then tsv's raw internal engine.
+ * then tsv's own engine rows — `tsv`/`tsv-wasm` in the format groups, the
+ * `-internal` rows in the parse groups.
  */
 const speed_entry_rank = (entry: BenchmarkDisplayEntry): number => {
 	if (entry.category === 'canonical') return 0;
@@ -409,7 +410,7 @@ const speed_entry_rank = (entry: BenchmarkDisplayEntry): number => {
 	if (entry.category === 'yuku') return 7;
 	if (entry.name.endsWith('-no-locations')) return 8; // tsv json, span-only wire
 	if (entry.name.endsWith('-json')) return 9; // tsv json, loc-carrying wire
-	return 10; // tsv-internal / tsv-wasm-internal — raw in-engine, no JS materialization
+	return 10; // tsv's engine rows: `tsv`/`tsv-wasm` (format), `-internal` (parse, no JS materialization)
 };
 
 /**
@@ -426,6 +427,18 @@ const compare_speed_entries = (a: BenchmarkDisplayEntry, b: BenchmarkDisplayEntr
 	if (kind !== 0) return kind;
 	return a.name.localeCompare(b.name);
 };
+
+/**
+ * A grayed-out, inert copy of a measured entry (or a bare template) for a group the
+ * tool doesn't run in — no bar, no coverage, never an anchor.
+ */
+const to_placeholder = (entry: BenchmarkDisplayEntry): BenchmarkDisplayEntry => ({
+	...entry,
+	bar_fraction: 0,
+	files_processed: null,
+	files_total: null,
+	disabled: true
+});
 
 export const derive_benchmark_groups = (baseline: BenchmarkBaseline): Array<BenchmarkGroup> => {
 	const grouped: Map<string, Array<BaselineEntry>> = new Map();
@@ -513,27 +526,26 @@ export const derive_benchmark_groups = (baseline: BenchmarkBaseline): Array<Benc
 	const oxc_templates = ts_parse?.entries.filter((e) => e.category === 'oxc') ?? [];
 	for (const group of result) {
 		if (group.operation !== 'parse') continue;
-		const biome_placeholder: BenchmarkDisplayEntry = {
-			name: 'biome-wasm',
-			mean_ns: 0,
-			bar_fraction: 0,
-			category: 'biome',
-			files_processed: null,
-			files_total: null,
-			disabled: true
-		};
+		// guarded like the others, so a report that grows a real biome parse row
+		// can't produce a second `biome-wasm` entry (the rows are keyed by name)
+		const biome_placeholders: Array<BenchmarkDisplayEntry> = group.entries.some(
+			(e) => e.category === 'biome'
+		)
+			? []
+			: [
+					to_placeholder({
+						name: 'biome-wasm',
+						mean_ns: 0,
+						bar_fraction: 0,
+						category: 'biome',
+						files_processed: null,
+						files_total: null
+					})
+				];
 		const needs_oxc =
 			group.language !== 'typescript' && !group.entries.some((e) => e.category === 'oxc');
-		const oxc_placeholders: Array<BenchmarkDisplayEntry> = needs_oxc
-			? oxc_templates.map((e) => ({
-					...e,
-					bar_fraction: 0,
-					files_processed: null,
-					files_total: null,
-					disabled: true
-				}))
-			: [];
-		group.entries.push(biome_placeholder, ...oxc_placeholders);
+		const oxc_placeholders = needs_oxc ? oxc_templates.map(to_placeholder) : [];
+		group.entries.push(...biome_placeholders, ...oxc_placeholders);
 		group.entries.sort(compare_speed_entries);
 	}
 
@@ -552,15 +564,7 @@ export const derive_benchmark_groups = (baseline: BenchmarkBaseline): Array<Benc
 		for (const group of result) {
 			if (group.operation !== 'format') continue;
 			if (group.entries.some((e) => e.category === 'dprint')) continue;
-			group.entries.push(
-				...dprint_templates.map((e) => ({
-					...e,
-					bar_fraction: 0,
-					files_processed: null,
-					files_total: null,
-					disabled: true
-				}))
-			);
+			group.entries.push(...dprint_templates.map(to_placeholder));
 			group.entries.sort(compare_speed_entries);
 		}
 	}
@@ -1080,14 +1084,14 @@ export interface UnstableCell {
  * `UNSTABLE_CV_THRESHOLD`, or a |drift| at or past `UNSTABLE_DRIFT_THRESHOLD`, and
  * the row's mean may be neither of two modes it blended. Mirrors `bench.ts`.
  */
-export const UNSTABLE_CV_THRESHOLD = 0.1;
-export const UNSTABLE_DRIFT_THRESHOLD = 0.05;
+const UNSTABLE_CV_THRESHOLD = 0.1;
+const UNSTABLE_DRIFT_THRESHOLD = 0.05;
 /**
  * Below this many raw timings the raw cv counts too: with few samples one deviant
  * sweep is a real share of the row; with hundreds it is an isolated pause the
  * cleaner rightly removes, and `drift` (a median-based level shift) is the detector.
  */
-export const RAW_CV_SAMPLE_CEILING = 30;
+const RAW_CV_SAMPLE_CEILING = 30;
 
 /**
  * Whether a timed row's measurement was stable enough to divide by — the gate every
@@ -1439,8 +1443,19 @@ export const format_speedup_signed = (ratio: number): string => {
 	return `${ratio < 1 ? '-' : ''}${magnitude.toFixed(digits)}x`;
 };
 
-/** Hyphenated tool names that should preserve their hyphens in display labels. */
-const HYPHENATED_NAMES = ['acorn-typescript', 'oxc-parser', 'rsvelte-fmt', 'yuku-parser'];
+/**
+ * Hyphenated tool and package names that keep their hyphens in display labels —
+ * only the suffix after the name is spaced out (`tsv-wasm-json` → `tsv-wasm json`).
+ */
+const HYPHENATED_NAMES = [
+	'acorn-typescript',
+	'oxc-parser',
+	'rsvelte-fmt',
+	'yuku-parser',
+	'tsv-wasm',
+	'tsv-format-wasm',
+	'tsv-parse-wasm'
+];
 
 /**
  * Display labels for the raw benchmark entry names in the main (Node) tables,
@@ -1450,9 +1465,10 @@ const HYPHENATED_NAMES = ['acorn-typescript', 'oxc-parser', 'rsvelte-fmt', 'yuku
  * instead (see the cross-runtime table); the third-party wasm builds are marked
  * `(wasm)`. Mirrors
  * the parenthesized suffixes the binary-size section's labels already carry.
- * tsv's own wasm entries keep their `tsv-wasm` package-name style, as in the size
- * groups, so they aren't listed here. The already-parenthesized size labels
- * aren't keys, so they fall through to the generic formatting below unchanged.
+ * tsv's own wasm entries keep their `tsv-wasm` package-name prefix through
+ * `HYPHENATED_NAMES`, so they aren't listed here. The size labels aren't keys
+ * either: the parenthesized ones fall through the generic formatting unchanged and
+ * the hyphenated wasm packages keep their hyphens the same way.
  * The cross-runtime table neutralizes the `(node napi)` suffix per row (its
  * columns span runtimes) via `format_cross_runtime_label`.
  */

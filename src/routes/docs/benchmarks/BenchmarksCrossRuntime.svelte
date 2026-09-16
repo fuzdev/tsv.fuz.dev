@@ -110,7 +110,7 @@
 		</ul>
 	{/if}
 	{#each groups as group (group.group)}
-		<div class="group">
+		<div class="mb_xl4">
 			<h4 class="mt_0 mb_sm">{group_label(group.operation, group.language)}</h4>
 			<table>
 				<thead>
@@ -184,10 +184,6 @@
 </div>
 
 <style>
-	/* the warning red tint over fuz_css's base aside styling */
-	.mixed-vintage {
-		border-left-color: var(--color_c_50);
-	}
 	/* the per-runtime load failures inside the disclosure aside */
 	.unavailable {
 		margin-block: var(--space_xs);
@@ -203,9 +199,6 @@
 		margin-bottom: var(--space_xl3);
 		font-size: var(--font_size_sm);
 		opacity: 0.7;
-	}
-	.group {
-		margin-bottom: var(--space_xl4);
 	}
 	table {
 		width: 100%;

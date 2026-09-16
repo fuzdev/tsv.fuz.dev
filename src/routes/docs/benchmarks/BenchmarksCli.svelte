@@ -1,6 +1,11 @@
 <script lang="ts">
 	import { format_speedup } from './benchmark_data.ts';
-	import type { BenchmarksCliReport, CliScenario, CliFormatterResult } from './benchmarks_cli.ts';
+	import {
+		cli_ratio_vs_tsv,
+		type BenchmarksCliReport,
+		type CliScenario,
+		type CliFormatterResult
+	} from './benchmarks_cli.ts';
 
 	const {
 		report
@@ -20,38 +25,39 @@
 		ms < 1000 ? `${Math.round(ms)} ms` : `${(ms / 1000).toFixed(1)} s`;
 
 	// tsv is the reference row; every ratio is `other / tsv` (>1 = tsv is that many
-	// times faster / lighter). Returns null for the tsv row itself.
+	// times faster / lighter), shared with the page's prose via `cli_ratio_vs_tsv`.
+	// `undefined` on the tsv row itself and wherever a side wasn't measured. A
+	// scenario with no tsv row has nothing to anchor on and renders no table.
 	interface Row {
 		result: CliFormatterResult;
 		is_tsv: boolean;
-		wall_ratio: number | null;
-		cpu_ratio: number | null;
-		memory_ratio: number | null;
+		wall_ratio: number | undefined;
+		cpu_ratio: number | undefined;
+		memory_ratio: number | undefined;
 	}
 	const to_rows = (scenario: CliScenario): Array<Row> => {
-		const tsv = scenario.results.find((r) => r.label === 'tsv');
-		if (!tsv) return [];
+		if (!scenario.results.some((r) => r.label === 'tsv')) return [];
 		return scenario.results.map((result) => {
-			const is_tsv = result === tsv;
+			const is_tsv = result.label === 'tsv';
+			const ratio = (metric: keyof Omit<CliFormatterResult, 'label'>) =>
+				is_tsv ? undefined : cli_ratio_vs_tsv(scenario.results, result.label, metric);
 			return {
 				result,
 				is_tsv,
-				wall_ratio: is_tsv ? null : result.wall_ms / tsv.wall_ms,
-				cpu_ratio: is_tsv ? null : result.cpu_ms / tsv.cpu_ms,
-				memory_ratio:
-					is_tsv || result.memory_mb == null || tsv.memory_mb == null
-						? null
-						: result.memory_mb / tsv.memory_mb
+				wall_ratio: ratio('wall_ms'),
+				cpu_ratio: ratio('cpu_ms'),
+				memory_ratio: ratio('memory_mb')
 			};
 		});
 	};
 </script>
 
 {#each report.scenarios as scenario (scenario.key)}
-	<div class="scenario">
+	{@const rows = to_rows(scenario)}
+	<div class="mb_xl2">
 		<h3>{scenario.heading}: {scenario.target}</h3>
 		<p>{scenario.description}</p>
-		{#if scenario.results.length > 0}
+		{#if rows.length > 0}
 			<div class="table-scroll">
 				<table>
 					<thead>
@@ -65,7 +71,7 @@
 						</tr>
 					</thead>
 					<tbody>
-						{#each to_rows(scenario) as row (row.result.label)}
+						{#each rows as row (row.result.label)}
 							<tr class:tsv={row.is_tsv}>
 								<td class="formatter">{row.result.label}</td>
 								<td>{format_time(row.result.wall_ms)}</td>
@@ -102,9 +108,6 @@
 </p>
 
 <style>
-	.scenario {
-		margin-bottom: var(--space_xl2);
-	}
 	/* wide table scrolls in its own container so the page body never scrolls sideways */
 	.table-scroll {
 		overflow-x: auto;
