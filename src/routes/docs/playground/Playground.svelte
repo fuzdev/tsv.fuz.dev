@@ -11,10 +11,10 @@
 
 	import { playground_example } from './playground_example.ts';
 
-	// `@fuzdev/tsv_wasm` is loaded lazily, in the browser only — a dynamic import
+	// `@fuzdev/tsv-wasm` is loaded lazily, in the browser only — a dynamic import
 	// so the ~1MB-gzipped WASM lands in its own chunk, fetched the first time this
 	// component mounts and never pulled into `/docs` or the prerendered HTML.
-	let tsv: typeof import('@fuzdev/tsv_wasm') | null = $state(null);
+	let tsv: typeof import('@fuzdev/tsv-wasm') | null = $state(null);
 	let load_error: string | null = $state(null);
 
 	// the editable source — starts as the deliberately-unformatted example so the
@@ -60,7 +60,7 @@
 		let cancelled = false;
 		void (async () => {
 			try {
-				const mod = await import('@fuzdev/tsv_wasm');
+				const mod = await import('@fuzdev/tsv-wasm');
 				await mod.init();
 				if (cancelled) return;
 				tsv = mod;

@@ -11,7 +11,7 @@
 // the JSX-free scenarios (it has no JSX/TSX parser); the Svelte scenario benches
 // it against rsvelte-fmt (`@rsvelte/fmt`), the other Rust Svelte-native formatter,
 // and the delivery scenario benches tsv against itself — the native binary, the
-// same binary through `@fuzdev/tsv`'s Node dispatcher, and `@fuzdev/tsv_wasm`.
+// same binary through `@fuzdev/tsv`'s Node dispatcher, and `@fuzdev/tsv-wasm`.
 // tsv is non-configurable, so in every scenario it appears in, the formatters it
 // is compared against are pinned to its fixed style — width 100, tabs, single
 // quotes, no trailing commas — and before timing anything the harness asserts that
@@ -78,7 +78,7 @@ export const CLI_TS_REPO_KEY = 'typescript-only-non-jsx-subset';
 
 /**
  * The tsv-only delivery scenario's id: the native binary against the same binary
- * through `@fuzdev/tsv`'s Node dispatcher and against `@fuzdev/tsv_wasm`, on one
+ * through `@fuzdev/tsv`'s Node dispatcher and against `@fuzdev/tsv-wasm`, on one
  * file. It measures what each way of installing tsv costs, not another tool.
  */
 export const CLI_DELIVERY_KEY = 'tsv-delivery-paths';
@@ -118,7 +118,7 @@ const SCENARIO_COPY: Record<string, Omit<CliScenario, 'key' | 'target' | 'result
 	[CLI_DELIVERY_KEY]: {
 		heading: 'tsv delivery paths',
 		description:
-			'Not a comparison with other tools — every row is tsv: the native binary, the same binary reached through @fuzdev/tsv’s Node dispatcher (how npx tsv runs it), and @fuzdev/tsv_wasm, the same CLI over a WASM engine that platforms without a prebuilt binary fall back to. One file, so every row is single-threaded and the gaps are launch and engine cost, not parallelism.',
+			'Not a comparison with other tools — every row is tsv: the native binary, the same binary reached through @fuzdev/tsv’s Node dispatcher (how npx tsv runs it), and @fuzdev/tsv-wasm, the same CLI over a WASM engine that platforms without a prebuilt binary fall back to. One file, so every row is single-threaded and the gaps are launch and engine cost, not parallelism.',
 		tsv_only: true
 	}
 };

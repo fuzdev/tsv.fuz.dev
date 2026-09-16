@@ -30,9 +30,9 @@ IMPORTANT for AI agents: Do NOT run `gro dev` - the developer will manage the de
 - Gro (`@fuzdev/gro`) - build system and task runner
 - tsv (via Gro) - code formatting
 - mdz (`@fuzdev/mdz`) - markdown preprocessor wired into `svelte.config.js`
-- `@fuzdev/tsv_wasm` - tsv's formatter + parser as WASM; powers the playground, loaded lazily in the browser
+- `@fuzdev/tsv-wasm` - tsv's formatter + parser as WASM; powers the playground, loaded lazily in the browser
 
-Note: `@fuzdev/tsv_wasm` is loaded only on `/docs/playground` via a browser-only dynamic `import()`, so the ~1MB-gzipped WASM (~2.8MB decoded) never weighs down `/docs` or the prerendered pages.
+Note: `@fuzdev/tsv-wasm` is loaded only on `/docs/playground` via a browser-only dynamic `import()`, so the ~1MB-gzipped WASM (~2.8MB decoded) never weighs down `/docs` or the prerendered pages.
 
 Note: several devDependencies — `@webref/css` (CSS spec data), `zimmerframe` (AST traversal), `@sveltejs/acorn-typescript`, `zod`, and `@fuzdev/blake3_wasm` — are *optional peer dependencies* of `@fuzdev/fuz_css`'s `vite_plugin_fuz_css`, declared here so its build-time CSS generation resolves them (e.g. `css_literal.ts` imports `@webref/css`, `css_class_extractor.ts` walks ASTs with `zimmerframe`). They aren't imported by this app's own source, so don't mistake them for dead deps. Likewise `esm-env`, `@types/estree`, and `@types/node` are optional peers of `@fuzdev/fuz_util`, `@fuzdev/mdz`, and `@fuzdev/fuz_ui`, and `tslib` backs `tsconfig.json`'s `importHelpers` — none is imported here directly either.
 
@@ -45,9 +45,9 @@ tsv.fuz.dev is the public face of the tsv tool:
 - Landing page (home) with links to benchmarks and docs
 - Benchmarks page with bar charts and summary tables
 - Docs section (introduction, playground, benchmarks)
-- Interactive playground (`/docs/playground`) — edit a deliberately-unformatted Svelte example in a syntax-highlighted editor (fuz_code's `CodeTextarea`); the formatted output and parsed AST update live alongside it; runs `@fuzdev/tsv_wasm` as lazily-loaded WASM
+- Interactive playground (`/docs/playground`) — edit a deliberately-unformatted Svelte example in a syntax-highlighted editor (fuz_code's `CodeTextarea`); the formatted output and parsed AST update live alongside it; runs `@fuzdev/tsv-wasm` as lazily-loaded WASM
 - Theme controls via fuz_ui's `ThemeRoot` in the root layout (no separate about/settings page)
-- Shows install instructions led by the native `@fuzdev/tsv` (prebuilt N-API addon for Node/Bun, ships the `tsv` CLI), then `@fuzdev/tsv_wasm` (universal, same `tsv` CLI) and the format/parse subsets
+- Shows install instructions led by the native `@fuzdev/tsv` (prebuilt N-API addon for Node/Bun, ships the `tsv` CLI), then `@fuzdev/tsv-wasm` (universal, same `tsv` CLI) and the format/parse subsets
 
 ### What tsv.fuz.dev does NOT include (yet)
 
@@ -69,7 +69,7 @@ src/
 │       ├── +page.svelte      # Docs index (DocsContent)
 │       ├── tomes.ts          # Docs structure (introduction, playground, benchmarks)
 │       ├── introduction/     # Introduction page (install + usage)
-│       ├── playground/       # Interactive playground (Playground.svelte + playground_example.ts; lazy @fuzdev/tsv_wasm)
+│       ├── playground/       # Interactive playground (Playground.svelte + playground_example.ts; lazy @fuzdev/tsv-wasm)
 │       └── benchmarks/       # Benchmarks page: the four JSON reports, benchmark_data.ts / benchmarks_cli.ts / formatter_benchmark_data.ts, the .gen.json.ts for the CLI harness, and the Benchmarks*.svelte visualizations (see Benchmarks below)
 └── test/
     ├── benchmark_data.test.ts       # unit tests for the pure derivations and formatters
@@ -124,7 +124,7 @@ gro gen
 (it has no JSX/TSX parser, so the harness runs it on the JSX-free corpora
 only). That includes the harness's Svelte scenario, which benches tsv against
 rsvelte-fmt (`@rsvelte/fmt`), and its tsv-only delivery scenario (the native
-binary vs `@fuzdev/tsv`'s Node dispatcher vs `@fuzdev/tsv_wasm`, flagged
+binary vs `@fuzdev/tsv`'s Node dispatcher vs `@fuzdev/tsv-wasm`, flagged
 `tsv_only` so "every other tool" claims skip it); a scenario renders on the
 page only once it has an entry in `SCENARIO_COPY` (`benchmarks_cli.ts`), and
 prose claims about the Svelte head-to-head are conditional on its data being
@@ -162,7 +162,7 @@ Key files in `src/routes/docs/benchmarks/`:
 - Benchmark data lives in `src/routes/docs/benchmarks/` as four JSON reports — three copied from tsv, one generated from the sibling CLI harness (see [Benchmarks](#benchmarks))
 - The benchmarks page quotes no hand-written ratios — its prose computes them from the same reports the charts render, via `benchmark_data.ts`'s `benchmark_speedup`/`format_ratio_approx`/`format_ratio_range`/`format_ratio_range_approx` and `benchmarks_cli.ts`'s `cli_speedup_vs_tsv`/`cli_memory_ratio_range`. A test gates that every pair the copy names still resolves
 - `library.ts` builds component metadata at runtime from the `virtual:svelte-docinfo` module (provided by the `svelte-docinfo` Vite plugin); the docs index passes it to `DocsContent`
-- The playground (`/docs/playground`) loads `@fuzdev/tsv_wasm` via a browser-only dynamic `import()` inside `Playground.svelte`, so the WASM code-splits into its own chunk fetched only on that route — the same lazy discipline `library.ts` uses for the heavy svelte-docinfo data, keeping `/docs` and the prerendered pages WASM-free. `@fuzdev/tsv_wasm` is in `vite.config.ts` `optimizeDeps.exclude` (like `blake3_wasm`)
+- The playground (`/docs/playground`) loads `@fuzdev/tsv-wasm` via a browser-only dynamic `import()` inside `Playground.svelte`, so the WASM code-splits into its own chunk fetched only on that route — the same lazy discipline `library.ts` uses for the heavy svelte-docinfo data, keeping `/docs` and the prerendered pages WASM-free. `@fuzdev/tsv-wasm` is in `vite.config.ts` `optimizeDeps.exclude` (like `blake3_wasm`)
 - The playground's editor is fuz_code's `CodeTextarea` (live syntax highlighting via the experimental CSS Custom Highlight API). It needs `@fuzdev/fuz_code/theme_highlight.css`, imported inside `Playground.svelte` rather than the root layout so it stays on this route only; `supports_css_highlight_api()` drives a graceful-degradation note where the API is unavailable (the editor still works, unstyled)
 
 ## Deployment

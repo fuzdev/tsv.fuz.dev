@@ -24,7 +24,7 @@
 		<section>
 			<p>
 				This loads
-				<a href="https://www.npmjs.com/package/@fuzdev/tsv_wasm"><code>@fuzdev/tsv_wasm</code></a>
+				<a href="https://www.npmjs.com/package/@fuzdev/tsv-wasm"><code>@fuzdev/tsv-wasm</code></a>
 				in your browser to format and parse Svelte with TypeScript and CSS.
 			</p>
 			<Playground />

@@ -17,15 +17,15 @@
 const formatted = format_svelte('<script>\\nconst   x=1\\n<\\/script>');
 const ast: Root = parse_svelte('<script>const x = 1;<\\/script>');`;
 
-	const format_example = `import {format_svelte} from '@fuzdev/tsv_format_wasm';
+	const format_example = `import {format_svelte} from '@fuzdev/tsv-format-wasm';
 
 const formatted = format_svelte('<script>\\nconst   x=1\\n<\\/script>');`;
 
-	const parse_example = `import {parse_svelte, type Root} from '@fuzdev/tsv_parse_wasm';
+	const parse_example = `import {parse_svelte, type Root} from '@fuzdev/tsv-parse-wasm';
 
 const ast: Root = parse_svelte('<script>const x = 1;<\\/script>');`;
 
-	const no_locations_example = `import {parse_typescript, reconstruct_locations} from '@fuzdev/tsv_parse_wasm';
+	const no_locations_example = `import {parse_typescript, reconstruct_locations} from '@fuzdev/tsv-parse-wasm';
 
 // span-only AST: start/end offsets, no per-node loc (~46% smaller)
 const ast = parse_typescript('const x = 1;', {locations: false});
@@ -110,11 +110,11 @@ reconstruct_locations(ast, 'const x = 1;');`;
 				same <code>tsv</code> CLI (formatting across worker threads, so <code>--jobs</code> works
 				there too):
 			</p>
-			<Code lang="sh" content={'npm i -D @fuzdev/tsv_wasm\nnpx tsv format src'} />
+			<Code lang="sh" content={'npm i -D @fuzdev/tsv-wasm\nnpx tsv format src'} />
 			<p>For smaller builds, the formatter and parser also ship solo:</p>
 			<Code
 				lang="sh"
-				content={'npm i -D @fuzdev/tsv_format_wasm\nnpm i -D @fuzdev/tsv_parse_wasm'}
+				content={'npm i -D @fuzdev/tsv-format-wasm\nnpm i -D @fuzdev/tsv-parse-wasm'}
 			/>
 			<p>
 				See the <TomeLink slug="benchmarks" /> for size and performance details.
@@ -124,7 +124,7 @@ reconstruct_locations(ast, 'const x = 1;');`;
 			<TomeSectionHeader text="Usage" />
 			<p>
 				All four packages share one API — the same function names, options, and errors — so
-				<code>@fuzdev/tsv</code> and <code>@fuzdev/tsv_wasm</code> are drop-in swaps for each other.
+				<code>@fuzdev/tsv</code> and <code>@fuzdev/tsv-wasm</code> are drop-in swaps for each other.
 				Both export the formatter and parser together:
 			</p>
 			<Code lang="ts" content={usage_example} />

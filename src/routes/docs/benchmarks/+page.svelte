@@ -602,7 +602,7 @@
 				<li>
 					The delivery table is tsv against tsv, on one file. Through <code>npx tsv</code> the same
 					binary takes ~{cli_npm_wall} as long, the difference being Node starting up to exec it,
-					which is a fixed cost that shrinks against a real repo. <code>@fuzdev/tsv_wasm</code> runs
+					which is a fixed cost that shrinks against a real repo. <code>@fuzdev/tsv-wasm</code> runs
 					the same CLI over a WASM engine inside Node, ~{cli_wasm_wall} the time and
 					~{cli_wasm_memory} the memory of the native binary — still ahead of the JS formatters
 					above, but it's the fallback for platforms without a prebuilt binary, not the default.
