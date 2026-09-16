@@ -32,11 +32,11 @@ describe('prose ratios resolve', () => {
 	const IN_PROCESS_PAIRS: Array<[string, string, string]> = [
 		['format/typescript', 'oxfmt', 'tsv'],
 		['format/typescript', 'prettier', 'tsv'],
-		['format/typescript', 'biome-wasm', 'tsv_wasm'],
+		['format/typescript', 'biome-wasm', 'tsv-wasm'],
 		['format/svelte', 'prettier', 'tsv'],
-		['format/svelte', 'biome-wasm', 'tsv_wasm'],
+		['format/svelte', 'biome-wasm', 'tsv-wasm'],
 		['format/css', 'oxfmt', 'tsv'],
-		['format/css', 'biome-wasm', 'tsv_wasm'],
+		['format/css', 'biome-wasm', 'tsv-wasm'],
 		['parse/typescript', 'oxc-parser', 'tsv-json-no-locations'],
 		['parse/typescript', 'tsv-json-no-locations', 'yuku-parser'],
 		// "carrying it costs ~Nx the hand-off time" — the loc-bearing wire over the span-only one
@@ -173,11 +173,11 @@ describe('prose ratios resolve', () => {
 		assert(delivery && single);
 		assert.strictEqual(delivery.target.split(',')[0], single.target, 'same corpus file');
 		const wasm = delivery.results.find((r) => r.label === CLI_TSV_WASM_LABEL);
-		assert(wasm, 'delivery scenario has no tsv_wasm row');
+		assert(wasm, 'delivery scenario has no tsv-wasm row');
 		for (const label of ['prettier', 'prettier + oxc-parser']) {
 			const js = single.results.find((r) => r.label === label);
 			assert(js, `large-single-file has no ${label} row`);
-			assert.isBelow(wasm.wall_ms, js.wall_ms, `tsv_wasm vs ${label}`);
+			assert.isBelow(wasm.wall_ms, js.wall_ms, `tsv-wasm vs ${label}`);
 		}
 	});
 

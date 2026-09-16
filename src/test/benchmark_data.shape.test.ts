@@ -41,7 +41,7 @@ describe('benchmarks.json shape', () => {
 	test('binary sizes include the flagship tsv builds', () => {
 		const labels = benchmarks_json.binary_sizes.map((s) => s.label);
 		assert.include(labels, 'tsv (napi)'); // flagship N-API build (perf report anchor)
-		assert.include(labels, 'tsv_wasm'); // the full wasm build — smallest full-toolchain, size baseline
+		assert.include(labels, 'tsv-wasm'); // the full wasm build — smallest full-toolchain, size baseline
 	});
 
 	test('versions carries the keys the meta component renders', () => {

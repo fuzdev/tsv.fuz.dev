@@ -73,17 +73,17 @@
 
 	// Every ratio the TLDR and the section notes quote, computed from the same
 	// reports the charts render so the prose can't drift from them. Native-vs-native
-	// pairs tsv with oxfmt, wasm-vs-wasm pairs tsv_wasm with biome-wasm; the parse
+	// pairs tsv with oxfmt, wasm-vs-wasm pairs tsv-wasm with biome-wasm; the parse
 	// comparison uses tsv's span-only wire, the shape oxc-parser also emits.
 	const speedup = (group: string, slower: string, faster: string) =>
 		format_ratio_approx(benchmark_speedup(benchmarks_json, group, slower, faster));
 	const format_ts_vs_oxfmt = speedup('format/typescript', 'oxfmt', 'tsv');
 	const format_ts_vs_prettier = speedup('format/typescript', 'prettier', 'tsv');
-	const format_ts_vs_biome = speedup('format/typescript', 'biome-wasm', 'tsv_wasm');
+	const format_ts_vs_biome = speedup('format/typescript', 'biome-wasm', 'tsv-wasm');
 	const format_svelte_vs_prettier = speedup('format/svelte', 'prettier', 'tsv');
-	const format_svelte_vs_biome = speedup('format/svelte', 'biome-wasm', 'tsv_wasm');
+	const format_svelte_vs_biome = speedup('format/svelte', 'biome-wasm', 'tsv-wasm');
 	const format_css_vs_oxfmt = speedup('format/css', 'oxfmt', 'tsv');
-	const format_css_vs_biome = speedup('format/css', 'biome-wasm', 'tsv_wasm');
+	const format_css_vs_biome = speedup('format/css', 'biome-wasm', 'tsv-wasm');
 
 	// The rows the report itself flagged as unstable (see `is_entry_unstable`) —
 	// disclosed beside the headline ratios, since each divides two of these means.
@@ -321,13 +321,13 @@
 			The parse entries that build a full JS AST are comparable in mechanism: tsv and oxc-parser
 			both serialize the AST to JSON in Rust and deserialize it in JS, native and wasm alike. But
 			the deliverables differ — tsv's default wire (<code>tsv-json</code> /
-			<code>tsv_wasm-json</code>) carries a per-node <code>loc</code> (line/column) object that
+			<code>tsv-wasm-json</code>) carries a per-node <code>loc</code> (line/column) object that
 			oxc-parser's default span-only AST omits, and carrying it costs ~{parse_ts_loc_cost} the
 			hand-off time on the TypeScript corpus. The <code>tsv-json-no-locations</code> /
-			<code>tsv_wasm-json-no-locations</code> entries drop it, emitting the same span-only shape oxc
+			<code>tsv-wasm-json-no-locations</code> entries drop it, emitting the same span-only shape oxc
 			does, so those are the payload-matched, apples-to-apples comparison with oxc-parser
 			(line/column stays derivable from the offsets plus source, so nothing is lost). The
-			tsv-internal and tsv_wasm-internal entries build the native AST but skip JS-side
+			tsv-internal and tsv-wasm-internal entries build the native AST but skip JS-side
 			materialization entirely, so they show raw in-engine speed and tsv's own serialization
 			overhead rather than a cross-tool comparison.
 		</p>
@@ -500,7 +500,7 @@
 					Parser — but tsv's parse-only builds beside them carry parsers for Svelte and CSS too, so
 					the gap there is scope as much as engine
 				</li>
-				<li>tsv and tsv_wasm include a parser and formatter for Svelte, TypeScript/JS, and CSS</li>
+				<li>tsv and tsv-wasm include a parser and formatter for Svelte, TypeScript/JS, and CSS</li>
 				<li>
 					Biome bundles a parser, formatter, and linter for many languages, but its native engine
 					ships only as the CLI binary, not an embeddable library, and <code>@biomejs/js-api</code>

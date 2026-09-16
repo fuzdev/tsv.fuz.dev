@@ -333,10 +333,10 @@ const CATEGORY_BY_NAME: Record<string, ImplementationCategory> = {
 	'tsv-json': 'tsv_native_json',
 	'tsv-json-no-locations': 'tsv_native_json',
 	'tsv-internal': 'tsv_native',
-	tsv_wasm: 'tsv_wasm',
-	'tsv_wasm-json': 'tsv_wasm_json',
-	'tsv_wasm-json-no-locations': 'tsv_wasm_json',
-	'tsv_wasm-internal': 'tsv_wasm',
+	'tsv-wasm': 'tsv_wasm',
+	'tsv-wasm-json': 'tsv_wasm_json',
+	'tsv-wasm-json-no-locations': 'tsv_wasm_json',
+	'tsv-wasm-internal': 'tsv_wasm',
 	'biome-wasm': 'biome',
 	'dprint-wasm': 'dprint',
 	// malva is dprint's own CSS plugin, loaded through the same Wasm host, so it
@@ -361,7 +361,7 @@ export const categorize_name = (name: string): ImplementationCategory =>
 	CATEGORY_BY_NAME[name] ?? 'oxc';
 
 export const categorize_size = (label: string): ImplementationCategory => {
-	// covers `tsv_wasm` plus the `tsv_format_wasm`/`tsv_parse_wasm` subsets
+	// covers `tsv-wasm` plus the `tsv-format-wasm`/`tsv-parse-wasm` subsets
 	if (label.startsWith('tsv') && label.includes('wasm')) return 'tsv_wasm';
 	if (label.startsWith('tsv')) return 'tsv_native';
 	if (label.startsWith('biome')) return 'biome';
@@ -376,7 +376,7 @@ export const categorize_size = (label: string): ImplementationCategory => {
 
 // Primary tsv entry names for speedup summary (fair comparisons)
 const PRIMARY_NATIVE_FORMAT = 'tsv';
-const PRIMARY_WASM_FORMAT = 'tsv_wasm';
+const PRIMARY_WASM_FORMAT = 'tsv-wasm';
 
 // Derivation functions
 
@@ -409,7 +409,7 @@ const speed_entry_rank = (entry: BenchmarkDisplayEntry): number => {
 	if (entry.category === 'yuku') return 7;
 	if (entry.name.endsWith('-no-locations')) return 8; // tsv json, span-only wire
 	if (entry.name.endsWith('-json')) return 9; // tsv json, loc-carrying wire
-	return 10; // tsv-internal / tsv_wasm-internal — raw in-engine, no JS materialization
+	return 10; // tsv-internal / tsv-wasm-internal — raw in-engine, no JS materialization
 };
 
 /**
@@ -738,7 +738,7 @@ export type SizeCapability = 'full' | 'formatter' | 'parser';
  *   bucket: both are dprint plugins loaded over the one `@dprint/formatter` host,
  *   and neither exposes a parser. dprint's covers TypeScript/JS, malva's CSS —
  *   each a slice of what tsv's format-only build does, so pair both against
- *   `tsv_format_wasm` and read the gap as scope before engine.
+ *   `tsv-format-wasm` and read the gap as scope before engine.
  * - `swc` and rsvelte's addon back parse rows and ship no formatter. Both are far
  *   wider than what the rows measure — swc's `.node` is an entire compiler
  *   (transforms, minifier, bundler) and rsvelte's carries the compiler plus
@@ -774,12 +774,12 @@ export const categorize_size_capability = (label: string): SizeCapability => {
 	const has_format = label.includes('format') || label.includes('fmt');
 	// a build that does both is a full toolchain (e.g. the combined oxc-parser + oxfmt entry)
 	if (has_parse && has_format) return 'full';
-	if (has_parse) return 'parser'; // tsv parse (ffi), tsv_parse_wasm, oxc-parser
+	if (has_parse) return 'parser'; // tsv parse (ffi), tsv-parse-wasm, oxc-parser
 	if (has_format) return 'formatter'; // tsv format, oxfmt
 	// Reaching here must be a DECISION, not a name the heuristic couldn't read:
 	// every label that lands in `full` this way ships both operations (biome's whole
 	// toolchain included). Anything else belongs in the table above.
-	return 'full'; // tsv (napi/ffi), tsv_wasm, biome (wasm)
+	return 'full'; // tsv (napi/ffi), tsv-wasm, biome (wasm)
 };
 
 export interface SizeDisplayEntry extends BinarySize {
@@ -1450,7 +1450,7 @@ const HYPHENATED_NAMES = ['acorn-typescript', 'oxc-parser', 'rsvelte-fmt', 'yuku
  * instead (see the cross-runtime table); the third-party wasm builds are marked
  * `(wasm)`. Mirrors
  * the parenthesized suffixes the binary-size section's labels already carry.
- * tsv's own wasm entries keep their `tsv_wasm` package-name style, as in the size
+ * tsv's own wasm entries keep their `tsv-wasm` package-name style, as in the size
  * groups, so they aren't listed here. The already-parenthesized size labels
  * aren't keys, so they fall through to the generic formatting below unchanged.
  * The cross-runtime table neutralizes the `(node napi)` suffix per row (its
@@ -1461,9 +1461,9 @@ const LABEL_OVERRIDES: Record<string, string> = {
 	'tsv-json': 'tsv json (node napi)',
 	// `no-locs` (not `no-locations`) — the full word eats too much column width.
 	'tsv-json-no-locations': 'tsv json no-locs (node napi)',
-	// the one tsv_wasm entry listed here: the generic formatting below would
+	// the one tsv-wasm entry listed here: the generic formatting below would
 	// break the `no-locs` hyphen its native sibling deliberately keeps
-	'tsv_wasm-json-no-locations': 'tsv_wasm json no-locs',
+	'tsv-wasm-json-no-locations': 'tsv-wasm json no-locs',
 	'tsv-internal': 'tsv internal (node napi)',
 	'oxc-parser': 'oxc-parser (node napi)',
 	oxfmt: 'oxfmt (node napi)',

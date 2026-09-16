@@ -174,7 +174,7 @@ describe('derive_unavailable_by_runtime', () => {
 describe('categorize_size_capability', () => {
 	test('reads the job out of a label that names it', () => {
 		assert.strictEqual(categorize_size_capability('tsv parse (ffi)'), 'parser');
-		assert.strictEqual(categorize_size_capability('tsv_format_wasm'), 'formatter');
+		assert.strictEqual(categorize_size_capability('tsv-format-wasm'), 'formatter');
 		assert.strictEqual(categorize_size_capability('oxfmt (napi)'), 'formatter');
 		assert.strictEqual(categorize_size_capability(OXC_FULL_LABEL), 'full');
 		assert.strictEqual(categorize_size_capability('tsv (napi)'), 'full');

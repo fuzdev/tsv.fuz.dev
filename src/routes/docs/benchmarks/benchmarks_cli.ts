@@ -87,7 +87,7 @@ export const CLI_DELIVERY_KEY = 'tsv-delivery-paths';
 export const CLI_TSV_NPM_LABEL = 'tsv via npm dispatcher';
 
 /** The delivery scenario's WASM row, as displayed. */
-export const CLI_TSV_WASM_LABEL = 'tsv_wasm';
+export const CLI_TSV_WASM_LABEL = 'tsv-wasm';
 
 /**
  * The prose framing for each scenario, keyed by its generated scenario id — the
