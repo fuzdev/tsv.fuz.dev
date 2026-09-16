@@ -106,19 +106,19 @@ const SCENARIO_COPY: Record<string, Omit<CliScenario, 'key' | 'target' | 'result
 	'large-single-file': {
 		heading: 'Large single file',
 		description:
-			'With a single input no formatter can parallelize across files, so wall-clock is close to an engine-plus-startup comparison here.',
+			'With a single input no formatter can parallelize across files, so wall-clock is closer to an engine-plus-startup comparison than the multi-file rows — each tool still pays its own process and thread-pool setup.',
 		tsv_only: false
 	},
 	[CLI_SVELTE_KEY]: {
 		heading: 'Svelte corpus',
 		description:
-			'The two Rust Svelte-native formatters head-to-head on a third-party .svelte corpus, with rsvelte-fmt configured to tsv’s fixed style (width 100, tabs, single quotes) so both do comparable line-break work. rsvelte-fmt 0.7.x crashes nondeterministically on this corpus, so a run either completes or is published aborted, never retried into a clean-looking result.',
+			'The two Rust Svelte-native formatters head-to-head on a third-party .svelte corpus, rsvelte-fmt configured to tsv’s fixed style (width 100, tabs, single quotes) so both do comparable line-break work. rsvelte-fmt 0.7.x crashes nondeterministically on this corpus; a run is published as it ended, complete or aborted, never retried into a clean-looking result.',
 		tsv_only: false
 	},
 	[CLI_DELIVERY_KEY]: {
 		heading: 'tsv delivery paths',
 		description:
-			'Not a comparison with other tools — every row is tsv: the native binary, the same binary reached through @fuzdev/tsv’s Node dispatcher (how npx tsv runs it), and @fuzdev/tsv-wasm, the same CLI over a WASM engine that platforms without a prebuilt binary fall back to. One file, so no row parallelizes across files and the gaps are launch and engine cost (the WASM row’s CPU time exceeds its wall-clock: V8 compiles the module on background threads), not file parallelism.',
+			'Every row is tsv, not another tool: the native binary, the same binary through @fuzdev/tsv’s Node dispatcher (how npx tsv runs it), and @fuzdev/tsv-wasm, the same CLI over a WASM engine, the fallback for platforms without a prebuilt binary. One file, so the gaps are launch and engine cost, not file parallelism (the WASM row’s CPU time exceeds its wall-clock because V8 compiles the module on background threads).',
 		tsv_only: true
 	}
 };
@@ -255,7 +255,7 @@ export const cli_memory_ratio_range = (
 	const ratios = scenarios.flatMap((scenario) =>
 		scenario.results
 			.filter((r) => r.label !== 'tsv' && (!labels || labels.includes(r.label)))
-			.map((r) => cli_speedup_vs_tsv(scenario.key, r.label, 'memory_mb'))
+			.map((r) => cli_ratio_vs_tsv(scenario.results, r.label, 'memory_mb'))
 			.filter((ratio) => ratio !== undefined)
 	);
 	if (ratios.length === 0) return undefined;

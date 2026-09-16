@@ -2,6 +2,7 @@ import { assert, describe, test } from 'vitest';
 
 import { benchmarks_json } from '$routes/docs/benchmarks/benchmarks.ts';
 import { benchmarks_cross_runtime_json } from '$routes/docs/benchmarks/benchmarks_cross_runtime.ts';
+import { benchmarks_conformance_json } from '$routes/docs/benchmarks/benchmarks_conformance.ts';
 import {
 	benchmarks_cli,
 	cli_memory_ratio_range,
@@ -148,6 +149,30 @@ describe('prose ratios resolve', () => {
 		}
 	});
 
+	test('the CLI CPU-work note reads the way the numbers run', () => {
+		// "tsv is ~Nx faster than Oxfmt in wall-clock but ~Mx in CPU work, because tsv
+		// spreads its work across more cores than Oxfmt" — that holds only while the
+		// wall ratio EXCEEDS the CPU ratio; "against Biome ... Biome spreads wider than
+		// tsv but burns more CPU doing it" only while the wall ratio TRAILS it. Either
+		// inequality flipping on a refresh leaves the sentence explaining the opposite
+		// of what the table shows, so both are pinned in the direction the copy reads.
+		const ratio = (label: string, metric: 'wall_ms' | 'cpu_ms') => {
+			const value = cli_speedup_vs_tsv(CLI_TS_REPO_KEY, label, metric);
+			assert.isDefined(value, `${CLI_TS_REPO_KEY}: ${label} ${metric}`);
+			return value;
+		};
+		assert.isAbove(
+			ratio('oxfmt', 'wall_ms'),
+			ratio('oxfmt', 'cpu_ms'),
+			'oxfmt: wall lead > CPU lead'
+		);
+		assert.isBelow(
+			ratio('biome', 'wall_ms'),
+			ratio('biome', 'cpu_ms'),
+			'biome: wall lead < CPU lead'
+		);
+	});
+
 	test('the unscoped memory range spans only the scenarios that face other tools', () => {
 		// "less than every other tool in every scenario it faces them" — the tsv-only
 		// delivery rows are tsv's own distributions and must not widen or narrow it
@@ -186,6 +211,24 @@ describe('prose ratios resolve', () => {
 			assert(js, `large-single-file has no ${label} row`);
 			assert.isBelow(wasm.wall_ms, js.wall_ms, `tsv-wasm vs ${label}`);
 		}
+	});
+
+	test("the conformance note on oxc-parser's two bindings reads the report", () => {
+		// "its wasm binding is pinned to an older release ... and the two accept sets
+		// differ by a couple of files" — both halves are facts about the copied report,
+		// and either can go stale on a refresh: the bindings re-aligning makes the note
+		// a fiction, a wider gap makes "a couple" an understatement.
+		const { versions, entries } = benchmarks_conformance_json;
+		assert.isDefined(versions.oxc_parser_wasm);
+		assert.notStrictEqual(versions.oxc_parser_wasm, versions.oxc_parser, 'bindings re-aligned');
+		const processed = (name: string) => {
+			const entry = entries.find((e) => e.group === 'parse/typescript' && e.name === name);
+			assert(entry?.files_processed != null, `${name} coverage`);
+			return entry.files_processed;
+		};
+		const gap = Math.abs(processed('oxc-parser') - processed('oxc-parser-wasm'));
+		assert.isAtLeast(gap, 1, 'the accept sets agree — the note claims they differ');
+		assert.isAtMost(gap, 5, 'the accept sets differ by more than "a couple of files"');
 	});
 
 	test('the corpus repos the TLDR names are present', () => {
