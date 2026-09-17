@@ -295,7 +295,7 @@ describe('prose ratios resolve', () => {
 		assert.isDefined(cli_memory_ratio_range(CLI_DELIVERY_KEY));
 	});
 
-	test('the WASM delivery row is "still ahead of the JS formatters above"', () => {
+	test('the WASM delivery row is "ahead of both Prettier rows … and behind Oxfmt and Biome"', () => {
 		// the delivery and large-single-file scenarios time the same parser.ts, so
 		// the note's ordering claim is checkable across them
 		const delivery = benchmarks_cli.scenarios.find((s) => s.key === CLI_DELIVERY_KEY);
@@ -308,6 +308,12 @@ describe('prose ratios resolve', () => {
 			const js = single.results.find((r) => r.label === label);
 			assert(js, `large-single-file has no ${label} row`);
 			assert.isBelow(wasm.wall_ms, js.wall_ms, `tsv-wasm vs ${label}`);
+		}
+		// the sentence concedes the native-engine rows, so that half must hold too
+		for (const label of ['oxfmt', 'biome']) {
+			const native = single.results.find((r) => r.label === label);
+			assert(native, `large-single-file has no ${label} row`);
+			assert.isAbove(wasm.wall_ms, native.wall_ms, `tsv-wasm vs ${label}`);
 		}
 	});
 

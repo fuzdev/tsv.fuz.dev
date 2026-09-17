@@ -4,9 +4,9 @@
 // DEFAULT branch, so the bare fork URL already lands on it; upstream carries
 // neither tsv nor this analysis). Unlike the in-process, single-threaded numbers
 // elsewhere on this page, it measures the WHOLE CLI: process spawn, file
-// discovery, I/O, and each tool's default multi-file parallelism. tsv, oxfmt, and
-// biome parallelize across files while prettier formats them one at a time, so the
-// wall-clock ratios scale with core count and are machine-dependent — the
+// discovery, I/O, and each tool's default multi-file parallelism. tsv, oxfmt, biome,
+// and rsvelte-fmt parallelize across files while prettier formats them one at a time, so
+// the wall-clock ratios scale with core count and are machine-dependent — the
 // parallelism-neutral view is CPU work (hyperfine's `User` + `System` time). tsv runs only in
 // the JSX-free scenarios (it has no JSX/TSX parser); the Svelte scenario benches
 // it against rsvelte-fmt (`@rsvelte/fmt`), the other Rust Svelte-native formatter,
@@ -38,7 +38,7 @@ export interface CliFormatterResult {
 	 * Total CPU time across all threads, in ms — hyperfine's `User` plus `System`,
 	 * the parallelism-neutral view. System time is counted because it is real work
 	 * the command demanded (file I/O, thread spawn, page faults) and an uneven share
-	 * of it per tool: a third of tsv's CPU on the multi-file repo, half of rsvelte-fmt's.
+	 * of it per tool: a third of tsv's CPU on the multi-file repo, nearly half of rsvelte-fmt's.
 	 */
 	cpu_ms: number;
 	/** Peak resident set size (RSS), in megabytes; `null` when the harness measured no memory. */
@@ -163,7 +163,7 @@ const SCENARIO_COPY: Record<
 	[CLI_SVELTE_KEY]: {
 		heading: 'Svelte corpus',
 		description:
-			'The two Rust Svelte-native formatters head-to-head on a third-party .svelte corpus, rsvelte-fmt configured to tsv’s fixed style (width 100, tabs, single quotes) so both do comparable line-break work. rsvelte-fmt 0.7.x’s check mode crashes nondeterministically on this corpus — the harness’s preflight pass, never the timed write runs; a run is published as it ended, complete or aborted, never retried into a clean-looking result.',
+			'The two Rust Svelte-native formatters head-to-head on a third-party .svelte corpus, rsvelte-fmt configured to tsv’s fixed style (width 100, tabs, single quotes, no trailing commas) so both do comparable line-break work. Over a directory rsvelte-fmt’s launcher also starts the oxfmt it delegates other files to, which finds none here — how it ships, so it stays. rsvelte-fmt 0.7.x’s check mode crashes nondeterministically on this corpus, in the harness’s preflight pass and never yet in a timed write run; about two in three attempts abort. The harness never retries — a run is published as it ended, complete or aborted — so a timed table here is an attempt the crash didn’t hit.',
 		tsv_only: false
 	},
 	[CLI_DELIVERY_KEY]: {
