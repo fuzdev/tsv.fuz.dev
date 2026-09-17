@@ -177,12 +177,12 @@
 			<li>
 				A
 				<a href="https://github.com/ryanatkn/oxc-bench-formatter" rel="external">
-					fork of Oxc's own <code>bench-formatter</code>
+					fork of Oxc's <code>bench-formatter</code>
 				</a>
-				is an end-to-end CLI benchmark with its own corpus. On the JSX-free subset of a real
-				TypeScript repo, tsv formats ~{cli_ts_wall_vs_oxfmt} faster than Oxfmt and
-				~{cli_ts_wall_vs_biome} faster than Biome in wall-clock (~{cli_ts_cpu_vs_oxfmt} and
-				~{cli_ts_cpu_vs_biome} in CPU work, the parallelism-neutral view) using
+				has end-to-end CLI benchmarks. On the JSX-free subset of a real TypeScript repo, tsv formats
+				~{cli_ts_wall_vs_oxfmt} faster than Oxfmt and ~{cli_ts_wall_vs_biome} faster than Biome in
+				wall-clock (~{cli_ts_cpu_vs_oxfmt} and ~{cli_ts_cpu_vs_biome} in CPU work, the
+				parallelism-neutral view) using
 				{cli_ts_memory ? format_ratio_range(cli_ts_memory.min, cli_ts_memory.max) : '—'} less memory
 				than either. Wall-clock ratios bake in each tool's multi-file parallelism — see the notes in
 				<a href="#{docs_slugify(CLI_SECTION_TITLE)}">that section</a>.
