@@ -77,11 +77,16 @@ export const format_ratio_approx = (ratio: number | undefined): string =>
 	ratio === undefined ? '—' : ratio >= 10 ? `${Math.round(ratio)}x` : `${ratio.toFixed(1)}x`;
 
 /**
- * An inclusive ratio range for prose (`3–9x`), FLOORED at both ends so a
- * "3–9x less memory" claim never overstates either bound.
+ * An inclusive ratio range for prose (`2.9–4.6x`, `6–21x`), FLOORED at both ends
+ * — to one decimal under 10, to a whole number from 10 — so a "less memory" claim
+ * never overstates either bound while keeping the precision `format_ratio_approx`
+ * gives a single ratio.
  */
 export const format_ratio_range = (min: number, max: number): string =>
-	`${Math.floor(min)}–${Math.floor(max)}x`;
+	`${floor_ratio(min)}–${floor_ratio(max)}x`;
+
+const floor_ratio = (ratio: number): string =>
+	ratio >= 10 ? `${Math.floor(ratio)}` : (Math.floor(ratio * 10) / 10).toFixed(1);
 
 /**
  * Hyphenated tool and package names that keep their hyphens in display labels —

@@ -22,7 +22,11 @@ import {
 	CLI_TSV_WASM_LABEL
 } from '$routes/docs/benchmarks/benchmarks_cli.ts';
 import { derive_unstable_cells } from '$routes/docs/benchmarks/benchmark_cross_runtime.ts';
-import { benchmark_speedup, is_entry_unstable } from '$routes/docs/benchmarks/benchmark_data.ts';
+import {
+	benchmark_speedup,
+	derive_benchmark_groups,
+	is_entry_unstable
+} from '$routes/docs/benchmarks/benchmark_data.ts';
 
 // The page's prose quotes ratios computed from the reports rather than
 // hand-written numbers, so a renamed entry or a dropped scenario would render
@@ -56,6 +60,16 @@ describe('prose ratios resolve', () => {
 			const ratio = benchmark_speedup(benchmarks_json, group, slower, faster);
 			assert.isDefined(ratio, `${group}: ${slower} vs ${faster}`);
 			assert.isAbove(ratio, 1, `${group}: ${slower} vs ${faster}`);
+		}
+	});
+
+	test('the "faster than Prettier" summary really divides by the prettier row', () => {
+		// `BenchmarksSummary` hard-codes "faster than Prettier" while a group's
+		// canonical entry is whichever canonical-category row sorts first, so a format
+		// group that grew another canonical row would silently re-baseline the table
+		for (const group of derive_benchmark_groups(benchmarks_json)) {
+			if (group.operation !== 'format') continue;
+			assert.strictEqual(group.canonical_entry?.name, 'prettier', group.language);
 		}
 	});
 
@@ -110,13 +124,14 @@ describe('prose ratios resolve', () => {
 		// (the TypeScript-repo wall/CPU pairs are covered by the CPU-work test below)
 		// the TLDR's "less memory than either" range, scoped to the tools it names, and
 		// the CLI note's "less than every other tool in every scenario" — both read as
-		// "less", so the LOW end must clear 1 or the floored range would print "0–Nx"
+		// "less" and both are floored to one decimal for display, so the LOW end must
+		// reach 1.1 or the range would print "1.0–Nx less memory", a claim of nothing
 		for (const range of [
 			cli_memory_ratio_range(CLI_TS_REPO_KEY, ['oxfmt', 'biome']),
 			cli_memory_ratio_range()
 		]) {
 			assert.isDefined(range);
-			assert.isAbove(range.min, 1);
+			assert.isAtLeast(range.min, 1.1);
 		}
 		// the delivery note's three ratios, tsv against its own distributions
 		for (const [label, metric] of [
@@ -145,8 +160,8 @@ describe('prose ratios resolve', () => {
 		}
 		const memory = cli_memory_ratio_range(CLI_TS_REPO_KEY, ['oxfmt', 'biome'], CLI_TSV_NPM_LABEL);
 		assert.isDefined(memory);
-		// the range is floored for display, so "less memory" needs its low end to reach 2
-		assert.isAtLeast(memory.min, 2);
+		// floored to one decimal for display, so "less memory" needs its low end to reach 1.1
+		assert.isAtLeast(memory.min, 1.1);
 		// "~Nx on the TypeScript repo": the dispatcher's own cost there, which the
 		// delivery note says shrinks against the one-file figure
 		const repo_cost = cli_speedup_vs_tsv(CLI_TS_REPO_KEY, CLI_TSV_NPM_LABEL, 'wall_ms');
@@ -213,6 +228,16 @@ describe('prose ratios resolve', () => {
 				bare('cpu_ms'),
 				`${label}: bare binary, wall lead > CPU lead`
 			);
+			// every one of the four renders inside a "~Nx faster than" sentence, and
+			// `format_ratio_approx` is direction-blind, so each must also clear 1 — the
+			// wall-clock dispatcher ratio is gated above, the other three here
+			for (const [ratio, name] of [
+				[npm('cpu_ms'), 'dispatcher cpu_ms'],
+				[bare('wall_ms'), 'bare wall_ms'],
+				[bare('cpu_ms'), 'bare cpu_ms']
+			] as const) {
+				assert.isAbove(ratio, 1, `${label}: ${name} reads "faster than" but is below 1`);
+			}
 		}
 		// "which is Node's startup rather than the engines ... a large share of a
 		// parallel run's wall-clock and a small share of its CPU total": the dispatcher
@@ -353,8 +378,9 @@ describe('prose ratios resolve', () => {
 	});
 
 	test('the corpus repos the TLDR names are present', () => {
-		// "including Svelte's official repos (svelte, kit, svelte.dev) and the
-		// fuz.dev repos" — gate the names so the sentence can't outlive the corpus
+		// "Svelte's own repos (svelte, kit, svelte.dev), the fuz.dev repos, and a few
+		// of the author's personal SvelteKit sites" — gate the names so the sentence
+		// can't outlive the corpus
 		const slugs = new Set(
 			(benchmarks_json.corpus_sources ?? []).map((s) => s.repo?.slug).filter(Boolean)
 		);

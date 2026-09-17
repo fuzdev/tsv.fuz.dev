@@ -110,6 +110,9 @@
 					</thead>
 					<tbody>
 						{#each rows as row (row.result.label)}
+							<!-- hover only re-baselines the table's ratios — a visual aid over data that
+								is fully visible regardless, with the default anchor serving keyboard and
+								no-hover users — so the row carries no focus path (as `BenchmarksBar`) -->
 							<tr
 								class:tsv={row.is_tsv}
 								class:tsv-distribution={row.is_tsv_distribution}
@@ -144,7 +147,8 @@
 			{#if scenario.benchmark_runs > 0}
 				<p class="versions">
 					Each time is the mean of {scenario.benchmark_runs} runs, after {scenario.warmup_runs}
-					untimed warmup runs.
+					untimed warmup runs; each peak RSS is the mean of the per-run peaks over a separate pass
+					of {scenario.benchmark_runs} runs.
 				</p>
 			{/if}
 			{#if has_dispatcher_memory(scenario)}

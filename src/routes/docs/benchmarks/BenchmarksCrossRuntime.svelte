@@ -173,10 +173,11 @@
 	sweeps/sec — one sweep is a full pass over the group's timed file set (higher is faster); ratios
 	are vs <code>{base}</code> (&gt; 1 = faster than {base}). A <code>fail</code> is a row that
 	runtime contributed no number for — an implementation it can't load (listed above when the report
-	records it), or one its report doesn't carry. The <code>native</code> rows load each runtime's
+	records it), or one its report doesn't carry. tsv's <code>native</code> rows load each runtime's
 	idiomatic binding of the same engine — the N-API addon under <code>node</code> and
-	<code>bun</code>, the C-FFI library under <code>deno</code> — so the <code>deno</code> column is a
-	first-class FFI-vs-N-API comparison, not a re-run of the same binding.
+	<code>bun</code>, the C-FFI library under <code>deno</code> — so their <code>deno</code> column is
+	a first-class FFI-vs-N-API comparison, not a re-run of the same binding. The other tools'
+	<code>native</code> rows are their npm N-API addons under all three runtimes.
 </p>
 
 <style>

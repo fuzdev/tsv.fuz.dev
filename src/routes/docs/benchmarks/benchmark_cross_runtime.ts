@@ -62,8 +62,9 @@ export interface CrossRuntimeReport {
 	// prints rather than adding one. Present from combined `version` 11 on; not
 	// rendered, kept for parity.
 	within_noise?: Array<WithinNoiseCell>;
-	// Per-runtime measurements that were NOT stable — a cv (cleaned or raw) past 10%
-	// or a |drift| past 5% — collected ahead of `within_noise`'s sample gate, so a
+	// Per-runtime measurements that were NOT stable — a cleaned cv past 10%, a raw cv
+	// past 10% on a row with fewer than 30 raw timings, or a |drift| past 5% —
+	// collected ahead of `within_noise`'s sample gate, so a
 	// row measured on five timings that disagree is named rather than silenced.
 	// Every ratio through such a cell is unreadable. `[]` when every measurement was
 	// stable. Present from combined `version` 15 on; rendered as a banner over the
@@ -142,6 +143,10 @@ export interface WithinNoiseCell {
 	runtime?: BenchmarkRuntime;
 	delta: number;
 	noise: number;
+	// The two cleaned timing counts the noise band was taken over, in `runtimes`
+	// order (an array, not a pair, for the same JSON-import reason). Present from
+	// combined `version` 12 on; not rendered.
+	samples?: Array<number>;
 }
 
 /**
@@ -301,11 +306,13 @@ export const is_impl_unavailable = (
 	);
 
 /**
- * The label for a cross-runtime row. Each row spans node/deno/bun columns, and a
- * native build's binding is runtime-specific (N-API on node & bun, C-FFI on
+ * The label for a cross-runtime row. Each row spans node/deno/bun columns, and
+ * tsv's native build's binding is runtime-specific (N-API on node & bun, C-FFI on
  * deno), so the row can't pin one binding — neutralize `format_label`'s
- * node-centric `(node napi)` suffix to `(native)`. The per-runtime binding is
- * disclosed once in the table caption instead (see `BenchmarksCrossRuntime`).
+ * node-centric `(node napi)` suffix to `(native)`. The third-party native rows
+ * are npm N-API addons under all three runtimes and get the same neutral suffix;
+ * the per-runtime binding is disclosed once in the table caption instead (see
+ * `BenchmarksCrossRuntime`).
  */
 export const format_cross_runtime_label = (name: string): string =>
 	format_label(name).replace(' (node napi)', ' (native)');

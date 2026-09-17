@@ -44,7 +44,10 @@ describe('prose ratio formatting', () => {
 	});
 
 	test('a range is floored at both ends so the claim never overstates either bound', () => {
-		assert.strictEqual(format_ratio_range(3.001, 9.89), '3–9x');
+		assert.strictEqual(format_ratio_range(3.001, 9.89), '3.0–9.8x');
+		assert.strictEqual(format_ratio_range(2.95, 4.62), '2.9–4.6x');
+		// from 10 the decimal goes, as `format_ratio_approx` drops it
+		assert.strictEqual(format_ratio_range(6.54, 21.21), '6.5–21x');
 	});
 });
 

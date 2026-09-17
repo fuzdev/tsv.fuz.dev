@@ -695,7 +695,8 @@ export const derive_speedup_summary = (groups: Array<BenchmarkGroup>): Array<Spe
 		const group = groups.find((g) => g.operation === operation && g.language === language);
 		if (!group?.canonical_entry) return undefined;
 		const entry = group.entries.find((e) => e.name === primary_name);
-		if (!entry) return undefined;
+		// a coverage-only row carries a zero timing, which no ratio can divide by
+		if (!entry?.mean_ns) return undefined;
 		return group.canonical_entry.mean_ns / entry.mean_ns;
 	};
 
@@ -718,9 +719,11 @@ export const derive_speedup_summary = (groups: Array<BenchmarkGroup>): Array<Spe
 // Measurement stability
 
 /**
- * The bench's own instability thresholds, restated: a cleaned or raw cv at or past
- * `UNSTABLE_CV_THRESHOLD`, or a |drift| at or past `UNSTABLE_DRIFT_THRESHOLD`, and
- * the row's mean may be neither of two modes it blended. Mirrors `bench.ts`.
+ * The bench's own instability thresholds, restated: a cleaned cv at or past
+ * `UNSTABLE_CV_THRESHOLD`, a raw cv at or past it on a row with fewer than
+ * `RAW_CV_SAMPLE_CEILING` raw timings, or a |drift| at or past
+ * `UNSTABLE_DRIFT_THRESHOLD`, and the row's mean may be neither of two modes it
+ * blended. Mirrors `bench.ts`.
  */
 const UNSTABLE_CV_THRESHOLD = 0.1;
 const UNSTABLE_DRIFT_THRESHOLD = 0.05;
