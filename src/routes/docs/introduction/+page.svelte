@@ -59,21 +59,21 @@ reconstruct_locations(ast, 'const x = 1;');`;
 		</p>
 		<p>tsv prioritizes, in order:</p>
 		<ol>
-			<li>correctness (spec conformance for HTML/CSS/JS, Svelte and TypeScript adherence)</li>
+			<li>correctness (spec conformance for HTML/CSS/JS, fidelity to Svelte and TypeScript)</li>
 			<li>speed</li>
 			<li>binary size and memory usage</li>
 			<li>extensibility (valued but deprioritized), modularity, and reusability</li>
 		</ol>
 		<p>
 			See the <TomeLink slug="benchmarks" /> for measurements. Compared to Oxc and Biome, tsv is
-			smaller and faster at formatting its supported languages, and faster at parsing for the same
-			AST payload (the like-for-like rows in the report), but lacks their features and broad
-			language support. One reason for tsv to exist is to help find the performance bonuses left on
-			the table in the Web ecosystem's increasingly-native implementations.
+			smaller and faster at parsing and formatting its supported languages (parsing compared on the
+			same AST payload), but lacks their features and broad language support. One reason for tsv to
+			exist is to help find the performance bonuses left on the table in the Web ecosystem's
+			increasingly-native implementations.
 		</p>
 		<p>
-			This is an early release with many bugs (and fixes to bugs in Prettier and
-			prettier-plugin-svelte), and reports and feedback are appreciated. See the
+			tsv is near production-ready, with a long tail of rare bugs (and numerous fixes to bugs in
+			Prettier and prettier-plugin-svelte). Reports and feedback are appreciated. See the
 			<a href="https://github.com/fuzdev/tsv/issues">issues</a> and
 			<a href="https://github.com/fuzdev/tsv/discussions">discussions</a>.
 		</p>
@@ -87,6 +87,22 @@ reconstruct_locations(ast, 'const x = 1;');`;
 		</p>
 		<TomeSection>
 			<TomeSectionHeader text="Install" />
+			<p>
+				For format-on-save in VSCode and vsix-compatible editors, install the
+				<a href="https://github.com/fuzdev/vscode-extension-tsv-format">
+					<code>fuzdev.tsv-format</code> extension
+				</a>. It runs tsv's WASM build, so it works in both desktop VSCode and the browser host:
+			</p>
+			<ul>
+				<li>
+					<a href="https://marketplace.visualstudio.com/items?itemName=fuzdev.tsv-format">
+						VSCode Marketplace
+					</a>
+				</li>
+				<li>
+					<a href="https://open-vsx.org/extension/fuzdev/tsv-format">Open VSX</a>
+				</li>
+			</ul>
 			<p>On Node.js (22+) and Bun, tsv installs as a native addon with prebuilt binaries:</p>
 			<Code
 				lang="sh"
