@@ -12,23 +12,23 @@
 
 	const tome = tome_get_by_slug(LIBRARY_ITEM_NAME);
 
-	const usage_example = `import {format_svelte, parse_svelte, type Root} from '@fuzdev/tsv';
+	const usage_example = `import { format_svelte, parse_svelte, type Root } from '@fuzdev/tsv';
 
 const formatted = format_svelte('<script>\\nconst   x=1\\n<\\/script>');
 const ast: Root = parse_svelte('<script>const x = 1;<\\/script>');`;
 
-	const format_example = `import {format_svelte} from '@fuzdev/tsv-format-wasm';
+	const format_example = `import { format_svelte } from '@fuzdev/tsv-format-wasm';
 
 const formatted = format_svelte('<script>\\nconst   x=1\\n<\\/script>');`;
 
-	const parse_example = `import {parse_svelte, type Root} from '@fuzdev/tsv-parse-wasm';
+	const parse_example = `import { parse_svelte, type Root } from '@fuzdev/tsv-parse-wasm';
 
 const ast: Root = parse_svelte('<script>const x = 1;<\\/script>');`;
 
-	const no_locations_example = `import {parse_typescript, reconstruct_locations} from '@fuzdev/tsv-parse-wasm';
+	const no_locations_example = `import { parse_typescript, reconstruct_locations } from '@fuzdev/tsv-parse-wasm';
 
 // span-only AST: start/end offsets, no per-node loc (~46% smaller)
-const ast = parse_typescript('const x = 1;', {locations: false});
+const ast = parse_typescript('const x = 1;', { locations: false });
 
 // derive line/column back when you need it, no re-parse
 reconstruct_locations(ast, 'const x = 1;');`;
@@ -95,11 +95,8 @@ reconstruct_locations(ast, 'const x = 1;');`;
 			<p>
 				The right binary installs automatically. Prebuilt for Linux (x64, arm64, and x64 musl),
 				macOS (arm64 and x64), and Windows x64 — anywhere else, use the WASM build below. The
-				<code>tsv</code> command here is tsv's real native CLI binary, shipped in the platform
-				package and exec'd directly, with native multi-file parallelism (<code>--jobs</code>) and
-				parallel discovery. It ships beside the addon because neither can play the other's role: an
-				addon can't be exec'd as a process, and an executable can't be loaded as an in-process
-				module.
+				<code>tsv</code> command is tsv's native CLI binary, shipped in the platform package
+				alongside the addon, with multi-file parallelism (<code>--jobs</code>).
 			</p>
 			<p>
 				The same CLI binaries are also attached to each
@@ -138,14 +135,12 @@ reconstruct_locations(ast, 'const x = 1;');`;
 				<code>parse_css</code> work the same way, and the parsers return Svelte-compatible JSON ASTs
 				with bundled TS types. Every parser also takes an acorn-style options object —
 				<code>{'{locations: false}'}</code> for the span-only wire (below), plus TypeScript's
-				<code>{"{sourceType: 'script' | 'module'}"}</code>, which <code>format_typescript</code>
-				takes too. Strictness follows the spec: a module is strict, a script is sloppy until its own
-				<code>"use strict"</code> prologue. Parsing defaults to <code>'module'</code>; formatting
-				with no <code>sourceType</code> parses as a module and retries as a script only if that
-				fails (a <code>.mjs</code>/<code>.mts</code> path is a module by name and takes no retry),
-				so a legacy sloppy script formats with no options at all. The native package needs no
-				initialization; the WASM packages work zero-config in Node.js, Bun, and Deno (sync
-				auto-init), and browsers and bundlers call <code>await init()</code> once first.
+				<code>{"{sourceType: 'script' | 'module'}"}</code> (default <code>'module'</code>), which
+				<code>format_typescript</code> takes too; formatting with no <code>sourceType</code> retries
+				as a script when the module parse fails, so a legacy sloppy script formats with no options.
+				The native package needs no initialization; the WASM packages work zero-config in Node.js,
+				Bun, and Deno (sync auto-init), and browsers and bundlers call <code>await init()</code>
+				once first.
 			</p>
 		</TomeSection>
 		<TomeSection>
@@ -160,13 +155,12 @@ reconstruct_locations(ast, 'const x = 1;');`;
 				Passing <code>{'{locations: false}'}</code> is faster than the default, because there's
 				fewer bytes to emit and parse. Even when you need line/column, reconstructing in JS beats
 				the <code>loc</code>-bearing wire end-to-end by ~1.7x on TypeScript (~2.2x if you need few
-				or none), per the consumer-side note in
+				or none), as measured in
 				<a href="https://github.com/fuzdev/tsv/blob/main/benches/js/results/report.node.md">
 					tsv's bench report
-				</a>, which measures it on the same corpus as the <TomeLink slug="benchmarks" />. tsv's
-				default emits <code>loc</code> so that the bare call is a drop-in for Svelte's parser. The
-				<code>reconstruct_locations</code> helper is bundled in every package that parses, native
-				and WASM alike.
+				</a>. tsv's default emits <code>loc</code> so that the bare call is a drop-in for Svelte's
+				parser. The <code>reconstruct_locations</code> helper is bundled in every package that
+				parses, native and WASM alike.
 			</p>
 			<p>Details:</p>
 			<ul>
@@ -177,11 +171,13 @@ reconstruct_locations(ast, 'const x = 1;');`;
 				</li>
 				<li>
 					<code>reconstruct_locations(ast, source)</code> walks the tree and adds <code>loc</code>
-					back, mutating in place.
+					back, mutating in place — exact for TypeScript, approximate for Svelte, where it throws on
+					the rare input it can't reconstruct rather than guess (parse those with <code>loc</code>).
 				</li>
 				<li>
-					For sparse lookups, <code>create_locator(source)</code> reuses one line table across
-					calls, so you pay for the positions you actually ask for.
+					For sparse lookups, <code>create_locator(source, opts?)</code> reuses one line table
+					across calls, so you pay for the positions you actually ask for; pass
+					<code>{"{language: 'svelte'}"}</code> for a <code>.svelte</code> document.
 				</li>
 				<li>
 					CSS nodes carry no <code>loc</code> to begin with, so <code>{'{locations: false}'}</code>

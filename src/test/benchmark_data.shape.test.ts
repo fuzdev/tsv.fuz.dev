@@ -5,43 +5,27 @@ import { benchmarks_conformance_json } from '$routes/docs/benchmarks/benchmarks_
 import { benchmarks_cross_runtime_json } from '$routes/docs/benchmarks/benchmarks_cross_runtime.ts';
 import {
 	categorize_name,
-	categorize_size,
-	categorize_size_capability,
 	derive_benchmark_groups,
 	derive_conformance_groups,
-	derive_cross_runtime_groups,
-	derive_size_groups,
-	derive_speedup_summary,
-	format_coverage_percent,
-	OXC_FULL_LABEL,
-	RSVELTE_INSTALL_LABEL,
-	RSVELTE_LABEL,
-	OXFMT_WASM_LABEL
+	derive_speedup_summary
 } from '$routes/docs/benchmarks/benchmark_data.ts';
+import { categorize_size } from '$routes/docs/benchmarks/benchmark_sizes.ts';
 
-// The report shape versions the committed copies are pinned to — tsv's
-// `REPORT_SCHEMA_VERSION` (per-runtime and conformance reports) and its composer's
-// `COMBINED_SCHEMA_VERSION`. Exact rather than floors, so `npm run update-benchmarks`
-// pulling a newer shape fails here until `benchmark_data.ts` mirrors the new fields
-// and these are re-pinned together.
+// The report shape version the committed copies are pinned to — tsv's
+// `REPORT_SCHEMA_VERSION`, shared by the per-runtime and conformance reports. Exact
+// rather than a floor, so `npm run update-benchmarks` pulling a newer shape fails
+// here until `benchmark_data.ts` mirrors the new fields and this is re-pinned.
 const REPORT_VERSION = 15;
-const COMBINED_VERSION = 15;
 
-// Shape gate for the committed benchmarks.json: the bench report format drifts
-// (it once went 3 months stale across a key rename that rendered as `undefined`),
-// and `benchmarks.ts` casts the JSON, so typechecking alone won't catch it.
+// Shape gate for the committed benchmarks.json: the bench report format drifts,
+// and `benchmarks.ts` casts the JSON, so typechecking alone won't catch a renamed
+// key — it renders as `undefined` instead.
 // When `npm run update-benchmarks` pulls in a new shape, these fail loudly.
 describe('benchmarks.json shape', () => {
 	test('baseline version is current', () => {
 		// pinned exactly: a bump in tsv's `REPORT_SCHEMA_VERSION` must be a deliberate
 		// re-pin here, after `benchmark_data.ts` gains the new fields' version-notes
 		assert.strictEqual(benchmarks_json.version, REPORT_VERSION);
-	});
-
-	test('binary sizes include the flagship tsv builds', () => {
-		const labels = benchmarks_json.binary_sizes.map((s) => s.label);
-		assert.include(labels, 'tsv (napi)'); // flagship N-API build (perf report anchor)
-		assert.include(labels, 'tsv-wasm'); // the full wasm build — smallest full-toolchain, size baseline
 	});
 
 	test('versions carries the keys the meta component renders', () => {
@@ -292,124 +276,6 @@ describe('benchmarks.json shape', () => {
 		}
 	});
 
-	test('binary sizes group by capability with one smallest-build ratio anchor', () => {
-		const groups = derive_size_groups(benchmarks_json.binary_sizes);
-		// full / formatter / parser, in that order, all present in the current data
-		assert.deepStrictEqual(
-			groups.map((g) => g.capability),
-			['full', 'formatter', 'parser']
-		);
-		for (const group of groups) {
-			assert.isNotEmpty(group.entries);
-			// every entry lands in the group its capability names
-			for (const e of group.entries) {
-				assert.strictEqual(categorize_size_capability(e.label), group.capability);
-			}
-			// the group's default ratio anchor (its 1.0x row) is the single smallest real
-			// build, and it leads the group — the shared component reads every ratio off
-			// the first row. Disabled placeholders (e.g. oxfmt's absent wasm build) never
-			// sort first.
-			const real = group.entries.filter((e) => !e.disabled);
-			const smallest = real.reduce((a, b) => (a.bytes <= b.bytes ? a : b));
-			assert.strictEqual(
-				group.entries[0]?.label,
-				smallest.label,
-				`${group.capability} smallest leads`
-			);
-		}
-		// the parser group pits tsv against oxc-parser in both kinds
-		const parser = groups.find((g) => g.capability === 'parser');
-		const parser_labels = parser?.entries.map((e) => e.label) ?? [];
-		assert.include(parser_labels, 'oxc-parser (wasm)');
-		assert.include(parser_labels, 'oxc-parser (napi)');
-	});
-
-	test('full toolchain group carries the combined oxc-parser + oxfmt entry', () => {
-		const sizes = benchmarks_json.binary_sizes;
-		const groups = derive_size_groups(sizes);
-		const full = groups.find((g) => g.capability === 'full');
-		const combined = full?.entries.find((e) => e.label === OXC_FULL_LABEL);
-		assert.ok(combined, 'combined oxc entry missing from full toolchain group');
-
-		// its bytes and gzip are the sum of oxc's separate parser and formatter builds
-		const oxc_parser = sizes.find((s) => s.label === 'oxc-parser (napi)');
-		const oxfmt = sizes.find((s) => s.label === 'oxfmt (napi)');
-		assert.ok(oxc_parser && oxfmt, 'source oxc builds missing');
-		assert.strictEqual(combined.bytes, oxc_parser.bytes + oxfmt.bytes);
-		assert.strictEqual(combined.gzip_bytes, oxc_parser.gzip_bytes! + oxfmt.gzip_bytes!);
-
-		// native build, colored as oxc
-		assert.strictEqual(combined.kind, 'native');
-		assert.strictEqual(combined.category, 'oxc');
-	});
-
-	test('formatter group carries rsvelte-fmt both bare and summed with the oxfmt it needs for a project', () => {
-		const sizes = benchmarks_json.binary_sizes;
-		const groups = derive_size_groups(sizes);
-		const formatter = groups.find((g) => g.capability === 'formatter');
-		assert.ok(formatter, 'formatter group missing');
-
-		const bare = formatter.entries.find((e) => e.label === RSVELTE_LABEL);
-		// The rsvelte rows postdate older reports; refreshing the report promotes
-		// this to the full assertion, as the dprint test above works.
-		if (!bare) {
-			assert.isEmpty(
-				formatter.entries.filter((e) => e.label === RSVELTE_INSTALL_LABEL),
-				'must not synthesize the rsvelte pair when the report carries no rsvelte build'
-			);
-			return;
-		}
-
-		const combined = formatter.entries.find((e) => e.label === RSVELTE_INSTALL_LABEL);
-		assert.ok(combined, 'rsvelte-fmt + oxfmt entry missing from formatter group');
-
-		const oxfmt = sizes.find((s) => s.label === 'oxfmt (napi)');
-		assert.ok(oxfmt, 'source oxfmt build missing');
-		assert.strictEqual(combined.bytes, bare.bytes + oxfmt.bytes);
-		assert.strictEqual(combined.gzip_bytes, bare.gzip_bytes! + oxfmt.gzip_bytes!);
-
-		// both are real measured builds, not placeholders — the pair is the project
-		// figure, the bare binary the single-file one
-		assert.isNotOk(bare.disabled, 'bare rsvelte-fmt should be a real entry');
-		assert.isNotOk(combined.disabled, 'rsvelte pair should be a real entry');
-		assert.strictEqual(combined.kind, 'native');
-		for (const e of [bare, combined]) {
-			assert.strictEqual(e.category, 'rsvelte', `${e.label} category`);
-		}
-
-		// the sum must sort after its own bare half — a group ordered smallest-first
-		// would otherwise be reporting a sum smaller than one of its addends
-		const labels = formatter.entries.map((e) => e.label);
-		assert.isAbove(
-			labels.indexOf(RSVELTE_INSTALL_LABEL),
-			labels.indexOf(RSVELTE_LABEL),
-			'the rsvelte pair should sort after the bare binary'
-		);
-	});
-
-	test('formatter group gets a disabled oxfmt (wasm) placeholder just above oxfmt (napi), since oxfmt has no wasm build', () => {
-		const groups = derive_size_groups(benchmarks_json.binary_sizes);
-		const formatter = groups.find((g) => g.capability === 'formatter');
-		assert.ok(formatter, 'formatter group missing');
-
-		const placeholder = formatter.entries.find((e) => e.label === OXFMT_WASM_LABEL);
-		assert.ok(placeholder, 'oxfmt (wasm) placeholder missing');
-		assert.ok(placeholder.disabled, 'oxfmt (wasm) should be disabled');
-		assert.strictEqual(placeholder.kind, 'wasm');
-		assert.strictEqual(placeholder.category, 'oxc');
-		assert.strictEqual(placeholder.bar_fraction, 0);
-
-		const labels = formatter.entries.map((e) => e.label);
-		const placeholder_index = labels.indexOf(OXFMT_WASM_LABEL);
-		const native_index = labels.indexOf('oxfmt (napi)');
-		assert.isAbove(native_index, -1, 'oxfmt (napi) missing from formatter group');
-		assert.strictEqual(
-			placeholder_index,
-			native_index - 1,
-			'placeholder should sit just above oxfmt (napi)'
-		);
-	});
-
 	test('flagship report is the node runtime', () => {
 		// the headline detailed view switched to N-API under Node; guards against an
 		// `update-benchmarks` that pulls the wrong runtime's sibling report
@@ -485,6 +351,9 @@ describe('benchmarks_conformance.json shape', () => {
 			);
 			for (const row of group.rows) {
 				assert.isAbove(row.files_total, 0, `${group.language}/${row.name} total`);
+				// the group header is the max across rows, which reads as the language's
+				// total only while every row saw the same corpus
+				assert.strictEqual(row.files_total, group.files_total, `${group.language}/${row.name}`);
 				assert.isAtLeast(row.coverage_fraction, 0);
 				assert.isAtMost(row.coverage_fraction, 1);
 				// engine-level rows only — binding/materialization variants are folded
@@ -521,83 +390,5 @@ describe('benchmarks_conformance.json shape', () => {
 		assert.strictEqual(tsc.note, 'oracle for part of this corpus');
 		assert.isUndefined(row_named('svelte'), 'tsc parses no Svelte');
 		assert.isUndefined(row_named('css'), 'tsc parses no CSS');
-	});
-
-	test('coverage percent floors — only exact totality reads 100%', () => {
-		// 44219/44220 rounds to 100.00% but must not display as it: floor, so a
-		// visibly non-total count never sits beside a "100.00%" label.
-		assert.strictEqual(format_coverage_percent(44_219 / 44_220), '99.99%');
-		assert.strictEqual(format_coverage_percent(1), '100.00%');
-		assert.strictEqual(format_coverage_percent(0.998549), '99.85%');
-		assert.strictEqual(format_coverage_percent(0), '0.00%');
-	});
-});
-
-// Shape gate for the committed cross-runtime `benchmarks_cross_runtime.json` (the
-// bench composer's combined `report.json`) — a different, slimmer shape than the
-// per-runtime baseline, consumed by the Cross-runtime section.
-describe('benchmarks_cross_runtime.json shape', () => {
-	test('combined report carries the current version and kind', () => {
-		assert.strictEqual(benchmarks_cross_runtime_json.version, COMBINED_VERSION);
-		assert.strictEqual(benchmarks_cross_runtime_json.kind, 'combined');
-		// the committed fixture must be same-vintage — if this trips, re-run every
-		// runtime and recompose rather than committing a mixed set (the site would
-		// show the unreliable-ratios warning banner)
-		assert.notStrictEqual(benchmarks_cross_runtime_json.mixed_vintage, true);
-	});
-
-	test('the conformance report is same-vintage with the perf siblings', () => {
-		// combined `version` 13 records it; a stale one means `update-benchmarks`
-		// copied a conformance report from a different refresh than the perf trio
-		// (the site would show the parse-conformance section's warning banner)
-		const vintage = benchmarks_cross_runtime_json.conformance_vintage;
-		assert.isOk(vintage, 'conformance_vintage recorded');
-		assert.notStrictEqual(vintage.stale, true);
-		assert.strictEqual(vintage.git_commit, benchmarks_conformance_json.git_commit);
-	});
-
-	test('the flagship report is the node sibling the combined report was composed from', () => {
-		// `update-benchmarks` copies three files from one `deno task bench`; if a copy
-		// is skipped or taken from another worktree, the detailed view and the
-		// cross-runtime tables silently describe different builds. The composer
-		// can't see the copied files, so this is the site-side vintage gate
-		const node = benchmarks_cross_runtime_json.sources.find((s) => s.runtime === 'node');
-		assert.isOk(node, 'combined report carries a node source');
-		assert.strictEqual(node.git_commit, benchmarks_json.git_commit);
-		assert.strictEqual(node.timestamp, benchmarks_json.timestamp);
-		assert.strictEqual(node.tsv, benchmarks_json.versions.tsv);
-	});
-
-	test('runtimes include the flagship and its cross-runtime peers', () => {
-		const { runtimes } = benchmarks_cross_runtime_json;
-		assert.include(runtimes, 'node'); // the flagship the headline view leads with
-		assert.include(runtimes, 'deno');
-		assert.include(runtimes, 'bun');
-	});
-
-	test('every group derives rows with the flagship runtime populated', () => {
-		const groups = derive_cross_runtime_groups(benchmarks_cross_runtime_json);
-		assert.isAtLeast(groups.length, 6); // format+parse × svelte/typescript/css
-		for (const group of groups) {
-			assert.isAbove(group.rows.length, 0, group.group);
-			for (const row of group.rows) {
-				assert.isNumber(row.ops_per_second.node, `${group.group}/${row.name} missing node ops`);
-				// ratios anchor on node (the display-order base, not the report's
-				// deno-first storage order), so node's own ratio is exactly 1
-				assert.strictEqual(row.ratio_vs_base.node, 1, `${group.group}/${row.name} node anchor`);
-			}
-		}
-	});
-
-	test('the committed reports timed identical file sets across runtimes', () => {
-		// a mismatch means part of a published ratio is corpus composition, not
-		// runtime — recompose from same-box, same-commit siblings rather than
-		// committing a report that needs the ⚠ files annotation
-		const groups = derive_cross_runtime_groups(benchmarks_cross_runtime_json);
-		for (const group of groups) {
-			for (const row of group.rows) {
-				assert.isNull(row.files_iterated_mismatch, `${group.group}/${row.name} file-set mismatch`);
-			}
-		}
 	});
 });

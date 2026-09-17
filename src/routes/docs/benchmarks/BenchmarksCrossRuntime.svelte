@@ -1,19 +1,18 @@
 <script lang="ts">
 	import {
-		category_color,
 		cross_runtime_ratio_background,
 		derive_cross_runtime_groups,
 		derive_runtime_versions,
 		derive_unavailable_by_runtime,
 		derive_unstable_cells,
-		format_unstable_readings,
 		format_cross_runtime_label,
-		format_speedup,
 		is_impl_unavailable,
 		order_cross_runtime_runtimes,
 		type BenchmarkRuntime,
 		type CrossRuntimeReport
-	} from './benchmark_data.ts';
+	} from './benchmark_cross_runtime.ts';
+	import { format_unstable_readings } from './benchmark_data.ts';
+	import { category_color, format_speedup } from './benchmark_display.ts';
 
 	const {
 		report
@@ -38,8 +37,9 @@
 	// "this runtime's report has no such row" (an older sibling, say).
 	const unavailable = $derived(derive_unavailable_by_runtime(report));
 	const unstable = $derived(derive_unstable_cells(report));
-	const is_unstable = (name: string, runtime: BenchmarkRuntime): boolean =>
-		unstable.some((c) => `${c.group}/${c.name}` === name && c.runtime === runtime);
+	// `row_key` is the `group/name` composite, unlike `missing_cell_title`'s bare row name
+	const is_unstable = (row_key: string, runtime: BenchmarkRuntime): boolean =>
+		unstable.some((c) => `${c.group}/${c.name}` === row_key && c.runtime === runtime);
 
 	const format_ops = (n: number | undefined): string => (n == null ? 'fail' : n.toFixed(2));
 
@@ -61,127 +61,123 @@
 	): string => runtimes.map((runtime) => mismatch[runtime] ?? '—').join('/');
 </script>
 
-<div class="cross-runtime">
-	{#if report.mixed_vintage}
-		<aside class="mixed-vintage">
-			⚠ The per-runtime reports backing these tables come from different commits/versions, so the
-			ratios are unreliable until every runtime is re-run.
-		</aside>
-	{/if}
-	{#if report.mixed_machine}
-		<aside class="mixed-vintage">
-			⚠ The per-runtime reports backing these tables were produced on different hardware, so the
-			ratios are not comparable until every runtime is re-run on one machine.
-		</aside>
-	{/if}
-	{#if unavailable.length}
-		<aside class="mixed-vintage">
-			⚠ Some implementations don't load on every runtime:
-			<ul class="unavailable">
-				{#each unavailable as { runtime, rows } (runtime)}
-					<li><code>{runtime}</code> — {rows.join(', ')}</li>
-				{/each}
-			</ul>
-			These rows are unmeasured there, so a gap in those columns is a load failure rather than a
-			speed result.
-		</aside>
-	{/if}
-	{#if unstable.length}
-		<aside class="mixed-vintage">
-			⚠ Some measurements were not stable, so every ratio through them is unreadable:
-			<ul class="unavailable">
-				{#each unstable as cell (cell.group + '/' + cell.name + '/' + cell.runtime)}
-					<li>
-						<code>{cell.runtime}</code> — {cell.group}/{cell.name}
-						({format_unstable_readings(cell)})
-					</li>
-				{/each}
-			</ul>
-			A drift is a cost that moved while the row was being measured (negative: still warming up;
-			positive: degrading); the cell is marked ⚠ below and its ratio should be read as unmeasured
-			until that runtime is re-run.
-		</aside>
-	{/if}
-	{#if runtime_versions.length}
-		<ul class="versions">
-			{#each runtime_versions as { runtime, version } (runtime)}
-				<li><code>{runtime}</code> {version}</li>
+{#if report.mixed_vintage}
+	<aside class="mixed-vintage">
+		⚠ The per-runtime reports backing these tables come from different commits/versions, so the
+		ratios are unreliable until every runtime is re-run.
+	</aside>
+{/if}
+{#if report.mixed_machine}
+	<aside class="mixed-vintage">
+		⚠ The per-runtime reports backing these tables were produced on different hardware, so the
+		ratios are not comparable until every runtime is re-run on one machine.
+	</aside>
+{/if}
+{#if unavailable.length}
+	<aside class="mixed-vintage">
+		⚠ Some implementations don't load on every runtime:
+		<ul class="unavailable">
+			{#each unavailable as { runtime, rows } (runtime)}
+				<li><code>{runtime}</code> — {rows.join(', ')}</li>
 			{/each}
 		</ul>
-	{/if}
-	{#each groups as group (group.group)}
-		<div class="mb_xl4">
-			<h4 class="mt_0 mb_sm">{group_label(group.operation, group.language)}</h4>
-			<table>
-				<thead>
+		These rows are unmeasured there, so a gap in those columns is a load failure rather than a speed
+		result.
+	</aside>
+{/if}
+{#if unstable.length}
+	<aside class="mixed-vintage">
+		⚠ Some measurements were not stable, so every ratio through them is unreadable:
+		<ul class="unavailable">
+			{#each unstable as cell (cell.group + '/' + cell.name + '/' + cell.runtime)}
+				<li>
+					<code>{cell.runtime}</code> — {cell.group}/{cell.name}
+					({format_unstable_readings(cell)})
+				</li>
+			{/each}
+		</ul>
+		A drift is a cost that moved while the row was being measured (negative: still warming up;
+		positive: degrading); the cell is marked ⚠ below and its ratio should be read as unmeasured
+		until that runtime is re-run.
+	</aside>
+{/if}
+{#if runtime_versions.length}
+	<ul class="unstyled versions">
+		{#each runtime_versions as { runtime, version } (runtime)}
+			<li><code>{runtime}</code> {version}</li>
+		{/each}
+	</ul>
+{/if}
+{#each groups as group (group.group)}
+	<div class="mb_xl4">
+		<h4 class="mt_0 mb_sm">{group_label(group.operation, group.language)}</h4>
+		<table>
+			<thead>
+				<tr>
+					<th></th>
+					{#each runtimes as runtime (runtime)}
+						<th class="num">{runtime}</th>
+					{/each}
+					{#each others as runtime (runtime)}
+						<th class="num">{runtime}/{base}</th>
+					{/each}
+				</tr>
+			</thead>
+			<tbody>
+				{#each group.rows as row (row.name)}
 					<tr>
-						<th></th>
+						<td>
+							<i class="swatch" style:background={category_color(row.category)}></i>
+							{format_cross_runtime_label(row.name)}
+							{#if row.files_iterated_mismatch}
+								<small
+									class="files-mismatch"
+									title="the runtimes timed different file sets ({runtimes.join(
+										'/'
+									)}) — each runtime times the files its own binding accepted, so part of this row's ratio is file-set composition, not runtime"
+								>
+									⚠ files {files_mismatch_label(row.files_iterated_mismatch)}
+								</small>
+							{/if}
+						</td>
 						{#each runtimes as runtime (runtime)}
-							<th class="num">{runtime}</th>
+							{@const ops = row.ops_per_second[runtime]}
+							{@const cell_unstable = is_unstable(group.group + '/' + row.name, runtime)}
+							<td
+								class="num"
+								title={ops == null
+									? missing_cell_title(row.name, runtime)
+									: cell_unstable
+										? 'this measurement was not stable — see the note above the tables'
+										: undefined}
+							>
+								{format_ops(ops)}{cell_unstable ? ' ⚠' : ''}
+							</td>
 						{/each}
 						{#each others as runtime (runtime)}
-							<th class="num">{runtime}/{base}</th>
+							{@const ratio = row.ratio_vs_base[runtime]}
+							<td
+								class="num ratio"
+								style:background={ratio != null ? cross_runtime_ratio_background(ratio) : undefined}
+							>
+								{ratio != null ? format_speedup(ratio) : 'fail'}
+							</td>
 						{/each}
 					</tr>
-				</thead>
-				<tbody>
-					{#each group.rows as row (row.name)}
-						<tr>
-							<td>
-								<i class="swatch" style:background={category_color(row.category)}></i>
-								{format_cross_runtime_label(row.name)}
-								{#if row.files_iterated_mismatch}
-									<small
-										class="files-mismatch"
-										title="the runtimes timed different file sets ({runtimes.join(
-											'/'
-										)}) — each runtime times the files its own binding accepted, so part of this row's ratio is file-set composition, not runtime"
-									>
-										⚠ files {files_mismatch_label(row.files_iterated_mismatch)}
-									</small>
-								{/if}
-							</td>
-							{#each runtimes as runtime (runtime)}
-								{@const ops = row.ops_per_second[runtime]}
-								{@const cell_unstable = is_unstable(group.group + '/' + row.name, runtime)}
-								<td
-									class="num"
-									title={ops == null
-										? missing_cell_title(row.name, runtime)
-										: cell_unstable
-											? 'this measurement was not stable — see the note above the tables'
-											: undefined}
-								>
-									{format_ops(ops)}{cell_unstable ? ' ⚠' : ''}
-								</td>
-							{/each}
-							{#each others as runtime (runtime)}
-								{@const ratio = row.ratio_vs_base[runtime]}
-								<td
-									class="num ratio"
-									style:background={ratio != null
-										? cross_runtime_ratio_background(ratio)
-										: undefined}
-								>
-									{ratio != null ? format_speedup(ratio) : 'fail'}
-								</td>
-							{/each}
-						</tr>
-					{/each}
-				</tbody>
-			</table>
-		</div>
-	{/each}
-	<p class="text_40">
-		sweeps/sec — one sweep is a full pass over the group's timed file set (higher is faster); ratios
-		are vs <code>{base}</code> (&gt; 1 = faster than {base}). A <code>fail</code> is a row that
-		runtime contributed no number for — an implementation it can't load (listed above when the
-		report records it), or one its report doesn't carry. The <code>native</code> rows load each
-		runtime's idiomatic binding of the same engine — the N-API addon under <code>node</code> and
-		<code>bun</code>, the C-FFI library under <code>deno</code> — so the <code>deno</code> column is
-		a first-class FFI-vs-N-API comparison, not a re-run of the same binding.
-	</p>
-</div>
+				{/each}
+			</tbody>
+		</table>
+	</div>
+{/each}
+<p class="text_40">
+	sweeps/sec — one sweep is a full pass over the group's timed file set (higher is faster); ratios
+	are vs <code>{base}</code> (&gt; 1 = faster than {base}). A <code>fail</code> is a row that
+	runtime contributed no number for — an implementation it can't load (listed above when the report
+	records it), or one its report doesn't carry. The <code>native</code> rows load each runtime's
+	idiomatic binding of the same engine — the N-API addon under <code>node</code> and
+	<code>bun</code>, the C-FFI library under <code>deno</code> — so the <code>deno</code> column is a
+	first-class FFI-vs-N-API comparison, not a re-run of the same binding.
+</p>
 
 <style>
 	/* the per-runtime load failures inside the disclosure aside */
@@ -194,17 +190,12 @@
 		flex-wrap: wrap;
 		column-gap: var(--space_lg);
 		row-gap: var(--space_xs);
-		list-style: none;
-		padding: 0;
 		margin-bottom: var(--space_xl3);
 		font-size: var(--font_size_sm);
 		opacity: 0.7;
 	}
 	table {
 		width: 100%;
-	}
-	.num {
-		text-align: right;
 	}
 	.ratio {
 		font-weight: 700;

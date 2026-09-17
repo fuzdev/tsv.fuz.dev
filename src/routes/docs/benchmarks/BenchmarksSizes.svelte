@@ -1,11 +1,8 @@
 <script lang="ts">
-	import {
-		format_bytes,
-		format_gzip_size,
-		derive_size_groups,
-		type BaselineRow,
-		type BinarySize
-	} from './benchmark_data.ts';
+	import type { BaselineRow } from './benchmark_baseline.ts';
+	import type { BinarySize } from './benchmark_data.ts';
+	import { format_bytes, format_gzip_size } from './benchmark_display.ts';
+	import { derive_size_groups, type SizeCapabilityGroup } from './benchmark_sizes.ts';
 	import BenchmarksBaselineGroup from './BenchmarksBaselineGroup.svelte';
 
 	const {
@@ -22,11 +19,8 @@
 	// own; when its group's other entries do carry one, fall back to 'n/a' rather than
 	// omitting the annotation entirely - otherwise that row drops the annotation
 	// column and its bar-track renders wider than its siblings'
-	const has_gzip = (entries: ReadonlyArray<{ gzip_bytes: number | null }>) =>
-		entries.some((e) => e.gzip_bytes != null);
-
-	const to_rows = (group: (typeof size_groups)[number]): Array<BaselineRow> => {
-		const group_has_gzip = has_gzip(group.entries);
+	const to_rows = (group: SizeCapabilityGroup): Array<BaselineRow> => {
+		const group_has_gzip = group.entries.some((e) => e.gzip_bytes != null);
 		return group.entries.map((s) => ({
 			key: s.label,
 			label: s.label,

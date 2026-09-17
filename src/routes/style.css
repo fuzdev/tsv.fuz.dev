@@ -5,3 +5,10 @@
 .mixed-vintage {
 	border-left-color: var(--color_c_50);
 }
+
+/* a numeric table cell, shared by the benchmarks page's tables */
+.num {
+	text-align: right;
+	white-space: nowrap;
+	font-variant-numeric: tabular-nums;
+}

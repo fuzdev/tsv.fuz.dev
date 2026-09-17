@@ -70,11 +70,17 @@ src/
 │       ├── tomes.ts          # Docs structure (introduction, playground, benchmarks)
 │       ├── introduction/     # Introduction page (install + usage)
 │       ├── playground/       # Interactive playground (Playground.svelte + playground_example.ts; lazy @fuzdev/tsv-wasm)
-│       └── benchmarks/       # Benchmarks page: the four JSON reports, benchmark_data.ts / benchmarks_cli.ts / formatter_benchmark_data.ts, the .gen.json.ts for the CLI harness, and the Benchmarks*.svelte visualizations (see Benchmarks below)
+│       └── benchmarks/       # Benchmarks page: the four JSON reports, benchmark_data.ts / benchmark_sizes.ts / benchmark_cross_runtime.ts / benchmark_display.ts / benchmark_baseline.ts / benchmarks_cli.ts / formatter_benchmark_data.ts, the .gen.json.ts for the CLI harness, and the Benchmarks*.svelte visualizations (see Benchmarks below)
 └── test/
-    ├── benchmark_data.test.ts       # unit tests for the pure derivations and formatters
-    ├── benchmark_data.shape.test.ts # shape gates over the committed JSON reports
+    ├── benchmark_data.test.ts       # unit tests for the per-runtime derivations (corpus repos, stability, coverage)
+    ├── benchmark_data.shape.test.ts # shape gates over the committed per-runtime and conformance reports
     ├── benchmark_data.prose.test.ts # gates every ratio the page's prose quotes
+    ├── benchmark_sizes.test.ts      # unit tests for the binary-size capability grouping
+    ├── benchmark_sizes.shape.test.ts # shape gates over the committed report's binary sizes
+    ├── benchmark_cross_runtime.test.ts # unit tests for the combined-report derivations
+    ├── benchmark_cross_runtime.shape.test.ts # shape gates over the committed combined report
+    ├── benchmark_display.test.ts    # unit tests for the value formatters and row labels
+    ├── benchmark_baseline.test.ts   # unit tests for the hover-to-rebaseline ratio math
     ├── benchmarks_cli.test.ts       # the CLI-harness data as the page consumes it
     └── formatter_benchmark_data.test.ts # the harness README parser
 ```
@@ -147,12 +153,16 @@ Key files in `src/routes/docs/benchmarks/`:
 - `benchmarks_cross_runtime.json` — composed cross-runtime report (copied from tsv)
 - `benchmarks_conformance.json` — conformance parse-coverage report (copied from tsv)
 - `benchmarks_formatters.json` — formatter CLI comparison, generated from the sibling harness's README
-- `benchmark_data.ts` — TypeScript types matching the JSON format
+- `benchmark_data.ts` — TypeScript types matching the per-runtime JSON format, plus the format/parse, conformance, stability, and corpus derivations
+- `benchmark_sizes.ts` — the binary-size domain: category and capability grouping, and the synthesized combined builds
+- `benchmark_cross_runtime.ts` — the combined cross-runtime report: its types, derivations, and display helpers
+- `benchmark_display.ts` — value formatters (times, sizes, ratios), row labels, and per-category colors shared across the page
+- `benchmark_baseline.ts` — the hover-to-rebaseline ratios: `BaselineRow`, and the per-direction ratio, format, and color scales
 - `formatter_benchmark_data.ts` — types plus `parse_formatter_benchmarks`, the README parser
 - `benchmarks_cli.ts` — shapes `benchmarks_formatters.json` for `BenchmarksCli.svelte` and owns the per-scenario prose; the numbers are all generated
 - `benchmarks.ts`, `benchmarks_cross_runtime.ts`, `benchmarks_conformance.ts`, `benchmarks_formatters.ts` — re-export the JSON with types
 - `BenchmarksBar.svelte`, `BenchmarksGroup.svelte`, etc. — visualization components
-- `BenchmarksBaselineGroup.svelte` — shared interactive column behind the format, parse, and binary-size groups: hovering a row re-baselines that group's ratios (each of the three groups per section is independent), restoring the default anchor (the canonical reference — Prettier for format, the JS baseline for parse — and the smallest build for size) on mouseleave. `benchmark_data.ts`'s `compute_baseline_ratio`/`format_baseline_ratio`/`baseline_ratio_color` carry the per-`BaselineDirection` (`speed`/`size`) formulas it and the derivations share
+- `BenchmarksBaselineGroup.svelte` — shared interactive column behind the format, parse, and binary-size groups: hovering a row re-baselines that group's ratios (each of the three groups per section is independent), restoring the default anchor (the canonical reference — Prettier for format, the JS baseline for parse — and the smallest build for size) on mouseleave. `benchmark_baseline.ts`'s `compute_baseline_ratio`/`format_baseline_ratio`/`baseline_ratio_color` carry the per-`BaselineDirection` (`speed`/`size`) formulas it and the derivations share
 
 ## Architecture
 
@@ -160,9 +170,10 @@ Key files in `src/routes/docs/benchmarks/`:
 - Uses fuz_ui tome system for docs navigation
 - `docs/tomes.ts` defines the doc sections: introduction, playground, benchmarks
 - Benchmark data lives in `src/routes/docs/benchmarks/` as four JSON reports — three copied from tsv, one generated from the sibling CLI harness (see [Benchmarks](#benchmarks))
-- The benchmarks page quotes no hand-written ratios — its prose computes them from the same reports the charts render, via `benchmark_data.ts`'s `benchmark_speedup`/`format_ratio_approx`/`format_ratio_range`/`format_ratio_range_approx` and `benchmarks_cli.ts`'s `cli_speedup_vs_tsv`/`cli_memory_ratio_range`. A test gates that every pair the copy names still resolves
+- The report types and derivations split across sibling modules: `benchmark_data.ts` (the per-runtime and conformance reports), `benchmark_sizes.ts` (binary sizes, read by `BenchmarksSizes.svelte`), `benchmark_cross_runtime.ts` (the combined report, read by `BenchmarksCrossRuntime.svelte`), `benchmark_display.ts` (formatters, labels, colors), and `benchmark_baseline.ts` (the rebaseline ratios, read by `BenchmarksBaselineGroup.svelte`). The dependency runs one way — `benchmark_data.ts` imports none of the others, `benchmark_display.ts` imports only its types, and the rest build on those two
+- The benchmarks page quotes no hand-written ratios — its prose computes them from the same reports the charts render, via `benchmark_data.ts`'s `benchmark_speedup`, `benchmark_display.ts`'s `format_ratio_approx`/`format_ratio_range`, and `benchmarks_cli.ts`'s `cli_speedup_vs_tsv`/`cli_memory_ratio_range`. A test gates that every pair the copy names still resolves
 - `library.ts` builds component metadata at runtime from the `virtual:svelte-docinfo` module (provided by the `svelte-docinfo` Vite plugin); the docs index passes it to `DocsContent`
-- The playground (`/docs/playground`) loads `@fuzdev/tsv-wasm` via a browser-only dynamic `import()` inside `Playground.svelte`, so the WASM code-splits into its own chunk fetched only on that route — the same lazy discipline `library.ts` uses for the heavy svelte-docinfo data, keeping `/docs` and the prerendered pages WASM-free. `@fuzdev/tsv-wasm` is in `vite.config.ts` `optimizeDeps.exclude` (like `@fuzdev/blake3-wasm`)
+- The playground (`/docs/playground`) loads `@fuzdev/tsv-wasm` via a browser-only dynamic `import()` inside `Playground.svelte`, so the WASM code-splits into its own chunk fetched only on that route, keeping `/docs` and the prerendered pages WASM-free. `@fuzdev/tsv-wasm` is in `vite.config.ts` `optimizeDeps.exclude` (like `@fuzdev/blake3-wasm`)
 - The playground's editor is fuz_code's `CodeTextarea` (live syntax highlighting via the experimental CSS Custom Highlight API). It needs `@fuzdev/fuz_code/theme_highlight.css`, imported inside `Playground.svelte` rather than the root layout so it stays on this route only; `supports_css_highlight_api()` drives a graceful-degradation note where the API is unavailable (the editor still works, unstyled)
 
 ## Deployment

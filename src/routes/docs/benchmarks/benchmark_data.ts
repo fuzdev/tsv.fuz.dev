@@ -1,6 +1,12 @@
 // Raw types matching the tsv bench's per-runtime report format
 // (`benches/js/results/report.<runtime>.json` — the site's flagship detailed
-// view is the Node report, the N-API native path)
+// view is the Node report, the N-API native path), with the format/parse,
+// conformance, stability, and corpus derivations the page builds on them.
+//
+// Sibling modules own what reads these: `benchmark_sizes.ts` the binary-size
+// tables, `benchmark_cross_runtime.ts` the combined report, `benchmark_display.ts`
+// the value formatters, labels, and category colors, and `benchmark_baseline.ts`
+// the hover-to-rebaseline ratios. This module imports none of them.
 
 export interface BenchmarkBaseline {
 	version: number;
@@ -360,20 +366,6 @@ const CATEGORY_BY_NAME: Record<string, ImplementationCategory> = {
 export const categorize_name = (name: string): ImplementationCategory =>
 	CATEGORY_BY_NAME[name] ?? 'oxc';
 
-export const categorize_size = (label: string): ImplementationCategory => {
-	// covers `tsv-wasm` plus the `tsv-format-wasm`/`tsv-parse-wasm` subsets
-	if (label.startsWith('tsv') && label.includes('wasm')) return 'tsv_wasm';
-	if (label.startsWith('tsv')) return 'tsv_native';
-	if (label.startsWith('biome')) return 'biome';
-	if (label.startsWith('dprint')) return 'dprint';
-	if (label.startsWith('malva')) return 'dprint'; // dprint's CSS plugin — see CATEGORY_BY_NAME
-	// Covers both `rsvelte-fmt (binary)` and `rsvelte compiler (napi)`.
-	if (label.startsWith('rsvelte')) return 'rsvelte';
-	if (label.startsWith('swc')) return 'swc';
-	if (label.startsWith('yuku')) return 'yuku';
-	return 'oxc'; // oxc-parser / oxfmt, and any unrecognized label
-};
-
 // Primary tsv entry names for speedup summary (fair comparisons)
 const PRIMARY_NATIVE_FORMAT = 'tsv';
 const PRIMARY_WASM_FORMAT = 'tsv-wasm';
@@ -389,6 +381,20 @@ const LANGUAGE_ORDER: Record<string, number> = {
 	css: 2
 };
 
+/** Splits an `operation/language` group key (`format/svelte`) into its halves. */
+export const parse_group_key = (group: string): { operation: string; language: string } => {
+	const [operation = '', language = ''] = group.split('/');
+	return { operation, language };
+};
+
+/** Orders groups by `OPERATION_ORDER` then `LANGUAGE_ORDER`, unknowns last. */
+export const compare_group_order = (
+	a: { operation: string; language: string },
+	b: { operation: string; language: string }
+): number =>
+	(OPERATION_ORDER[a.operation] ?? 9) - (OPERATION_ORDER[b.operation] ?? 9) ||
+	(LANGUAGE_ORDER[a.language] ?? 9) - (LANGUAGE_ORDER[b.language] ?? 9);
+
 /**
  * Fixed slot for a format/parse row, applied in place of a size-ordered sort so the
  * rows read in a stable, meaningful sequence across every group: the canonical
@@ -400,17 +406,23 @@ const LANGUAGE_ORDER: Record<string, number> = {
  * `-internal` rows in the parse groups.
  */
 const speed_entry_rank = (entry: BenchmarkDisplayEntry): number => {
-	if (entry.category === 'canonical') return 0;
-	if (entry.category === 'biome') return 1;
-	if (entry.category === 'dprint') return 2;
-	if (entry.category === 'oxc') return 3;
-	if (entry.category === 'postcss') return 4;
-	if (entry.category === 'rsvelte') return 5;
-	if (entry.category === 'swc') return 6;
-	if (entry.category === 'yuku') return 7;
+	const rank = CROSS_TOOL_RANK[entry.category];
+	if (rank !== undefined) return rank;
 	if (entry.name.endsWith('-no-locations')) return 8; // tsv json, span-only wire
 	if (entry.name.endsWith('-json')) return 9; // tsv json, loc-carrying wire
 	return 10; // tsv's engine rows: `tsv`/`tsv-wasm` (format), `-internal` (parse, no JS materialization)
+};
+
+/** The fixed slots ahead of tsv's own rows — see `speed_entry_rank`. */
+const CROSS_TOOL_RANK: Partial<Record<ImplementationCategory, number>> = {
+	canonical: 0,
+	biome: 1,
+	dprint: 2,
+	oxc: 3,
+	postcss: 4,
+	rsvelte: 5,
+	swc: 6,
+	yuku: 7
 };
 
 /**
@@ -441,22 +453,10 @@ const to_placeholder = (entry: BenchmarkDisplayEntry): BenchmarkDisplayEntry => 
 });
 
 export const derive_benchmark_groups = (baseline: BenchmarkBaseline): Array<BenchmarkGroup> => {
-	const grouped: Map<string, Array<BaselineEntry>> = new Map();
-	for (const entry of baseline.entries) {
-		let group = grouped.get(entry.group);
-		if (!group) {
-			group = [];
-			grouped.set(entry.group, group);
-		}
-		group.push(entry);
-	}
-
 	const result: Array<BenchmarkGroup> = [];
 
-	for (const [group_key, entries] of grouped) {
-		const parts = group_key.split('/');
-		const operation = parts[0]!;
-		const language = parts[1]!;
+	for (const [group_key, entries] of Map.groupBy(baseline.entries, (e) => e.group)) {
+		const { operation, language } = parse_group_key(group_key);
 		// The sort below leads each group with its canonical reference (Prettier for
 		// format, the JS baseline for parse), so the first row is the default 1.0x
 		// anchor; the shared component reads that default off the first row and
@@ -503,11 +503,7 @@ export const derive_benchmark_groups = (baseline: BenchmarkBaseline): Array<Benc
 		});
 	}
 
-	result.sort(
-		(a, b) =>
-			(OPERATION_ORDER[a.operation] ?? 9) - (OPERATION_ORDER[b.operation] ?? 9) ||
-			(LANGUAGE_ORDER[a.language] ?? 9) - (LANGUAGE_ORDER[b.language] ?? 9)
-	);
+	result.sort(compare_group_order);
 
 	// Neither `biome` nor (for svelte/css) `oxc-parser` has a real entry in every
 	// parse group. `biome`'s `@biomejs/js-api` never exposes a parser to JS at all
@@ -650,29 +646,25 @@ const CONFORMANCE_ROW_NOTES: Record<string, string> = {
  * highest first; entries without coverage data are dropped.
  */
 export const derive_conformance_groups = (baseline: BenchmarkBaseline): Array<ConformanceGroup> => {
-	const by_language: Map<string, Array<ConformanceRow>> = new Map();
-	for (const entry of baseline.entries) {
-		const [operation, language] = entry.group.split('/');
-		if (operation !== 'parse' || !language) continue;
-		const display_name = CONFORMANCE_ENGINE_NAMES[entry.name];
-		if (!display_name) continue;
-		if (entry.files_processed == null || entry.files_total == null) continue;
-		let rows = by_language.get(language);
-		if (!rows) {
-			rows = [];
-			by_language.set(language, rows);
-		}
-		rows.push({
-			name: display_name,
+	const keyed = baseline.entries.flatMap((entry) => {
+		const { operation, language } = parse_group_key(entry.group);
+		const name = CONFORMANCE_ENGINE_NAMES[entry.name];
+		const { files_processed, files_total } = entry;
+		if (operation !== 'parse' || !language || !name) return [];
+		if (files_processed == null || files_total == null) return [];
+		const row: ConformanceRow = {
+			name,
 			note: CONFORMANCE_ROW_NOTES[entry.name],
-			files_processed: entry.files_processed,
-			files_total: entry.files_total,
-			coverage_fraction: entry.files_total > 0 ? entry.files_processed / entry.files_total : 0
-		});
-	}
+			files_processed,
+			files_total,
+			coverage_fraction: files_total > 0 ? files_processed / files_total : 0
+		};
+		return [{ language, row }];
+	});
 
 	const result: Array<ConformanceGroup> = [];
-	for (const [language, rows] of by_language) {
+	for (const [language, keyed_rows] of Map.groupBy(keyed, (k) => k.language)) {
+		const rows = keyed_rows.map((k) => k.row);
 		// coverage descending (highest acceptance first), name as a stable tiebreak
 		rows.sort((a, b) => b.coverage_fraction - a.coverage_fraction || a.name.localeCompare(b.name));
 		result.push({
@@ -723,361 +715,7 @@ export const derive_speedup_summary = (groups: Array<BenchmarkGroup>): Array<Spe
 	];
 };
 
-// Binary-size grouping by capability
-
-/** What a build actually does, used to group binary sizes for like-for-like comparison. */
-export type SizeCapability = 'full' | 'formatter' | 'parser';
-
-/**
- * Capability for the labels whose NAME doesn't say what the build does, so the
- * keyword heuristic below can't reach them.
- *
- * The heuristic reads `parse`/`format`/`fmt` out of the label, which works only
- * while a tool is named after its job. These four aren't, and the fallback for an
- * unreadable label is `full` — a heading that reads "parse + format" over builds
- * that ship no formatter at all, or none but a formatter. So each one is stated
- * instead:
- *
- * - `dprint` and `malva` are the SAME kind of artifact and must land in the same
- *   bucket: both are dprint plugins loaded over the one `@dprint/formatter` host,
- *   and neither exposes a parser. dprint's covers TypeScript/JS, malva's CSS —
- *   each a slice of what tsv's format-only build does, so pair both against
- *   `tsv-format-wasm` and read the gap as scope before engine.
- * - `swc` and rsvelte's addon back parse rows and ship no formatter. Both are far
- *   wider than what the rows measure — swc's `.node` is an entire compiler
- *   (transforms, minifier, bundler) and rsvelte's carries the compiler plus
- *   svelte2tsx, HMR diffing and a resolver — so `parser` is the least-wrong
- *   heading rather than a claim of scope match. The notes beside the table say so.
- *
- * `biome` is deliberately NOT here, though its js-api exposes no parser either: the
- * bucket sizes what an ARTIFACT ships, and Biome's wasm build really is the whole
- * toolchain (parser, formatter, linter) whether or not this page calls all of it.
- * A dprint plugin is a formatter that happens to parse internally — the opposite
- * shape, and the reason it can't ride the same fallback.
- */
-const SIZE_CAPABILITY_BY_LABEL: Record<string, SizeCapability> = {
-	'dprint (wasm)': 'formatter',
-	'malva (wasm)': 'formatter',
-	'swc (napi)': 'parser',
-	'rsvelte compiler (napi)': 'parser'
-};
-
-/**
- * Buckets a binary-size label by capability so each build lands next to its
- * closest competitor: `parser` (tsv's parse-only build, `oxc-parser`),
- * `formatter` (tsv's format-only build, `oxfmt`), else `full` (the flagship
- * parse+format builds, `biome`, and the combined `oxc-parser + oxfmt` entry).
- *
- * A label naming neither job is looked up in `SIZE_CAPABILITY_BY_LABEL` first —
- * the keyword read below can only answer for tools named after what they do.
- */
-export const categorize_size_capability = (label: string): SizeCapability => {
-	const stated = SIZE_CAPABILITY_BY_LABEL[label];
-	if (stated) return stated;
-	const has_parse = label.includes('parse');
-	const has_format = label.includes('format') || label.includes('fmt');
-	// a build that does both is a full toolchain (e.g. the combined oxc-parser + oxfmt entry)
-	if (has_parse && has_format) return 'full';
-	if (has_parse) return 'parser'; // tsv parse (ffi), tsv-parse-wasm, oxc-parser
-	if (has_format) return 'formatter'; // tsv format, oxfmt
-	// Reaching here must be a DECISION, not a name the heuristic couldn't read:
-	// every label that lands in `full` this way ships both operations (biome's whole
-	// toolchain included). Anything else belongs in the table above.
-	return 'full'; // tsv (napi/ffi), tsv-wasm, biome (wasm)
-};
-
-export interface SizeDisplayEntry extends BinarySize {
-	bar_fraction: number;
-	category: ImplementationCategory;
-	// a grayed-out, inert placeholder for a build that doesn't exist (e.g. oxfmt's
-	// absent wasm build) — no bar, no size, just the label held in its slot. Absent
-	// on real, measured entries.
-	disabled?: boolean;
-}
-
-export interface SizeCapabilityGroup {
-	capability: SizeCapability;
-	heading: string;
-	// sorted smallest-first, so the leading entry is the default ratio anchor (1.0x)
-	entries: Array<SizeDisplayEntry>;
-}
-
-const SIZE_CAPABILITY_ORDER: ReadonlyArray<{
-	capability: SizeCapability;
-	heading: string;
-}> = [
-	{ capability: 'full', heading: 'Full toolchain (parse + format)' },
-	{ capability: 'formatter', heading: 'Formatter' },
-	{ capability: 'parser', heading: 'Parser' }
-];
-
-/** Display label for the synthesized combined oxc full-toolchain build. */
-export const OXC_FULL_LABEL = 'oxc-parser + oxfmt (napi)';
-
-/** Display label for oxfmt's absent wasm build placeholder — see `derive_size_groups`. */
-export const OXFMT_WASM_LABEL = 'oxfmt (wasm)';
-
-/**
- * Synthesizes oxc's full-toolchain native build by summing its separately-shipped
- * parser (`oxc-parser (napi)`) and formatter (`oxfmt (napi)`) packages — together
- * they're the closest equivalent to tsv's single parse+format build, so the entry
- * stands beside `tsv (napi)` in the full-toolchain group. Returns `undefined` when
- * either half is missing (older baselines), and sums gzip only when both carry it.
- */
-const synthesize_oxc_full = (sizes: Array<BinarySize>): BinarySize | undefined => {
-	const parser = sizes.find((s) => s.label === 'oxc-parser (napi)');
-	const formatter = sizes.find((s) => s.label === 'oxfmt (napi)');
-	if (!parser || !formatter) return undefined;
-	return {
-		label: OXC_FULL_LABEL,
-		bytes: parser.bytes + formatter.bytes,
-		kind: 'native',
-		gzip_bytes:
-			parser.gzip_bytes != null && formatter.gzip_bytes != null
-				? parser.gzip_bytes + formatter.gzip_bytes
-				: null
-	};
-};
-
-/** The rsvelte-fmt binary on its own — the label the tsv harness emits. */
-export const RSVELTE_LABEL = 'rsvelte-fmt (binary)';
-
-/** Display label for the rsvelte-fmt + oxfmt install — see `synthesize_rsvelte_install`. */
-export const RSVELTE_INSTALL_LABEL = 'rsvelte-fmt + oxfmt (binary)';
-
-/**
- * Synthesizes what installing rsvelte-fmt to format a project actually costs, by
- * summing its own binary with the `oxfmt` it declares as a peer dependency.
- *
- * Both figures are shown because which one is honest depends on how you invoke
- * it, and the difference is verifiable: pointed at a **single `.svelte` file** (or
- * stdin) rsvelte-fmt needs no oxfmt at all — it formats the embedded
- * `<script>` and `<style>` through its own linked-in oxc engines, byte-identically
- * whether or not oxfmt is reachable. But pointed at a **directory** — how a
- * formatter is actually run over a project, and what the CLI benchmark times — it
- * delegates the non-`.svelte` files to oxfmt and exits non-zero without it, even
- * when that directory holds nothing but `.svelte`. So the bare binary is the
- * single-file/editor figure and the sum is the project figure.
- *
- * Returns `undefined` when either half is missing (an older baseline predating the
- * rsvelte row), and sums gzip only when both carry it — same posture as
- * `synthesize_oxc_full`.
- */
-const synthesize_rsvelte_install = (sizes: Array<BinarySize>): BinarySize | undefined => {
-	const rsvelte = sizes.find((s) => s.label === RSVELTE_LABEL);
-	const formatter = sizes.find((s) => s.label === 'oxfmt (napi)');
-	if (!rsvelte || !formatter) return undefined;
-	return {
-		label: RSVELTE_INSTALL_LABEL,
-		bytes: rsvelte.bytes + formatter.bytes,
-		kind: 'native',
-		gzip_bytes:
-			rsvelte.gzip_bytes != null && formatter.gzip_bytes != null
-				? rsvelte.gzip_bytes + formatter.gzip_bytes
-				: null
-	};
-};
-
-/**
- * Groups the binary sizes by capability (full / formatter / parser), each group
- * mixing wasm and native builds sorted smallest-first. Bars scale to the group's
- * largest build; the `vs` ratio anchors on the group's single smallest build, so
- * exactly one entry reads 1.0x and every other is a multiple of it — whichever tool
- * that is. (It is not always tsv: yuku-parser's parse-only builds undercut tsv's,
- * which carry Svelte and CSS parsers besides.) A combined `oxc-parser + oxfmt` entry is
- * synthesized into the full-toolchain group, since oxc ships parse and format apart.
- * oxfmt has no wasm build, so the formatter group gets a disabled `oxfmt (wasm)`
- * placeholder slotted just above its real `oxfmt (napi)` entry, holding the slot
- * rather than omitting it. The formatter group likewise carries both rsvelte-fmt
- * figures — the bare binary and the `+ oxfmt` install it needs to format a
- * project (see `synthesize_rsvelte_install`).
- */
-export const derive_size_groups = (sizes: Array<BinarySize>): Array<SizeCapabilityGroup> => {
-	const oxc_full = synthesize_oxc_full(sizes);
-	const rsvelte_install = synthesize_rsvelte_install(sizes);
-	const all_sizes = [...sizes, oxc_full, rsvelte_install].filter((s) => s != null);
-	const groups: Array<SizeCapabilityGroup> = [];
-	for (const { capability, heading } of SIZE_CAPABILITY_ORDER) {
-		const items = all_sizes.filter((s) => categorize_size_capability(s.label) === capability);
-		if (items.length === 0) continue;
-		const sorted = items.toSorted((a, b) => a.bytes - b.bytes);
-		const max = Math.max(0, ...items.map((s) => s.bytes));
-		// `sorted` is ascending, so the smallest build leads the group — its single
-		// default ratio anchor (1.0x), one baseline whether or not the group mixes wasm
-		// and native (rather than the confusing pair a per-kind anchor produced). The
-		// shared component reads every ratio from that leading row.
-		const entries: Array<SizeDisplayEntry> = sorted.map((s) => ({
-			...s,
-			bar_fraction: max > 0 ? s.bytes / max : 0,
-			category: categorize_size(s.label)
-		}));
-		if (capability === 'formatter' && !entries.some((e) => e.label === OXFMT_WASM_LABEL)) {
-			const native_index = entries.findIndex((e) => e.label === 'oxfmt (napi)');
-			const placeholder: SizeDisplayEntry = {
-				label: OXFMT_WASM_LABEL,
-				bytes: 0,
-				kind: 'wasm',
-				gzip_bytes: null,
-				bar_fraction: 0,
-				category: categorize_size(OXFMT_WASM_LABEL),
-				disabled: true
-			};
-			entries.splice(native_index === -1 ? entries.length : native_index, 0, placeholder);
-		}
-		groups.push({ capability, heading, entries });
-	}
-	return groups;
-};
-
-// Cross-runtime combined report (the bench composer's `report.json`, `kind: 'combined'`)
-
-export type BenchmarkRuntime = 'deno' | 'node' | 'bun';
-
-export interface CrossRuntimeRow {
-	group: string;
-	name: string;
-	ops_per_second: Partial<Record<BenchmarkRuntime, number>>;
-	mean_ns: Partial<Record<BenchmarkRuntime, number>>;
-	files_iterated: Partial<Record<BenchmarkRuntime, number | null>>;
-}
-
-export interface CrossRuntimeReport {
-	version: number;
-	kind: 'combined';
-	generated: string;
-	runtimes: Array<BenchmarkRuntime>;
-	// The sibling reports came from different commits/versions — ratios are
-	// unreliable until every runtime is re-run. Present from combined
-	// `version` 6 on.
-	mixed_vintage?: boolean;
-	// The sibling reports were produced on different hardware — ratios are not
-	// comparable. Present from combined `version` 7 on.
-	mixed_machine?: boolean;
-	// Which ROWS lost their implementation to a load failure on which runtime,
-	// folded from the siblings' own `unavailable` lists. Present from combined
-	// `version` 8 on (as `impls`, carrying the bench's init-line labels, which
-	// matched no row name and so never joined; `rows` from `version` 9); `[]` when
-	// every sibling loaded everything, and absent on older reports — which is "not
-	// recorded", not a claim that nothing was missing.
-	//
-	// This is what tells the table's two kinds of gap apart. A row with no number
-	// for a runtime renders the same either way, but it means one of: that runtime
-	// couldn't load the impl behind it (recorded here), or that sibling's report
-	// simply has no such row — an older run predating it, which mixed vintages make
-	// likely, and which `partial_rows` below names outright.
-	unavailable_by_runtime?: Array<RuntimeUnavailable>;
-	// The other kind of gap: rows one sibling MEASURED that another doesn't carry at
-	// all, with no load failure recorded on that side to explain it — a stale
-	// sibling rather than a machine shortfall. `[]` when every row is present
-	// everywhere it should be. A runtime whose sibling predates `unavailable`
-	// contributes nothing (with nothing recorded, an absent row can't be told from
-	// an unloadable impl). Present from combined `version` 10 on; not rendered, kept
-	// for parity.
-	partial_rows?: Array<PartialRow>;
-	// Per-runtime deltas smaller than the combined measurement noise (cv) of the two
-	// means they divide — the cells that are NOT runtime effects, despite this
-	// report's subject being exactly those deltas. `[]` when every delta exceeds its
-	// noise. Unlike every other field here it qualifies a number the report already
-	// prints rather than adding one. Present from combined `version` 11 on; not
-	// rendered, kept for parity.
-	within_noise?: Array<WithinNoiseCell>;
-	// Per-runtime measurements that were NOT stable — a cv (cleaned or raw) past 10%
-	// or a |drift| past 5% — collected ahead of `within_noise`'s sample gate, so a
-	// row measured on five timings that disagree is named rather than silenced.
-	// Every ratio through such a cell is unreadable. `[]` when every measurement was
-	// stable. Present from combined `version` 15 on; rendered as a banner over the
-	// cross-runtime tables and a `⚠` on the cell.
-	unstable_cells?: Array<UnstableCell>;
-	// The conformance report's vintage beside the perf siblings'. The composer does
-	// not fold `report.conformance.node.json` (a coverage report, not a timing
-	// sibling), but this site publishes it from the same directory, and
-	// `mixed_vintage` above cannot see it — `stale` is that flag's perf/conformance
-	// analog: the conformance commit differs from some perf sibling's. `null` when
-	// the composer found no conformance report. Present from combined `version` 13
-	// on; rendered as the parse-conformance section's banner.
-	conformance_vintage?: ConformanceVintage | null;
-	sources: Array<{
-		runtime: BenchmarkRuntime;
-		timestamp: string;
-		git_commit: string | null;
-		tsv: string | null;
-		// The `fuzdev/corpora` commit that sibling's real-code corpus was read from —
-		// a third axis of `mixed_vintage`, since the bench reads whatever snapshot is
-		// checked out. Present from combined `version` 14 on; `null` when the sibling
-		// predates its own `corpus_snapshot` field.
-		corpus_snapshot?: string | null;
-		// The producing box's machine block; present from combined `version` 7 on.
-		machine?: Machine | null;
-		// That sibling's own load failures, with reasons; `null` when the sibling
-		// predates the field. `unavailable_by_runtime` above is the folded view.
-		unavailable?: Array<UnavailableImpl> | null;
-	}>;
-	rows: Array<CrossRuntimeRow>;
-}
-
-/** The conformance report's provenance (see `CrossRuntimeReport.conformance_vintage`). */
-export interface ConformanceVintage {
-	git_commit: string | null;
-	timestamp: string;
-	tsv: string | null;
-	// The conformance commit differs from some perf sibling's.
-	stale: boolean;
-}
-
-/**
- * One runtime's load failures, named by the ROWS they cost (`bun` → `biome-wasm`,
- * `oxc-parser-wasm`) — the identity the tables are keyed by, so a lookup can match.
- */
-export interface RuntimeUnavailable {
-	runtime: BenchmarkRuntime;
-	rows: Array<string>;
-}
-
-/**
- * One row a sibling measured and the runtimes in `missing` don't carry, with no
- * load failure recorded there to explain it (see `CrossRuntimeReport.partial_rows`).
- */
-export interface PartialRow {
-	group: string;
-	name: string;
-	missing: Array<BenchmarkRuntime>;
-}
-
-/**
- * One per-runtime cell whose delta is inside the two measurements' combined
- * variation (see `CrossRuntimeReport.within_noise`). `delta` and `noise` are
- * fractions, not percentages.
- */
-export interface WithinNoiseCell {
-	group: string;
-	name: string;
-	// The two runtimes the cell divides, in the composer's canonical order — always
-	// exactly two, typed as an array rather than a pair because the report arrives
-	// as a JSON import, whose arrays never infer as tuples. Combined `version` 15
-	// classifies every PAIR of runtimes; before it, a single `runtime` named the
-	// non-base side against the ratio base — both optional so a report of either
-	// vintage types, and neither is rendered.
-	runtimes?: Array<BenchmarkRuntime>;
-	runtime?: BenchmarkRuntime;
-	delta: number;
-	noise: number;
-}
-
-/**
- * One per-runtime measurement that was not stable (see
- * `CrossRuntimeReport.unstable_cells`). `cv`, `cv_raw` and `drift` are fractions;
- * the raw two are `null` on a sibling predating them.
- */
-export interface UnstableCell {
-	group: string;
-	name: string;
-	runtime: BenchmarkRuntime;
-	cv: number | null;
-	cv_raw: number | null;
-	drift: number | null;
-	/** The cleaned timing count behind the cv (`samples` in the composer's JSON). */
-	samples: number | null;
-}
+// Measurement stability
 
 /**
  * The bench's own instability thresholds, restated: a cleaned or raw cv at or past
@@ -1126,18 +764,7 @@ export const derive_unstable_entries = (baseline: BenchmarkBaseline): Array<Base
 				Math.max(a.cv ?? 0, a.cv_raw ?? 0, Math.abs(a.drift ?? 0))
 		);
 
-/**
- * The combined report's unstable cells, in the site's runtime column order — empty on
- * a report predating the field, where absence is silence rather than an all-clear.
- */
-export const derive_unstable_cells = (report: CrossRuntimeReport): Array<UnstableCell> => {
-	const order = order_cross_runtime_runtimes(report.runtimes);
-	return [...(report.unstable_cells ?? [])].sort(
-		(a, b) => order.indexOf(a.runtime) - order.indexOf(b.runtime)
-	);
-};
-
-/** `cv 47.8%, raw 52%, drift +38%` — the readings behind an unstable row, absent ones omitted. */
+/** `cv 47.8%, raw cv 52.0%, drift +38.0%` — the readings behind an unstable row, absent ones omitted. */
 export const format_unstable_readings = (entry: {
 	cv: number | null;
 	cv_raw?: number | null;
@@ -1150,189 +777,6 @@ export const format_unstable_readings = (entry: {
 		parts.push(`drift ${entry.drift >= 0 ? '+' : ''}${(entry.drift * 100).toFixed(1)}%`);
 	}
 	return parts.join(', ');
-};
-
-/**
- * The rows each runtime couldn't measure, in the site's column order, for the
- * disclosure above the tables. Empty when nothing was recorded — including on a
- * report predating the field, where absence is silence rather than an all-clear.
- */
-export const derive_unavailable_by_runtime = (
-	report: CrossRuntimeReport
-): Array<RuntimeUnavailable> => {
-	const by_runtime = new Map(
-		(report.unavailable_by_runtime ?? []).map((entry) => [entry.runtime, entry])
-	);
-	return order_cross_runtime_runtimes(report.runtimes)
-		.map((runtime) => by_runtime.get(runtime))
-		.filter((entry): entry is RuntimeUnavailable => entry != null && entry.rows.length > 0);
-};
-
-/**
- * Did `runtime` record `name` as a load failure? The table renders an absent
- * number the same either way, so this is what lets a cell say WHICH gap it is —
- * a binding that couldn't load, or a row that runtime's report never carried.
- */
-export const is_impl_unavailable = (
-	report: CrossRuntimeReport,
-	runtime: BenchmarkRuntime,
-	name: string
-): boolean =>
-	(report.unavailable_by_runtime ?? []).some(
-		(entry) => entry.runtime === runtime && entry.rows.includes(name)
-	);
-
-export interface CrossRuntimeDisplayRow {
-	name: string;
-	category: ImplementationCategory;
-	ops_per_second: Partial<Record<BenchmarkRuntime, number>>;
-	// ratio of each runtime vs the base (first present) runtime; `> 1` = faster
-	ratio_vs_base: Partial<Record<BenchmarkRuntime, number>>;
-	// The per-runtime timed file counts, set ONLY when they disagree — each
-	// runtime times the files its own impls passed preflight on, so unequal
-	// counts mean part of this row's ratio is file-set composition, not runtime
-	// (the composer's `⚠ files a/b/c` annotation in tsv's report.md). `null`
-	// when every present runtime timed the same count — the healthy, common case.
-	files_iterated_mismatch: Partial<Record<BenchmarkRuntime, number | null>> | null;
-}
-
-export interface CrossRuntimeGroup {
-	group: string;
-	operation: string;
-	language: string;
-	rows: Array<CrossRuntimeDisplayRow>;
-}
-
-// The combined report stores runtimes deno-first (matching the bench's
-// `report.md`); the site presents them node-first (the flagship N-API runtime),
-// then deno, then bun.
-const CROSS_RUNTIME_DISPLAY_ORDER: Array<BenchmarkRuntime> = ['node', 'deno', 'bun'];
-
-/**
- * The report's runtimes in the site's display order — node (the flagship, the
- * ratio anchor) first, then deno, then bun. Shared by `derive_cross_runtime_groups`
- * and the table headers so the anchor can't drift between them.
- */
-export const order_cross_runtime_runtimes = (
-	runtimes: Array<BenchmarkRuntime>
-): Array<BenchmarkRuntime> => CROSS_RUNTIME_DISPLAY_ORDER.filter((r) => runtimes.includes(r));
-
-/** One runtime's own version string (`node 24.14.1`), for the cross-runtime section. */
-export interface RuntimeVersion {
-	runtime: BenchmarkRuntime;
-	version: string;
-}
-
-/**
- * The per-runtime version strings from a cross-runtime report, in the site's
- * display order (node first). Drops any runtime whose source carries no machine
- * block (reports predating combined `version` 7). The cross-runtime section
- * renders these so the three-runtime tables disclose which node/deno/bun version
- * each column was measured under; the environment panel above stays scoped to the
- * flagship Node baseline. The shared hardware identity (CPU/OS/arch) isn't
- * repeated here — it lives in the environment panel, and a per-runtime hardware
- * mismatch is the report's `mixed_machine` flag's concern.
- */
-export const derive_runtime_versions = (report: CrossRuntimeReport): Array<RuntimeVersion> => {
-	const by_runtime = new Map(report.sources.map((source) => [source.runtime, source]));
-	const result: Array<RuntimeVersion> = [];
-	for (const runtime of order_cross_runtime_runtimes(report.runtimes)) {
-		const version = by_runtime.get(runtime)?.machine?.runtime_version;
-		if (version) result.push({ runtime, version });
-	}
-	return result;
-};
-
-/**
- * Groups the combined report's rows by benchmark group, in the same display
- * order as `derive_benchmark_groups` (format before parse, then svelte /
- * typescript / css). The ratio base is the first runtime in display order
- * (node when present — the flagship N-API path), regardless of the report's
- * own deno-first storage order.
- */
-export const derive_cross_runtime_groups = (
-	report: CrossRuntimeReport
-): Array<CrossRuntimeGroup> => {
-	const runtimes = order_cross_runtime_runtimes(report.runtimes);
-	const base = runtimes[0];
-	const grouped: Map<string, Array<CrossRuntimeDisplayRow>> = new Map();
-	for (const row of report.rows) {
-		let rows = grouped.get(row.group);
-		if (!rows) {
-			rows = [];
-			grouped.set(row.group, rows);
-		}
-		const base_ops = base ? row.ops_per_second[base] : undefined;
-		const ratio_vs_base: Partial<Record<BenchmarkRuntime, number>> = {};
-		for (const runtime of runtimes) {
-			const ops = row.ops_per_second[runtime];
-			if (ops != null && base_ops != null && base_ops > 0) {
-				ratio_vs_base[runtime] = ops / base_ops;
-			}
-		}
-		const iterated_counts = runtimes
-			.map((runtime) => row.files_iterated[runtime])
-			.filter((n): n is number => n != null);
-		rows.push({
-			name: row.name,
-			category: categorize_name(row.name),
-			ops_per_second: row.ops_per_second,
-			ratio_vs_base,
-			files_iterated_mismatch: new Set(iterated_counts).size > 1 ? row.files_iterated : null
-		});
-	}
-
-	const result: Array<CrossRuntimeGroup> = [];
-	for (const [group, rows] of grouped) {
-		const [operation, language] = group.split('/');
-		result.push({ group, operation: operation!, language: language!, rows });
-	}
-	result.sort(
-		(a, b) =>
-			(OPERATION_ORDER[a.operation] ?? 9) - (OPERATION_ORDER[b.operation] ?? 9) ||
-			(LANGUAGE_ORDER[a.language] ?? 9) - (LANGUAGE_ORDER[b.language] ?? 9)
-	);
-	return result;
-};
-
-// Formatting utilities
-
-export interface FormattedUnit {
-	value: string;
-	unit: string;
-}
-
-export const format_ns = (ns: number): FormattedUnit => {
-	if (ns < 1_000) return { value: `${Math.round(ns)}`, unit: 'ns' };
-	if (ns < 1_000_000)
-		return {
-			value: (ns / 1_000).toFixed(ns < 10_000 ? 2 : ns < 100_000 ? 1 : 0),
-			unit: 'µs'
-		};
-	const ms = Math.round(ns / 1_000_000);
-	return { value: ms.toLocaleString('en-US'), unit: 'ms' };
-};
-
-export const format_bytes = (bytes: number): FormattedUnit => {
-	if (bytes < 1_024) return { value: `${bytes}`, unit: 'B' };
-	if (bytes < 1_048_576) return { value: (bytes / 1_024).toFixed(0), unit: 'KB' };
-	return { value: (bytes / 1_048_576).toFixed(1), unit: 'MB' };
-};
-
-/**
- * Formats a corpus source's file count as a per-language breakdown
- * (`124 typescript, 15 svelte, 31 css`), largest language first and dropping
- * zero-count languages. Falls back to the plain `N files` total when the report
- * predates the per-language split (or lists no recognized language).
- */
-export const format_corpus_source_files = (source: CorpusSource): string => {
-	const total = `${source.files.toLocaleString('en-US')} files`;
-	if (!source.by_language) return total;
-	const parts = Object.entries(source.by_language)
-		.filter((entry): entry is [string, number] => (entry[1] ?? 0) > 0)
-		.sort((a, b) => b[1] - a[1])
-		.map(([language, count]) => `${count.toLocaleString('en-US')} ${language}`);
-	return parts.length > 0 ? parts.join(', ') : total;
 };
 
 // Corpus source repos
@@ -1366,47 +810,7 @@ export const derive_corpus_repos = (
 	return [...by_url.values()];
 };
 
-/**
- * Formats a gzipped binary size as a bar annotation (e.g. `716.6 KB gz`), or
- * `undefined` when the baseline lacks it (older runs, or no `gzip` available
- * on the generating machine).
- */
-export const format_gzip_size = (gzip_bytes: number | null | undefined): string | undefined => {
-	if (gzip_bytes == null) return undefined;
-	const { value, unit } = format_bytes(gzip_bytes);
-	return `${value} ${unit} gz`;
-};
-
-/** Matches the bench report generator's ratio formatting so the site and report.md agree digit for digit. */
-export const format_speedup = (ratio: number): string =>
-	ratio >= 10 ? `${ratio.toFixed(1)}x` : `${ratio.toFixed(2)}x`;
-
-/**
- * Loose ratio formatting for prose, which reads better with fewer digits than a
- * table column (`1.7x`, `26x`) — always paired with a `~` in the copy. Renders
- * `—` for a missing ratio rather than throwing mid-sentence; the benchmark tests
- * assert every ratio the page quotes actually resolves.
- */
-export const format_ratio_approx = (ratio: number | undefined): string =>
-	ratio === undefined ? '—' : ratio >= 10 ? `${Math.round(ratio)}x` : `${ratio.toFixed(1)}x`;
-
-/**
- * An inclusive ratio range for prose (`3–9x`), FLOORED at both ends so a
- * "3–9x less memory" claim never overstates either bound.
- */
-export const format_ratio_range = (min: number, max: number): string =>
-	`${Math.floor(min)}–${Math.floor(max)}x`;
-
-/**
- * A bracketing ratio range for prose (`4–5x`) — the min FLOORED and the max
- * CEILED, so the stated integer range always contains the true range: the low
- * end ("at least") is never overstated, and only the soft "up to" end rounds
- * outward. Always paired with a `~` in the copy. Use `format_ratio_range` when
- * neither bound may overstate; this one reads better when flooring both would
- * collapse the range.
- */
-export const format_ratio_range_approx = (min: number, max: number): string =>
-	`${Math.floor(min)}–${Math.ceil(max)}x`;
+// Prose ratios
 
 /**
  * How many times faster `faster` is than `slower` within one `operation/language`
@@ -1427,227 +831,3 @@ export const benchmark_speedup = (
 	if (a == null || !b) return undefined;
 	return a / b;
 };
-
-/**
- * Signed speedup: entries at or above the anchor read as a plain multiple
- * (`2.50x`), while slower entries show the reciprocal negated (`0.15x` → `-6.67x`)
- * so "how many times slower" is directly legible instead of a fraction the reader
- * has to invert. The minus is a convention for "times slower", not a literal
- * negative rate. Used for the format/parse speed bars, where entries span widely
- * on both sides of the anchor; the near-parity cross-runtime table and the
- * bigger-is-worse size ratios stay on the plain fractional `format_speedup`.
- */
-export const format_speedup_signed = (ratio: number): string => {
-	const magnitude = ratio >= 1 ? ratio : 1 / ratio;
-	const digits = magnitude >= 10 ? 1 : 2;
-	return `${ratio < 1 ? '-' : ''}${magnitude.toFixed(digits)}x`;
-};
-
-/**
- * Hyphenated tool and package names that keep their hyphens in display labels —
- * only the suffix after the name is spaced out (`tsv-wasm-json` → `tsv-wasm json`).
- */
-const HYPHENATED_NAMES = [
-	'acorn-typescript',
-	'oxc-parser',
-	'rsvelte-fmt',
-	'yuku-parser',
-	'tsv-wasm',
-	'tsv-format-wasm',
-	'tsv-parse-wasm'
-];
-
-/**
- * Display labels for the raw benchmark entry names in the main (Node) tables,
- * annotating each with the runtime **and** binding it runs under — the native
- * builds load the N-API addon under Node, so they read `(node napi)` to
- * distinguish them from the same rows under Deno, which loads the C-FFI library
- * instead (see the cross-runtime table); the third-party wasm builds are marked
- * `(wasm)`. Mirrors
- * the parenthesized suffixes the binary-size section's labels already carry.
- * tsv's own wasm entries keep their `tsv-wasm` package-name prefix through
- * `HYPHENATED_NAMES`, so they aren't listed here. The size labels aren't keys
- * either: the parenthesized ones fall through the generic formatting unchanged and
- * the hyphenated wasm packages keep their hyphens the same way.
- * The cross-runtime table neutralizes the `(node napi)` suffix per row (its
- * columns span runtimes) via `format_cross_runtime_label`.
- */
-const LABEL_OVERRIDES: Record<string, string> = {
-	tsv: 'tsv (node napi)',
-	'tsv-json': 'tsv json (node napi)',
-	// `no-locs` (not `no-locations`) — the full word eats too much column width.
-	'tsv-json-no-locations': 'tsv json no-locs (node napi)',
-	// the one tsv-wasm entry listed here: the generic formatting below would
-	// break the `no-locs` hyphen its native sibling deliberately keeps
-	'tsv-wasm-json-no-locations': 'tsv-wasm json no-locs',
-	'tsv-internal': 'tsv internal (node napi)',
-	'oxc-parser': 'oxc-parser (node napi)',
-	oxfmt: 'oxfmt (node napi)',
-	'biome-wasm': 'biome (wasm)',
-	'dprint-wasm': 'dprint (wasm)',
-	'malva-wasm': 'malva (wasm)',
-	'oxc-parser-wasm': 'oxc-parser (wasm)',
-	'yuku-parser': 'yuku-parser (node napi)',
-	'yuku-parser-wasm': 'yuku-parser (wasm)',
-	swc: 'swc (node napi)',
-	// both rsvelte parse rows are the same N-API addon, distinguished by the option
-	// the second one passes — kept in the label, since that option IS the row
-	'rsvelte-parse': 'rsvelte-parse (node napi)',
-	'rsvelte-parse-skip-expr-loc': 'rsvelte-parse skip-expr-loc (node napi)'
-	// `postcss` needs no entry: it's plain JS with no binding to name, like `prettier`
-};
-
-export const format_label = (name: string): string => {
-	const override = LABEL_OVERRIDES[name];
-	if (override) return override;
-	for (const tool of HYPHENATED_NAMES) {
-		if (name.startsWith(tool)) {
-			return tool + name.slice(tool.length).replaceAll('-', ' ');
-		}
-	}
-	return name.replaceAll('-', ' ');
-};
-
-/**
- * The label for a cross-runtime row. Each row spans node/deno/bun columns, and a
- * native build's binding is runtime-specific (N-API on node & bun, C-FFI on
- * deno), so the row can't pin one binding — neutralize `format_label`'s
- * node-centric `(node napi)` suffix to `(native)`. The per-runtime binding is
- * disclosed once in the table caption instead (see `BenchmarksCrossRuntime`).
- */
-export const format_cross_runtime_label = (name: string): string =>
-	format_label(name).replace(' (node napi)', ' (native)');
-
-/** Returns a CSS background color variable for a category. */
-export const category_color = (category: ImplementationCategory): string => {
-	switch (category) {
-		case 'canonical':
-			return 'var(--color_h_40)';
-		case 'tsv_native':
-			return 'var(--color_g_40)';
-		case 'tsv_native_json':
-			return 'var(--color_e_40)';
-		case 'tsv_wasm':
-			return 'var(--color_d_40)';
-		case 'tsv_wasm_json':
-			return 'var(--color_f_40)';
-		case 'biome':
-			return 'var(--color_a_40)';
-		case 'dprint':
-			return 'var(--color_b_40)';
-		case 'oxc':
-			return 'var(--color_i_40)';
-		case 'rsvelte':
-			return 'var(--color_c_40)';
-		case 'yuku':
-			return 'var(--color_j_40)';
-		// The palette has ten hues and the categories above spend all ten, so these
-		// two reuse a hue at a lighter shade. The pairing is chosen so a collision
-		// can't show up in a speed group: `swc` and `postcss` are parse-only, while
-		// `biome` and `dprint` are format-only, and placeholder rows mirror only
-		// within an operation. They DO meet in the binary-size table, which lists
-		// both operations' tools — hence the distinct shade rather than a bare reuse.
-		// A future biome/dprint parse row (or an swc formatter) would break that, and
-		// would need a real hue freed up.
-		case 'swc':
-			return 'var(--color_a_50)'; // biome's hue, lighter
-		case 'postcss':
-			return 'var(--color_b_50)'; // dprint's hue, lighter
-	}
-};
-
-/**
- * Returns a CSS color variable for a size ratio (inverted — bigger is worse).
- * Green is reserved for builds smaller than the baseline (ratio < 1, only reachable
- * once a hover re-baselines onto a larger build); any build at or above the baseline
- * reads yellow at the floor, ramping through orange to red as it grows.
- */
-const size_ratio_color = (ratio: number): string => {
-	if (ratio < 1) return 'var(--color_b_50)'; // green — smaller than baseline
-	if (ratio < 3) return 'var(--color_e_50)'; // yellow — larger
-	if (ratio < 10) return 'var(--color_h_50)'; // orange — much larger
-	return 'var(--color_c_50)'; // red — enormous
-};
-
-/** Returns a CSS color variable for the speedup ratio. */
-const speedup_color = (ratio: number): string => {
-	if (ratio < 0.5) return 'var(--color_c_50)'; // red — much slower
-	if (ratio < 1) return 'var(--color_h_50)'; // orange — slower
-	if (ratio < 2) return 'var(--color_e_50)'; // yellow — modest
-	if (ratio < 5) return 'var(--color_b_50)'; // green — fast
-	return 'var(--color_j_50)'; // teal — exceptional
-};
-
-/**
- * Cross-runtime ratio cell background: a stable fuz_css red (`color_c`) / green
- * (`color_b`) whose ALPHA varies with distance from parity. Fully transparent at ratio
- * `1.0` (parity recedes), ramping to `0.3` alpha at ratio `0.8` and below (red) or `1.2`
- * and above (green). The hue stays constant — only opacity moves — so it reads
- * consistently in light and dark themes while the cell's text keeps the default color.
- * Deliberately its own scale — NOT the shared `speedup_color` — because cross-runtime
- * deltas cluster tightly near 1.0 and this must not bleed into the other displays.
- */
-export const cross_runtime_ratio_background = (ratio: number): string => {
-	// 0 alpha at ratio 1.0, up to 0.3 at ratio ≤ 0.8 (red) or ≥ 1.2 (green)
-	const alpha = Math.min(1, Math.abs(ratio - 1) / 0.2) * 0.3;
-	const color = ratio < 1 ? 'var(--color_c_50)' : 'var(--color_b_50)';
-	return `color-mix(in srgb, ${color} ${(alpha * 100).toFixed(1)}%, transparent)`;
-};
-
-// Interactive baseline (hover-to-rebaseline)
-
-/**
- * Which way a group's ratio runs, so re-anchoring on hover stays consistent. A
- * `speed` group (format/parse) reads its anchor as a reference speed — faster
- * entries are positive multiples, slower ones negative (`format_speedup_signed` /
- * `speedup_color`). A `size` group reads its anchor as a reference size — bigger
- * builds are multiples ≥ 1 (`format_size_ratio` / `size_ratio_color`). The two
- * ratios are reciprocals, which is exactly why one direction flag suffices.
- */
-export type BaselineDirection = 'speed' | 'size';
-
-/** An entry's ratio against its group's anchor, in the group's direction. */
-export const compute_baseline_ratio = (
-	direction: BaselineDirection,
-	entry_raw: number,
-	anchor_raw: number
-): number => (direction === 'speed' ? anchor_raw / entry_raw : entry_raw / anchor_raw);
-
-/** Plain size ratio (`2.3x`) — its own formatter since sizes never take the signed treatment. */
-const format_size_ratio = (ratio: number): string => `${ratio.toFixed(1)}x`;
-
-/** Formats a baseline ratio for display in the given direction. */
-export const format_baseline_ratio = (direction: BaselineDirection, ratio: number): string =>
-	direction === 'speed' ? format_speedup_signed(ratio) : format_size_ratio(ratio);
-
-/** Color for a baseline ratio in the given direction. */
-export const baseline_ratio_color = (direction: BaselineDirection, ratio: number): string =>
-	direction === 'speed' ? speedup_color(ratio) : size_ratio_color(ratio);
-
-/**
- * A normalized row for `BenchmarksBaselineGroup` — the shared hover-to-rebaseline
- * column behind the format, parse, and binary-size groups. `raw` is the number the
- * ratio derives from (sweep mean ns for speed, bytes for size); `value` is the
- * row's displayed measurement (the whole-sweep mean — total time over the group's
- * iterated corpus — for speed, bytes for size). Flattening the group-specific
- * display entries to this one shape lets a single component own the anchor state
- * for all three sections.
- */
-export interface BaselineRow {
-	// stable identity for `#each` and anchor matching (the entry name / size label)
-	key: string;
-	// raw name/label; `BenchmarksBar` formats it for display
-	label: string;
-	category: ImplementationCategory;
-	bar_fraction: number;
-	value: FormattedUnit;
-	// the number the ratio derives from — mean ns (speed) or bytes (size)
-	raw: number;
-	annotation: string | undefined;
-	// grayed-out, inert placeholder — never an anchor, no hover highlight
-	disabled: boolean;
-	// inert because the tool was measured for COVERAGE but deliberately never
-	// timed, not because it sat the group out — the bar reads `not timed` instead
-	// of `n/a` so the two aren't conflated. See `BenchmarkDisplayEntry.coverage_only`.
-	coverage_only?: boolean;
-}

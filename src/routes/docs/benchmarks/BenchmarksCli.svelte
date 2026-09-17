@@ -1,10 +1,12 @@
 <script lang="ts">
-	import { format_speedup } from './benchmark_data.ts';
+	import { format_speedup } from './benchmark_display.ts';
 	import {
 		cli_ratio_vs_tsv,
+		CLI_TSV_LABEL,
 		type BenchmarksCliReport,
 		type CliScenario,
-		type CliFormatterResult
+		type CliFormatterResult,
+		type CliMetric
 	} from './benchmarks_cli.ts';
 
 	const {
@@ -36,10 +38,10 @@
 		memory_ratio: number | undefined;
 	}
 	const to_rows = (scenario: CliScenario): Array<Row> => {
-		if (!scenario.results.some((r) => r.label === 'tsv')) return [];
+		if (!scenario.results.some((r) => r.label === CLI_TSV_LABEL)) return [];
 		return scenario.results.map((result) => {
-			const is_tsv = result.label === 'tsv';
-			const ratio = (metric: keyof Omit<CliFormatterResult, 'label'>) =>
+			const is_tsv = result.label === CLI_TSV_LABEL;
+			const ratio = (metric: CliMetric) =>
 				is_tsv ? undefined : cli_ratio_vs_tsv(scenario.results, result.label, metric);
 			return {
 				result,
@@ -117,7 +119,7 @@
 	}
 	th,
 	td {
-		padding: var(--space_xs) var(--space_sm);
+		padding-block: var(--space_xs);
 		text-align: right;
 		white-space: nowrap;
 	}

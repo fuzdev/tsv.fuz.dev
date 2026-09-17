@@ -1,5 +1,6 @@
 <script lang="ts">
-	import { format_speedup, type SpeedupRow } from './benchmark_data.ts';
+	import type { SpeedupRow } from './benchmark_data.ts';
+	import { format_speedup } from './benchmark_display.ts';
 
 	const {
 		rows
@@ -40,11 +41,9 @@
 	table {
 		width: 100%;
 	}
-	thead th {
-		padding: var(--space_xs) var(--space_sm);
-	}
-	tbody td {
-		padding: var(--space_xs) var(--space_sm);
+	th,
+	td {
+		padding-block: var(--space_xs);
 	}
 	.variant {
 		text-align: left;

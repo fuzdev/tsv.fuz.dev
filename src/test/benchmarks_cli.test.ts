@@ -4,8 +4,13 @@ import { benchmarks_formatters_json } from '$routes/docs/benchmarks/benchmarks_f
 import {
 	benchmarks_cli,
 	CLI_SCENARIO_KEYS,
-	CLI_TS_REPO_KEY
+	to_abort_note
 } from '$routes/docs/benchmarks/benchmarks_cli.ts';
+import type {
+	FormatterPreflight,
+	FormatterScenario,
+	FormatterTiming
+} from '$routes/docs/benchmarks/formatter_benchmark_data.ts';
 
 // Shape gate for the CLI report `benchmarks_cli.ts` derives from the generated
 // `benchmarks_formatters.json`. The generator parses prose, so a drifted heading
@@ -19,13 +24,6 @@ describe('benchmarks_cli shape', () => {
 		assert.deepEqual(
 			benchmarks_cli.scenarios.map((s) => s.key),
 			CLI_SCENARIO_KEYS
-		);
-	});
-
-	test('the TypeScript-repo scenario the prose quotes resolved to generated data', () => {
-		assert.ok(
-			benchmarks_cli.scenarios.some((s) => s.key === CLI_TS_REPO_KEY),
-			`no generated scenario has id "${CLI_TS_REPO_KEY}" — did the harness rename it?`
 		);
 	});
 
@@ -52,7 +50,7 @@ describe('benchmarks_cli shape', () => {
 		}
 	});
 
-	test('the derived wall-clock ratios agree with hyperfine own summary', () => {
+	test("the derived wall-clock ratios agree with hyperfine's own summary", () => {
 		// The generated report carries the harness's own `Summary` ratios beside the
 		// raw timings. Recomputing them from the timings and comparing catches a
 		// misparse that would otherwise render plausible-but-wrong numbers.
@@ -102,5 +100,73 @@ describe('benchmarks_cli shape', () => {
 				assert.isFalse(entry.unavailable, `${scenario.id}/${entry.name} never launched`);
 			}
 		}
+	});
+});
+
+describe('to_abort_note', () => {
+	const scenario = (overrides: Partial<FormatterScenario>): FormatterScenario => ({
+		id: 'x',
+		name: 'x',
+		target: '',
+		warmup_runs: 1,
+		benchmark_runs: 1,
+		preflight: [],
+		aborted: 'harness said so',
+		timings: [],
+		baseline: '',
+		speedups: [],
+		memory: [],
+		...overrides
+	});
+	const preflight = (name: string, overrides: Partial<FormatterPreflight>): FormatterPreflight => ({
+		name,
+		rejected: 0,
+		unavailable: false,
+		crashed: false,
+		...overrides
+	});
+	const timing: FormatterTiming = {
+		name: 'tsv',
+		mean_ms: 1,
+		stddev_ms: 0,
+		min_ms: 1,
+		max_ms: 1,
+		user_ms: 1,
+		system_ms: 0
+	};
+
+	test('a preflight abort names each fault, with display labels', () => {
+		assert.strictEqual(
+			to_abort_note(
+				scenario({
+					preflight: [
+						preflight('tsv', {}),
+						preflight('rsvelte-fmt', { crashed: true }),
+						preflight('tsv-npm', { unavailable: true }),
+						preflight('biome', { rejected: 3 })
+					]
+				})
+			),
+			'Not timed: rsvelte-fmt crashed partway through its parse check; tsv via npm dispatcher could not run; biome rejected 3 files.'
+		);
+	});
+
+	test('a preflight abort with every row clean keeps the harness wording', () => {
+		assert.strictEqual(
+			to_abort_note(scenario({ preflight: [preflight('tsv', {})] })),
+			'Not timed: harness said so.'
+		);
+	});
+
+	test('an abort after timing reports only the missing memory, whatever preflight said', () => {
+		assert.strictEqual(
+			to_abort_note(
+				scenario({
+					timings: [timing],
+					preflight: [preflight('biome', { rejected: 1 })]
+				})
+			),
+			'Timed, but no memory was published: harness said so.'
+		);
 	});
 });

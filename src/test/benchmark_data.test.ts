@@ -2,16 +2,14 @@ import { assert, describe, test } from 'vitest';
 
 import { benchmarks_json } from '$routes/docs/benchmarks/benchmarks.ts';
 import {
-	categorize_size_capability,
-	compute_baseline_ratio,
 	derive_corpus_repos,
-	derive_cross_runtime_groups,
-	derive_unavailable_by_runtime,
-	is_impl_unavailable,
-	format_speedup_signed,
-	order_cross_runtime_runtimes,
-	OXC_FULL_LABEL,
-	type CrossRuntimeReport
+	derive_unstable_entries,
+	format_coverage_percent,
+	format_unstable_readings,
+	is_entry_unstable,
+	parse_group_key,
+	type BaselineEntry,
+	type BenchmarkBaseline
 } from '$routes/docs/benchmarks/benchmark_data.ts';
 
 describe('derive_corpus_repos', () => {
@@ -70,172 +68,107 @@ describe('derive_corpus_repos', () => {
 	});
 });
 
-describe('format_speedup_signed', () => {
-	test('anchor-and-faster entries read as a plain multiple', () => {
-		assert.strictEqual(format_speedup_signed(1), '1.00x');
-		assert.strictEqual(format_speedup_signed(2.5), '2.50x');
-		assert.strictEqual(format_speedup_signed(12.3), '12.3x'); // >= 10 drops to one decimal
+const entry = (overrides: Partial<BaselineEntry>): BaselineEntry => ({
+	name: 'x',
+	group: 'format/css',
+	mean_ns: 1,
+	p50_ns: 1,
+	p75_ns: 1,
+	p90_ns: 1,
+	p95_ns: 1,
+	p99_ns: 1,
+	min_ns: 1,
+	max_ns: 1,
+	std_dev_ns: 0,
+	cv: 0.01,
+	ops_per_second: 1,
+	sample_size: 100,
+	cv_raw: 0.01,
+	drift: 0,
+	raw_sample_size: 100,
+	...overrides
+});
+
+describe('is_entry_unstable', () => {
+	test('a clean row is stable', () => {
+		assert.isFalse(is_entry_unstable(entry({})));
 	});
 
-	test('slower entries negate the reciprocal so the factor is directly legible', () => {
-		assert.strictEqual(format_speedup_signed(0.15), '-6.67x');
-		assert.strictEqual(format_speedup_signed(0.05), '-20.0x'); // >= 10 magnitude → one decimal
-		assert.strictEqual(format_speedup_signed(0.98), '-1.02x'); // near-parity sign flip
+	test('a cleaned cv at the threshold is unstable', () => {
+		assert.isTrue(is_entry_unstable(entry({ cv: 0.1 })));
+	});
+
+	test('a raw cv past the threshold counts only on a small sample', () => {
+		assert.isTrue(is_entry_unstable(entry({ cv_raw: 0.2, raw_sample_size: 29 })));
+		assert.isFalse(is_entry_unstable(entry({ cv_raw: 0.2, raw_sample_size: 30 })));
+	});
+
+	test('drift counts in either direction', () => {
+		assert.isTrue(is_entry_unstable(entry({ drift: -0.05 })));
+		assert.isTrue(is_entry_unstable(entry({ drift: 0.07 })));
+		assert.isFalse(is_entry_unstable(entry({ drift: -0.049 })));
+	});
+
+	test('an untimed row is not unstable, and missing raw fields are silence', () => {
+		assert.isFalse(is_entry_unstable(entry({ cv: null, mean_ns: null })));
+		assert.isFalse(is_entry_unstable(entry({ cv_raw: null, drift: null, raw_sample_size: null })));
 	});
 });
 
-describe('compute_baseline_ratio', () => {
-	test('speed reads the anchor as the reference — faster entries exceed 1', () => {
-		// anchor 100ns; a 50ns entry is 2x faster, a 200ns entry is half the speed
-		assert.strictEqual(compute_baseline_ratio('speed', 50, 100), 2);
-		assert.strictEqual(compute_baseline_ratio('speed', 200, 100), 0.5);
-	});
+describe('derive_unstable_entries', () => {
+	const baseline = (entries: Array<BaselineEntry>): BenchmarkBaseline =>
+		({ entries }) as unknown as BenchmarkBaseline;
 
-	test('size reads the anchor as the reference — bigger entries exceed 1', () => {
-		// anchor 100 bytes; a 300-byte build is 3x bigger, a 50-byte build is half
-		assert.strictEqual(compute_baseline_ratio('size', 300, 100), 3);
-		assert.strictEqual(compute_baseline_ratio('size', 50, 100), 0.5);
-	});
-});
-
-describe('order_cross_runtime_runtimes', () => {
-	test('reorders the report storage order to node-first display order', () => {
-		assert.deepStrictEqual(order_cross_runtime_runtimes(['deno', 'node', 'bun']), [
-			'node',
-			'deno',
-			'bun'
-		]);
-	});
-
-	test('anchors on the next runtime in display order when node is absent', () => {
-		assert.deepStrictEqual(order_cross_runtime_runtimes(['bun', 'deno']), ['deno', 'bun']);
-		assert.deepStrictEqual(order_cross_runtime_runtimes([]), []);
-	});
-});
-
-// Per-runtime load failures (the composer's `unavailable_by_runtime`, combined
-// `version` 9+ — it carried init-line labels under `impls` at 8, which matched no
-// row name). Synthetic reports: the committed one predates the field, and the
-// point of these is the DISTINCTION the field draws — a runtime that couldn't load
-// the impl behind a row versus a report that simply has no such row. Both render
-// as `fail`.
-describe('derive_unavailable_by_runtime', () => {
-	const report = (
-		unavailable_by_runtime?: CrossRuntimeReport['unavailable_by_runtime']
-	): CrossRuntimeReport => ({
-		version: 9,
-		kind: 'combined',
-		generated: '2026-01-01T00:00:00.000Z',
-		runtimes: ['deno', 'node', 'bun'],
-		unavailable_by_runtime,
-		sources: [],
-		rows: []
-	});
-
-	test('lists each runtime in the site column order, not the report storage order', () => {
-		// the report stores deno-first; the tables read node-first, and a disclosure
-		// listing runtimes in a different order than the columns invites misreading
-		const derived = derive_unavailable_by_runtime(
-			report([
-				{ runtime: 'bun', rows: ['biome-wasm', 'oxc-parser-wasm'] },
-				{ runtime: 'node', rows: ['biome-wasm'] }
+	test('keeps only the unstable rows, worst reading first across cv, raw cv, and |drift|', () => {
+		const derived = derive_unstable_entries(
+			baseline([
+				entry({ name: 'clean' }),
+				entry({ name: 'cv', cv: 0.12 }),
+				entry({ name: 'drift', drift: -0.3 }),
+				entry({ name: 'raw', cv_raw: 0.2, raw_sample_size: 10 })
 			])
 		);
 		assert.deepStrictEqual(
-			derived.map((entry) => entry.runtime),
-			['node', 'bun']
+			derived.map((e) => e.name),
+			['drift', 'raw', 'cv']
 		);
-	});
-
-	test('an empty row list is not a disclosure', () => {
-		assert.isEmpty(derive_unavailable_by_runtime(report([{ runtime: 'bun', rows: [] }])));
-	});
-
-	test('a report predating the field discloses nothing — silence, not an all-clear', () => {
-		assert.isEmpty(derive_unavailable_by_runtime(report(undefined)));
-	});
-
-	test('is_impl_unavailable answers per runtime, and never guesses on an older report', () => {
-		// keyed by ROW name (`biome-wasm`), which is what the tables render — the
-		// bench's init label (`Biome`) would match no cell
-		const recorded = report([{ runtime: 'bun', rows: ['biome-wasm'] }]);
-		assert.isTrue(is_impl_unavailable(recorded, 'bun', 'biome-wasm'));
-		assert.isFalse(is_impl_unavailable(recorded, 'node', 'biome-wasm'));
-		assert.isFalse(is_impl_unavailable(recorded, 'bun', 'oxfmt'));
-		// absent field → every cell reads as "not measured here", which is the only
-		// claim the data supports
-		assert.isFalse(is_impl_unavailable(report(undefined), 'bun', 'biome-wasm'));
 	});
 });
 
-// Binary-size capability grouping. The heuristic reads the tool's NAME, so the
-// tools not named after their job are the ones that can silently land under a
-// heading that misdescribes them (a formatter filed as "parse + format").
-describe('categorize_size_capability', () => {
-	test('reads the job out of a label that names it', () => {
-		assert.strictEqual(categorize_size_capability('tsv parse (ffi)'), 'parser');
-		assert.strictEqual(categorize_size_capability('tsv-format-wasm'), 'formatter');
-		assert.strictEqual(categorize_size_capability('oxfmt (napi)'), 'formatter');
-		assert.strictEqual(categorize_size_capability(OXC_FULL_LABEL), 'full');
-		assert.strictEqual(categorize_size_capability('tsv (napi)'), 'full');
-	});
-
-	test('the tools whose names say nothing are stated, not guessed', () => {
-		// each of these would otherwise fall through to `full` — a "parse + format"
-		// heading over four builds, two shipping only a formatter and two no formatter
-		assert.strictEqual(categorize_size_capability('dprint (wasm)'), 'formatter');
-		assert.strictEqual(categorize_size_capability('malva (wasm)'), 'formatter');
-		assert.strictEqual(categorize_size_capability('swc (napi)'), 'parser');
-		assert.strictEqual(categorize_size_capability('rsvelte compiler (napi)'), 'parser');
-	});
-
-	test('the two dprint plugins share a bucket', () => {
-		// `dprint (wasm)` and `malva (wasm)` are the same kind of artifact — plugins
-		// over the one @dprint/formatter host, neither exposing a parser — so they
-		// must never be filed apart. Only `malva` reads as a formatter to a human
-		// eye, which is exactly how `dprint` sat under "parse + format" alone.
+describe('format_unstable_readings', () => {
+	test('names each reading, signs drift, and omits absent ones', () => {
 		assert.strictEqual(
-			categorize_size_capability('dprint (wasm)'),
-			categorize_size_capability('malva (wasm)')
+			format_unstable_readings({ cv: 0.478, cv_raw: 0.52, drift: 0.38 }),
+			'cv 47.8%, raw cv 52.0%, drift +38.0%'
 		);
+		assert.strictEqual(
+			format_unstable_readings({ cv: 0.1, drift: -0.05 }),
+			'cv 10.0%, drift -5.0%'
+		);
+		assert.strictEqual(format_unstable_readings({ cv: null, cv_raw: null, drift: null }), '');
 	});
 });
 
-// The per-row file-set-mismatch annotation (the site rendering of the composer's
-// `⚠ files a/b/c`), on a synthetic report since the committed one is healthy.
-describe('derive_cross_runtime_groups files_iterated_mismatch', () => {
-	const report = (
-		files_iterated: CrossRuntimeReport['rows'][number]['files_iterated']
-	): CrossRuntimeReport => ({
-		version: 7,
-		kind: 'combined',
-		generated: '2026-01-01T00:00:00.000Z',
-		runtimes: ['deno', 'node', 'bun'],
-		sources: [],
-		rows: [
-			{
-				group: 'parse/typescript',
-				name: 'tsv-json',
-				ops_per_second: { deno: 1, node: 2, bun: 3 },
-				mean_ns: { deno: 3, node: 2, bun: 1 },
-				files_iterated
-			}
-		]
+describe('format_coverage_percent', () => {
+	test('floors — only exact totality reads 100%', () => {
+		// 44219/44220 rounds to 100.00% but must not display as it: floor, so a
+		// visibly non-total count never sits beside a "100.00%" label.
+		assert.strictEqual(format_coverage_percent(44_219 / 44_220), '99.99%');
+		assert.strictEqual(format_coverage_percent(1), '100.00%');
+		assert.strictEqual(format_coverage_percent(0.998549), '99.85%');
+		assert.strictEqual(format_coverage_percent(0), '0.00%');
+	});
+});
+
+describe('parse_group_key', () => {
+	test('splits an operation/language key', () => {
+		assert.deepStrictEqual(parse_group_key('format/svelte'), {
+			operation: 'format',
+			language: 'svelte'
+		});
 	});
 
-	const derive_row = (files_iterated: CrossRuntimeReport['rows'][number]['files_iterated']) =>
-		derive_cross_runtime_groups(report(files_iterated))[0]!.rows[0]!;
-
-	test('equal counts across runtimes derive null', () => {
-		assert.isNull(derive_row({ deno: 767, node: 767, bun: 767 }).files_iterated_mismatch);
-	});
-
-	test('unequal counts surface the raw per-runtime counts', () => {
-		const mismatch = { deno: 765, node: 767, bun: 767 };
-		assert.deepStrictEqual(derive_row(mismatch).files_iterated_mismatch, mismatch);
-	});
-
-	test('a null count (untimed runtime) is not a mismatch by itself', () => {
-		assert.isNull(derive_row({ deno: null, node: 767, bun: 767 }).files_iterated_mismatch);
+	test('a key missing its language yields an empty one rather than undefined', () => {
+		assert.deepStrictEqual(parse_group_key('format'), { operation: 'format', language: '' });
 	});
 });

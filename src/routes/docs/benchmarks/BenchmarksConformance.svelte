@@ -18,6 +18,7 @@
 -->
 <script lang="ts">
 	import { format_coverage_percent, type ConformanceGroup } from './benchmark_data.ts';
+	import { format_count } from './benchmark_display.ts';
 
 	const {
 		groups
@@ -35,7 +36,7 @@
 {#each groups as group (group.language)}
 	<div class="mb_xl5">
 		<p class="mb_xs">
-			Parsing {group.files_total.toLocaleString('en-US')}
+			Parsing {format_count(group.files_total)}
 			{LANGUAGE_LABELS[group.language] ?? group.language} files
 		</p>
 		<table>
@@ -51,12 +52,12 @@
 					<tr>
 						<td>
 							{row.name}{#if row.note}
-								<span class="note">({row.note})</span>
+								<small class="text_40">({row.note})</small>
 							{/if}
 						</td>
 						<td class="num">
-							{row.files_processed.toLocaleString('en-US')} /
-							{row.files_total.toLocaleString('en-US')}
+							{format_count(row.files_processed)} /
+							{format_count(row.files_total)}
 						</td>
 						<td class="num percent">{format_coverage_percent(row.coverage_fraction)}</td>
 					</tr>
@@ -70,27 +71,19 @@
 	table {
 		width: 100%;
 		max-width: 40rem;
-		border-collapse: collapse;
 	}
 	th {
 		font-weight: 400;
 		font-size: var(--font_size_sm);
 		color: var(--text_40);
-		text-align: left;
 		padding-block: var(--space_xs);
 	}
 	td {
 		padding-block: var(--space_xs);
-		border-top: var(--border_width) solid var(--border_color);
 	}
-	.note {
-		font-size: var(--font_size_sm);
-		color: var(--text_40);
-	}
-	.num {
-		text-align: right;
-		white-space: nowrap;
-		font-variant-numeric: tabular-nums;
+	/* darker row separators than the base style's */
+	tr {
+		border-bottom-color: var(--border_color);
 	}
 	.percent {
 		font-weight: 700;

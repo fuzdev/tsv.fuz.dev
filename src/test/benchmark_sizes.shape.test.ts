@@ -1,0 +1,141 @@
+import { assert, describe, test } from 'vitest';
+
+import { benchmarks_json } from '$routes/docs/benchmarks/benchmarks.ts';
+import {
+	categorize_size_capability,
+	derive_size_groups,
+	OXC_FULL_LABEL,
+	OXFMT_WASM_LABEL,
+	RSVELTE_INSTALL_LABEL,
+	RSVELTE_LABEL
+} from '$routes/docs/benchmarks/benchmark_sizes.ts';
+
+// Shape gate for the binary-size half of the committed benchmarks.json: the size
+// table's COMPOSITION varies with what the producing machine built, so these pin the
+// builds the page's groups and prose depend on.
+describe('benchmarks.json binary sizes', () => {
+	test('binary sizes include the flagship tsv builds', () => {
+		const labels = benchmarks_json.binary_sizes.map((s) => s.label);
+		assert.include(labels, 'tsv (napi)'); // flagship N-API build (perf report anchor)
+		assert.include(labels, 'tsv-wasm'); // the full wasm build — smallest full-toolchain, size baseline
+	});
+
+	test('binary sizes group by capability with one smallest-build ratio anchor', () => {
+		const groups = derive_size_groups(benchmarks_json.binary_sizes);
+		// full / formatter / parser, in that order, all present in the current data
+		assert.deepStrictEqual(
+			groups.map((g) => g.capability),
+			['full', 'formatter', 'parser']
+		);
+		for (const group of groups) {
+			assert.isNotEmpty(group.entries);
+			// every entry lands in the group its capability names
+			for (const e of group.entries) {
+				assert.strictEqual(categorize_size_capability(e.label), group.capability);
+			}
+			// the group's default ratio anchor (its 1.0x row) is the single smallest real
+			// build, and it leads the group — the shared component anchors on the first
+			// ENABLED row, but the visual slot is the first row, so a disabled
+			// placeholder (oxfmt's absent wasm build, spliced above `oxfmt (napi)`)
+			// must not be sorting first either
+			const real = group.entries.filter((e) => !e.disabled);
+			const smallest = real.reduce((a, b) => (a.bytes <= b.bytes ? a : b));
+			assert.strictEqual(
+				group.entries[0]?.label,
+				smallest.label,
+				`${group.capability} smallest leads`
+			);
+		}
+		// the parser group pits tsv against oxc-parser in both kinds
+		const parser = groups.find((g) => g.capability === 'parser');
+		const parser_labels = parser?.entries.map((e) => e.label) ?? [];
+		assert.include(parser_labels, 'oxc-parser (wasm)');
+		assert.include(parser_labels, 'oxc-parser (napi)');
+	});
+
+	test('full toolchain group carries the combined oxc-parser + oxfmt entry', () => {
+		const sizes = benchmarks_json.binary_sizes;
+		const groups = derive_size_groups(sizes);
+		const full = groups.find((g) => g.capability === 'full');
+		const combined = full?.entries.find((e) => e.label === OXC_FULL_LABEL);
+		assert.ok(combined, 'combined oxc entry missing from full toolchain group');
+
+		// its bytes and gzip are the sum of oxc's separate parser and formatter builds
+		const oxc_parser = sizes.find((s) => s.label === 'oxc-parser (napi)');
+		const oxfmt = sizes.find((s) => s.label === 'oxfmt (napi)');
+		assert.ok(oxc_parser && oxfmt, 'source oxc builds missing');
+		assert.strictEqual(combined.bytes, oxc_parser.bytes + oxfmt.bytes);
+		assert.strictEqual(combined.gzip_bytes, oxc_parser.gzip_bytes! + oxfmt.gzip_bytes!);
+
+		// native build, colored as oxc
+		assert.strictEqual(combined.kind, 'native');
+		assert.strictEqual(combined.category, 'oxc');
+	});
+
+	test('formatter group carries rsvelte-fmt both bare and summed with the oxfmt it needs for a project', () => {
+		const sizes = benchmarks_json.binary_sizes;
+		const groups = derive_size_groups(sizes);
+		const formatter = groups.find((g) => g.capability === 'formatter');
+		assert.ok(formatter, 'formatter group missing');
+
+		const bare = formatter.entries.find((e) => e.label === RSVELTE_LABEL);
+		// The rsvelte rows postdate older reports; refreshing the report promotes
+		// this to the full assertion.
+		if (!bare) {
+			assert.isEmpty(
+				formatter.entries.filter((e) => e.label === RSVELTE_INSTALL_LABEL),
+				'must not synthesize the rsvelte pair when the report carries no rsvelte build'
+			);
+			return;
+		}
+
+		const combined = formatter.entries.find((e) => e.label === RSVELTE_INSTALL_LABEL);
+		assert.ok(combined, 'rsvelte-fmt + oxfmt entry missing from formatter group');
+
+		const oxfmt = sizes.find((s) => s.label === 'oxfmt (napi)');
+		assert.ok(oxfmt, 'source oxfmt build missing');
+		assert.strictEqual(combined.bytes, bare.bytes + oxfmt.bytes);
+		assert.strictEqual(combined.gzip_bytes, bare.gzip_bytes! + oxfmt.gzip_bytes!);
+
+		// both are real measured builds, not placeholders — the pair is the project
+		// figure, the bare binary the single-file one
+		assert.isNotOk(bare.disabled, 'bare rsvelte-fmt should be a real entry');
+		assert.isNotOk(combined.disabled, 'rsvelte pair should be a real entry');
+		assert.strictEqual(combined.kind, 'native');
+		for (const e of [bare, combined]) {
+			assert.strictEqual(e.category, 'rsvelte', `${e.label} category`);
+		}
+
+		// the sum must sort after its own bare half — a group ordered smallest-first
+		// would otherwise be reporting a sum smaller than one of its addends
+		const labels = formatter.entries.map((e) => e.label);
+		assert.isAbove(
+			labels.indexOf(RSVELTE_INSTALL_LABEL),
+			labels.indexOf(RSVELTE_LABEL),
+			'the rsvelte pair should sort after the bare binary'
+		);
+	});
+
+	test('formatter group gets a disabled oxfmt (wasm) placeholder just above oxfmt (napi), since oxfmt has no wasm build', () => {
+		const groups = derive_size_groups(benchmarks_json.binary_sizes);
+		const formatter = groups.find((g) => g.capability === 'formatter');
+		assert.ok(formatter, 'formatter group missing');
+
+		const placeholder = formatter.entries.find((e) => e.label === OXFMT_WASM_LABEL);
+		assert.ok(placeholder, 'oxfmt (wasm) placeholder missing');
+		assert.ok(placeholder.disabled, 'oxfmt (wasm) should be disabled');
+		assert.strictEqual(placeholder.kind, 'wasm');
+		assert.strictEqual(placeholder.category, 'oxc');
+		assert.strictEqual(placeholder.bar_fraction, 0);
+
+		const labels = formatter.entries.map((e) => e.label);
+		const placeholder_index = labels.indexOf(OXFMT_WASM_LABEL);
+		const native_index = labels.indexOf('oxfmt (napi)');
+		assert.isAbove(native_index, -1, 'oxfmt (napi) missing from formatter group');
+		assert.strictEqual(
+			placeholder_index,
+			native_index - 1,
+			'placeholder should sit just above oxfmt (napi)'
+		);
+	});
+});

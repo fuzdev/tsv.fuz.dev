@@ -1,4 +1,4 @@
-// The independent end-to-end CLI benchmark — a fork of Oxc's official
+// The independent end-to-end CLI benchmark — a fork of Oxc's own
 // `bench-formatter` that adds tsv (https://github.com/ryanatkn/oxc-bench-formatter,
 // forked from https://github.com/oxc-project/bench-formatter — `tsv` is the fork's
 // DEFAULT branch, so the bare fork URL already lands on it; upstream carries
@@ -7,7 +7,7 @@
 // discovery, I/O, and each tool's default multi-file parallelism. tsv, oxfmt, and
 // biome parallelize across files while prettier formats them one at a time, so the
 // wall-clock ratios scale with core count and are machine-dependent — the
-// parallelism-neutral view is CPU work (hyperfine `User` time). tsv runs only in
+// parallelism-neutral view is CPU work (hyperfine's `User` + `System` time). tsv runs only in
 // the JSX-free scenarios (it has no JSX/TSX parser); the Svelte scenario benches
 // it against rsvelte-fmt (`@rsvelte/fmt`), the other Rust Svelte-native formatter,
 // and the delivery scenario benches tsv against itself — the native binary, the
@@ -30,11 +30,19 @@ export interface CliFormatterResult {
 	label: string;
 	/** hyperfine wall-clock mean, in milliseconds — what you experience typing the command. */
 	wall_ms: number;
-	/** hyperfine `User` time (total CPU across all threads), in ms — the parallelism-neutral view. */
+	/**
+	 * Total CPU time across all threads, in ms — hyperfine's `User` plus `System`,
+	 * the parallelism-neutral view. System time is counted because it is real work
+	 * the command demanded (file I/O, thread spawn, page faults) and an uneven share
+	 * of it per tool: a third of tsv's CPU on the multi-file repo, half of rsvelte-fmt's.
+	 */
 	cpu_ms: number;
 	/** Peak resident set size (RSS), in megabytes; `null` when the harness measured no memory. */
 	memory_mb: number | null;
 }
+
+/** A measured `CliFormatterResult` column — what a ratio can be taken over. */
+export type CliMetric = keyof Omit<CliFormatterResult, 'label'>;
 
 export interface CliScenario {
 	key: string;
@@ -65,6 +73,9 @@ export interface BenchmarksCliReport {
 	versions: Record<string, string>;
 	scenarios: Array<CliScenario>;
 }
+
+/** The native tsv row every CLI ratio is computed against. */
+export const CLI_TSV_LABEL = 'tsv';
 
 /**
  * The tsv-vs-rsvelte-fmt Svelte scenario's id. The harness publishes it aborted
@@ -129,8 +140,7 @@ const SCENARIO_COPY: Record<string, Omit<CliScenario, 'key' | 'target' | 'result
  */
 const CLI_LABELS: Record<string, string> = {
 	'prettier+oxc-parser': 'prettier + oxc-parser',
-	'tsv-npm': CLI_TSV_NPM_LABEL,
-	'tsv-wasm': CLI_TSV_WASM_LABEL
+	'tsv-npm': CLI_TSV_NPM_LABEL
 };
 
 const to_results = (scenario: FormatterScenario): Array<CliFormatterResult> =>
@@ -138,7 +148,7 @@ const to_results = (scenario: FormatterScenario): Array<CliFormatterResult> =>
 		.map((timing) => ({
 			label: CLI_LABELS[timing.name] ?? timing.name,
 			wall_ms: timing.mean_ms,
-			cpu_ms: timing.user_ms,
+			cpu_ms: timing.user_ms + timing.system_ms,
 			memory_mb: scenario.memory.find((m) => m.name === timing.name)?.mean_mb ?? null
 		}))
 		.sort((a, b) => a.wall_ms - b.wall_ms);
@@ -150,13 +160,15 @@ const to_results = (scenario: FormatterScenario): Array<CliFormatterResult> =>
 export const CLI_SCENARIO_KEYS = Object.keys(SCENARIO_COPY);
 
 /**
- * The sentence an aborted scenario shows beside (or in place of) its table. A
- * preflight abort names the fault per formatter in its rows and then only says
- * it is aborting, so the cause is read back off those rows; an abort with every
- * row clean — a memory run that crashed after timing, a scope mismatch — keeps
+ * The sentence an aborted scenario shows beside (or in place of) its table. An
+ * abort after timing (a memory run that crashed) keeps its timed rows, so the
+ * note says only what is missing. A preflight abort names the fault per
+ * formatter in its rows and then only says it is aborting, so the cause is read
+ * back off those rows; one with every row clean — a scope mismatch, say — keeps
  * the harness's own wording.
  */
-const to_abort_note = (scenario: FormatterScenario): string => {
+export const to_abort_note = (scenario: FormatterScenario): string => {
+	if (scenario.timings.length) return `Timed, but no memory was published: ${scenario.aborted}.`;
 	const faults = scenario.preflight.flatMap((entry) => {
 		const label = CLI_LABELS[entry.name] ?? entry.name;
 		if (entry.crashed) return [`${label} crashed partway through its parse check`];
@@ -164,10 +176,7 @@ const to_abort_note = (scenario: FormatterScenario): string => {
 		if (entry.rejected > 0) return [`${label} rejected ${entry.rejected} files`];
 		return [];
 	});
-	if (faults.length) return `Not timed: ${faults.join('; ')}.`;
-	return scenario.timings.length
-		? `Timed, but no memory was published: ${scenario.aborted}.`
-		: `Not timed: ${scenario.aborted}.`;
+	return `Not timed: ${faults.length ? faults.join('; ') : scenario.aborted}.`;
 };
 
 const to_scenarios = (): Array<CliScenario> =>
@@ -211,7 +220,7 @@ export const cli_scenario_find = (scenario_key: string): CliScenario | undefined
 export const cli_speedup_vs_tsv = (
 	scenario_key: string,
 	label: string,
-	metric: keyof Omit<CliFormatterResult, 'label'>
+	metric: CliMetric
 ): number | undefined => {
 	const results = cli_scenario_find(scenario_key)?.results;
 	return results && cli_ratio_vs_tsv(results, label, metric);
@@ -227,9 +236,9 @@ export const cli_speedup_vs_tsv = (
 export const cli_ratio_vs_tsv = (
 	results: Array<CliFormatterResult>,
 	label: string,
-	metric: keyof Omit<CliFormatterResult, 'label'>
+	metric: CliMetric
 ): number | undefined => {
-	const tsv = results.find((r) => r.label === 'tsv')?.[metric];
+	const tsv = results.find((r) => r.label === CLI_TSV_LABEL)?.[metric];
 	const other = results.find((r) => r.label === label)?.[metric];
 	if (tsv == null || other == null || !tsv) return undefined;
 	return other / tsv;
@@ -254,7 +263,7 @@ export const cli_memory_ratio_range = (
 	);
 	const ratios = scenarios.flatMap((scenario) =>
 		scenario.results
-			.filter((r) => r.label !== 'tsv' && (!labels || labels.includes(r.label)))
+			.filter((r) => r.label !== CLI_TSV_LABEL && (!labels || labels.includes(r.label)))
 			.map((r) => cli_ratio_vs_tsv(scenario.results, r.label, 'memory_mb'))
 			.filter((ratio) => ratio !== undefined)
 	);

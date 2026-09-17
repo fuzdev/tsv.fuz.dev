@@ -118,8 +118,8 @@ const TIMING_RE =
 	/^Benchmark \d+: (.+)\n\s*Time \(mean ± σ\):\s*([\d.]+) (\S+) ±\s*([\d.]+) (\S+)\s*\[User: ([\d.]+) (\S+), System: ([\d.]+) (\S+)\]\n\s*Range \(min … max\):\s*([\d.]+) (\S+) …\s*([\d.]+) (\S+)/gm;
 const SPEEDUP_BASELINE_RE = /^Summary\n\s*(.+?) ran$/m;
 const SPEEDUP_RE = /^\s*([\d.]+) ± ([\d.]+) times faster than (.+)$/gm;
-// the name is `(.+?)` like `TIMING_RE`'s, so a command name with a space parses on
-// both lines rather than timing without a memory row
+// the name is `(.+?)` rather than `\S+`, so a command name with a space parses
+// here as it does in `TIMING_RE` rather than timing without a memory row
 const MEMORY_RE =
 	/^\s*(.+?): ([\d.]+) MB \(min: ([\d.]+) MB, max: ([\d.]+) MB(?:, ([\d.]+) ± ([\d.]+) times more than .+)?\)$/gm;
 const PREFLIGHT_HEADING = 'Preflight (per-formatter parse check):';

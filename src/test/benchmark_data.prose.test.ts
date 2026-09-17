@@ -3,24 +3,19 @@ import { assert, describe, test } from 'vitest';
 import { benchmarks_json } from '$routes/docs/benchmarks/benchmarks.ts';
 import { benchmarks_cross_runtime_json } from '$routes/docs/benchmarks/benchmarks_cross_runtime.ts';
 import { benchmarks_conformance_json } from '$routes/docs/benchmarks/benchmarks_conformance.ts';
+import { benchmarks_formatters_json } from '$routes/docs/benchmarks/benchmarks_formatters.ts';
 import {
 	benchmarks_cli,
 	cli_memory_ratio_range,
+	cli_scenario_find,
 	cli_speedup_vs_tsv,
 	CLI_DELIVERY_KEY,
 	CLI_TS_REPO_KEY,
 	CLI_TSV_NPM_LABEL,
 	CLI_TSV_WASM_LABEL
 } from '$routes/docs/benchmarks/benchmarks_cli.ts';
-import {
-	benchmark_speedup,
-	derive_unstable_cells,
-	derive_unstable_entries,
-	is_entry_unstable,
-	format_ratio_approx,
-	format_ratio_range,
-	format_ratio_range_approx
-} from '$routes/docs/benchmarks/benchmark_data.ts';
+import { derive_unstable_cells } from '$routes/docs/benchmarks/benchmark_cross_runtime.ts';
+import { benchmark_speedup, is_entry_unstable } from '$routes/docs/benchmarks/benchmark_data.ts';
 
 // The page's prose quotes ratios computed from the reports rather than
 // hand-written numbers, so a renamed entry or a dropped scenario would render
@@ -40,6 +35,7 @@ describe('prose ratios resolve', () => {
 		['format/css', 'biome-wasm', 'tsv-wasm'],
 		['parse/typescript', 'oxc-parser', 'tsv-json-no-locations'],
 		['parse/typescript', 'tsv-json-no-locations', 'yuku-parser'],
+		['parse/typescript', 'tsv-wasm-json-no-locations', 'yuku-parser-wasm'],
 		// "carrying it costs ~Nx the hand-off time" — the loc-bearing wire over the span-only one
 		['parse/typescript', 'tsv-json', 'tsv-json-no-locations'],
 		['parse/svelte', 'svelte/compiler', 'tsv-json'],
@@ -75,9 +71,8 @@ describe('prose ratios resolve', () => {
 	test('every in-process pair the TLDR quotes was measured stably', () => {
 		// A headline ratio divides two means; a row the bench flagged as unstable (a
 		// cv past 10%, cleaned or raw, or a drift past 5% — a cost that moved while
-		// the row was measured) publishes a mean that may sit between two modes. The
-		// bench discloses it in its report; nothing on the page read that field, and
-		// a "~10x" once shipped off a row that was 8x by median. Re-run the runtime
+		// the row was measured) publishes a mean that may sit between two modes, so a
+		// headline ratio through it is not the median ratio. Re-run the runtime
 		// (`deno task bench:node:run && deno task bench:compose`) and re-publish.
 		for (const [group, slower, faster] of IN_PROCESS_PAIRS) {
 			for (const name of [slower, faster]) {
@@ -92,18 +87,8 @@ describe('prose ratios resolve', () => {
 		}
 	});
 
-	test('the unstable disclosures read the report fields they claim to', () => {
-		// `derive_unstable_entries` must agree with the per-row predicate over the
-		// whole report, and the combined report's `unstable_cells` must name only rows
-		// the tables carry — the disclosure can't point at a row a reader can't find.
-		const flagged = derive_unstable_entries(benchmarks_json);
-		for (const entry of benchmarks_json.entries) {
-			assert.strictEqual(
-				flagged.includes(entry),
-				is_entry_unstable(entry),
-				`${entry.group}/${entry.name}`
-			);
-		}
+	test('the cross-runtime unstable disclosure names only rows the tables carry', () => {
+		// the disclosure can't point at a row or runtime a reader can't find
 		const row_keys = new Set(benchmarks_cross_runtime_json.rows.map((r) => `${r.group}/${r.name}`));
 		for (const cell of derive_unstable_cells(benchmarks_cross_runtime_json)) {
 			assert(row_keys.has(`${cell.group}/${cell.name}`), `${cell.group}/${cell.name}`);
@@ -115,17 +100,7 @@ describe('prose ratios resolve', () => {
 	});
 
 	test('every CLI ratio the prose quotes is present', () => {
-		for (const [label, metric] of [
-			['oxfmt', 'wall_ms'],
-			['oxfmt', 'cpu_ms'],
-			['biome', 'wall_ms'],
-			['biome', 'cpu_ms']
-		] as const) {
-			assert.isDefined(
-				cli_speedup_vs_tsv(CLI_TS_REPO_KEY, label, metric),
-				`${CLI_TS_REPO_KEY}: ${label} ${metric}`
-			);
-		}
+		// (the TypeScript-repo wall/CPU pairs are covered by the CPU-work test below)
 		// the TLDR's "less memory than either" range, scoped to the tools it names, and
 		// the CLI note's "less than every other tool in every scenario" — both read as
 		// "less", so the LOW end must clear 1 or the floored range would print "0–Nx"
@@ -150,10 +125,9 @@ describe('prose ratios resolve', () => {
 	});
 
 	test('the CLI CPU-work note reads the way the numbers run', () => {
-		// "tsv is ~Nx faster than Oxfmt in wall-clock but ~Mx in CPU work, because tsv
-		// spreads its work across more cores than Oxfmt" — that holds only while the
-		// wall ratio EXCEEDS the CPU ratio; "against Biome ... Biome spreads wider than
-		// tsv but burns more CPU doing it" only while the wall ratio TRAILS it. Either
+		// "the CPU column narrows tsv's lead: ~Nx faster in wall-clock but ~Mx in CPU
+		// work ... part of each wall-clock margin is tsv spreading its work across more
+		// cores" — that holds only while each wall ratio EXCEEDS its CPU ratio. Either
 		// inequality flipping on a refresh leaves the sentence explaining the opposite
 		// of what the table shows, so both are pinned in the direction the copy reads.
 		const ratio = (label: string, metric: 'wall_ms' | 'cpu_ms') => {
@@ -161,15 +135,27 @@ describe('prose ratios resolve', () => {
 			assert.isDefined(value, `${CLI_TS_REPO_KEY}: ${label} ${metric}`);
 			return value;
 		};
-		assert.isAbove(
-			ratio('oxfmt', 'wall_ms'),
-			ratio('oxfmt', 'cpu_ms'),
-			'oxfmt: wall lead > CPU lead'
-		);
-		assert.isBelow(
-			ratio('biome', 'wall_ms'),
-			ratio('biome', 'cpu_ms'),
-			'biome: wall lead < CPU lead'
+		for (const label of ['oxfmt', 'biome']) {
+			assert.isAbove(
+				ratio(label, 'wall_ms'),
+				ratio(label, 'cpu_ms'),
+				`${label}: wall lead > CPU lead`
+			);
+		}
+	});
+
+	test('the CPU-work column counts system time, as the note says', () => {
+		// "hyperfine's user plus system time" — a refresh that drops either half
+		// would relabel a different metric under the same heading
+		const scenario = benchmarks_formatters_json.scenarios.find((s) => s.id === CLI_TS_REPO_KEY);
+		assert(scenario, `no generated scenario has id "${CLI_TS_REPO_KEY}"`);
+		const tsv = scenario.timings.find((t) => t.name === 'tsv');
+		assert(tsv);
+		assert.isAbove(tsv.system_ms, 0);
+		assert.closeTo(
+			cli_scenario_find(CLI_TS_REPO_KEY)!.results.find((r) => r.label === 'tsv')!.cpu_ms,
+			tsv.user_ms + tsv.system_ms,
+			1e-9
 		);
 	});
 
@@ -180,17 +166,16 @@ describe('prose ratios resolve', () => {
 		assert(delivery, `no generated scenario has id "${CLI_DELIVERY_KEY}"`);
 		assert.isTrue(delivery.tsv_only);
 		for (const r of delivery.results) {
-			assert.ok(
-				r.label === 'tsv' || r.label.startsWith('tsv'),
-				`${CLI_DELIVERY_KEY} carries a non-tsv row: ${r.label}`
-			);
+			assert.ok(r.label.startsWith('tsv'), `${CLI_DELIVERY_KEY} carries a non-tsv row: ${r.label}`);
 		}
 		const competitor_keys = benchmarks_cli.scenarios.filter((s) => !s.tsv_only).map((s) => s.key);
 		assert.isNotEmpty(competitor_keys);
-		const ranges = competitor_keys.map((key) => cli_memory_ratio_range(key)).filter((r) => r);
+		const ranges = competitor_keys
+			.map((key) => cli_memory_ratio_range(key))
+			.filter((r) => r !== undefined);
 		const expected = {
-			min: Math.min(...ranges.map((r) => r!.min)),
-			max: Math.max(...ranges.map((r) => r!.max))
+			min: Math.min(...ranges.map((r) => r.min)),
+			max: Math.max(...ranges.map((r) => r.max))
 		};
 		assert.deepStrictEqual(cli_memory_ratio_range(), expected);
 		// and the delivery scenario, named explicitly, still spans on its own
@@ -244,19 +229,5 @@ describe('prose ratios resolve', () => {
 			[...slugs].some((slug) => slug?.startsWith('fuzdev/')),
 			'TLDR names the fuz.dev repos but the corpus has none'
 		);
-	});
-
-	test('approximate formatting drops digits as the ratio grows', () => {
-		assert.strictEqual(format_ratio_approx(1.66), '1.7x');
-		assert.strictEqual(format_ratio_approx(26.241), '26x');
-		assert.strictEqual(format_ratio_approx(undefined), '—');
-		// floored at both ends so the claim never overstates either bound
-		assert.strictEqual(format_ratio_range(3.001, 9.89), '3–9x');
-		// the approx variant brackets instead (floor min, ceil max), for ranges
-		// flooring both would collapse — the stated range always contains the truth
-		assert.strictEqual(format_ratio_range_approx(4.48, 4.86), '4–5x');
-		// floor keeps the "at least" end honest where nearest-integer would inflate it
-		assert.strictEqual(format_ratio_range_approx(4.6, 4.86), '4–5x');
-		assert.strictEqual(format_ratio_range_approx(3.001, 9.89), '3–10x');
 	});
 });

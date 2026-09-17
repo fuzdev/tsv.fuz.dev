@@ -1,10 +1,6 @@
 <script lang="ts">
-	import {
-		category_color,
-		format_label,
-		type FormattedUnit,
-		type ImplementationCategory
-	} from './benchmark_data.ts';
+	import type { ImplementationCategory } from './benchmark_data.ts';
+	import { category_color, format_label, type FormattedUnit } from './benchmark_display.ts';
 
 	const {
 		label,
@@ -123,7 +119,6 @@
 		font-size: var(--font_size_sm);
 		text-align: right;
 		white-space: nowrap;
-		/* these may overflow slightly/harmlessly, just need to visually check */
 	}
 	.bar-track {
 		height: 1.2rem;

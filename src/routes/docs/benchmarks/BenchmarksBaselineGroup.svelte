@@ -5,7 +5,7 @@
 		format_baseline_ratio,
 		type BaselineDirection,
 		type BaselineRow
-	} from './benchmark_data.ts';
+	} from './benchmark_baseline.ts';
 	import BenchmarksBar from './BenchmarksBar.svelte';
 
 	const {
