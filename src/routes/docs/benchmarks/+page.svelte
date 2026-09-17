@@ -175,6 +175,19 @@
 				faster than Biome.
 			</li>
 			<li>
+				A
+				<a href="https://github.com/ryanatkn/oxc-bench-formatter" rel="external">
+					fork of Oxc's own <code>bench-formatter</code>
+				</a>
+				is an end-to-end CLI benchmark with its own corpus. On the JSX-free subset of a real
+				TypeScript repo, tsv formats ~{cli_ts_wall_vs_oxfmt} faster than Oxfmt and
+				~{cli_ts_wall_vs_biome} faster than Biome in wall-clock (~{cli_ts_cpu_vs_oxfmt} and
+				~{cli_ts_cpu_vs_biome} in CPU work, the parallelism-neutral view) using
+				{cli_ts_memory ? format_ratio_range(cli_ts_memory.min, cli_ts_memory.max) : '—'} less memory
+				than either. Wall-clock ratios bake in each tool's multi-file parallelism — see the notes in
+				<a href="#{docs_slugify(CLI_SECTION_TITLE)}">that section</a>.
+			</li>
+			<li>
 				Parsing TypeScript into JS with a span-only payload matched to Oxc's, tsv lands
 				~{parse_ts_vs_oxc} ahead of Oxc — the two Rust sides are at parity, and the margin is tsv's
 				lighter wire through <code>JSON.parse</code> — and ~{parse_ts_yuku_vs_tsv} behind
@@ -188,19 +201,6 @@
 				faster than rsvelte's. CSS runs the other way: Svelte's own <code>parseCss</code> is
 				~{parse_css_compiler_vs_tsv} faster than tsv's JSON wire and PostCSS
 				~{parse_css_postcss_vs_tsv}.
-			</li>
-			<li>
-				A
-				<a href="https://github.com/ryanatkn/oxc-bench-formatter" rel="external">
-					fork of Oxc's own <code>bench-formatter</code>
-				</a>
-				is an end-to-end CLI benchmark with its own corpus. On the JSX-free subset of a real
-				TypeScript repo, tsv formats ~{cli_ts_wall_vs_oxfmt} faster than Oxfmt and
-				~{cli_ts_wall_vs_biome} faster than Biome in wall-clock (~{cli_ts_cpu_vs_oxfmt} and
-				~{cli_ts_cpu_vs_biome} in CPU work, the parallelism-neutral view) using
-				{cli_ts_memory ? format_ratio_range(cli_ts_memory.min, cli_ts_memory.max) : '—'} less memory
-				than either. Wall-clock ratios bake in each tool's multi-file parallelism — see the notes in
-				<a href="#{docs_slugify(CLI_SECTION_TITLE)}">that section</a>.
 			</li>
 			{#if cli_svelte_wall != null || cli_svelte?.aborted}
 				<li>
