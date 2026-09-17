@@ -259,9 +259,8 @@
 			tsv's formatter is similar to <a href="https://oxc.rs/docs/guide/usage/formatter">Oxfmt</a>,
 			<a href="https://biomejs.dev/formatter/">Biome</a>, and
 			<a href="https://dprint.dev/plugins/typescript/">dprint</a>. It formats Svelte, TypeScript,
-			and CSS, plus JS through the same TypeScript parser. Every row is single-threaded and
-			in-process, one file at a time over the corpus above — engine speed only; multi-file
-			parallelism is measured in the CLI section:
+			and CSS, plus JS through the same TypeScript parser. These are single-threaded measurements;
+			multi-file parallelism is measured in the CLI section:
 		</p>
 		{#each format_groups as group (group.language)}
 			<BenchmarksGroup {group} {corpus} />
