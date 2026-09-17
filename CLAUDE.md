@@ -118,7 +118,7 @@ hyperfine console dump in its README, between the
 and a `_Measured on: …_` machine line. To update:
 
 ```bash
-# 1. In ~/dev/oxc-bench-formatter — re-run and rewrite its README (needs a built ../tsv)
+# 1. In ~/dev/oxc-bench-formatter — re-run and rewrite its README (times the npm-installed @fuzdev/tsv its lockfile pins)
 pnpm run update-readme
 
 # 2. In ~/dev/tsv.fuz.dev — reparse the README into JSON
