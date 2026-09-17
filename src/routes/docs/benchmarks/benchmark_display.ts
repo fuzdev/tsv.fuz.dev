@@ -61,6 +61,13 @@ export const format_speedup = (ratio: number): string =>
 	ratio >= 10 ? `${ratio.toFixed(1)}x` : `${ratio.toFixed(2)}x`;
 
 /**
+ * Ratio formatting for the CLI tables' peak-RSS column: one decimal at every
+ * magnitude. Peak RSS moves several percent run to run, so a second decimal
+ * would print noise as if it were measured.
+ */
+export const format_memory_ratio = (ratio: number): string => `${ratio.toFixed(1)}x`;
+
+/**
  * Loose ratio formatting for prose, which reads better with fewer digits than a
  * table column (`1.7x`, `26x`) — always paired with a `~` in the copy. Renders
  * `—` for a missing ratio rather than throwing mid-sentence; the benchmark tests

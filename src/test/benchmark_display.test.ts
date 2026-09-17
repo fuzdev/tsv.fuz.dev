@@ -4,6 +4,7 @@ import {
 	format_corpus_source_files,
 	format_count,
 	format_label,
+	format_memory_ratio,
 	format_ns,
 	format_ratio_approx,
 	format_ratio_range
@@ -44,6 +45,15 @@ describe('prose ratio formatting', () => {
 
 	test('a range is floored at both ends so the claim never overstates either bound', () => {
 		assert.strictEqual(format_ratio_range(3.001, 9.89), '3–9x');
+	});
+});
+
+describe('format_memory_ratio', () => {
+	test('keeps one decimal at every magnitude', () => {
+		assert.strictEqual(format_memory_ratio(1), '1.0x');
+		assert.strictEqual(format_memory_ratio(6.5436), '6.5x');
+		assert.strictEqual(format_memory_ratio(21.2122), '21.2x');
+		assert.strictEqual(format_memory_ratio(0.2915), '0.3x');
 	});
 });
 

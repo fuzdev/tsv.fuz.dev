@@ -166,6 +166,17 @@ describe('prose ratios resolve', () => {
 		}
 	});
 
+	test("the dispatcher row's peak RSS is \"its Node launcher's, not the binary's\"", () => {
+		// the harness reports the largest single process in the tree, so the note under
+		// each table holds only while the launcher outgrows the binary it spawns
+		for (const scenario of benchmarks_cli.scenarios) {
+			const npm = scenario.results.find((r) => r.label === CLI_TSV_NPM_LABEL);
+			const tsv = scenario.results.find((r) => r.label === 'tsv');
+			if (npm?.memory_mb == null || tsv?.memory_mb == null) continue;
+			assert.isAbove(npm.memory_mb, tsv.memory_mb, scenario.key);
+		}
+	});
+
 	test('the dispatcher\'s peak memory is "still below every other tool\'s"', () => {
 		const peak = cli_tsv_npm_memory_mb();
 		assert.isDefined(peak);
@@ -178,40 +189,44 @@ describe('prose ratios resolve', () => {
 	});
 
 	test('the CLI CPU-work note reads the way the numbers run', () => {
-		// "the CPU column narrows tsv's lead: ~Nx faster in wall-clock but ~Mx in CPU
-		// work ... part of each wall-clock margin is tsv spreading its work across more
-		// cores" — that holds only while each wall ratio EXCEEDS its CPU ratio. Either
-		// inequality flipping on a refresh leaves the sentence explaining the opposite
-		// of what the table shows, so both are pinned in the direction the copy reads.
-		const ratio = (label: string, metric: 'wall_ms' | 'cpu_ms') => {
-			const value = cli_speedup_vs_tsv(CLI_TS_REPO_KEY, label, metric);
-			assert.isDefined(value, `${CLI_TS_REPO_KEY}: ${label} ${metric}`);
+		// "read like for like, against the dispatcher row, it widens tsv's lead: ~Nx
+		// faster in wall-clock and ~Mx in CPU work ... Against the bare binary it
+		// narrows instead" — two inequalities per tool, in opposite directions. Either
+		// one flipping on a refresh leaves the note explaining the opposite of what the
+		// table shows, so both are pinned the way the copy reads.
+		const defined = (value: number | undefined, name: string): number => {
+			assert.isDefined(value, `${CLI_TS_REPO_KEY}: ${name}`);
 			return value;
 		};
 		for (const label of ['oxfmt', 'biome']) {
+			const npm = (metric: 'wall_ms' | 'cpu_ms') =>
+				defined(cli_speedup_vs_tsv_npm(CLI_TS_REPO_KEY, label, metric), `${label} ${metric}`);
+			const bare = (metric: 'wall_ms' | 'cpu_ms') =>
+				defined(cli_speedup_vs_tsv(CLI_TS_REPO_KEY, label, metric), `${label} ${metric}`);
 			assert.isAbove(
-				ratio(label, 'wall_ms'),
-				ratio(label, 'cpu_ms'),
-				`${label}: wall lead > CPU lead`
+				npm('cpu_ms'),
+				npm('wall_ms'),
+				`${label}: like for like, CPU lead > wall lead`
+			);
+			assert.isAbove(
+				bare('wall_ms'),
+				bare('cpu_ms'),
+				`${label}: bare binary, wall lead > CPU lead`
 			);
 		}
-	});
-
-	test('the CPU-work note runs the other way on the single file, as it says', () => {
-		// "On the large single file there is nothing to spread and the column runs the
-		// other way ... tsv's CPU lead there is wider than its wall-clock one" — over
-		// every other tool's row, and "even Prettier's CPU time runs above its wall-clock"
-		const single = cli_scenario_find(CLI_SINGLE_FILE_KEY);
-		assert(single, `no generated scenario has id "${CLI_SINGLE_FILE_KEY}"`);
-		const others = cli_comparison_results(single);
-		assert.isNotEmpty(others);
-		for (const r of others) {
-			const wall = cli_speedup_vs_tsv(CLI_SINGLE_FILE_KEY, r.label, 'wall_ms');
-			const cpu = cli_speedup_vs_tsv(CLI_SINGLE_FILE_KEY, r.label, 'cpu_ms');
-			assert.isDefined(wall, r.label);
-			assert.isDefined(cpu, r.label);
-			assert.isAbove(cpu, wall, `${r.label}: CPU lead > wall lead on one file`);
-		}
+		// "which is Node's startup rather than the engines ... a large share of a
+		// parallel run's wall-clock and a small share of its CPU total": the dispatcher
+		// must cost the repo run relatively more wall-clock than CPU work
+		const npm_wall = defined(
+			cli_speedup_vs_tsv(CLI_TS_REPO_KEY, CLI_TSV_NPM_LABEL, 'wall_ms'),
+			'dispatcher wall_ms'
+		);
+		const npm_cpu = defined(
+			cli_speedup_vs_tsv(CLI_TS_REPO_KEY, CLI_TSV_NPM_LABEL, 'cpu_ms'),
+			'dispatcher cpu_ms'
+		);
+		assert.isAbove(npm_wall, npm_cpu);
+		// "even Prettier's CPU time runs above its wall-clock"
 		for (const key of [CLI_SINGLE_FILE_KEY, CLI_TS_REPO_KEY]) {
 			const prettier = cli_scenario_find(key)?.results.find((r) => r.label === 'prettier');
 			assert(prettier, `${key} has no prettier row`);
@@ -236,7 +251,7 @@ describe('prose ratios resolve', () => {
 		);
 		assert(wasm, 'delivery scenario has no tsv-wasm row');
 		assert.isAbove(wasm.cpu_ms, wasm.wall_ms);
-		// the Svelte copy: "rsvelte-fmt 0.7.x crashes nondeterministically on this corpus"
+		// the Svelte copy: "rsvelte-fmt 0.7.x’s check mode crashes nondeterministically on this corpus"
 		const rsvelte_version = benchmarks_cli.versions['rsvelte-fmt'];
 		assert.isDefined(rsvelte_version);
 		assert.match(rsvelte_version, /^0\.7\./, 'the Svelte copy names rsvelte-fmt 0.7.x');

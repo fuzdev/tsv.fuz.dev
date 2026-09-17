@@ -4,9 +4,13 @@ import { benchmarks_formatters_json } from '$routes/docs/benchmarks/benchmarks_f
 import {
 	benchmarks_cli,
 	cli_comparison_results,
+	cli_default_anchor_label,
 	cli_ratio_between,
 	cli_ratio_vs_tsv,
+	CLI_DELIVERY_KEY,
 	CLI_SCENARIO_KEYS,
+	CLI_SINGLE_FILE_KEY,
+	CLI_TSV_LABEL,
 	CLI_TSV_NPM_LABEL,
 	CLI_TSV_WASM_LABEL,
 	to_abort_note,
@@ -20,9 +24,10 @@ import type {
 } from '$routes/docs/benchmarks/formatter_benchmark_data.ts';
 
 // Shape gate for the CLI report `benchmarks_cli.ts` derives from the generated
-// `benchmarks_formatters.json`. The generator parses prose, so a drifted heading
-// or scenario id in the harness's README would silently drop a scenario or its
-// `tsv` reference row and render an empty table rather than fail to typecheck.
+// `benchmarks_formatters.json`. The generator validates the harness's report
+// against a schema, which can't know the page's scenario ids: a renamed scenario
+// would validate and then silently drop from the page, or lose the `tsv` row its
+// table anchors on, rather than fail to typecheck.
 describe('benchmarks_cli shape', () => {
 	test('every scenario the page has prose for resolved to generated data, in prose order', () => {
 		// a copy entry with no matching scenario id drops silently from the table, so
@@ -60,15 +65,16 @@ describe('benchmarks_cli shape', () => {
 	test("the derived wall-clock ratios agree with hyperfine's own summary", () => {
 		// The generated report carries the harness's own `Summary` ratios beside the
 		// raw timings. Recomputing them from the timings and comparing catches a
-		// misparse that would otherwise render plausible-but-wrong numbers.
+		// report whose rows and ratios came apart — a unit slip, a mislabeled row —
+		// which would otherwise render plausible-but-wrong numbers.
 		for (const scenario of benchmarks_formatters_json.scenarios) {
 			if (scenario.timings.length === 0) {
-				// aborted before timing: no baseline and nothing to cross-check
+				// aborted before timing: no fastest row and nothing to cross-check
 				assert.isDefined(scenario.aborted, `${scenario.id} has no timings and no abort`);
 				assert.isEmpty(scenario.speedups, `${scenario.id} aborted but carries speedups`);
 				continue;
 			}
-			assert.strictEqual(scenario.baseline, 'tsv', `${scenario.id} baseline`);
+			assert.strictEqual(scenario.fastest, 'tsv', `${scenario.id} fastest`);
 			// from the raw timings, not the rendered report: the generated data also
 			// carries tsv scenarios the page has no copy for, and their numbers must
 			// parse just as soundly
@@ -78,10 +84,9 @@ describe('benchmarks_cli shape', () => {
 				const other = scenario.timings.find((t) => t.name === speedup.name);
 				assert(other, `${scenario.id}/${speedup.name} has no timing row`);
 				const derived = other.mean_ms / tsv.mean_ms;
-				// hyperfine derives its summary from full-precision means but prints the
-				// timings rounded, so recomputing from the printed numbers lands within a
-				// fraction of a percent — wide enough for that, far too tight to hide a
-				// misparse (a wrong unit would be off by 1000x)
+				// the harness derives the ratio from full-precision means and records both
+				// rounded, so recomputing lands within a fraction of a percent — wide enough
+				// for that, far too tight to hide a slip (a wrong unit would be off by 1000x)
 				assert.closeTo(
 					derived,
 					speedup.ratio,
@@ -89,6 +94,49 @@ describe('benchmarks_cli shape', () => {
 					`${scenario.id}/${speedup.name}`
 				);
 			}
+		}
+	});
+
+	test("the derived memory ratios agree with the harness's own", () => {
+		// the memory counterpart of the check above: the page derives its ratios from
+		// the mean peaks, and the report carries the harness's ratio beside each
+		for (const scenario of benchmarks_formatters_json.scenarios) {
+			const rows = scenario.memory.filter((m) => m.ratio !== undefined);
+			if (rows.length === 0) continue; // no memory pass, or none measured against a baseline
+			const tsv = scenario.memory.find((m) => m.name === 'tsv');
+			assert(tsv, `${scenario.id} has memory ratios but no tsv row to take them against`);
+			assert.notProperty(tsv, 'ratio', `${scenario.id}: the baseline row carries a ratio`);
+			for (const row of rows) {
+				// the harness divides full-precision means and the report may carry them
+				// rounded to a tenth of a megabyte, which moves a ratio by up to ~1%
+				assert.closeTo(
+					row.mean_mb / tsv.mean_mb,
+					row.ratio!,
+					row.ratio! * 0.02,
+					`${scenario.id}/${row.name}`
+				);
+			}
+		}
+	});
+
+	test('the two scenarios that time tsv on the same file agree', () => {
+		// the delivery and large-single-file scenarios run the bare binary and the
+		// dispatcher over the same parser.ts in separate hyperfine sessions, so their
+		// means are one measurement taken twice — a gap between them is the run-to-run
+		// noise every ratio on the page carries, and a wide one says to re-run
+		const rows = (key: string) => {
+			const scenario = benchmarks_cli.scenarios.find((s) => s.key === key);
+			assert(scenario, `no generated scenario has id "${key}"`);
+			return scenario;
+		};
+		const delivery = rows(CLI_DELIVERY_KEY);
+		const single = rows(CLI_SINGLE_FILE_KEY);
+		assert.strictEqual(delivery.target.split(',')[0], single.target, 'same corpus file');
+		for (const label of [CLI_TSV_LABEL, CLI_TSV_NPM_LABEL]) {
+			const a = delivery.results.find((r) => r.label === label);
+			const b = single.results.find((r) => r.label === label);
+			assert(a && b, `${label} is missing from one of the two scenarios`);
+			assert.closeTo(a.wall_ms, b.wall_ms, b.wall_ms * 0.1, `${label} wall_ms`);
 		}
 	});
 
@@ -120,7 +168,7 @@ describe('to_abort_note', () => {
 		preflight: [],
 		aborted: 'harness said so',
 		timings: [],
-		baseline: '',
+		fastest: '',
 		speedups: [],
 		memory: [],
 		...overrides
@@ -223,6 +271,39 @@ describe('cli ratios over a scenario with two tsv rows', () => {
 		// the baseline row itself missing
 		const without_npm = results.filter((r) => r.label !== CLI_TSV_NPM_LABEL);
 		assert.isUndefined(cli_ratio_between(without_npm, 'oxfmt', CLI_TSV_NPM_LABEL, 'wall_ms'));
+	});
+});
+
+describe('cli_default_anchor_label', () => {
+	const row = (label: string) => ({ label, wall_ms: 1, cpu_ms: 1, memory_mb: 1 });
+
+	test('facing other tools, the dispatcher row is the like-for-like anchor', () => {
+		const results = [row('oxfmt'), row(CLI_TSV_NPM_LABEL), row(CLI_TSV_LABEL)];
+		assert.strictEqual(cli_default_anchor_label({ results, tsv_only: false }), CLI_TSV_NPM_LABEL);
+	});
+
+	test('a tsv-only scenario anchors on the native binary its rows are distributions of', () => {
+		const results = [row(CLI_TSV_WASM_LABEL), row(CLI_TSV_NPM_LABEL), row(CLI_TSV_LABEL)];
+		assert.strictEqual(cli_default_anchor_label({ results, tsv_only: true }), CLI_TSV_LABEL);
+	});
+
+	test('without a dispatcher row it falls back to native tsv, and without tsv to nothing', () => {
+		assert.strictEqual(
+			cli_default_anchor_label({ results: [row('oxfmt'), row(CLI_TSV_LABEL)], tsv_only: false }),
+			CLI_TSV_LABEL
+		);
+		assert.isUndefined(cli_default_anchor_label({ results: [], tsv_only: false }));
+	});
+
+	test('every rendered scenario the report timed has an anchor', () => {
+		for (const scenario of benchmarks_cli.scenarios) {
+			if (scenario.results.length === 0) continue; // aborted before timing
+			assert.strictEqual(
+				cli_default_anchor_label(scenario),
+				scenario.tsv_only ? CLI_TSV_LABEL : CLI_TSV_NPM_LABEL,
+				scenario.key
+			);
+		}
 	});
 });
 

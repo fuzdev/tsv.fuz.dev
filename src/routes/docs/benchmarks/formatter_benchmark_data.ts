@@ -1,307 +1,170 @@
-// Types and parser for the formatter comparison benchmark — Prettier, Biome,
-// Oxfmt, rsvelte-fmt, and tsv on shared corpora. Unlike the tsv bench reports, that harness
-// emits no JSON: its numbers exist only as the hyperfine console dump embedded
-// in its README between the `BENCHMARK_RESULTS_START`/`END` markers, plus a
-// `## Versions` list and a `_Measured on: …_` machine line. This module turns
-// that text into data; `benchmarks_formatters.gen.json.ts` writes it out.
+// Schemas and validation for the formatter comparison benchmark — Prettier,
+// Biome, Oxfmt, rsvelte-fmt, and tsv on shared corpora. The harness publishes its
+// numbers as `results.json` beside its README: hyperfine's own export plus the
+// memory pass and the preflight check, recorded by the functions that print them.
+// This module validates that report and keeps the scenarios tsv runs in;
+// `benchmarks_formatters.gen.json.ts` writes the result out.
+
+import { z } from 'zod';
 
 /** A single formatter's timing in one scenario. All durations in milliseconds. */
-export interface FormatterTiming {
-	name: string;
-	mean_ms: number;
-	stddev_ms: number;
-	min_ms: number;
-	max_ms: number;
-	user_ms: number;
-	system_ms: number;
-}
+export const FormatterTiming = z.strictObject({
+	name: z.string().min(1),
+	mean_ms: z.number().positive(),
+	/** Zero for a lone run, which has no spread. */
+	stddev_ms: z.number().nonnegative(),
+	user_ms: z.number().nonnegative(),
+	system_ms: z.number().nonnegative(),
+	min_ms: z.number().positive(),
+	max_ms: z.number().positive()
+});
+export type FormatterTiming = z.infer<typeof FormatterTiming>;
 
 /** A single formatter's peak-RSS measurement in one scenario. */
-export interface FormatterMemory {
-	name: string;
-	mean_mb: number;
-	min_mb: number;
-	max_mb: number;
+export const FormatterMemory = z.strictObject({
+	name: z.string().min(1),
+	mean_mb: z.number().positive(),
+	min_mb: z.number().positive(),
+	max_mb: z.number().positive(),
 	/**
 	 * Ratio to the scenario's baseline formatter (tsv wherever tsv runs); absent on
 	 * that row. Below 1 means less memory than the baseline.
 	 */
-	ratio?: number;
-	ratio_stddev?: number;
-}
+	ratio: z.number().positive().optional(),
+	ratio_stddev: z.number().nonnegative().optional()
+});
+export type FormatterMemory = z.infer<typeof FormatterMemory>;
 
 /** How a scenario's fastest formatter compares to one of the others. */
-export interface FormatterSpeedup {
-	name: string;
-	ratio: number;
-	ratio_stddev: number;
-}
+export const FormatterSpeedup = z.strictObject({
+	name: z.string().min(1),
+	ratio: z.number().positive(),
+	ratio_stddev: z.number().nonnegative()
+});
+export type FormatterSpeedup = z.infer<typeof FormatterSpeedup>;
 
 /**
  * A formatter's parse-check result over the scenario's corpus. The harness runs
  * this before timing so a tool that rejects files isn't credited for skipping
  * them.
  */
-export interface FormatterPreflight {
-	name: string;
+export const FormatterPreflight = z.strictObject({
+	name: z.string().min(1),
 	/** Files the formatter refused to parse. */
-	rejected: number;
+	rejected: z.number().int().nonnegative(),
 	/** The formatter's binary never launched, so its timing row is meaningless. */
-	unavailable: boolean;
+	unavailable: z.boolean(),
 	/** The check pass crashed partway (exit ≥ 128), so its coverage is unknown. */
-	crashed: boolean;
-}
+	crashed: z.boolean()
+});
+export type FormatterPreflight = z.infer<typeof FormatterPreflight>;
 
 /** One benchmark scenario — a corpus benched across every formatter that supports it. */
-export interface FormatterScenario {
-	/** Slug derived from `name`, e.g. `large-single-file`. */
-	id: string;
-	name: string;
+export const FormatterScenario = z.strictObject({
+	/** Slug of `name`, e.g. `large-single-file` — what the page keys its copy on. */
+	id: z.string().min(1),
+	name: z.string().min(1),
 	/** The corpus, as the harness describes it. */
-	target: string;
-	warmup_runs: number;
-	benchmark_runs: number;
-	preflight: Array<FormatterPreflight>;
+	target: z.string().min(1),
 	/**
-	 * Why the harness stopped early — its own abort line. Before timing (preflight
-	 * failed) there are no timings, speedups, or memory rows and the `preflight`
-	 * entries say which formatter caused it; after timing (a memory run crashed)
-	 * timings and speedups are present and only `memory` is empty.
+	 * The counts the scenario resolved, recorded before anything can abort it. 0 only
+	 * in the harness's upstream scenarios when hyperfine itself failed.
 	 */
-	aborted?: string;
+	warmup_runs: z.number().int().nonnegative(),
+	benchmark_runs: z.number().int().nonnegative(),
+	/** Empty in the harness's upstream scenarios, which run no preflight. */
+	preflight: z.array(FormatterPreflight),
+	/**
+	 * Why the harness stopped early. Before timing (preflight failed) there are no
+	 * timings, speedups, or memory rows and the `preflight` entries say which
+	 * formatter caused it; after timing (a memory run crashed) timings and speedups
+	 * are present and only `memory` is empty.
+	 */
+	aborted: z.string().min(1).optional(),
 	/**
 	 * tsv's Node-launched rows that ran as `node <script>` because the harness had
 	 * no pnpm bin shim to copy for them — so they skipped the few milliseconds of
 	 * shell shim every other tool's row pays. Absent when every row was shimmed.
 	 */
-	unshimmed?: Array<string>;
-	timings: Array<FormatterTiming>;
-	/** The fastest formatter and its margin over each other one. */
-	baseline: string;
-	speedups: Array<FormatterSpeedup>;
-	memory: Array<FormatterMemory>;
-}
+	unshimmed: z.array(z.string().min(1)).min(1).optional(),
+	timings: z.array(FormatterTiming),
+	/**
+	 * The fastest timed formatter, and its margin over each other one; `''` when
+	 * nothing was timed. Not the memory rows' anchor, which the harness fixes per
+	 * scenario and marks by leaving that row without a `ratio`.
+	 */
+	fastest: z.string(),
+	speedups: z.array(FormatterSpeedup),
+	/** Empty without GNU time, and when an abort kept the memory pass from finishing. */
+	memory: z.array(FormatterMemory)
+});
+export type FormatterScenario = z.infer<typeof FormatterScenario>;
 
 /**
- * The parsed formatter comparison. Only scenarios tsv participates in are
- * included — it has no JSX/TSX parser, so the harness runs it on the JSX-free
- * corpora only and the other scenarios have no tsv row to compare against.
+ * The formatter comparison, as the harness publishes it and as this site commits
+ * it. The committed copy holds only the scenarios tsv participates in — it has no
+ * JSX/TSX parser, so the harness runs it on the JSX-free corpora only and the
+ * other scenarios have no tsv row to compare against.
  */
-export interface FormatterBenchmarks {
+export const FormatterBenchmarks = z.strictObject({
 	/**
 	 * The machine the numbers came from. The ratios move with it — Biome, Oxfmt,
 	 * and tsv scale across cores while Prettier formats files one at a time.
 	 */
-	machine: string;
+	machine: z.string().min(1),
 	/** Formatter name to version string, e.g. `prettier` to `3.9.1`. */
-	versions: Record<string, string>;
-	scenarios: Array<FormatterScenario>;
-}
+	versions: z.record(z.string(), z.string().min(1)),
+	scenarios: z.array(FormatterScenario)
+});
+export type FormatterBenchmarks = z.infer<typeof FormatterBenchmarks>;
 
-const to_slug = (value: string): string =>
-	value
-		.toLowerCase()
-		.replace(/[^a-z0-9]+/g, '-')
-		.replace(/^-|-$/g, '');
-
-/** Milliseconds from a hyperfine duration and its unit, e.g. `1.597` + `s`. */
-const to_ms = (value: string, unit: string): number => {
-	const n = Number(value);
-	if (unit === 's') return n * 1000;
-	if (unit === 'ms') return n;
-	if (unit === 'µs' || unit === 'us') return n / 1000;
-	throw new Error(`unknown duration unit: ${unit}`);
-};
-
-// The console dump the harness writes into its README.
-const RESULTS_START = '<!-- BENCHMARK_RESULTS_START -->';
-const RESULTS_END = '<!-- BENCHMARK_RESULTS_END -->';
-
-const SCENARIO_RE = /^=+\nBenchmarking (.+)\n=+$/gm;
-const TARGET_RE = /^Target: (.+)$/m;
-const RUNS_RE = /^- (\d+) warmup runs?, (\d+) benchmark runs?$/m;
-const TIMING_RE =
-	/^Benchmark \d+: (.+)\n\s*Time \(mean ± σ\):\s*([\d.]+) (\S+) ±\s*([\d.]+) (\S+)\s*\[User: ([\d.]+) (\S+), System: ([\d.]+) (\S+)\]\n\s*Range \(min … max\):\s*([\d.]+) (\S+) …\s*([\d.]+) (\S+)/gm;
-const SPEEDUP_BASELINE_RE = /^Summary\n\s*(.+?) ran$/m;
-const SPEEDUP_RE = /^\s*([\d.]+) ± ([\d.]+) times faster than (.+)$/gm;
-// the name is `(.+?)` rather than `\S+`, so a command name with a space parses
-// here as it does in `TIMING_RE` rather than timing without a memory row
-const MEMORY_RE =
-	/^\s*(.+?): ([\d.]+) MB \(min: ([\d.]+) MB, max: ([\d.]+) MB(?:, ([\d.]+) ± ([\d.]+) times more than .+)?\)$/gm;
-const PREFLIGHT_HEADING = 'Preflight (per-formatter parse check):';
-const PREFLIGHT_RE = /^\s{2}(\S+): (clean|unavailable|\d+ rejected|CRASHED)/gm;
-// The harness's own verdict when it stops a scenario early: after the preflight
-// rows when a formatter failed its check, or after the `Summary` when a memory
-// run crashed. Either way it moves on to the next scenario, so nothing follows.
-const ABORTED_RE = /^\s*→ aborting: (.+)$/m;
-// The header line the harness prints for a tsv row it couldn't give a bin shim.
-const UNSHIMMED_RE = /^- (\S+): no pnpm bin shim to copy/gm;
-const VERSIONS_RE = /^## Versions\n\n((?:- \*\*.+\*\*: .+\n)+)/m;
-const VERSION_RE = /^- \*\*(.+?)\*\*: (.+)$/gm;
-const MACHINE_RE = /^_Measured on: (.+?)(?: — |_$)/m;
-
-/** The text of one section of a scenario block, between two of its headings. */
-const slice_section = (block: string, start: string, ...ends: Array<string>): string => {
-	const from = block.indexOf(start);
-	if (from === -1) return '';
-	const rest = block.slice(from + start.length);
-	const to = ends.reduce((lowest, end) => {
-		const i = rest.indexOf(end);
-		return i === -1 || i >= lowest ? lowest : i;
-	}, rest.length);
-	return rest.slice(0, to);
-};
-
-const parse_timings = (block: string): Array<FormatterTiming> =>
-	[...block.matchAll(TIMING_RE)].map((m) => ({
-		name: m[1]!.trim(),
-		mean_ms: to_ms(m[2]!, m[3]!),
-		stddev_ms: to_ms(m[4]!, m[5]!),
-		user_ms: to_ms(m[6]!, m[7]!),
-		system_ms: to_ms(m[8]!, m[9]!),
-		min_ms: to_ms(m[10]!, m[11]!),
-		max_ms: to_ms(m[12]!, m[13]!)
-	}));
-
-const parse_preflight = (block: string): Array<FormatterPreflight> =>
-	[...slice_section(block, PREFLIGHT_HEADING, 'Benchmark 1:').matchAll(PREFLIGHT_RE)].map((m) => ({
-		name: m[1]!,
-		rejected: Number.parseInt(m[2]!, 10) || 0,
-		unavailable: m[2] === 'unavailable',
-		crashed: m[2] === 'CRASHED'
-	}));
-
-const parse_memory = (block: string): Array<FormatterMemory> =>
-	[...slice_section(block, 'Memory Usage:', ' benchmark complete!').matchAll(MEMORY_RE)].map(
-		(m) => ({
-			name: m[1]!,
-			mean_mb: Number(m[2]),
-			min_mb: Number(m[3]),
-			max_mb: Number(m[4]),
-			...(m[5] === undefined ? null : { ratio: Number(m[5]), ratio_stddev: Number(m[6]) })
-		})
-	);
-
-const parse_scenario = (name: string, block: string): FormatterScenario => {
-	const runs = RUNS_RE.exec(block);
-	const summary = slice_section(block, 'Summary\n', 'Memory Usage:', ' benchmark complete!');
-	const timings = parse_timings(block);
-	const aborted = ABORTED_RE.exec(block)?.[1]?.trim();
-	const unshimmed = [...block.matchAll(UNSHIMMED_RE)].map((m) => m[1]!);
-	// A scenario banner with no timings under it is either the harness aborting
-	// before hyperfine ran — it says so, and the preflight block names the cause —
-	// or the timing lines changed shape; hyperfine always prints them otherwise.
-	if (timings.length === 0 && aborted === undefined) {
-		throw new Error(`formatter benchmarks: scenario "${name}" has no parseable timings`);
-	}
-	// Distinguish "not measured" from "misparsed": these sections are optional (no
-	// GNU time, no preflight in the JSX scenarios), but a section that's present
-	// and yields no rows is a broken pattern.
-	const memory = parse_memory(block);
-	if (block.includes('Memory Usage:') && memory.length === 0) {
-		throw new Error(`formatter benchmarks: scenario "${name}" has an unparseable memory section`);
-	}
-	const preflight = parse_preflight(block);
-	if (block.includes(PREFLIGHT_HEADING) && preflight.length === 0) {
-		throw new Error(
-			`formatter benchmarks: scenario "${name}" has an unparseable preflight section`
-		);
-	}
-	// An abort before timing is explained by its preflight rows alone, so a block
-	// with neither is one the page can't say anything about.
-	if (timings.length === 0 && preflight.length === 0) {
-		throw new Error(
-			`formatter benchmarks: scenario "${name}" aborted with an unparseable preflight section`
-		);
-	}
-	return {
-		id: to_slug(name),
-		name,
-		target: TARGET_RE.exec(block)?.[1] ?? '',
-		warmup_runs: Number(runs?.[1] ?? 0),
-		benchmark_runs: Number(runs?.[2] ?? 0),
-		preflight,
-		...(aborted === undefined ? null : { aborted }),
-		...(unshimmed.length === 0 ? null : { unshimmed }),
-		timings,
-		baseline: SPEEDUP_BASELINE_RE.exec(block)?.[1] ?? '',
-		speedups: [...summary.matchAll(SPEEDUP_RE)].map((m) => ({
-			name: m[3]!.trim(),
-			ratio: Number(m[1]),
-			ratio_stddev: Number(m[2])
-		})),
-		memory
-	};
-};
+/** Whether tsv was one of a scenario's formatters, timed or only checked. */
+const scenario_has_tsv = (scenario: FormatterScenario): boolean =>
+	scenario.timings.some((timing) => timing.name === 'tsv') ||
+	(scenario.aborted !== undefined && scenario.preflight.some((p) => p.name === 'tsv'));
 
 /**
- * Parse the formatter comparison out of the bench harness's README, keeping only
- * the scenarios tsv runs in.
+ * Validate the harness's `results.json` and keep the scenarios tsv runs in.
  *
- * Throws rather than returning a partial result: the harness publishes no JSON,
- * so this parses prose, and a drifted heading or timing line would otherwise
- * strip scenarios from the site silently. The caller decides what a MISSING
- * README means (the sibling checkout is optional); everything past that point is
- * a broken contract.
+ * Throws rather than returning a partial result: a renamed key or a scenario with
+ * nothing under it would otherwise strip numbers from the site silently. The
+ * caller decides what a MISSING report means (the sibling checkout is optional);
+ * everything past that point is a broken contract.
  *
- * @param readme - the full README text, markers included
- * @returns the parsed benchmarks
- * @throws if the results markers, the scenario banners, the versions list, the
- * machine line, or any tsv scenario's numbers can't be parsed
+ * @param results - the parsed `results.json`
+ * @returns the validated benchmarks, tsv's scenarios only
+ * @throws if the report doesn't match `FormatterBenchmarks`, a scenario carries
+ * neither timings nor an abort, no scenario timed tsv, or the versions list lacks tsv
  */
-export const parse_formatter_benchmarks = (readme: string): FormatterBenchmarks => {
-	const start = readme.indexOf(RESULTS_START);
-	const end = readme.indexOf(RESULTS_END);
-	if (start === -1 || end === -1 || end < start) {
-		throw new Error(
-			`formatter benchmarks: no ${RESULTS_START} / ${
-				RESULTS_END
-			} block — is this the harness's readme?`
-		);
+export const parse_formatter_benchmarks = (results: unknown): FormatterBenchmarks => {
+	const parsed = FormatterBenchmarks.safeParse(results);
+	if (!parsed.success) {
+		throw new Error(`formatter benchmarks: ${z.prettifyError(parsed.error)}`);
 	}
-	const results = readme.slice(start + RESULTS_START.length, end);
+	const { machine, versions, scenarios: all_scenarios } = parsed.data;
 
-	// Split on the scenario banners, pairing each title with the text that follows
-	// it up to the next banner.
-	const headings = [...results.matchAll(SCENARIO_RE)];
-	if (headings.length === 0) {
-		throw new Error('formatter benchmarks: results block carries no scenario banners');
+	for (const scenario of all_scenarios) {
+		// A scenario with no timings either aborted before hyperfine ran — it says so,
+		// and its preflight rows name the cause — or recorded nothing it should have.
+		if (scenario.timings.length === 0 && scenario.aborted === undefined) {
+			throw new Error(`formatter benchmarks: scenario "${scenario.name}" has no timings`);
+		}
 	}
-	const parsed = headings.map(({ 0: heading, 1: name, index }, i) =>
-		parse_scenario(name!.trim(), results.slice(index + heading.length, headings[i + 1]?.index))
-	);
+
 	// tsv has no JSX/TSX parser, so it sits out some scenarios by design — but if it
-	// ran in NONE of them, either the harness stopped benching tsv or the timing
-	// labels drifted, and the site would render a comparison without its subject.
-	// An aborted scenario has no timing rows at all, so its preflight is what says
-	// whether tsv was in it.
-	const scenarios = parsed.filter(
-		(scenario) =>
-			scenario.timings.some((timing) => timing.name === 'tsv') ||
-			(scenario.aborted !== undefined && scenario.preflight.some((p) => p.name === 'tsv'))
-	);
+	// was timed in NONE of them, either the harness stopped benching tsv or its row
+	// was renamed, and the site would render a comparison without its subject.
+	const scenarios = all_scenarios.filter(scenario_has_tsv);
 	if (!scenarios.some((scenario) => scenario.timings.some((timing) => timing.name === 'tsv'))) {
 		throw new Error(
-			`formatter benchmarks: no scenario includes a tsv row (found ${parsed
+			`formatter benchmarks: no scenario includes a tsv row (found ${all_scenarios
 				.map((s) => s.id)
 				.join(', ')})`
 		);
 	}
 
-	const versions: Record<string, string> = {};
-	const versions_block = VERSIONS_RE.exec(readme)?.[1] ?? '';
-	for (const m of versions_block.matchAll(VERSION_RE)) {
-		versions[m[1]!.toLowerCase()] = m[2]!.trim();
-	}
 	if (!versions.tsv) {
-		throw new Error("formatter benchmarks: no tsv version in the readme's `## Versions` list");
-	}
-
-	// The ratios move with the core count, so a report that can't say which machine
-	// produced it isn't publishable.
-	const machine = MACHINE_RE.exec(readme)?.[1]?.trim();
-	if (!machine) {
-		throw new Error('formatter benchmarks: no `_Measured on: …_` machine line');
+		throw new Error('formatter benchmarks: no tsv version in the report');
 	}
 
 	return { machine, versions, scenarios };

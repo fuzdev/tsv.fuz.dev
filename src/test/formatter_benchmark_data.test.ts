@@ -1,296 +1,183 @@
 import { assert, describe, test } from 'vitest';
 
-import { parse_formatter_benchmarks } from '$routes/docs/benchmarks/formatter_benchmark_data.ts';
+import { benchmarks_formatters_json } from '$routes/docs/benchmarks/benchmarks_formatters.ts';
+import {
+	parse_formatter_benchmarks,
+	type FormatterBenchmarks,
+	type FormatterPreflight,
+	type FormatterScenario,
+	type FormatterTiming
+} from '$routes/docs/benchmarks/formatter_benchmark_data.ts';
 
-// A trimmed stand-in for the bench harness's README — one scenario tsv runs in,
-// one it sits out, plus the versions and machine lines below the results block.
-const readme = `# Benchmark
+// A trimmed stand-in for the bench harness's `results.json` — one scenario tsv
+// runs in, one it sits out — built from factories so each test states only what
+// it changes.
+const timing = (name: string, mean_ms: number): FormatterTiming => ({
+	name,
+	mean_ms,
+	stddev_ms: 0.5,
+	user_ms: mean_ms * 2,
+	system_ms: mean_ms,
+	min_ms: mean_ms - 1,
+	max_ms: mean_ms + 1
+});
 
-<!-- BENCHMARK_RESULTS_START -->
+const preflight = (
+	name: string,
+	overrides: Partial<FormatterPreflight> = {}
+): FormatterPreflight => ({
+	name,
+	rejected: 0,
+	unavailable: false,
+	crashed: false,
+	...overrides
+});
 
-\`\`\`
-=========================================
-Benchmarking Large Single File
-=========================================
+const scenario = (overrides: Partial<FormatterScenario> = {}): FormatterScenario => ({
+	id: 'large-single-file',
+	name: 'Large Single File',
+	target: 'TypeScript compiler parser.ts (~540KB)',
+	warmup_runs: 3,
+	benchmark_runs: 20,
+	preflight: [preflight('oxfmt'), preflight('tsv')],
+	timings: [timing('oxfmt', 60), timing('tsv', 20)],
+	fastest: 'tsv',
+	speedups: [{ name: 'oxfmt', ratio: 3, ratio_stddev: 0.1 }],
+	memory: [
+		{ name: 'oxfmt', mean_mb: 100, min_mb: 99, max_mb: 101, ratio: 10, ratio_stddev: 0.5 },
+		{ name: 'tsv', mean_mb: 10, min_mb: 9, max_mb: 11 }
+	],
+	...overrides
+});
 
-Target: TypeScript compiler parser.ts (~540KB)
-- 2 warmup runs, 5 benchmark runs
-- Copy original before each run
+// an upstream scenario: JSX in the corpus, so no tsv row and no preflight
+const jsx_scenario = (overrides: Partial<FormatterScenario> = {}): FormatterScenario =>
+	scenario({
+		id: 'js-ts-no-embedded',
+		name: 'JS/TS (no embedded)',
+		target: 'Outline repository (js/ts/tsx only)',
+		preflight: [],
+		timings: [timing('biome', 300), timing('oxfmt', 120)],
+		fastest: 'oxfmt',
+		speedups: [{ name: 'biome', ratio: 2.5, ratio_stddev: 0.1 }],
+		memory: [],
+		...overrides
+	});
 
-
-Preflight (per-formatter parse check):
-  biome: clean
-  oxfmt: 3 rejected
-  tsv: unavailable (command failed to launch)
-Benchmark 1: biome
-  Time (mean ± σ):      1.597 s ±  0.015 s    [User: 1.583 s, System: 0.846 s]
-  Range (min … max):    1.581 s …  1.614 s    5 runs
-
-Benchmark 2: tsv
-  Time (mean ± σ):     28.8 ms ±   0.7 ms    [User: 15.2 ms, System: 13.5 ms]
-  Range (min … max):    27.8 ms …  29.5 ms    5 runs
-
-Summary
-  tsv ran
-   55.41 ± 1.36 times faster than biome
-
-Memory Usage:
-  biome: 303.2 MB (min: 291.5 MB, max: 319.4 MB, 13.12 ± 0.62 times more than tsv)
-  tsv: 23.1 MB (min: 22.5 MB, max: 23.9 MB)
-
-Large single file benchmark complete!
-
-
-=========================================
-Benchmarking Mixed (embedded)
-=========================================
-
-Target: Storybook repository (mixed with embedded languages)
-- 1 warmup runs, 3 benchmark runs
-- Git reset before each run
-
-Benchmark 1: oxfmt
-  Time (mean ± σ):      7.832 s ±  0.209 s    [User: 82.370 s, System: 5.801 s]
-  Range (min … max):    7.622 s …  8.040 s    3 runs
-
-Mixed (embedded) benchmark complete!
-
-
-=========================================
-Benchmarking Svelte (tsv vs rsvelte-fmt)
-=========================================
-
-Target: third-party .svelte corpus (kit, svelte.dev, layerchart)
-- 2 warmup runs, 5 benchmark runs
-- Git reset before each run
-- .svelte only: the two Svelte-native formatters head-to-head
-- tsv-npm: no pnpm bin shim to copy — run as \`node <script>\`, skipping the ~3 ms shim the .bin rows pay
-
-
-Preflight (per-formatter parse check):
-  tsv: clean (2226 files, 2041 would change)
-  rsvelte-fmt: clean (2226 files, 2023 would change)
-  → all formatters accept the whole corpus; nothing excluded
-Benchmark 1: tsv
-  Time (mean ± σ):      52.3 ms ±   1.1 ms    [User: 255.0 ms, System: 194.2 ms]
-  Range (min … max):    50.9 ms …  53.6 ms    5 runs
-
-Benchmark 2: rsvelte-fmt
-  Time (mean ± σ):     272.9 ms ±   3.9 ms    [User: 1016.7 ms, System: 408.5 ms]
-  Range (min … max):   268.1 ms … 277.6 ms    5 runs
-
-Summary
-  tsv ran
-    5.22 ± 0.13 times faster than rsvelte-fmt
-
-  → aborting: rsvelte-fmt crashed (killed by a signal) in 2 of 5 memory runs — a crash must fail the scenario, not thin its row
-
-
-=========================================
-Benchmarking CSS (tsv vs oxfmt)
-=========================================
-
-Target: third-party .css corpus
-Corpus: 1a2b3c4 2026-09-01
-- 2 warmup runs, 5 benchmark runs
-- Git reset before each run
-
-
-Preflight (per-formatter parse check):
-  tsv: clean (312 files, 300 would change)
-  oxfmt: CRASHED during check (exit 134)
-  → oxfmt crashed partway through its check — its coverage is unknown and its timed runs may crash too
-  → aborting: this scenario would not measure every formatter on the same work
-
-
-=========================================
-All benchmarks complete!
-=========================================
-\`\`\`
-
-<!-- BENCHMARK_RESULTS_END -->
-
-## Versions
-
-- **Prettier**: 3.9.1
-- **Biome**: 2.5.1
-- **rsvelte-fmt**: 0.7.4
-- **tsv**: 0.2.0
-
-_Measured on: Some CPU · 12 threads · linux x64 — the ratios below depend on the core count._
-`;
+const report = (overrides: Partial<FormatterBenchmarks> = {}): FormatterBenchmarks => ({
+	machine: 'Some CPU · 12 threads · linux x64',
+	versions: { prettier: '3.9.6', oxfmt: '0.68.0', tsv: '0.4.0 (@fuzdev/tsv-linux-x64-gnu)' },
+	scenarios: [scenario(), jsx_scenario()],
+	...overrides
+});
 
 describe('parse_formatter_benchmarks', () => {
 	test('keeps only the scenarios tsv runs in', () => {
-		const parsed = parse_formatter_benchmarks(readme);
+		const parsed = parse_formatter_benchmarks(report());
 		assert.deepEqual(
 			parsed.scenarios.map((s) => s.id),
-			['large-single-file', 'svelte-tsv-vs-rsvelte-fmt', 'css-tsv-vs-oxfmt']
+			['large-single-file']
 		);
+		assert.deepEqual(parsed.scenarios[0], scenario());
+	});
+
+	test('carries the machine and versions through', () => {
+		const parsed = parse_formatter_benchmarks(report());
+		assert.strictEqual(parsed.machine, 'Some CPU · 12 threads · linux x64');
+		assert.deepEqual(parsed.versions, report().versions);
 	});
 
 	test('carries the rows the harness could not give a bin shim', () => {
-		const parsed = parse_formatter_benchmarks(readme);
-		const svelte = parsed.scenarios.find((s) => s.id === 'svelte-tsv-vs-rsvelte-fmt');
-		assert(svelte);
-		assert.deepEqual(svelte.unshimmed, ['tsv-npm']);
-		// absent, not empty, when every row was shimmed — the generated JSON stays unchanged
-		const single = parsed.scenarios.find((s) => s.id === 'large-single-file');
-		assert(single);
-		assert.notProperty(single, 'unshimmed');
+		const parsed = parse_formatter_benchmarks(
+			report({ scenarios: [scenario({ unshimmed: ['tsv-npm'] })] })
+		);
+		assert.deepEqual(parsed.scenarios[0]!.unshimmed, ['tsv-npm']);
+		assert.notProperty(parse_formatter_benchmarks(report()).scenarios[0], 'unshimmed');
 	});
 
-	test('keeps a scenario the harness aborted, with its reason and no numbers', () => {
-		const scenario = parse_formatter_benchmarks(readme).scenarios[2]!;
-		assert.equal(scenario.name, 'CSS (tsv vs oxfmt)');
-		assert.equal(scenario.target, 'third-party .css corpus');
-		assert.equal(scenario.warmup_runs, 2);
-		assert.equal(scenario.benchmark_runs, 5);
-		assert.equal(
-			scenario.aborted,
-			'this scenario would not measure every formatter on the same work'
-		);
-		// the preflight rows are what say which formatter caused the abort
-		assert.deepEqual(scenario.preflight, [
-			{ name: 'tsv', rejected: 0, unavailable: false, crashed: false },
-			{ name: 'oxfmt', rejected: 0, unavailable: false, crashed: true }
-		]);
-		assert.deepEqual(scenario.timings, []);
-		assert.equal(scenario.baseline, '');
-		assert.deepEqual(scenario.speedups, []);
-		assert.deepEqual(scenario.memory, []);
+	test('keeps a scenario the harness aborted before timing, with its reason and no numbers', () => {
+		const aborted = scenario({
+			id: 'svelte',
+			name: 'Svelte',
+			// the harness records the counts up front, so an abort keeps them
+			warmup_runs: 3,
+			benchmark_runs: 10,
+			preflight: [preflight('rsvelte-fmt', { crashed: true }), preflight('tsv')],
+			aborted: 'crashed: rsvelte-fmt',
+			timings: [],
+			fastest: '',
+			speedups: [],
+			memory: []
+		});
+		const parsed = parse_formatter_benchmarks(report({ scenarios: [scenario(), aborted] }));
+		assert.deepEqual(parsed.scenarios[1], aborted);
+	});
+
+	test('keeps a scenario aborted in its memory pass, with its timings', () => {
+		const aborted = scenario({ aborted: 'oxfmt crashed in 1 of 20 memory runs', memory: [] });
+		const parsed = parse_formatter_benchmarks(report({ scenarios: [aborted] }));
+		assert.lengthOf(parsed.scenarios[0]!.timings, 2);
+		assert.isEmpty(parsed.scenarios[0]!.memory);
 	});
 
 	test('drops an aborted scenario tsv was not in', () => {
-		// with no timing rows, the preflight is the only sign tsv was part of it
-		const without_tsv = readme.replace(
-			/^ {2}tsv: clean \(312 files, 300 would change\)$/m,
-			'  biome: clean (312 files, 300 would change)'
-		);
-		assert.deepEqual(
-			parse_formatter_benchmarks(without_tsv).scenarios.map((s) => s.id),
-			['large-single-file', 'svelte-tsv-vs-rsvelte-fmt']
-		);
-	});
-
-	test('parses the machine and versions from below the results block', () => {
-		const parsed = parse_formatter_benchmarks(readme);
-		assert.equal(parsed.machine, 'Some CPU · 12 threads · linux x64');
-		assert.deepEqual(parsed.versions, {
-			prettier: '3.9.1',
-			biome: '2.5.1',
-			'rsvelte-fmt': '0.7.4',
-			tsv: '0.2.0'
+		const aborted = jsx_scenario({
+			aborted: 'a timed run failed — Hyperfine failed with code 1',
+			timings: [],
+			fastest: '',
+			speedups: []
 		});
-	});
-
-	test('normalizes timings to milliseconds across units', () => {
-		const parsed = parse_formatter_benchmarks(readme);
-		const [biome, tsv] = parsed.scenarios[0]!.timings;
-		assert.deepEqual(biome, {
-			name: 'biome',
-			mean_ms: 1597,
-			stddev_ms: 15,
-			user_ms: 1583,
-			system_ms: 846,
-			min_ms: 1581,
-			max_ms: 1614
-		});
-		assert.equal(tsv!.mean_ms, 28.8);
-	});
-
-	test('parses the scenario header, preflight, speedups, and memory', () => {
-		const scenario = parse_formatter_benchmarks(readme).scenarios[0]!;
-		assert.equal(scenario.name, 'Large Single File');
-		assert.equal(scenario.target, 'TypeScript compiler parser.ts (~540KB)');
-		assert.equal(scenario.warmup_runs, 2);
-		assert.equal(scenario.benchmark_runs, 5);
-		assert.deepEqual(scenario.preflight, [
-			{ name: 'biome', rejected: 0, unavailable: false, crashed: false },
-			{ name: 'oxfmt', rejected: 3, unavailable: false, crashed: false },
-			{ name: 'tsv', rejected: 0, unavailable: true, crashed: false }
-		]);
-		assert.equal(scenario.baseline, 'tsv');
-		assert.deepEqual(scenario.speedups, [{ name: 'biome', ratio: 55.41, ratio_stddev: 1.36 }]);
-		// the lowest-memory formatter is the ratio baseline, so it carries no ratio
-		assert.deepEqual(scenario.memory, [
-			{
-				name: 'biome',
-				mean_mb: 303.2,
-				min_mb: 291.5,
-				max_mb: 319.4,
-				ratio: 13.12,
-				ratio_stddev: 0.62
-			},
-			{ name: 'tsv', mean_mb: 23.1, min_mb: 22.5, max_mb: 23.9 }
-		]);
-	});
-
-	test('parses a two-formatter scenario aborted in its memory pass, keeping its timings', () => {
-		const scenario = parse_formatter_benchmarks(readme).scenarios[1]!;
-		assert.equal(scenario.name, 'Svelte (tsv vs rsvelte-fmt)');
-		assert.deepEqual(scenario.preflight, [
-			{ name: 'tsv', rejected: 0, unavailable: false, crashed: false },
-			{ name: 'rsvelte-fmt', rejected: 0, unavailable: false, crashed: false }
-		]);
+		const parsed = parse_formatter_benchmarks(report({ scenarios: [scenario(), aborted] }));
 		assert.deepEqual(
-			scenario.timings.map((t) => t.name),
-			['tsv', 'rsvelte-fmt']
+			parsed.scenarios.map((s) => s.id),
+			['large-single-file']
 		);
-		assert.equal(scenario.baseline, 'tsv');
-		assert.deepEqual(scenario.speedups, [{ name: 'rsvelte-fmt', ratio: 5.22, ratio_stddev: 0.13 }]);
-		// the harness stopped before its memory table, and said so
-		assert.equal(
-			scenario.aborted,
-			'rsvelte-fmt crashed (killed by a signal) in 2 of 5 memory runs — a crash must fail the scenario, not thin its row'
-		);
-		assert.deepEqual(scenario.memory, []);
 	});
 
-	// A README that's present but drifted must fail the gen task rather than quietly
-	// publishing stale or scenario-stripped numbers — only a MISSING readme is benign,
-	// and that's the caller's call, not the parser's.
-	test('throws when the results markers are missing', () => {
+	test('throws on a key the schema does not know, naming where', () => {
+		const drifted = { ...report(), scenarios: [{ ...scenario(), median_ms: 1 }] };
+		assert.throws(() => parse_formatter_benchmarks(drifted), /median_ms/);
+		assert.throws(() => parse_formatter_benchmarks({ ...report(), machine: undefined }), /machine/);
+	});
+
+	test('throws on a measurement that cannot be one', () => {
+		const zero = report({ scenarios: [scenario({ timings: [timing('tsv', 0)] })] });
+		assert.throws(() => parse_formatter_benchmarks(zero), /mean_ms/);
+	});
+
+	test('throws when a scenario carries neither timings nor an abort', () => {
+		const empty = scenario({ timings: [], fastest: '', speedups: [], memory: [] });
 		assert.throws(
-			() => parse_formatter_benchmarks('# Benchmark\n\nno results here\n'),
-			/no <!-- BENCHMARK_RESULTS_START/
+			() => parse_formatter_benchmarks(report({ scenarios: [scenario(), empty] })),
+			/has no timings/
 		);
 	});
 
-	test('throws when no scenario includes tsv', () => {
-		const without_tsv = readme.replace(/^Benchmark (\d+): tsv$/gm, 'Benchmark $1: oxfmt');
-		assert.throws(() => parse_formatter_benchmarks(without_tsv), /no scenario includes a tsv row/);
-	});
-
-	test('throws when a scenario banner carries no parseable timings', () => {
-		const drifted = readme.replace(/^Benchmark \d+: /gm, 'Bench $&');
-		assert.throws(() => parse_formatter_benchmarks(drifted), /no parseable timings/);
-	});
-
-	test('throws when an aborted scenario has no readable preflight to blame', () => {
-		// an abort line with no preflight rows under the heading is a drifted row
-		// format, not a scenario the page can explain
-		const drifted = readme
-			.replace(/^ {2}tsv: clean \(312 files.*$/m, '  tsv — clean')
-			.replace(/^ {2}oxfmt: CRASHED.*$/m, '  oxfmt — crashed');
-		assert.throws(() => parse_formatter_benchmarks(drifted), /unparseable preflight section/);
-	});
-
-	test('throws when a present memory section yields no rows', () => {
-		const drifted = readme
-			.replace(/^ {2}biome: 303\.2 MB.*$/m, '  biome: 303.2 megabytes')
-			.replace(/^ {2}tsv: 23\.1 MB.*$/m, '  tsv: 23.1 megabytes');
-		assert.throws(() => parse_formatter_benchmarks(drifted), /unparseable memory section/);
-	});
-
-	test('throws when the machine line or tsv version is missing', () => {
+	test('throws when no scenario timed tsv', () => {
 		assert.throws(
-			() => parse_formatter_benchmarks(readme.replace(/^_Measured on: .*$/m, '')),
-			/machine line/
+			() => parse_formatter_benchmarks(report({ scenarios: [jsx_scenario()] })),
+			/no scenario includes a tsv row \(found js-ts-no-embedded\)/
 		);
+	});
+
+	test('throws when the tsv version is missing', () => {
 		assert.throws(
-			() => parse_formatter_benchmarks(readme.replace(/^- \*\*tsv\*\*: .*$/m, '')),
+			() => parse_formatter_benchmarks(report({ versions: { prettier: '3.9.6' } })),
 			/no tsv version/
+		);
+	});
+});
+
+describe('the committed report', () => {
+	test('validates, and round-trips unchanged', () => {
+		// the generator writes `parse_formatter_benchmarks`'s output, so the committed
+		// JSON must be a fixed point of it — a schema change that the committed report
+		// no longer satisfies, or would re-serialize differently, shows up here
+		// rather than as a surprise diff on the next `gro gen`
+		const parsed = parse_formatter_benchmarks(benchmarks_formatters_json);
+		assert.strictEqual(
+			JSON.stringify(parsed, null, '\t'),
+			JSON.stringify(benchmarks_formatters_json, null, '\t')
 		);
 	});
 });

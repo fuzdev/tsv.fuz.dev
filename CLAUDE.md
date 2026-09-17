@@ -34,7 +34,7 @@ IMPORTANT for AI agents: Do NOT run `gro dev` - the developer will manage the de
 
 Note: `@fuzdev/tsv-wasm` is loaded only on `/docs/playground` via a browser-only dynamic `import()`, so the ~1MB-gzipped WASM (~2.8MB decoded) never weighs down `/docs` or the prerendered pages.
 
-Note: several devDependencies — `@webref/css` (CSS spec data), `zimmerframe` (AST traversal), `@sveltejs/acorn-typescript`, `zod`, and `@fuzdev/blake3-wasm` — are *optional peer dependencies* of `@fuzdev/fuz_css`'s `vite_plugin_fuz_css`, declared here so its build-time CSS generation resolves them (e.g. `css_literal.ts` imports `@webref/css`, `css_class_extractor.ts` walks ASTs with `zimmerframe`). They aren't imported by this app's own source, so don't mistake them for dead deps. Likewise `esm-env`, `@types/estree`, and `@types/node` are optional peers of `@fuzdev/fuz_util`, `@fuzdev/mdz`, and `@fuzdev/fuz_ui`, and `tslib` backs `tsconfig.json`'s `importHelpers` — none is imported here directly either.
+Note: several devDependencies — `@webref/css` (CSS spec data), `zimmerframe` (AST traversal), `@sveltejs/acorn-typescript`, `zod`, and `@fuzdev/blake3-wasm` — are *optional peer dependencies* of `@fuzdev/fuz_css`'s `vite_plugin_fuz_css`, declared here so its build-time CSS generation resolves them (e.g. `css_literal.ts` imports `@webref/css`, `css_class_extractor.ts` walks ASTs with `zimmerframe`). Of those only `zod` is imported by this app's own source — `formatter_benchmark_data.ts`'s schemas, read at gen and test time and as erased types by the page, so it never reaches the client bundle — so don't mistake the rest for dead deps. Likewise `esm-env`, `@types/estree`, and `@types/node` are optional peers of `@fuzdev/fuz_util`, `@fuzdev/mdz`, and `@fuzdev/fuz_ui`, and `tslib` backs `tsconfig.json`'s `importHelpers` — none is imported here directly either.
 
 Note: `vite` is deliberately held at 7.x (with `@sveltejs/vite-plugin-svelte` 6.x) — vite 8 + plugin-svelte 7 was buggy with this app or SvelteKit's integration. Don't upgrade to vite 8 without deliberately re-verifying the site works.
 
@@ -82,7 +82,7 @@ src/
     ├── benchmark_display.test.ts    # unit tests for the value formatters and row labels
     ├── benchmark_baseline.test.ts   # unit tests for the hover-to-rebaseline ratio math
     ├── benchmarks_cli.test.ts       # the CLI-harness data as the page consumes it
-    └── formatter_benchmark_data.test.ts # the harness README parser
+    └── formatter_benchmark_data.test.ts # the harness report's validation
 ```
 
 ## Benchmarks
@@ -112,20 +112,20 @@ The JSON formats match the types in `benchmark_data.ts`.
 
 The end-to-end CLI comparison against Prettier, Biome, and Oxfmt comes from a
 separate harness, a fork of Oxc's `bench-formatter` that adds tsv
-(../oxc-bench-formatter). It publishes no JSON — its numbers live only as the
-hyperfine console dump in its README, between the
-`<!-- BENCHMARK_RESULTS_START -->` / `END` markers, plus a `## Versions` list
-and a `_Measured on: …_` machine line. To update:
+(../oxc-bench-formatter). Beside the console dump in its README it writes
+`results.json`: hyperfine's own export at full precision, the memory pass, the
+preflight rows, and the versions and machine the README lists. To update:
 
 ```bash
-# 1. In ~/dev/oxc-bench-formatter — re-run and rewrite its README (times the npm-installed @fuzdev/tsv its lockfile pins)
+# 1. In ~/dev/oxc-bench-formatter — re-run, rewriting its README and results.json (times the npm-installed @fuzdev/tsv its lockfile pins)
 pnpm run update-readme
 
-# 2. In ~/dev/tsv.fuz.dev — reparse the README into JSON
+# 2. In ~/dev/tsv.fuz.dev — validate results.json into the committed report
 gro gen
 ```
 
-`benchmarks_formatters.gen.json.ts` parses that README and writes
+`benchmarks_formatters.gen.json.ts` validates that report against
+`formatter_benchmark_data.ts`'s Zod schemas and writes
 `benchmarks_formatters.json`, keeping only the scenarios tsv participates in
 (it has no JSX/TSX parser, so the harness runs it on the JSX-free corpora
 only). That includes the harness's Svelte scenario, which benches tsv against
@@ -135,27 +135,30 @@ binary vs `@fuzdev/tsv`'s Node dispatcher vs `@fuzdev/tsv-wasm`, flagged
 (`tsv-npm`) also runs beside native tsv in every scenario that faces another
 tool, since Prettier, Biome, Oxfmt, and rsvelte-fmt are all timed through Node
 bins the bare binary skips: it is a second tsv row there, never a competitor
-(`cli_comparison_results` keeps it out of the "every other tool" ranges), and
-the tables' `vs tsv` columns stay anchored on native tsv. The page's headline
+(`cli_comparison_results` keeps it out of the "every other tool" ranges). Each
+table's ratio columns start out against it (`cli_default_anchor_label`; native
+tsv in the tsv-only delivery table) and re-baseline on whichever row is hovered,
+as the format, parse, and size groups do. The page's headline
 CLI claims lead with the like-for-like dispatcher ratios
 (`cli_speedup_vs_tsv_npm`, `cli_memory_ratio_range`'s `baseline_label`) and give
 the bare-binary ones second; the copy has no fallback for a report without the
 row, and the prose test requires those ratios to resolve. The harness runs tsv's
 Node-launched rows through a bin shim copied from pnpm's own, so they pay the
-launch cost every other row pays; when it can't, it prints a line the parser
-keeps as `unshimmed` and the table shows a note under it. A scenario renders on the
+launch cost every other row pays; when it can't, it records the row as
+`unshimmed` and the table shows a note under it. A scenario renders on the
 page only once it has an entry in `SCENARIO_COPY` (`benchmarks_cli.ts`), and
 prose claims about the Svelte head-to-head are conditional on its data being
-present, so the site stays correct whether or not the harness README has been
-regenerated with it.
+present, so the site stays correct when the harness publishes that scenario
+aborted.
 
 A **missing** sibling checkout is the one tolerated case — generation is
 skipped, the committed JSON stands, and `gro gen --check` passes on any machine
 or CI that has only this repo (CI never checks out the harness, so it always
-takes this path; no `--no-gen` needed). A README that **is** present but has
-drifted fails the task loudly, naming the scenario and the section that stopped
-parsing, rather than publishing stale or scenario-stripped numbers. A drift that
-still parses but renames a scenario is caught on the site side instead: every
+takes this path; no `--no-gen` needed). A report that **is** present but doesn't
+validate — a renamed or unknown key, a scenario with neither timings nor an
+abort, no tsv row anywhere — fails the task loudly, naming the path that failed,
+rather than publishing stale or scenario-stripped numbers. A drift that still
+validates but renames a scenario is caught on the site side instead: every
 key in `benchmarks_cli.ts`'s `SCENARIO_COPY` must resolve to generated data, and
 a test asserts it.
 
@@ -164,13 +167,13 @@ Key files in `src/routes/docs/benchmarks/`:
 - `benchmarks.json` — per-runtime Node report (copied from tsv)
 - `benchmarks_cross_runtime.json` — composed cross-runtime report (copied from tsv)
 - `benchmarks_conformance.json` — conformance parse-coverage report (copied from tsv)
-- `benchmarks_formatters.json` — formatter CLI comparison, generated from the sibling harness's README
+- `benchmarks_formatters.json` — formatter CLI comparison, generated from the sibling harness's `results.json`
 - `benchmark_data.ts` — TypeScript types matching the per-runtime JSON format, plus the format/parse, conformance, stability, and corpus derivations
 - `benchmark_sizes.ts` — the binary-size domain: category and capability grouping, and the synthesized combined builds
 - `benchmark_cross_runtime.ts` — the combined cross-runtime report: its types, derivations, and display helpers
 - `benchmark_display.ts` — value formatters (times, sizes, ratios), row labels, and per-category colors shared across the page
 - `benchmark_baseline.ts` — the hover-to-rebaseline ratios: `BaselineRow`, and the per-direction ratio, format, and color scales
-- `formatter_benchmark_data.ts` — types plus `parse_formatter_benchmarks`, the README parser
+- `formatter_benchmark_data.ts` — the report's Zod schemas and types, plus `parse_formatter_benchmarks`, which validates the harness's `results.json` and keeps tsv's scenarios
 - `benchmarks_cli.ts` — shapes `benchmarks_formatters.json` for `BenchmarksCli.svelte` and owns the per-scenario prose; the numbers are all generated
 - `benchmarks.ts`, `benchmarks_cross_runtime.ts`, `benchmarks_conformance.ts`, `benchmarks_formatters.ts` — re-export the JSON with types
 - `BenchmarksBar.svelte`, `BenchmarksGroup.svelte`, etc. — visualization components

@@ -22,7 +22,7 @@
 // every formatter reporting a file count reports the same one.
 //
 // The numbers come from `benchmarks_formatters.json`, generated from that
-// harness's README by `benchmarks_formatters.gen.json.ts`; only the prose below
+// harness's `results.json` by `benchmarks_formatters.gen.json.ts`; only the prose below
 // is authored here. To refresh: run `pnpm run update-readme` in the harness, then
 // `gro gen` here.
 
@@ -60,7 +60,8 @@ export interface CliScenario {
 	/**
 	 * hyperfine's untimed warmup runs and the timed runs each mean is taken over.
 	 * The harness sets them per scenario (more for the short one-file runs), so
-	 * they're shown per table; both are 0 for a scenario aborted before timing.
+	 * they're shown per table. A scenario aborted before timing still carries the
+	 * counts it would have run, so they say nothing about whether it was timed.
 	 */
 	warmup_runs: number;
 	benchmark_runs: number;
@@ -162,7 +163,7 @@ const SCENARIO_COPY: Record<
 	[CLI_SVELTE_KEY]: {
 		heading: 'Svelte corpus',
 		description:
-			'The two Rust Svelte-native formatters head-to-head on a third-party .svelte corpus, rsvelte-fmt configured to tsv’s fixed style (width 100, tabs, single quotes) so both do comparable line-break work. rsvelte-fmt 0.7.x crashes nondeterministically on this corpus; a run is published as it ended, complete or aborted, never retried into a clean-looking result.',
+			'The two Rust Svelte-native formatters head-to-head on a third-party .svelte corpus, rsvelte-fmt configured to tsv’s fixed style (width 100, tabs, single quotes) so both do comparable line-break work. rsvelte-fmt 0.7.x’s check mode crashes nondeterministically on this corpus — the harness’s preflight pass, never the timed write runs; a run is published as it ended, complete or aborted, never retried into a clean-looking result.',
 		tsv_only: false
 	},
 	[CLI_DELIVERY_KEY]: {
@@ -352,6 +353,23 @@ export const cli_ratio_vs_tsv = (
 	label: string,
 	metric: CliMetric
 ): number | undefined => cli_ratio_between(results, label, CLI_TSV_LABEL, metric);
+
+/**
+ * The row a scenario's table takes its ratios against until a reader hovers
+ * another one. Facing other tools that is the dispatcher row, the like-for-like
+ * footing the page's headline claims lead with; a tsv-only scenario anchors on
+ * the native binary, which its other rows are distributions of.
+ *
+ * @returns the anchor row's label, or `undefined` when the scenario has no tsv
+ * row to anchor on — an abort before timing
+ */
+export const cli_default_anchor_label = (
+	scenario: Pick<CliScenario, 'results' | 'tsv_only'>
+): string | undefined => {
+	const has = (label: string) => scenario.results.some((r) => r.label === label);
+	if (!scenario.tsv_only && has(CLI_TSV_NPM_LABEL)) return CLI_TSV_NPM_LABEL;
+	return has(CLI_TSV_LABEL) ? CLI_TSV_LABEL : undefined;
+};
 
 /**
  * The rows of a scenario a claim about tsv is measured against. Facing other

@@ -136,6 +136,8 @@
 	const cli_npm_single_vs_biome = cli_npm_ratio(CLI_SINGLE_FILE_KEY, 'biome');
 	const cli_npm_ts_vs_oxfmt = cli_npm_ratio(CLI_TS_REPO_KEY, 'oxfmt');
 	const cli_npm_ts_vs_biome = cli_npm_ratio(CLI_TS_REPO_KEY, 'biome');
+	const cli_npm_ts_cpu_vs_oxfmt = cli_npm_ratio(CLI_TS_REPO_KEY, 'oxfmt', 'cpu_ms');
+	const cli_npm_ts_cpu_vs_biome = cli_npm_ratio(CLI_TS_REPO_KEY, 'biome', 'cpu_ms');
 	const cli_npm_ts_memory = cli_memory_ratio_range(
 		CLI_TS_REPO_KEY,
 		['oxfmt', 'biome'],
@@ -384,12 +386,13 @@
 			npm installs for it, which starts Node first (Biome's and rsvelte-fmt's then launch a native
 			binary). tsv gets two rows. <code>{CLI_TSV_NPM_LABEL}</code> is timed the same way — the Node
 			bin of <a href="https://www.npmjs.com/package/@fuzdev/tsv"><code>@fuzdev/tsv</code></a>, what
-			<code>npx tsv</code> execs, which then launches the native binary as Biome's and rsvelte-fmt's
+			<code>npx tsv</code> runs, which then launches the native binary as Biome's and rsvelte-fmt's
 			do — so it is the like-for-like row to read against the other tools. <code>tsv</code> runs
 			that same binary directly out of the package's platform package, skipping the Node startup:
-			what the binary costs on its own. Every <code>vs tsv</code> column is taken against the bare
-			binary. The last table compares tsv with itself: what the npm package's Node dispatcher and
-			the WASM fallback each add over it.
+			what the binary costs on its own. Each table's ratios start out against the dispatcher row,
+			and hovering any row re-baselines the table on it — the bare <code>tsv</code> row included.
+			The last table compares tsv with itself, against the bare binary: what the npm package's Node
+			dispatcher and the WASM fallback each add over it.
 		</p>
 		<BenchmarksCli report={benchmarks_cli} />
 		<aside class="mt_xl5">
@@ -399,19 +402,19 @@
 					This measures the whole command, not the engine in isolation. tsv, oxfmt, and biome
 					parallelize across files while prettier's stable CLI formats them one at a time, so the
 					wall-clock ratios bake in each tool's parallelism and scale with core count — they're only
-					meaningful alongside the machine they ran on. The <code>vs tsv (CPU work)</code> column is
-					the parallelism-neutral view — total CPU time across threads,
+					meaningful alongside the machine they ran on. The CPU-work column is the
+					parallelism-neutral view — total CPU time across threads,
 					<a href="https://github.com/sharkdp/hyperfine">hyperfine</a>'s user plus system time — and
-					across many files it narrows tsv's lead: on the TypeScript repo the bare tsv binary is
-					~{cli_ts_wall_vs_oxfmt} faster than Oxfmt in wall-clock but ~{cli_ts_cpu_vs_oxfmt} in CPU
-					work, and ~{cli_ts_wall_vs_biome} faster than Biome in wall-clock but
-					~{cli_ts_cpu_vs_biome} in CPU work. Part of each wall-clock margin is tsv spreading its
-					work across more cores than the other tool does here, so the CPU column is the fairer
-					engine comparison — though a JS tool's CPU figure also counts V8's background threads (GC,
-					compilation), so even Prettier's CPU time runs above its wall-clock. On the large single
-					file there is nothing to spread and the column runs the other way: the other tools still
-					pay for thread pools and runtime startup that one file can't use, so tsv's CPU lead there
-					is wider than its wall-clock one.
+					read like for like, against the dispatcher row, it widens tsv's lead: on the TypeScript
+					repo tsv is ~{cli_npm_ts_vs_oxfmt} faster than Oxfmt in wall-clock and
+					~{cli_npm_ts_cpu_vs_oxfmt} in CPU work, and ~{cli_npm_ts_vs_biome} faster than Biome in
+					wall-clock and ~{cli_npm_ts_cpu_vs_biome} in CPU work. Against the bare binary it narrows
+					instead (~{cli_ts_wall_vs_oxfmt} to ~{cli_ts_cpu_vs_oxfmt}, and ~{cli_ts_wall_vs_biome} to
+					~{cli_ts_cpu_vs_biome}), which is Node's startup rather than the engines: it is a
+					single-threaded ~{cli_npm_overhead_ms} ms that every row but the bare binary carries — a
+					large share of a parallel run's wall-clock and a small share of its CPU total. A JS tool's
+					CPU figure also counts V8's background threads (GC, compilation), so even Prettier's CPU
+					time runs above its wall-clock.
 				</li>
 				<li>
 					Peak memory is far less sensitive to thread count than wall-clock, so it's the most
@@ -428,15 +431,16 @@
 					Like for like, through its npm dispatcher, tsv is ~{cli_npm_ts_vs_oxfmt} faster than Oxfmt
 					and ~{cli_npm_ts_vs_biome} faster than Biome on the TypeScript repo, and
 					~{cli_npm_single_vs_oxfmt} and ~{cli_npm_single_vs_biome} on the large single file, where
-					Node's fixed startup is the largest share of a short run. The bare-binary ratios in the
-					tables are what the binary does when invoked directly, without npm's bin in front.
+					Node's fixed startup is the largest share of a short run. Hover the bare <code>tsv</code>
+					row for what the binary does when invoked directly, without npm's bin in front.
 				</li>
 				<li>
 					The delivery table is tsv against tsv, on one file. Through <code>@fuzdev/tsv</code>'s
-					Node dispatcher, the bin that <code>npx tsv</code> execs (npx's own resolution isn't
+					Node dispatcher, the bin that <code>npx tsv</code> runs (npx's own resolution isn't
 					counted), the same binary takes ~{cli_delivery_npm_wall} as long — Node starting up to
-					exec it, a fixed cost of ~{cli_npm_overhead_ms} ms in every scenario here, so its share
-					shrinks against a real repo: on the TypeScript repo it's ~{cli_npm_ts_cost}.
+					spawn it and staying resident until it exits, a fixed cost of ~{cli_npm_overhead_ms} ms in
+					every scenario here, so its share shrinks against a real repo: on the TypeScript repo it's
+					~{cli_npm_ts_cost}.
 					<a href="https://www.npmjs.com/package/@fuzdev/tsv-wasm"><code>@fuzdev/tsv-wasm</code></a>
 					runs the same CLI over a WASM engine inside Node at ~{cli_wasm_wall} the time and
 					~{cli_wasm_memory} the memory of the native binary: still ahead of the JS formatters
