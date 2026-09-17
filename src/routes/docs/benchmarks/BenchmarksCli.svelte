@@ -98,6 +98,12 @@
 					</tbody>
 				</table>
 			</div>
+			{#if scenario.benchmark_runs > 0}
+				<p class="versions">
+					Each time is the mean of {scenario.benchmark_runs} runs, after {scenario.warmup_runs}
+					untimed warmup runs.
+				</p>
+			{/if}
 		{/if}
 		{#if scenario.unshimmed}
 			<p class="aborted">{scenario.unshimmed}</p>

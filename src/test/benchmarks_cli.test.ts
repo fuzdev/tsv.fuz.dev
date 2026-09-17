@@ -220,9 +220,9 @@ describe('cli ratios over a scenario with two tsv rows', () => {
 	test('a missing row or measurement has no ratio', () => {
 		assert.isUndefined(cli_ratio_between(results, 'prettier', CLI_TSV_NPM_LABEL, 'wall_ms'));
 		assert.isUndefined(cli_ratio_between(results, 'biome', CLI_TSV_NPM_LABEL, 'memory_mb'));
-		// a report from before the dispatcher row joined the comparison scenarios
-		const before = results.filter((r) => r.label !== CLI_TSV_NPM_LABEL);
-		assert.isUndefined(cli_ratio_between(before, 'oxfmt', CLI_TSV_NPM_LABEL, 'wall_ms'));
+		// the baseline row itself missing
+		const without_npm = results.filter((r) => r.label !== CLI_TSV_NPM_LABEL);
+		assert.isUndefined(cli_ratio_between(without_npm, 'oxfmt', CLI_TSV_NPM_LABEL, 'wall_ms'));
 	});
 });
 

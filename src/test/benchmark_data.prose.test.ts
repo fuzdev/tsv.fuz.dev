@@ -12,7 +12,9 @@ import {
 	cli_speedup_vs_tsv,
 	cli_speedup_vs_tsv_npm,
 	cli_tsv_npm_memory_mb,
+	cli_tsv_npm_overhead_ms_range,
 	CLI_DELIVERY_KEY,
+	CLI_SCENARIO_KEYS,
 	CLI_SINGLE_FILE_KEY,
 	CLI_SVELTE_KEY,
 	CLI_TS_REPO_KEY,
@@ -132,48 +134,41 @@ describe('prose ratios resolve', () => {
 	test('the like-for-like dispatcher claims read the way the numbers run', () => {
 		// The TLDR and the CLI note lead with tsv through its npm dispatcher against the
 		// other tools' npm bins: "~Nx faster than Oxfmt and ~Mx faster than Biome ...
-		// using A–Bx less memory than either". They render only once the report carries
-		// the dispatcher row in both comparison scenarios, so an older report resolves
-		// none of them and gates nothing; a partial set would print a sentence with a
-		// hole in it, so it is all or none.
-		// TODO: require them once the committed report carries the dispatcher row.
-		const ratios = [CLI_SINGLE_FILE_KEY, CLI_TS_REPO_KEY].flatMap((key) =>
-			['oxfmt', 'biome'].map(
-				(label) => [`${key}: ${label}`, cli_speedup_vs_tsv_npm(key, label, 'wall_ms')] as const
-			)
-		);
-		const memory = cli_memory_ratio_range(CLI_TS_REPO_KEY, ['oxfmt', 'biome'], CLI_TSV_NPM_LABEL);
-		const resolved = ratios.filter(([, ratio]) => ratio !== undefined);
-		assert.include(
-			[0, ratios.length],
-			resolved.length,
-			'the dispatcher row is in some scenarios only'
-		);
-		assert.strictEqual(memory !== undefined, resolved.length > 0, 'wall ratios without memory');
-		for (const [name, ratio] of resolved) {
-			assert.isAbove(ratio!, 1, name);
+		// using A–Bx less memory than either". The copy has no bare-binary fallback, so
+		// every one must resolve or a sentence prints with a hole in it.
+		for (const key of [CLI_SINGLE_FILE_KEY, CLI_TS_REPO_KEY]) {
+			for (const label of ['oxfmt', 'biome']) {
+				const ratio = cli_speedup_vs_tsv_npm(key, label, 'wall_ms');
+				assert.isDefined(ratio, `${key}: ${label}`);
+				assert.isAbove(ratio, 1, `${key}: ${label}`);
+			}
 		}
+		const memory = cli_memory_ratio_range(CLI_TS_REPO_KEY, ['oxfmt', 'biome'], CLI_TSV_NPM_LABEL);
+		assert.isDefined(memory);
 		// the range is floored for display, so "less memory" needs its low end to reach 2
-		if (memory) assert.isAtLeast(memory.min, 2);
+		assert.isAtLeast(memory.min, 2);
 		// "~Nx on the TypeScript repo": the dispatcher's own cost there, which the
 		// delivery note says shrinks against the one-file figure
 		const repo_cost = cli_speedup_vs_tsv(CLI_TS_REPO_KEY, CLI_TSV_NPM_LABEL, 'wall_ms');
-		if (repo_cost !== undefined) {
-			const file_cost = cli_speedup_vs_tsv(CLI_DELIVERY_KEY, CLI_TSV_NPM_LABEL, 'wall_ms');
-			assert.isDefined(file_cost);
-			assert.isAbove(repo_cost, 1);
-			assert.isBelow(repo_cost, file_cost, 'the dispatcher cost does not shrink on the repo');
-		}
-		// the Svelte bullet's like-for-like pair, when that scenario carries the row
+		const file_cost = cli_speedup_vs_tsv(CLI_DELIVERY_KEY, CLI_TSV_NPM_LABEL, 'wall_ms');
+		assert.isDefined(repo_cost);
+		assert.isDefined(file_cost);
+		assert.isAbove(repo_cost, 1);
+		assert.isBelow(repo_cost, file_cost, 'the dispatcher cost does not shrink on the repo');
+		// the Svelte bullet's like-for-like pair: that scenario may be published
+		// aborted, but the copy quotes the dispatcher ratio wherever it quotes the
+		// bare-binary one, so the two must resolve together
 		for (const metric of ['wall_ms', 'memory_mb'] as const) {
 			const ratio = cli_speedup_vs_tsv_npm(CLI_SVELTE_KEY, 'rsvelte-fmt', metric);
+			const bare = cli_speedup_vs_tsv(CLI_SVELTE_KEY, 'rsvelte-fmt', metric);
+			assert.strictEqual(ratio !== undefined, bare !== undefined, `${CLI_SVELTE_KEY}: ${metric}`);
 			if (ratio !== undefined) assert.isAbove(ratio, 1, `${CLI_SVELTE_KEY}: ${metric}`);
 		}
 	});
 
 	test('the dispatcher\'s peak memory is "still below every other tool\'s"', () => {
 		const peak = cli_tsv_npm_memory_mb();
-		if (peak === undefined) return; // a report from before the row joined these scenarios
+		assert.isDefined(peak);
 		for (const scenario of benchmarks_cli.scenarios.filter((s) => !s.tsv_only)) {
 			for (const r of cli_comparison_results(scenario)) {
 				if (r.memory_mb === null) continue;
@@ -200,6 +195,51 @@ describe('prose ratios resolve', () => {
 				`${label}: wall lead > CPU lead`
 			);
 		}
+	});
+
+	test('the CPU-work note runs the other way on the single file, as it says', () => {
+		// "On the large single file there is nothing to spread and the column runs the
+		// other way ... tsv's CPU lead there is wider than its wall-clock one" — over
+		// every other tool's row, and "even Prettier's CPU time runs above its wall-clock"
+		const single = cli_scenario_find(CLI_SINGLE_FILE_KEY);
+		assert(single, `no generated scenario has id "${CLI_SINGLE_FILE_KEY}"`);
+		const others = cli_comparison_results(single);
+		assert.isNotEmpty(others);
+		for (const r of others) {
+			const wall = cli_speedup_vs_tsv(CLI_SINGLE_FILE_KEY, r.label, 'wall_ms');
+			const cpu = cli_speedup_vs_tsv(CLI_SINGLE_FILE_KEY, r.label, 'cpu_ms');
+			assert.isDefined(wall, r.label);
+			assert.isDefined(cpu, r.label);
+			assert.isAbove(cpu, wall, `${r.label}: CPU lead > wall lead on one file`);
+		}
+		for (const key of [CLI_SINGLE_FILE_KEY, CLI_TS_REPO_KEY]) {
+			const prettier = cli_scenario_find(key)?.results.find((r) => r.label === 'prettier');
+			assert(prettier, `${key} has no prettier row`);
+			assert.isAbove(prettier.cpu_ms, prettier.wall_ms, `${key}: prettier CPU > wall`);
+		}
+	});
+
+	test('the dispatcher overhead is the "fixed cost" the delivery note calls it', () => {
+		// "a fixed cost of ~A–B ms in every scenario here, so its share shrinks against
+		// a real repo" — fixed means the absolute figure barely moves between a one-file
+		// run and a repo, so the span must stay tight around a positive cost
+		const overhead = cli_tsv_npm_overhead_ms_range();
+		assert.isDefined(overhead);
+		assert.isAbove(overhead.min, 0);
+		assert.isAtMost(overhead.max, overhead.min * 1.25, 'the dispatcher cost is not fixed');
+	});
+
+	test('the scenario descriptions state facts the report carries', () => {
+		// the delivery copy: "the WASM row's CPU time exceeds its wall-clock"
+		const wasm = cli_scenario_find(CLI_DELIVERY_KEY)?.results.find(
+			(r) => r.label === CLI_TSV_WASM_LABEL
+		);
+		assert(wasm, 'delivery scenario has no tsv-wasm row');
+		assert.isAbove(wasm.cpu_ms, wasm.wall_ms);
+		// the Svelte copy: "rsvelte-fmt 0.7.x crashes nondeterministically on this corpus"
+		const rsvelte_version = benchmarks_cli.versions['rsvelte-fmt'];
+		assert.isDefined(rsvelte_version);
+		assert.match(rsvelte_version, /^0\.7\./, 'the Svelte copy names rsvelte-fmt 0.7.x');
 	});
 
 	test('the CPU-work column counts system time, as the note says', () => {
@@ -253,6 +293,23 @@ describe('prose ratios resolve', () => {
 			const js = single.results.find((r) => r.label === label);
 			assert(js, `large-single-file has no ${label} row`);
 			assert.isBelow(wasm.wall_ms, js.wall_ms, `tsv-wasm vs ${label}`);
+		}
+	});
+
+	test('the run-order note holds: every scenario runs the dispatcher row, then bare tsv, last', () => {
+		// "Every scenario here puts the bare tsv binary last, with its npm dispatcher
+		// row just before it" — hyperfine reports commands in the order it ran them,
+		// and the generated timings keep that order. An aborted scenario has no timings
+		// to order, so its preflight rows, which the harness runs in the same order, stand in.
+		for (const key of CLI_SCENARIO_KEYS) {
+			const scenario = benchmarks_formatters_json.scenarios.find((s) => s.id === key);
+			assert(scenario, `no generated scenario has id "${key}"`);
+			const rows = scenario.timings.length ? scenario.timings : scenario.preflight;
+			assert.deepStrictEqual(
+				rows.slice(-2).map((r) => r.name),
+				['tsv-npm', 'tsv'],
+				key
+			);
 		}
 	});
 

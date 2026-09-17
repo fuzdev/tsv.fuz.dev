@@ -58,6 +58,13 @@ export interface CliScenario {
 	/** Results ascending by wall-clock time, tsv-relative ratios computed by the component. */
 	results: Array<CliFormatterResult>;
 	/**
+	 * hyperfine's untimed warmup runs and the timed runs each mean is taken over.
+	 * The harness sets them per scenario (more for the short one-file runs), so
+	 * they're shown per table; both are 0 for a scenario aborted before timing.
+	 */
+	warmup_runs: number;
+	benchmark_runs: number;
+	/**
 	 * Every row is a tsv distribution, so the scenario compares tsv with itself and
 	 * says nothing about other tools — claims spanning "every other tool" skip it.
 	 */
@@ -135,7 +142,10 @@ export const cli_label_is_tsv = (label: string): boolean => CLI_TSV_LABELS.has(l
  */
 const SCENARIO_COPY: Record<
 	string,
-	Omit<CliScenario, 'key' | 'target' | 'results' | 'aborted' | 'unshimmed'>
+	Omit<
+		CliScenario,
+		'key' | 'target' | 'results' | 'warmup_runs' | 'benchmark_runs' | 'aborted' | 'unshimmed'
+	>
 > = {
 	[CLI_TS_REPO_KEY]: {
 		heading: 'TypeScript repo',
@@ -225,6 +235,8 @@ const to_scenarios = (): Array<CliScenario> =>
 						...copy,
 						target: scenario.target,
 						results: to_results(scenario),
+						warmup_runs: scenario.warmup_runs,
+						benchmark_runs: scenario.benchmark_runs,
 						...(scenario.aborted === undefined ? null : { aborted: to_abort_note(scenario) }),
 						...(scenario.unshimmed ? { unshimmed: to_unshimmed_note(scenario.unshimmed) } : null)
 					}
@@ -269,8 +281,7 @@ export const cli_speedup_vs_tsv = (
  * through their npm bins too.
  *
  * @returns the ratio, or `undefined` when the scenario, either row, or either
- * side's measurement is absent — a report generated before the harness added the
- * dispatcher row to the comparison scenarios has none
+ * side's measurement is absent — an aborted scenario has none
  */
 export const cli_speedup_vs_tsv_npm = (
 	scenario_key: string,
@@ -292,6 +303,23 @@ export const cli_tsv_npm_memory_mb = (): number | undefined => {
 		.filter((s) => !s.tsv_only)
 		.flatMap((s) => s.results.find((r) => r.label === CLI_TSV_NPM_LABEL)?.memory_mb ?? []);
 	return peaks.length ? Math.max(...peaks) : undefined;
+};
+
+/**
+ * What the npm dispatcher adds over the bare binary in wall-clock, in
+ * milliseconds, spanned across every scenario that times both rows — Node
+ * starting up to launch the binary, which the page calls a fixed cost.
+ *
+ * @returns the low and high difference, or `undefined` when no scenario timed both rows
+ */
+export const cli_tsv_npm_overhead_ms_range = (): { min: number; max: number } | undefined => {
+	const overheads = benchmarks_cli.scenarios.flatMap((s) => {
+		const npm = s.results.find((r) => r.label === CLI_TSV_NPM_LABEL);
+		const tsv = s.results.find((r) => r.label === CLI_TSV_LABEL);
+		return npm && tsv ? [npm.wall_ms - tsv.wall_ms] : [];
+	});
+	if (overheads.length === 0) return undefined;
+	return { min: Math.min(...overheads), max: Math.max(...overheads) };
 };
 
 /**
