@@ -3,8 +3,15 @@ import { assert, describe, test } from 'vitest';
 import { benchmarks_formatters_json } from '$routes/docs/benchmarks/benchmarks_formatters.ts';
 import {
 	benchmarks_cli,
+	cli_comparison_results,
+	cli_ratio_between,
+	cli_ratio_vs_tsv,
 	CLI_SCENARIO_KEYS,
-	to_abort_note
+	CLI_TSV_NPM_LABEL,
+	CLI_TSV_WASM_LABEL,
+	to_abort_note,
+	to_unshimmed_note,
+	type CliFormatterResult
 } from '$routes/docs/benchmarks/benchmarks_cli.ts';
 import type {
 	FormatterPreflight,
@@ -167,6 +174,63 @@ describe('to_abort_note', () => {
 				})
 			),
 			'Timed, but no memory was published: harness said so.'
+		);
+	});
+});
+
+describe('cli ratios over a scenario with two tsv rows', () => {
+	const result = (
+		label: string,
+		wall_ms: number,
+		memory_mb: number | null
+	): CliFormatterResult => ({
+		label,
+		wall_ms,
+		cpu_ms: wall_ms,
+		memory_mb
+	});
+	const results = [
+		result('tsv', 20, 10),
+		result(CLI_TSV_NPM_LABEL, 50, 40),
+		result('oxfmt', 60, 100),
+		result('biome', 100, null)
+	];
+
+	test('a dispatcher row beside other tools is not one of them', () => {
+		assert.deepEqual(
+			cli_comparison_results({ results, tsv_only: false }).map((r) => r.label),
+			['oxfmt', 'biome']
+		);
+	});
+
+	test('a tsv-only scenario compares native tsv with its own distributions', () => {
+		const delivery = [result('tsv', 20, 10), results[1]!, result(CLI_TSV_WASM_LABEL, 160, 120)];
+		assert.deepEqual(
+			cli_comparison_results({ results: delivery, tsv_only: true }).map((r) => r.label),
+			[CLI_TSV_NPM_LABEL, CLI_TSV_WASM_LABEL]
+		);
+	});
+
+	test('ratios anchor on whichever tsv row is named', () => {
+		assert.strictEqual(cli_ratio_vs_tsv(results, 'oxfmt', 'wall_ms'), 3);
+		assert.strictEqual(cli_ratio_between(results, 'oxfmt', CLI_TSV_NPM_LABEL, 'wall_ms'), 1.2);
+		assert.strictEqual(cli_ratio_between(results, 'oxfmt', CLI_TSV_NPM_LABEL, 'memory_mb'), 2.5);
+	});
+
+	test('a missing row or measurement has no ratio', () => {
+		assert.isUndefined(cli_ratio_between(results, 'prettier', CLI_TSV_NPM_LABEL, 'wall_ms'));
+		assert.isUndefined(cli_ratio_between(results, 'biome', CLI_TSV_NPM_LABEL, 'memory_mb'));
+		// a report from before the dispatcher row joined the comparison scenarios
+		const before = results.filter((r) => r.label !== CLI_TSV_NPM_LABEL);
+		assert.isUndefined(cli_ratio_between(before, 'oxfmt', CLI_TSV_NPM_LABEL, 'wall_ms'));
+	});
+});
+
+describe('to_unshimmed_note', () => {
+	test('names the rows by their display labels', () => {
+		assert.strictEqual(
+			to_unshimmed_note(['tsv-npm', 'tsv-wasm']),
+			'tsv via npm dispatcher and tsv-wasm ran as a bare Node script, skipping the few milliseconds of pnpm bin shim the other tools’ rows go through.'
 		);
 	});
 });

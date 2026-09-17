@@ -12,6 +12,10 @@
 // it against rsvelte-fmt (`@rsvelte/fmt`), the other Rust Svelte-native formatter,
 // and the delivery scenario benches tsv against itself — the native binary, the
 // same binary through `@fuzdev/tsv`'s Node dispatcher, and `@fuzdev/tsv-wasm`.
+// The dispatcher row also runs beside native tsv in every scenario that faces
+// another tool: Prettier, Biome, Oxfmt, and rsvelte-fmt are all timed through
+// their npm bins, which start Node first, so it is tsv on the same footing — a
+// second tsv row, not a competitor, and the one the page's headline ratios quote.
 // tsv is non-configurable, so in every scenario it appears in, the formatters it
 // is compared against are pinned to its fixed style — width 100, tabs, single
 // quotes, no trailing commas — and before timing anything the harness asserts that
@@ -66,6 +70,12 @@ export interface CliScenario {
 	 * silently missing table.
 	 */
 	aborted?: string;
+	/**
+	 * Why a tsv row's launch cost isn't like-for-like, when it isn't: the harness
+	 * normally runs tsv's Node-launched rows through a bin shim copied from pnpm's
+	 * own, as every other tool's row runs, and says so when it couldn't.
+	 */
+	unshimmed?: string;
 }
 
 export interface BenchmarksCliReport {
@@ -87,6 +97,9 @@ export const CLI_SVELTE_KEY = 'svelte-tsv-vs-rsvelte-fmt';
 /** The multi-file TypeScript repo scenario's id — what the page's prose calls "the TypeScript repo". */
 export const CLI_TS_REPO_KEY = 'typescript-only-non-jsx-subset';
 
+/** The one-file scenario's id — what the page's prose calls "the large single file". */
+export const CLI_SINGLE_FILE_KEY = 'large-single-file';
+
 /**
  * The tsv-only delivery scenario's id: the native binary against the same binary
  * through `@fuzdev/tsv`'s Node dispatcher and against `@fuzdev/tsv-wasm`, on one
@@ -94,11 +107,24 @@ export const CLI_TS_REPO_KEY = 'typescript-only-non-jsx-subset';
  */
 export const CLI_DELIVERY_KEY = 'tsv-delivery-paths';
 
-/** The delivery scenario's npm-dispatcher row, as displayed. */
+/**
+ * The npm-dispatcher row, as displayed: the native binary reached through
+ * `@fuzdev/tsv`'s Node bin. It runs in the delivery scenario and beside native
+ * tsv wherever the harness benches it against the other tools' npm bins.
+ */
 export const CLI_TSV_NPM_LABEL = 'tsv via npm dispatcher';
 
 /** The delivery scenario's WASM row, as displayed. */
 export const CLI_TSV_WASM_LABEL = 'tsv-wasm';
+
+const CLI_TSV_LABELS: ReadonlySet<string> = new Set([
+	CLI_TSV_LABEL,
+	CLI_TSV_NPM_LABEL,
+	CLI_TSV_WASM_LABEL
+]);
+
+/** Whether a row is tsv itself — the native binary or one of its other distributions. */
+export const cli_label_is_tsv = (label: string): boolean => CLI_TSV_LABELS.has(label);
 
 /**
  * The prose framing for each scenario, keyed by its generated scenario id — the
@@ -107,17 +133,20 @@ export const CLI_TSV_WASM_LABEL = 'tsv-wasm';
  * delivery comparison closes), not the order the harness runs them in. A
  * scenario missing from here is dropped rather than rendered unexplained.
  */
-const SCENARIO_COPY: Record<string, Omit<CliScenario, 'key' | 'target' | 'results' | 'aborted'>> = {
+const SCENARIO_COPY: Record<
+	string,
+	Omit<CliScenario, 'key' | 'target' | 'results' | 'aborted' | 'unshimmed'>
+> = {
 	[CLI_TS_REPO_KEY]: {
 		heading: 'TypeScript repo',
 		description:
 			'Every formatter scoped to the same file set and pinned to tsv’s fixed style, so they make the same break decisions over the same files; a preflight check aborts the scenario rather than publish a comparison the tools didn’t run on equal work.',
 		tsv_only: false
 	},
-	'large-single-file': {
+	[CLI_SINGLE_FILE_KEY]: {
 		heading: 'Large single file',
 		description:
-			'With a single input no formatter can parallelize across files, so wall-clock is closer to an engine-plus-startup comparison than the multi-file rows — each tool still pays its own process and thread-pool setup.',
+			'With a single input no formatter can parallelize across files, so wall-clock is closer to an engine-plus-startup comparison than the multi-file rows — each tool still pays its own process and thread-pool setup, and every row but the bare tsv binary pays Node’s startup first, a fixed cost that weighs most on the fastest rows.',
 		tsv_only: false
 	},
 	[CLI_SVELTE_KEY]: {
@@ -179,6 +208,13 @@ export const to_abort_note = (scenario: FormatterScenario): string => {
 	return `Not timed: ${faults.length ? faults.join('; ') : scenario.aborted}.`;
 };
 
+/**
+ * The sentence a scenario shows when the harness ran some tsv rows without the
+ * bin shim the other rows pay for.
+ */
+export const to_unshimmed_note = (names: Array<string>): string =>
+	`${names.map((name) => CLI_LABELS[name] ?? name).join(' and ')} ran as a bare Node script, skipping the few milliseconds of pnpm bin shim the other tools’ rows go through.`;
+
 const to_scenarios = (): Array<CliScenario> =>
 	Object.entries(SCENARIO_COPY).flatMap(([key, copy]) => {
 		const scenario = benchmarks_formatters_json.scenarios.find((s) => s.id === key);
@@ -189,7 +225,8 @@ const to_scenarios = (): Array<CliScenario> =>
 						...copy,
 						target: scenario.target,
 						results: to_results(scenario),
-						...(scenario.aborted === undefined ? null : { aborted: to_abort_note(scenario) })
+						...(scenario.aborted === undefined ? null : { aborted: to_abort_note(scenario) }),
+						...(scenario.unshimmed ? { unshimmed: to_unshimmed_note(scenario.unshimmed) } : null)
 					}
 				]
 			: [];
@@ -227,44 +264,103 @@ export const cli_speedup_vs_tsv = (
 };
 
 /**
- * `label`'s measurement over tsv's, by one metric, within a scenario's rows — the
- * ratio behind both the tables and `cli_speedup_vs_tsv`.
+ * How many times faster or lighter tsv through its npm dispatcher is than `label`
+ * in one CLI scenario — the like-for-like ratio, since the other tools are timed
+ * through their npm bins too.
+ *
+ * @returns the ratio, or `undefined` when the scenario, either row, or either
+ * side's measurement is absent — a report generated before the harness added the
+ * dispatcher row to the comparison scenarios has none
+ */
+export const cli_speedup_vs_tsv_npm = (
+	scenario_key: string,
+	label: string,
+	metric: CliMetric
+): number | undefined => {
+	const results = cli_scenario_find(scenario_key)?.results;
+	return results && cli_ratio_between(results, label, CLI_TSV_NPM_LABEL, metric);
+};
+
+/**
+ * The dispatcher row's highest peak RSS across the scenarios that face other
+ * tools, in megabytes — the Node launcher's footprint rather than tsv's own.
+ *
+ * @returns the figure, or `undefined` when no such scenario measured one
+ */
+export const cli_tsv_npm_memory_mb = (): number | undefined => {
+	const peaks = benchmarks_cli.scenarios
+		.filter((s) => !s.tsv_only)
+		.flatMap((s) => s.results.find((r) => r.label === CLI_TSV_NPM_LABEL)?.memory_mb ?? []);
+	return peaks.length ? Math.max(...peaks) : undefined;
+};
+
+/**
+ * `label`'s measurement over `baseline_label`'s, by one metric, within a
+ * scenario's rows.
  *
  * @returns the ratio, or `undefined` when either row or either side's measurement is
  * absent (a `null` memory figure, or a zero that can't be divided by)
+ */
+export const cli_ratio_between = (
+	results: Array<CliFormatterResult>,
+	label: string,
+	baseline_label: string,
+	metric: CliMetric
+): number | undefined => {
+	const baseline = results.find((r) => r.label === baseline_label)?.[metric];
+	const other = results.find((r) => r.label === label)?.[metric];
+	if (baseline == null || other == null || !baseline) return undefined;
+	return other / baseline;
+};
+
+/**
+ * `label`'s measurement over native tsv's, by one metric, within a scenario's
+ * rows — the ratio behind both the tables and `cli_speedup_vs_tsv`.
+ *
+ * @returns the ratio, or `undefined` when either row or either side's measurement is absent
  */
 export const cli_ratio_vs_tsv = (
 	results: Array<CliFormatterResult>,
 	label: string,
 	metric: CliMetric
-): number | undefined => {
-	const tsv = results.find((r) => r.label === CLI_TSV_LABEL)?.[metric];
-	const other = results.find((r) => r.label === label)?.[metric];
-	if (tsv == null || other == null || !tsv) return undefined;
-	return other / tsv;
-};
+): number | undefined => cli_ratio_between(results, label, CLI_TSV_LABEL, metric);
 
 /**
- * The span of "times less memory than tsv" across the non-tsv rows, over one
+ * The rows of a scenario a claim about tsv is measured against. Facing other
+ * tools, that is the other tools only — a dispatcher row beside them is tsv
+ * again, not a competitor. In a tsv-only scenario it is every row but native tsv.
+ */
+export const cli_comparison_results = (
+	scenario: Pick<CliScenario, 'results' | 'tsv_only'>
+): Array<CliFormatterResult> =>
+	scenario.results.filter((r) =>
+		scenario.tsv_only ? r.label !== CLI_TSV_LABEL : !cli_label_is_tsv(r.label)
+	);
+
+/**
+ * The span of "times less memory than tsv" across `cli_comparison_results`, over one
  * scenario or every scenario that faces other tools — the range claims the
  * page's prose quotes. Unscoped, it skips the tsv-only scenarios, whose rows are
  * tsv's own distributions rather than "every other tool"; name one explicitly to
  * span it. An optional `labels` list narrows the span to just those formatters,
- * so a sentence naming specific tools quotes a range measured over exactly them.
+ * so a sentence naming specific tools quotes a range measured over exactly them,
+ * and `baseline_label` takes the ratios against the dispatcher row instead of
+ * the bare binary.
  *
  * @returns the low and high ratio, or `undefined` when nothing was measured
  */
 export const cli_memory_ratio_range = (
 	scenario_key?: string,
-	labels?: Array<string>
+	labels?: Array<string>,
+	baseline_label: string = CLI_TSV_LABEL
 ): { min: number; max: number } | undefined => {
 	const scenarios = benchmarks_cli.scenarios.filter((s) =>
 		scenario_key ? s.key === scenario_key : !s.tsv_only
 	);
 	const ratios = scenarios.flatMap((scenario) =>
-		scenario.results
-			.filter((r) => r.label !== CLI_TSV_LABEL && (!labels || labels.includes(r.label)))
-			.map((r) => cli_ratio_vs_tsv(scenario.results, r.label, 'memory_mb'))
+		cli_comparison_results(scenario)
+			.filter((r) => !labels || labels.includes(r.label))
+			.map((r) => cli_ratio_between(scenario.results, r.label, baseline_label, 'memory_mb'))
 			.filter((ratio) => ratio !== undefined)
 	);
 	if (ratios.length === 0) return undefined;

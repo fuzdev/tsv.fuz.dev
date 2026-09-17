@@ -131,7 +131,19 @@ gro gen
 only). That includes the harness's Svelte scenario, which benches tsv against
 rsvelte-fmt (`@rsvelte/fmt`), and its tsv-only delivery scenario (the native
 binary vs `@fuzdev/tsv`'s Node dispatcher vs `@fuzdev/tsv-wasm`, flagged
-`tsv_only` so "every other tool" claims skip it); a scenario renders on the
+`tsv_only` so "every other tool" claims skip it). The dispatcher row
+(`tsv-npm`) also runs beside native tsv in every scenario that faces another
+tool, since Prettier, Biome, Oxfmt, and rsvelte-fmt are all timed through Node
+bins the bare binary skips: it is a second tsv row there, never a competitor
+(`cli_comparison_results` keeps it out of the "every other tool" ranges), and
+the tables' `vs tsv` columns stay anchored on native tsv. The page's headline
+CLI claims lead with the like-for-like dispatcher ratios
+(`cli_speedup_vs_tsv_npm`, `cli_memory_ratio_range`'s `baseline_label`) and give
+the bare-binary ones second; a report without the row falls back to the
+bare-binary wording with the asymmetry stated. The harness runs tsv's
+Node-launched rows through a bin shim copied from pnpm's own, so they pay the
+launch cost every other row pays; when it can't, it prints a line the parser
+keeps as `unshimmed` and the table shows a note under it. A scenario renders on the
 page only once it has an entry in `SCENARIO_COPY` (`benchmarks_cli.ts`), and
 prose claims about the Svelte head-to-head are conditional on its data being
 present, so the site stays correct whether or not the harness README has been

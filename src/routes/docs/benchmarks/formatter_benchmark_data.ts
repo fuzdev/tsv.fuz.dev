@@ -69,6 +69,12 @@ export interface FormatterScenario {
 	 * timings and speedups are present and only `memory` is empty.
 	 */
 	aborted?: string;
+	/**
+	 * tsv's Node-launched rows that ran as `node <script>` because the harness had
+	 * no pnpm bin shim to copy for them — so they skipped the few milliseconds of
+	 * shell shim every other tool's row pays. Absent when every row was shimmed.
+	 */
+	unshimmed?: Array<string>;
 	timings: Array<FormatterTiming>;
 	/** The fastest formatter and its margin over each other one. */
 	baseline: string;
@@ -128,6 +134,8 @@ const PREFLIGHT_RE = /^\s{2}(\S+): (clean|unavailable|\d+ rejected|CRASHED)/gm;
 // rows when a formatter failed its check, or after the `Summary` when a memory
 // run crashed. Either way it moves on to the next scenario, so nothing follows.
 const ABORTED_RE = /^\s*→ aborting: (.+)$/m;
+// The header line the harness prints for a tsv row it couldn't give a bin shim.
+const UNSHIMMED_RE = /^- (\S+): no pnpm bin shim to copy/gm;
 const VERSIONS_RE = /^## Versions\n\n((?:- \*\*.+\*\*: .+\n)+)/m;
 const VERSION_RE = /^- \*\*(.+?)\*\*: (.+)$/gm;
 const MACHINE_RE = /^_Measured on: (.+?)(?: — |_$)/m;
@@ -179,6 +187,7 @@ const parse_scenario = (name: string, block: string): FormatterScenario => {
 	const summary = slice_section(block, 'Summary\n', 'Memory Usage:', ' benchmark complete!');
 	const timings = parse_timings(block);
 	const aborted = ABORTED_RE.exec(block)?.[1]?.trim();
+	const unshimmed = [...block.matchAll(UNSHIMMED_RE)].map((m) => m[1]!);
 	// A scenario banner with no timings under it is either the harness aborting
 	// before hyperfine ran — it says so, and the preflight block names the cause —
 	// or the timing lines changed shape; hyperfine always prints them otherwise.
@@ -213,6 +222,7 @@ const parse_scenario = (name: string, block: string): FormatterScenario => {
 		benchmark_runs: Number(runs?.[2] ?? 0),
 		preflight,
 		...(aborted === undefined ? null : { aborted }),
+		...(unshimmed.length === 0 ? null : { unshimmed }),
 		timings,
 		baseline: SPEEDUP_BASELINE_RE.exec(block)?.[1] ?? '',
 		speedups: [...summary.matchAll(SPEEDUP_RE)].map((m) => ({

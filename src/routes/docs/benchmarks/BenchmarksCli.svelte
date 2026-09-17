@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { format_speedup } from './benchmark_display.ts';
 	import {
+		cli_label_is_tsv,
 		cli_ratio_vs_tsv,
 		CLI_TSV_LABEL,
 		type BenchmarksCliReport,
@@ -33,6 +34,8 @@
 	interface Row {
 		result: CliFormatterResult;
 		is_tsv: boolean;
+		/** tsv through another distribution, beside other tools — a second tsv row, set apart from them. */
+		is_tsv_distribution: boolean;
 		wall_ratio: number | undefined;
 		cpu_ratio: number | undefined;
 		memory_ratio: number | undefined;
@@ -46,6 +49,7 @@
 			return {
 				result,
 				is_tsv,
+				is_tsv_distribution: !is_tsv && !scenario.tsv_only && cli_label_is_tsv(result.label),
 				wall_ratio: ratio('wall_ms'),
 				cpu_ratio: ratio('cpu_ms'),
 				memory_ratio: ratio('memory_mb')
@@ -74,7 +78,7 @@
 					</thead>
 					<tbody>
 						{#each rows as row (row.result.label)}
-							<tr class:tsv={row.is_tsv}>
+							<tr class:tsv={row.is_tsv} class:tsv-distribution={row.is_tsv_distribution}>
 								<td class="formatter">{row.result.label}</td>
 								<td>{format_time(row.result.wall_ms)}</td>
 								<td class="speedup">
@@ -94,6 +98,9 @@
 					</tbody>
 				</table>
 			</div>
+		{/if}
+		{#if scenario.unshimmed}
+			<p class="aborted">{scenario.unshimmed}</p>
 		{/if}
 		{#if scenario.aborted}
 			<p class="aborted">
@@ -136,6 +143,9 @@
 	tr.tsv {
 		font-weight: 700;
 		background-color: var(--fg_10);
+	}
+	tr.tsv-distribution {
+		background-color: var(--fg_05);
 	}
 	.versions {
 		font-size: var(--font_size_sm);

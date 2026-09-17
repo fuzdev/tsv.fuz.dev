@@ -13,7 +13,10 @@
 		cli_memory_ratio_range,
 		cli_scenario_find,
 		cli_speedup_vs_tsv,
+		cli_speedup_vs_tsv_npm,
+		cli_tsv_npm_memory_mb,
 		CLI_TS_REPO_KEY,
+		CLI_SINGLE_FILE_KEY,
 		CLI_SVELTE_KEY,
 		CLI_DELIVERY_KEY,
 		CLI_TSV_NPM_LABEL,
@@ -123,8 +126,38 @@
 	const cli_svelte = cli_scenario_find(CLI_SVELTE_KEY);
 	const cli_svelte_wall = cli_speedup_vs_tsv(CLI_SVELTE_KEY, 'rsvelte-fmt', 'wall_ms');
 	const cli_svelte_memory = cli_speedup_vs_tsv(CLI_SVELTE_KEY, 'rsvelte-fmt', 'memory_mb');
+	// tsv through its npm dispatcher against the other tools' npm bins — the
+	// like-for-like rows, which the headline claims lead with; the bare-binary
+	// ratios follow as what the binary does without a Node launcher in front.
+	// TODO: a report generated before the harness added the dispatcher row to the
+	// comparison scenarios has none of these, and the copy falls back to the
+	// bare-binary wording. Once the committed report carries the row, drop the
+	// fallbacks here and in the markup and make the prose test require the ratios.
+	const cli_npm_wall = (scenario: string, label: string) =>
+		cli_speedup_vs_tsv_npm(scenario, label, 'wall_ms');
+	const cli_npm_single_vs_oxfmt = cli_npm_wall(CLI_SINGLE_FILE_KEY, 'oxfmt');
+	const cli_npm_single_vs_biome = cli_npm_wall(CLI_SINGLE_FILE_KEY, 'biome');
+	const cli_npm_ts_vs_oxfmt = cli_npm_wall(CLI_TS_REPO_KEY, 'oxfmt');
+	const cli_npm_ts_vs_biome = cli_npm_wall(CLI_TS_REPO_KEY, 'biome');
+	const cli_npm_ts_memory = cli_memory_ratio_range(
+		CLI_TS_REPO_KEY,
+		['oxfmt', 'biome'],
+		CLI_TSV_NPM_LABEL
+	);
+	const cli_npm_rows = [
+		cli_npm_single_vs_oxfmt,
+		cli_npm_single_vs_biome,
+		cli_npm_ts_vs_oxfmt,
+		cli_npm_ts_vs_biome,
+		cli_npm_ts_memory
+	].every((v) => v !== undefined);
+	const cli_npm_memory_mb = cli_tsv_npm_memory_mb();
+	// the dispatcher's own cost on the multi-file repo, beside the delivery table's one-file figure
+	const cli_npm_ts_cost = cli_speedup_vs_tsv(CLI_TS_REPO_KEY, CLI_TSV_NPM_LABEL, 'wall_ms');
+	const cli_svelte_npm_wall = cli_npm_wall(CLI_SVELTE_KEY, 'rsvelte-fmt');
+	const cli_svelte_npm_memory = cli_speedup_vs_tsv_npm(CLI_SVELTE_KEY, 'rsvelte-fmt', 'memory_mb');
 	// What each way of installing tsv costs, from the tsv-only delivery scenario.
-	const cli_npm_wall = cli_ratio(CLI_DELIVERY_KEY, CLI_TSV_NPM_LABEL, 'wall_ms');
+	const cli_delivery_npm_wall = cli_ratio(CLI_DELIVERY_KEY, CLI_TSV_NPM_LABEL, 'wall_ms');
 	const cli_wasm_wall = cli_ratio(CLI_DELIVERY_KEY, CLI_TSV_WASM_LABEL, 'wall_ms');
 	const cli_wasm_memory = cli_ratio(CLI_DELIVERY_KEY, CLI_TSV_WASM_LABEL, 'memory_mb');
 </script>
@@ -179,12 +212,28 @@
 				<a href="https://github.com/ryanatkn/oxc-bench-formatter" rel="external">
 					fork of Oxc's <code>bench-formatter</code>
 				</a>
-				has end-to-end CLI benchmarks. On the JSX-free subset of a real TypeScript repo, tsv formats
-				~{cli_ts_wall_vs_oxfmt} faster than Oxfmt and ~{cli_ts_wall_vs_biome} faster than Biome in
-				wall-clock (~{cli_ts_cpu_vs_oxfmt} and ~{cli_ts_cpu_vs_biome} in CPU work, the
-				parallelism-neutral view) using
-				{cli_ts_memory ? format_ratio_range(cli_ts_memory.min, cli_ts_memory.max) : '—'} less memory
-				than either. Wall-clock ratios bake in each tool's multi-file parallelism — see the notes in
+				has end-to-end CLI benchmarks. On the JSX-free subset of a real TypeScript repo,
+				{#if cli_npm_rows}
+					with every tool run through the bin npm installs for it, tsv formats
+					~{format_ratio_approx(cli_npm_ts_vs_oxfmt)} faster than Oxfmt and
+					~{format_ratio_approx(cli_npm_ts_vs_biome)} faster than Biome in wall-clock using
+					{cli_npm_ts_memory
+						? format_ratio_range(cli_npm_ts_memory.min, cli_npm_ts_memory.max)
+						: '—'} less memory than either. Run as the bare native binary, without the Node startup
+					those bins all begin with, it's ~{cli_ts_wall_vs_oxfmt} and ~{cli_ts_wall_vs_biome} faster
+					(~{cli_ts_cpu_vs_oxfmt} and ~{cli_ts_cpu_vs_biome} in CPU work, the parallelism-neutral
+					view) using
+					{cli_ts_memory ? format_ratio_range(cli_ts_memory.min, cli_ts_memory.max) : '—'} less
+					memory.
+				{:else}
+					tsv's native binary formats ~{cli_ts_wall_vs_oxfmt} faster than Oxfmt and
+					~{cli_ts_wall_vs_biome} faster than Biome in wall-clock (~{cli_ts_cpu_vs_oxfmt} and
+					~{cli_ts_cpu_vs_biome} in CPU work, the parallelism-neutral view) using
+					{cli_ts_memory ? format_ratio_range(cli_ts_memory.min, cli_ts_memory.max) : '—'} less
+					memory than either — though those tools are timed through npm bins that start Node first,
+					which the bare binary skips.
+				{/if}
+				Wall-clock ratios bake in each tool's multi-file parallelism — see the notes in
 				<a href="#{docs_slugify(CLI_SECTION_TITLE)}">that section</a>.
 			</li>
 			<li>
@@ -207,9 +256,23 @@
 					The fork's Svelte scenario benches tsv against rsvelte-fmt, the other Rust Svelte-native
 					formatter, on a third-party <code>.svelte</code> corpus.
 					{#if cli_svelte_wall != null}
-						There tsv formats ~{format_ratio_approx(cli_svelte_wall)} faster
+						{#if cli_svelte_npm_wall != null}
+							There tsv formats ~{format_ratio_approx(cli_svelte_npm_wall)} faster through its npm
+							dispatcher, the footing rsvelte-fmt's own Node launcher is timed on, and
+							~{format_ratio_approx(cli_svelte_wall)} faster as the bare binary
+						{:else}
+							There tsv's native binary formats ~{format_ratio_approx(cli_svelte_wall)} faster
+						{/if}
 						{#if cli_svelte_memory != null}
-							using ~{format_ratio_approx(cli_svelte_memory)} less memory.
+							using
+							{#if cli_svelte_npm_memory != null}
+								~{format_ratio_approx(cli_svelte_npm_memory)} and
+							{/if}
+							~{format_ratio_approx(cli_svelte_memory)} less memory{#if cli_svelte_npm_memory !=
+								null
+							}
+								, respectively
+							{/if}.
 						{:else}
 							but has no memory figure.
 							{#if cli_svelte?.aborted}
@@ -342,12 +405,18 @@
 			timing the whole CLI end-to-end — process spawn, file discovery, I/O, each tool's default
 			multi-file parallelism — plus peak memory (peak RSS, from a separate pass under GNU
 			<code>time</code> rather than from the timed runs): what you experience typing the command, on
-			real code. tsv appears only in the JSX-free scenarios (it has no JSX/TSX parser). The tsv
-			binary is the native CLI
+			real code. tsv appears only in the JSX-free scenarios (it has no JSX/TSX parser). Every
+			formatter is installed from npm and pinned by the fork's lockfile, and every one but tsv is
+			timed through the bin npm installs for it, which starts Node first (Biome's and rsvelte-fmt's
+			then launch a native binary). The <code>tsv</code> row instead runs the native CLI that
 			<a href="https://www.npmjs.com/package/@fuzdev/tsv"><code>@fuzdev/tsv</code></a> ships in its
-			platform packages and execs from <code>npx tsv</code>, installed from npm and pinned by the
-			fork's lockfile like every other formatter here. The last table compares tsv with itself: what
-			the npm package's Node dispatcher and the WASM fallback each add over the bare binary.
+			platform packages directly, skipping that startup{#if cli_npm_rows}
+				, so each table also carries a <code>{CLI_TSV_NPM_LABEL}</code> row — the same binary
+				through the package's Node bin, what <code>npx tsv</code> execs and the like-for-like row to
+				read against the other tools
+			{/if}. Every <code>vs tsv</code> column is taken against the bare binary. The last table
+			compares tsv with itself: what the npm package's Node dispatcher and the WASM fallback each
+			add over it.
 		</p>
 		<BenchmarksCli report={benchmarks_cli} />
 		<aside class="mt_xl5">
@@ -360,25 +429,45 @@
 					meaningful alongside the machine they ran on. The <code>vs tsv (CPU work)</code> column is
 					the parallelism-neutral view — total CPU time across threads,
 					<a href="https://github.com/sharkdp/hyperfine">hyperfine</a>'s user plus system time — and
-					it narrows tsv's lead: on the TypeScript repo tsv is ~{cli_ts_wall_vs_oxfmt} faster than
-					Oxfmt in wall-clock but ~{cli_ts_cpu_vs_oxfmt} in CPU work, and ~{cli_ts_wall_vs_biome}
-					faster than Biome in wall-clock but ~{cli_ts_cpu_vs_biome} in CPU work. Part of each
-					wall-clock margin is tsv spreading its work across more cores than the other tool does
-					here, so the CPU column is the fairer engine comparison — though a JS tool's CPU figure
-					also counts V8's background threads (GC, compilation), so even Prettier's CPU time runs
-					above its wall-clock.
+					it narrows tsv's lead: on the TypeScript repo the bare tsv binary is
+					~{cli_ts_wall_vs_oxfmt} faster than Oxfmt in wall-clock but ~{cli_ts_cpu_vs_oxfmt} in CPU
+					work, and ~{cli_ts_wall_vs_biome} faster than Biome in wall-clock but
+					~{cli_ts_cpu_vs_biome} in CPU work. Part of each wall-clock margin is tsv spreading its
+					work across more cores than the other tool does here, so the CPU column is the fairer
+					engine comparison — though a JS tool's CPU figure also counts V8's background threads (GC,
+					compilation), so even Prettier's CPU time runs above its wall-clock.
 				</li>
 				<li>
 					Peak memory is far less sensitive to thread count than wall-clock, so it's the most
 					directly comparable figure — tsv uses
 					{cli_memory ? format_ratio_range(cli_memory.min, cli_memory.max) : '—'} less than every
-					other tool in every scenario it faces them.
+					other tool in every scenario it faces them. The figure is the largest single process in
+					each command's tree, not the sum, so Biome's and rsvelte-fmt's rows leave out the Node
+					launcher in front of their native binary — which understates them, not tsv.
+					{#if cli_npm_memory_mb !== undefined}
+						Through the npm dispatcher the peak is the Node launcher's rather than tsv's,
+						~{Math.round(cli_npm_memory_mb)} MB, still below every other tool's.
+					{/if}
 				</li>
+				{#if cli_npm_rows}
+					<li>
+						Like for like, through its npm dispatcher, tsv is
+						~{format_ratio_approx(cli_npm_ts_vs_oxfmt)} faster than Oxfmt and
+						~{format_ratio_approx(cli_npm_ts_vs_biome)} faster than Biome on the TypeScript repo,
+						and ~{format_ratio_approx(cli_npm_single_vs_oxfmt)} and
+						~{format_ratio_approx(cli_npm_single_vs_biome)} on the large single file, where Node's
+						fixed startup is the largest share of a short run. The bare-binary ratios in the tables
+						are what the binary does when invoked directly, without npm's bin in front.
+					</li>
+				{/if}
 				<li>
 					The delivery table is tsv against tsv, on one file. Through <code>@fuzdev/tsv</code>'s
 					Node dispatcher, the bin that <code>npx tsv</code> execs (npx's own resolution isn't
-					counted), the same binary takes ~{cli_npm_wall} as long — Node starting up to exec it, a
-					fixed cost that shrinks against a real repo.
+					counted), the same binary takes ~{cli_delivery_npm_wall} as long — Node starting up to
+					exec it, a fixed cost that shrinks against a real repo.
+					{#if cli_npm_ts_cost !== undefined}
+						On the TypeScript repo it's ~{format_ratio_approx(cli_npm_ts_cost)}.
+					{/if}
 					<a href="https://www.npmjs.com/package/@fuzdev/tsv-wasm"><code>@fuzdev/tsv-wasm</code></a>
 					runs the same CLI over a WASM engine inside Node at ~{cli_wasm_wall} the time and
 					~{cli_wasm_memory} the memory of the native binary: still ahead of the JS formatters

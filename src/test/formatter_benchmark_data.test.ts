@@ -64,6 +64,7 @@ Target: third-party .svelte corpus (kit, svelte.dev, layerchart)
 - 2 warmup runs, 5 benchmark runs
 - Git reset before each run
 - .svelte only: the two Svelte-native formatters head-to-head
+- tsv-npm: no pnpm bin shim to copy — run as \`node <script>\`, skipping the ~3 ms shim the .bin rows pay
 
 
 Preflight (per-formatter parse check):
@@ -126,6 +127,17 @@ describe('parse_formatter_benchmarks', () => {
 			parsed.scenarios.map((s) => s.id),
 			['large-single-file', 'svelte-tsv-vs-rsvelte-fmt', 'css-tsv-vs-oxfmt']
 		);
+	});
+
+	test('carries the rows the harness could not give a bin shim', () => {
+		const parsed = parse_formatter_benchmarks(readme);
+		const svelte = parsed.scenarios.find((s) => s.id === 'svelte-tsv-vs-rsvelte-fmt');
+		assert(svelte);
+		assert.deepEqual(svelte.unshimmed, ['tsv-npm']);
+		// absent, not empty, when every row was shimmed — the generated JSON stays unchanged
+		const single = parsed.scenarios.find((s) => s.id === 'large-single-file');
+		assert(single);
+		assert.notProperty(single, 'unshimmed');
 	});
 
 	test('keeps a scenario the harness aborted, with its reason and no numbers', () => {

@@ -6,10 +6,15 @@ import { benchmarks_conformance_json } from '$routes/docs/benchmarks/benchmarks_
 import { benchmarks_formatters_json } from '$routes/docs/benchmarks/benchmarks_formatters.ts';
 import {
 	benchmarks_cli,
+	cli_comparison_results,
 	cli_memory_ratio_range,
 	cli_scenario_find,
 	cli_speedup_vs_tsv,
+	cli_speedup_vs_tsv_npm,
+	cli_tsv_npm_memory_mb,
 	CLI_DELIVERY_KEY,
+	CLI_SINGLE_FILE_KEY,
+	CLI_SVELTE_KEY,
 	CLI_TS_REPO_KEY,
 	CLI_TSV_NPM_LABEL,
 	CLI_TSV_WASM_LABEL
@@ -124,6 +129,59 @@ describe('prose ratios resolve', () => {
 		}
 	});
 
+	test('the like-for-like dispatcher claims read the way the numbers run', () => {
+		// The TLDR and the CLI note lead with tsv through its npm dispatcher against the
+		// other tools' npm bins: "~Nx faster than Oxfmt and ~Mx faster than Biome ...
+		// using A–Bx less memory than either". They render only once the report carries
+		// the dispatcher row in both comparison scenarios, so an older report resolves
+		// none of them and gates nothing; a partial set would print a sentence with a
+		// hole in it, so it is all or none.
+		// TODO: require them once the committed report carries the dispatcher row.
+		const ratios = [CLI_SINGLE_FILE_KEY, CLI_TS_REPO_KEY].flatMap((key) =>
+			['oxfmt', 'biome'].map(
+				(label) => [`${key}: ${label}`, cli_speedup_vs_tsv_npm(key, label, 'wall_ms')] as const
+			)
+		);
+		const memory = cli_memory_ratio_range(CLI_TS_REPO_KEY, ['oxfmt', 'biome'], CLI_TSV_NPM_LABEL);
+		const resolved = ratios.filter(([, ratio]) => ratio !== undefined);
+		assert.include(
+			[0, ratios.length],
+			resolved.length,
+			'the dispatcher row is in some scenarios only'
+		);
+		assert.strictEqual(memory !== undefined, resolved.length > 0, 'wall ratios without memory');
+		for (const [name, ratio] of resolved) {
+			assert.isAbove(ratio!, 1, name);
+		}
+		// the range is floored for display, so "less memory" needs its low end to reach 2
+		if (memory) assert.isAtLeast(memory.min, 2);
+		// "~Nx on the TypeScript repo": the dispatcher's own cost there, which the
+		// delivery note says shrinks against the one-file figure
+		const repo_cost = cli_speedup_vs_tsv(CLI_TS_REPO_KEY, CLI_TSV_NPM_LABEL, 'wall_ms');
+		if (repo_cost !== undefined) {
+			const file_cost = cli_speedup_vs_tsv(CLI_DELIVERY_KEY, CLI_TSV_NPM_LABEL, 'wall_ms');
+			assert.isDefined(file_cost);
+			assert.isAbove(repo_cost, 1);
+			assert.isBelow(repo_cost, file_cost, 'the dispatcher cost does not shrink on the repo');
+		}
+		// the Svelte bullet's like-for-like pair, when that scenario carries the row
+		for (const metric of ['wall_ms', 'memory_mb'] as const) {
+			const ratio = cli_speedup_vs_tsv_npm(CLI_SVELTE_KEY, 'rsvelte-fmt', metric);
+			if (ratio !== undefined) assert.isAbove(ratio, 1, `${CLI_SVELTE_KEY}: ${metric}`);
+		}
+	});
+
+	test('the dispatcher\'s peak memory is "still below every other tool\'s"', () => {
+		const peak = cli_tsv_npm_memory_mb();
+		if (peak === undefined) return; // a report from before the row joined these scenarios
+		for (const scenario of benchmarks_cli.scenarios.filter((s) => !s.tsv_only)) {
+			for (const r of cli_comparison_results(scenario)) {
+				if (r.memory_mb === null) continue;
+				assert.isBelow(peak, r.memory_mb, `${scenario.key}: ${r.label}`);
+			}
+		}
+	});
+
 	test('the CLI CPU-work note reads the way the numbers run', () => {
 		// "the CPU column narrows tsv's lead: ~Nx faster in wall-clock but ~Mx in CPU
 		// work ... part of each wall-clock margin is tsv spreading its work across more
@@ -186,7 +244,7 @@ describe('prose ratios resolve', () => {
 		// the delivery and large-single-file scenarios time the same parser.ts, so
 		// the note's ordering claim is checkable across them
 		const delivery = benchmarks_cli.scenarios.find((s) => s.key === CLI_DELIVERY_KEY);
-		const single = benchmarks_cli.scenarios.find((s) => s.key === 'large-single-file');
+		const single = benchmarks_cli.scenarios.find((s) => s.key === CLI_SINGLE_FILE_KEY);
 		assert(delivery && single);
 		assert.strictEqual(delivery.target.split(',')[0], single.target, 'same corpus file');
 		const wasm = delivery.results.find((r) => r.label === CLI_TSV_WASM_LABEL);
