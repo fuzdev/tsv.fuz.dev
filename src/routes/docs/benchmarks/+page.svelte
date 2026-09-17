@@ -133,10 +133,10 @@
 	<section>
 		<p>
 			tsv is a toolchain for TypeScript/JS, CSS, and Svelte in Rust. After correctness, performance
-			is tsv's next priority. This page shows how it measures up against Prettier, which tsv closely
-			follows, and against <a href="https://oxc.rs/">Oxc</a> and
-			<a href="https://biomejs.dev/">Biome</a>, which are similar tools with wider language support
-			(tsv doesn't support JSX/TSX/SCSS/etc). Also included for comparison:
+			and efficiency are tsv's next priorities. This page shows how it measures up against Prettier,
+			which tsv closely follows, and against <a href="https://oxc.rs/">Oxc</a> and
+			<a href="https://biomejs.dev/">Biome</a>, similar tools with more features and wider language
+			support than tsv, which doesn't support JSX/TSX/SCSS/etc. Also included for comparison:
 			<a href="https://baseballyama.github.io/rsvelte/">rsvelte</a> (Svelte parser/formatter),
 			<a href="https://yuku.fyi/">Yuku</a> (TypeScript/JS parser), <a href="https://swc.rs/">swc</a>
 			(TypeScript/JS parser), <a href="https://dprint.dev/">dprint-typescript</a> (TypeScript/JS
