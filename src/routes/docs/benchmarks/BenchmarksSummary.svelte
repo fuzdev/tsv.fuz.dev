@@ -18,10 +18,10 @@
 <table>
 	<thead>
 		<tr>
-			<th></th>
-			<th class="color_h_50">Svelte</th>
-			<th class="color_i_50">TypeScript</th>
-			<th class="color_a_50">CSS</th>
+			<th scope="col"></th>
+			<th scope="col" class="color_h_50">Svelte</th>
+			<th scope="col" class="color_i_50">TypeScript</th>
+			<th scope="col" class="color_a_50">CSS</th>
 		</tr>
 	</thead>
 	<tbody>
@@ -30,7 +30,7 @@
 			<tr>
 				<td class="variant">{row.variant}</td>
 				{#each cells as value, i (i)}
-					<td class="speedup">{value != null ? format_speedup(value) : '-'}</td>
+					<td class="speedup">{value != null ? format_speedup(value) : '—'}</td>
 				{/each}
 			</tr>
 		{/each}

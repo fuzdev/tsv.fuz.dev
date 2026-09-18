@@ -18,33 +18,27 @@
 -->
 <script lang="ts">
 	import { format_coverage_percent, type ConformanceGroup } from './benchmark_data.ts';
-	import { format_count } from './benchmark_display.ts';
+	import { format_count, format_language } from './benchmark_display.ts';
 
 	const {
 		groups
 	}: {
 		groups: Array<ConformanceGroup>;
 	} = $props();
-
-	const LANGUAGE_LABELS: Record<string, string> = {
-		svelte: 'Svelte',
-		typescript: 'TypeScript',
-		css: 'CSS'
-	};
 </script>
 
 {#each groups as group (group.language)}
 	<div class="mb_xl5">
 		<p class="mb_xs">
 			Parsing {format_count(group.files_total)}
-			{LANGUAGE_LABELS[group.language] ?? group.language} files
+			{format_language(group.language)} files
 		</p>
 		<table>
 			<thead>
 				<tr>
-					<th></th>
-					<th class="num">files accepted</th>
-					<th class="num">coverage</th>
+					<th scope="col"></th>
+					<th scope="col" class="num">files accepted</th>
+					<th scope="col" class="num">coverage</th>
 				</tr>
 			</thead>
 			<tbody>

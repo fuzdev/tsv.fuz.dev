@@ -10,12 +10,15 @@
 
 	const {
 		rows,
-		direction
+		direction,
+		label
 	}: {
 		// ordered so the first enabled row is the default baseline (callers lead with
 		// the canonical reference for speed, the smallest build for size)
 		rows: Array<BaselineRow>;
 		direction: BaselineDirection;
+		// names the group to assistive tech, which reads the bars as a table
+		label: string;
 	} = $props();
 
 	// the row currently acting as the baseline: the hovered row while the pointer is
@@ -28,7 +31,9 @@
 	const anchor_row = $derived(rows.find((r) => r.key === anchor_key));
 </script>
 
-<div class="column">
+<!-- a table to assistive tech, since the bar rows are a grid of spans rather than
+	a `<table>` (the bars want a fluid track column the table layout would fight) -->
+<div class="column" role="table" aria-label={label}>
 	{#each rows as row (row.key)}
 		{@const ratio =
 			!row.disabled && anchor_row && row.key !== anchor_key

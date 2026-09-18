@@ -33,7 +33,8 @@ export const format_ns = (ns: number): FormattedUnit => {
  */
 export const format_bytes = (bytes: number): FormattedUnit => {
 	if (bytes < 1_000) return { value: `${bytes}`, unit: 'B' };
-	if (bytes < 1_000_000) return { value: (bytes / 1_000).toFixed(0), unit: 'KB' };
+	// the KB tier ends where its rounding would print `1000`, as `format_ns`'s tiers do
+	if (bytes < 999_500) return { value: (bytes / 1_000).toFixed(0), unit: 'KB' };
 	return { value: (bytes / 1_000_000).toFixed(1), unit: 'MB' };
 };
 
@@ -69,11 +70,12 @@ export const format_speedup = (ratio: number): string =>
 	ratio >= 10 ? `${ratio.toFixed(1)}x` : `${ratio.toFixed(2)}x`;
 
 /**
- * Ratio formatting for the CLI tables' peak-RSS column: one decimal at every
- * magnitude. Peak RSS moves several percent run to run, so a second decimal
- * would print noise as if it were measured.
+ * Plain ratio formatting at one decimal for every magnitude (`2.3x`, `21.2x`) —
+ * the CLI tables' peak-RSS column and the binary-size groups' ratios. Peak RSS
+ * moves several percent run to run, so a second decimal would print noise as if
+ * it were measured, and sizes never take the signed treatment speeds do.
  */
-export const format_memory_ratio = (ratio: number): string => `${ratio.toFixed(1)}x`;
+export const format_ratio_plain = (ratio: number): string => `${ratio.toFixed(1)}x`;
 
 /**
  * Loose ratio formatting for prose, which reads better with fewer digits than a
@@ -160,6 +162,16 @@ const LABEL_OVERRIDES: Record<string, string> = {
 	'rsvelte-parse-skip-expr-loc': 'rsvelte-parse skip-expr-loc (node napi)'
 	// `postcss` needs no entry: it's plain JS with no binding to name, like `prettier`
 };
+
+/** The report's language keys as the page prints them, shared by every group heading. */
+export const LANGUAGE_LABELS: Record<string, string> = {
+	svelte: 'Svelte',
+	typescript: 'TypeScript',
+	css: 'CSS'
+};
+
+/** A report language key for display (`typescript` → `TypeScript`), verbatim when unknown. */
+export const format_language = (language: string): string => LANGUAGE_LABELS[language] ?? language;
 
 export const format_label = (name: string): string => {
 	const override = LABEL_OVERRIDES[name];

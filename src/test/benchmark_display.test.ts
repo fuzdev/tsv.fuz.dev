@@ -5,7 +5,8 @@ import {
 	format_corpus_source_files,
 	format_count,
 	format_label,
-	format_memory_ratio,
+	format_ratio_plain,
+	format_share_approx,
 	format_ns,
 	format_ratio_approx,
 	format_ratio_range
@@ -73,14 +74,28 @@ describe('format_bytes', () => {
 		assert.deepEqual(format_bytes(2_806_479), { value: '2.8', unit: 'MB' });
 		assert.deepEqual(format_bytes(44_645_975), { value: '44.6', unit: 'MB' });
 	});
+
+	test('the KB tier ends where it would round to 1000', () => {
+		assert.deepEqual(format_bytes(999_499), { value: '999', unit: 'KB' });
+		assert.deepEqual(format_bytes(999_500), { value: '1.0', unit: 'MB' });
+	});
 });
 
-describe('format_memory_ratio', () => {
+describe('format_share_approx', () => {
+	test('rounds a fraction to a whole percentage, dash when missing', () => {
+		assert.strictEqual(format_share_approx(0.3846), '38%');
+		assert.strictEqual(format_share_approx(0.0667), '7%');
+		assert.strictEqual(format_share_approx(1), '100%');
+		assert.strictEqual(format_share_approx(undefined), '—');
+	});
+});
+
+describe('format_ratio_plain', () => {
 	test('keeps one decimal at every magnitude', () => {
-		assert.strictEqual(format_memory_ratio(1), '1.0x');
-		assert.strictEqual(format_memory_ratio(6.5436), '6.5x');
-		assert.strictEqual(format_memory_ratio(21.2122), '21.2x');
-		assert.strictEqual(format_memory_ratio(0.2915), '0.3x');
+		assert.strictEqual(format_ratio_plain(1), '1.0x');
+		assert.strictEqual(format_ratio_plain(6.5436), '6.5x');
+		assert.strictEqual(format_ratio_plain(21.2122), '21.2x');
+		assert.strictEqual(format_ratio_plain(0.2915), '0.3x');
 	});
 });
 

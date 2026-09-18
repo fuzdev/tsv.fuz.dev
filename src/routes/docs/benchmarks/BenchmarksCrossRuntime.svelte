@@ -13,7 +13,7 @@
 		type CrossRuntimeReport
 	} from './benchmark_cross_runtime.ts';
 	import { format_unstable_readings } from './benchmark_data.ts';
-	import { category_color, format_speedup } from './benchmark_display.ts';
+	import { category_color, format_language, format_speedup } from './benchmark_display.ts';
 
 	const {
 		report
@@ -53,7 +53,7 @@
 			: `${runtime}'s report carries no ${name} row — not measured there`;
 
 	const group_label = (operation: string, language: string): string =>
-		`${operation === 'format' ? 'Format' : 'Parse'} ${language}`;
+		`${operation === 'format' ? 'Format' : 'Parse'} ${format_language(language)}`;
 
 	// the per-runtime timed counts in column order, for a row whose runtimes
 	// timed different file sets (see `CrossRuntimeDisplayRow.files_iterated_mismatch`)
@@ -88,7 +88,7 @@
 {/if}
 {#if unstable.length}
 	<aside class="mixed-vintage">
-		⚠ Some measurements were not stable, so every ratio through them is unreadable:
+		⚠ Some measurements were not stable, so every ratio through them is unreliable:
 		<ul class="unavailable">
 			{#each unstable as cell (cell.group + '/' + cell.name + '/' + cell.runtime)}
 				<li>
@@ -115,12 +115,12 @@
 		<table>
 			<thead>
 				<tr>
-					<th></th>
+					<th scope="col"></th>
 					{#each runtimes as runtime (runtime)}
-						<th class="num">{runtime}</th>
+						<th scope="col" class="num">{runtime}</th>
 					{/each}
 					{#each others as runtime (runtime)}
-						<th class="num">{runtime}/{base}</th>
+						<th scope="col" class="num">{runtime}/{base}</th>
 					{/each}
 				</tr>
 			</thead>
@@ -128,7 +128,8 @@
 				{#each group.rows as row (row.name)}
 					<tr>
 						<td>
-							<i class="swatch" style:background={category_color(row.category)}></i>
+							<i class="swatch" aria-hidden="true" style:background={category_color(row.category)}
+							></i>
 							{format_cross_runtime_label(row.name)}
 							{#if row.files_iterated_mismatch}
 								<small

@@ -21,8 +21,12 @@
 	// Display names for version keys whose underscore form isn't just hyphenation;
 	// everything else hyphenates (`oxc_parser` → `oxc-parser`).
 	const VERSION_LABELS: Record<string, string> = {
-		acorn_ts: 'acorn-typescript',
+		// Svelte's fork, a different npm package from the unscoped `acorn-typescript`
+		acorn_ts: '@sveltejs/acorn-typescript',
 		prettier_svelte: 'prettier-plugin-svelte',
+		// the tool name would read as the dprint CLI, which is a different version line
+		dprint: '@dprint/typescript',
+		rsvelte_fmt: '@rsvelte/fmt',
 		// the oxc-parser wasm row's binding, its own scoped package
 		oxc_parser_wasm: '@oxc-parser/binding-wasm32-wasi',
 		// the wasm binding is its own scoped package, not a hyphenated suffix
@@ -39,9 +43,7 @@
 
 	// every tool version the report carries, in report order, so a tool added
 	// upstream appears without a site edit — tsv itself renders under "run"
-	const versions = $derived(
-		Object.entries(baseline.versions).filter(([key, version]) => key !== 'tsv' && version != null)
-	);
+	const versions = $derived(Object.entries(baseline.versions).filter(([key]) => key !== 'tsv'));
 
 	const formatted_date = $derived(
 		new Date(baseline.timestamp).toLocaleDateString('en-US', {

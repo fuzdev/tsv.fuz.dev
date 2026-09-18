@@ -114,6 +114,12 @@ const SIZE_CAPABILITY_ORDER: ReadonlyArray<{
 	{ capability: 'parser', heading: 'Parser' }
 ];
 
+/** The measured oxfmt native addon — the label the tsv harness emits, half of both synthesized sums. */
+export const OXFMT_NATIVE_LABEL = 'oxfmt (napi)';
+
+/** The measured oxc-parser native addon — the label the tsv harness emits. */
+export const OXC_PARSER_NATIVE_LABEL = 'oxc-parser (napi)';
+
 /** Display label for the synthesized combined oxc full-toolchain build. */
 export const OXC_FULL_LABEL = 'oxc-parser + oxfmt (napi)';
 
@@ -149,7 +155,7 @@ const sum_binary_sizes = (
  * either half is missing (older baselines), and sums gzip only when both carry it.
  */
 const synthesize_oxc_full = (sizes: Array<BinarySize>): BinarySize | undefined =>
-	sum_binary_sizes(sizes, OXC_FULL_LABEL, 'oxc-parser (napi)', 'oxfmt (napi)');
+	sum_binary_sizes(sizes, OXC_FULL_LABEL, OXC_PARSER_NATIVE_LABEL, OXFMT_NATIVE_LABEL);
 
 /** The rsvelte-fmt binary on its own — the label the tsv harness emits. */
 export const RSVELTE_LABEL = 'rsvelte-fmt (binary)';
@@ -177,7 +183,7 @@ export const RSVELTE_INSTALL_LABEL = 'rsvelte-fmt + oxfmt (binary)';
  * `synthesize_oxc_full`.
  */
 const synthesize_rsvelte_install = (sizes: Array<BinarySize>): BinarySize | undefined =>
-	sum_binary_sizes(sizes, RSVELTE_INSTALL_LABEL, RSVELTE_LABEL, 'oxfmt (napi)');
+	sum_binary_sizes(sizes, RSVELTE_INSTALL_LABEL, RSVELTE_LABEL, OXFMT_NATIVE_LABEL);
 
 /**
  * Groups the binary sizes by capability (full / formatter / parser), each group
@@ -212,7 +218,7 @@ export const derive_size_groups = (sizes: Array<BinarySize>): Array<SizeCapabili
 			category: categorize_size(s.label)
 		}));
 		if (capability === 'formatter' && !entries.some((e) => e.label === OXFMT_WASM_LABEL)) {
-			const native_index = entries.findIndex((e) => e.label === 'oxfmt (napi)');
+			const native_index = entries.findIndex((e) => e.label === OXFMT_NATIVE_LABEL);
 			const placeholder: SizeDisplayEntry = {
 				label: OXFMT_WASM_LABEL,
 				bytes: 0,

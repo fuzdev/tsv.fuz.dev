@@ -40,6 +40,6 @@
 {#each size_groups as group (group.capability)}
 	<div class="mb_lg">
 		<h3>{group.heading}</h3>
-		<BenchmarksBaselineGroup rows={to_rows(group)} direction="size" />
+		<BenchmarksBaselineGroup rows={to_rows(group)} direction="size" label={group.heading} />
 	</div>
 {/each}

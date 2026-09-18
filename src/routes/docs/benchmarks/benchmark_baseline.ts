@@ -3,7 +3,7 @@
 // the speed (format/parse) and size groups.
 
 import type { ImplementationCategory } from './benchmark_data.ts';
-import type { FormattedUnit } from './benchmark_display.ts';
+import { format_ratio_plain, type FormattedUnit } from './benchmark_display.ts';
 
 /**
  * Signed speedup: entries at or above the anchor read as a plain multiple
@@ -47,7 +47,7 @@ const size_ratio_color = (ratio: number): string => {
  * `speed` group (format/parse) reads its anchor as a reference speed — faster
  * entries are positive multiples, slower ones negative (`format_speedup_signed` /
  * `speedup_color`). A `size` group reads its anchor as a reference size — bigger
- * builds are multiples ≥ 1 (`format_size_ratio` / `size_ratio_color`). The two
+ * builds are multiples ≥ 1 (`format_ratio_plain` / `size_ratio_color`). The two
  * ratios are reciprocals, which is exactly why one direction flag suffices.
  */
 export type BaselineDirection = 'speed' | 'size';
@@ -59,12 +59,9 @@ export const compute_baseline_ratio = (
 	anchor_raw: number
 ): number => (direction === 'speed' ? anchor_raw / entry_raw : entry_raw / anchor_raw);
 
-/** Plain size ratio (`2.3x`) — its own formatter since sizes never take the signed treatment. */
-const format_size_ratio = (ratio: number): string => `${ratio.toFixed(1)}x`;
-
 /** Formats a baseline ratio for display in the given direction. */
 export const format_baseline_ratio = (direction: BaselineDirection, ratio: number): string =>
-	direction === 'speed' ? format_speedup_signed(ratio) : format_size_ratio(ratio);
+	direction === 'speed' ? format_speedup_signed(ratio) : format_ratio_plain(ratio);
 
 /** Color for a baseline ratio in the given direction. */
 export const baseline_ratio_color = (direction: BaselineDirection, ratio: number): string =>

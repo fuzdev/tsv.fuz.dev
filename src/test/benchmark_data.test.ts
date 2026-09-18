@@ -111,7 +111,14 @@ describe('is_entry_unstable', () => {
 
 	test('an untimed row is not unstable, and missing raw fields are silence', () => {
 		assert.isFalse(is_entry_unstable(entry({ cv: null, mean_ns: null })));
+		assert.isFalse(is_entry_unstable(entry({ cv: null, mean_ns: null, drift: 0.4 })));
 		assert.isFalse(is_entry_unstable(entry({ cv_raw: null, drift: null, raw_sample_size: null })));
+	});
+
+	test('a timed row missing only its cleaned cv is still checked by drift and raw cv', () => {
+		assert.isTrue(is_entry_unstable(entry({ cv: null, drift: 0.4 })));
+		assert.isTrue(is_entry_unstable(entry({ cv: null, cv_raw: 0.5, raw_sample_size: 10 })));
+		assert.isFalse(is_entry_unstable(entry({ cv: null })));
 	});
 });
 

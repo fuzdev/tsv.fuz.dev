@@ -793,8 +793,10 @@ const RAW_CV_SAMPLE_CEILING = 30;
  * unstable, it is untimed.
  */
 export const is_entry_unstable = (entry: BaselineEntry): boolean => {
-	if (entry.cv == null) return false;
-	if (entry.cv >= UNSTABLE_CV_THRESHOLD) return true;
+	// untimed is `mean_ns`, not `cv` — a timed row missing its cleaned cv still
+	// carries a raw cv and a drift to check
+	if (entry.mean_ns == null) return false;
+	if (entry.cv != null && entry.cv >= UNSTABLE_CV_THRESHOLD) return true;
 	if (
 		entry.cv_raw != null &&
 		entry.cv_raw >= UNSTABLE_CV_THRESHOLD &&

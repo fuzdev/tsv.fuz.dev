@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { format_memory_ratio, format_speedup } from './benchmark_display.ts';
+	import { format_ratio_plain, format_speedup } from './benchmark_display.ts';
 	import {
 		cli_default_anchor_label,
 		cli_label_is_tsv,
@@ -101,12 +101,12 @@
 				<table>
 					<thead>
 						<tr>
-							<th class="formatter">formatter</th>
-							<th>time</th>
-							<th>vs baseline (time)</th>
-							<th>vs baseline (CPU work)</th>
-							<th>peak RSS</th>
-							<th>vs baseline (RSS)</th>
+							<th scope="col" class="formatter">formatter</th>
+							<th scope="col">time</th>
+							<th scope="col">vs baseline (time)</th>
+							<th scope="col">vs baseline (CPU work)</th>
+							<th scope="col">peak RSS</th>
+							<th scope="col">vs baseline (RSS)</th>
 						</tr>
 					</thead>
 					<tbody>
@@ -137,7 +137,7 @@
 										row,
 										row.memory_ratio,
 										row.result.memory_mb != null,
-										format_memory_ratio
+										format_ratio_plain
 									)}
 								</td>
 							</tr>

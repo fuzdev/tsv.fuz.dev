@@ -52,19 +52,22 @@
 	);
 </script>
 
-<!-- the hover handlers only re-baseline the group's ratios — a non-essential
-	visual aid over data that's fully visible regardless, with the default anchor
-	serving keyboard and no-hover users — so the row stays presentational -->
-<!-- svelte-ignore a11y_no_static_element_interactions -->
+<!-- the grid is a table to assistive tech (its parent is the `role="table"`):
+	each row is one tool, its cells the label, measurement, annotation, and ratio;
+	the bar itself only repeats the measurement visually, so it is hidden. The
+	hover handlers only re-baseline the group's ratios — a non-essential visual
+	aid over data that's fully visible regardless, with the default anchor serving
+	keyboard and no-hover users — so the row carries no focus path -->
 <div
 	class="bar-row"
 	class:has-annotation={annotation != null}
 	class:disabled
+	role="row"
 	onmouseenter={on_enter}
 	onmouseleave={on_leave}
 >
-	<span class="bar-label">{display_label}</span>
-	<div class="bar-track">
+	<span class="bar-label" role="rowheader">{display_label}</span>
+	<div class="bar-track" role="cell" aria-hidden="true">
 		{#if !disabled}
 			<div
 				class="bar-fill"
@@ -73,7 +76,7 @@
 			></div>
 		{/if}
 	</div>
-	<span class="bar-value">
+	<span class="bar-value" role="cell">
 		{#if disabled}
 			<span class="text_40">{coverage_only ? 'not timed' : 'n/a'}</span>
 		{:else}
@@ -81,9 +84,9 @@
 		{/if}
 	</span>
 	{#if annotation != null}
-		<span class="bar-annotation text_50">{annotation}</span>
+		<span class="bar-annotation text_50" role="cell">{annotation}</span>
 	{/if}
-	<span class="bar-ratio" style:color={ratio_color}>
+	<span class="bar-ratio" role="cell" style:color={ratio_color}>
 		{#if !disabled}{ratio_text}{/if}
 	</span>
 </div>

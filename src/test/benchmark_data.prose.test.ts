@@ -69,6 +69,8 @@ describe('prose ratios resolve', () => {
 		// it, true only while the loc cost outruns tsv's span-only lead, so it is gated
 		// as its own pair in the direction the sentence reads
 		['parse/typescript', 'tsv-json', 'oxc-parser'],
+		// "(and behind swc's ...)" — the same composite, against swc's span-only AST
+		['parse/typescript', 'tsv-json', 'swc'],
 		['parse/svelte', 'svelte/compiler', 'tsv-json'],
 		['parse/svelte', 'rsvelte-parse', 'tsv-json'],
 		['parse/css', 'tsv-json', 'svelte/compiler'],
@@ -218,7 +220,10 @@ describe('prose ratios resolve', () => {
 		assert.isDefined(peak);
 		for (const scenario of benchmarks_cli.scenarios.filter((s) => !s.tsv_only)) {
 			for (const r of cli_comparison_results(scenario)) {
-				if (r.memory_mb === null) continue;
+				// "every other tool in every scenario": the unscoped memory range skips a
+				// row without a figure, so a missed memory pass would narrow the claim
+				// silently rather than void it — every competitor row must carry one
+				assert.isNotNull(r.memory_mb, `${scenario.key}: ${r.label} has no memory figure`);
 				assert.isBelow(peak, r.memory_mb, `${scenario.key}: ${r.label}`);
 			}
 		}
