@@ -66,10 +66,11 @@ reconstruct_locations(ast, 'const x = 1;');`;
 		</ol>
 		<p>
 			See the <TomeLink slug="benchmarks" /> for measurements. Compared to Oxc and Biome, tsv is
-			smaller and faster at parsing and formatting its supported languages (parsing compared on the
-			same AST payload), but lacks their features and broad language support. One reason for tsv to
-			exist is to help find the performance bonuses left on the table in the Web ecosystem's
-			increasingly-native implementations.
+			smaller and faster at formatting its supported languages, and faster than Oxc at parsing
+			TypeScript on the same span-only AST payload (Biome exposes no parser to compare), but lacks
+			their features and broad language support. One reason for tsv to exist is to help find the
+			performance bonuses left on the table in the Web ecosystem's increasingly-native
+			implementations.
 		</p>
 		<p>
 			tsv is near production-ready, with a long tail of rare bugs (and numerous fixes to bugs in
@@ -170,8 +171,8 @@ reconstruct_locations(ast, 'const x = 1;');`;
 			<p>
 				Passing <code>{'{locations: false}'}</code> is faster than the default, because there's
 				fewer bytes to emit and parse. Even when you need line/column, reconstructing in JS beats
-				the <code>loc</code>-bearing wire end-to-end by ~1.7x on TypeScript (~2.2x if you need few
-				or none), as measured in
+				the <code>loc</code>-bearing wire end-to-end by ~1.7x on TypeScript (~2.2x if you need
+				none), as measured in
 				<a href="https://github.com/fuzdev/tsv/blob/main/benches/js/results/report.node.md">
 					tsv's bench report
 				</a>. tsv's default emits <code>loc</code> so that the bare call is a drop-in for Svelte's

@@ -304,6 +304,21 @@ describe('benchmarks.json shape', () => {
 		assert.deepStrictEqual(benchmarks_json.variant_parity, []);
 		assert.deepStrictEqual(benchmarks_json.unavailable, []);
 		assert.deepStrictEqual(benchmarks_json.output_digest_ungraded, {});
+		// the size table's composition disclosure: a build the bench expected but
+		// didn't find on disk drops its row silently, and the page renders no note
+		// for it, so an absent one has to fail here
+		assert.deepStrictEqual(benchmarks_json.binary_sizes_absent ?? [], []);
+	});
+
+	test('every timed row carries the sweep counts the details prose quotes', () => {
+		// `+page.svelte` reads the sweep floor and the cleaned sample-size span off
+		// every timed entry; a report without them would print `Infinity` mid-sentence
+		for (const entry of benchmarks_json.entries) {
+			if (entry.mean_ns == null) continue;
+			const label = `${entry.group}/${entry.name}`;
+			assert.isAbove(entry.min_iterations ?? 0, 0, label);
+			assert.isAbove(entry.sample_size ?? 0, 0, label);
+		}
 	});
 
 	test('every report row and size label maps to an explicit category', () => {
@@ -358,6 +373,19 @@ describe('benchmarks_conformance.json shape', () => {
 		assert.deepStrictEqual(benchmarks_conformance_json.unavailable, []);
 		for (const finding of benchmarks_conformance_json.variant_parity ?? []) {
 			assert.strictEqual(finding.output_mismatch ?? 0, 0, `${finding.group}/${finding.impl}`);
+		}
+	});
+
+	test('every impl of a per-source slice reports the same slice total', () => {
+		// `derive_conformance_slice` reads the slice total off the first impl, and
+		// the share prose (`~81% of it is the test262 slice`) rests on it
+		for (const [group, sources] of Object.entries(
+			benchmarks_conformance_json.coverage_by_source ?? {}
+		)) {
+			for (const [source, by_impl] of Object.entries(sources)) {
+				const totals = new Set(Object.values(by_impl).map((cell) => cell.total));
+				assert.strictEqual(totals.size, 1, `${group} ${source}: ${[...totals].join(', ')}`);
+			}
 		}
 	});
 

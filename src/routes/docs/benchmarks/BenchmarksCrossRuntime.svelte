@@ -135,7 +135,7 @@
 									class="files-mismatch"
 									title="the runtimes timed different file sets ({runtimes.join(
 										'/'
-									)}) — each runtime times the files its own binding accepted, so part of this row's ratio is file-set composition, not runtime"
+									)}) — each runtime times the files every implementation in the group accepted under it, so part of this row's ratio is file-set composition, not runtime"
 								>
 									⚠ files {files_mismatch_label(row.files_iterated_mismatch)}
 								</small>
@@ -187,12 +187,13 @@
 	parity, not a runtime effect. A <code>fail</code> is a row that runtime contributed no number for
 	— an implementation it can't load (listed above when the report records it), or one its report
 	doesn't carry. A row marked <code>⚠ files</code> was timed on a different file set per runtime
-	(each runtime times the files its own binding accepted), so part of its ratio is corpus
-	composition rather than runtime. tsv's <code>native</code> rows load each runtime's idiomatic
-	binding of the same engine — the N-API addon under <code>node</code> and <code>bun</code>, the
-	C-FFI library under <code>deno</code> — so their <code>deno</code> column is a first-class
-	FFI-vs-N-API comparison, not a re-run of the same binding. The other tools' <code>native</code>
-	rows are their npm N-API addons under all three runtimes.
+	(each runtime times the files every implementation in the group accepted under it, so one tool's
+	rejection shrinks the set for all), so part of its ratio is corpus composition rather than
+	runtime. tsv's <code>native</code> rows load each runtime's idiomatic binding of the same engine —
+	the N-API addon under <code>node</code> and <code>bun</code>, the C-FFI library under
+	<code>deno</code> — so their <code>deno</code> column is a first-class FFI-vs-N-API comparison,
+	not a re-run of the same binding. The other tools' <code>native</code> rows are their npm N-API
+	addons under all three runtimes.
 </p>
 
 <style>

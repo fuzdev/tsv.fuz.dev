@@ -882,8 +882,9 @@ export const benchmark_speedup = (
 ): number | undefined => {
 	const find = (name: string) => baseline.entries.find((e) => e.group === group && e.name === name);
 	// a coverage-only report carries null timings, so both sides must be real
+	// (and nonzero: a zero mean is no measurement, not an infinitely fast one)
 	const a = find(slower)?.mean_ns;
 	const b = find(faster)?.mean_ns;
-	if (a == null || !b) return undefined;
+	if (!a || !b) return undefined;
 	return a / b;
 };

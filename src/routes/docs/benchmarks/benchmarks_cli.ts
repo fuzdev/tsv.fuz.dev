@@ -133,14 +133,17 @@ export const CLI_TSV_NPM_LABEL = 'tsv via npm dispatcher';
 /** The delivery scenario's WASM row, as displayed. */
 export const CLI_TSV_WASM_LABEL = 'tsv-wasm';
 
-const CLI_TSV_LABELS: ReadonlySet<string> = new Set([
-	CLI_TSV_LABEL,
-	CLI_TSV_NPM_LABEL,
-	CLI_TSV_WASM_LABEL
-]);
-
-/** Whether a row is tsv itself — the native binary or one of its other distributions. */
-export const cli_label_is_tsv = (label: string): boolean => CLI_TSV_LABELS.has(label);
+/**
+ * Whether a row is tsv itself — the native binary or one of its other
+ * distributions. By prefix rather than a closed set, so a distribution row the
+ * harness adds later (another binding, another launcher) is still tsv and never
+ * slips into the "every other tool" ranges as a competitor: the harness names its
+ * tsv rows `tsv`, `tsv-npm`, `tsv-wasm`, and the display labels keep that prefix.
+ */
+export const cli_label_is_tsv = (label: string): boolean =>
+	label === CLI_TSV_LABEL ||
+	label.startsWith(`${CLI_TSV_LABEL}-`) ||
+	label.startsWith(`${CLI_TSV_LABEL} `);
 
 /**
  * The prose framing for each scenario, keyed by its generated scenario id — the
@@ -417,11 +420,14 @@ export const cli_comparison_results = (
  * page's prose quotes. Unscoped, it skips the tsv-only scenarios, whose rows are
  * tsv's own distributions rather than "every other tool"; name one explicitly to
  * span it. An optional `labels` list narrows the span to just those formatters,
- * so a sentence naming specific tools quotes a range measured over exactly them,
- * and `baseline_label` takes the ratios against the dispatcher row instead of
- * the bare binary.
+ * so a sentence naming specific tools quotes a range measured over exactly them
+ * — every named tool must resolve in every spanned scenario, or the range is
+ * `undefined` rather than quietly narrower than the sentence claims — and
+ * `baseline_label` takes the ratios against the dispatcher row instead of the
+ * bare binary.
  *
- * @returns the low and high ratio, or `undefined` when nothing was measured
+ * @returns the low and high ratio, or `undefined` when nothing was measured, or
+ * when a named tool or the baseline row is missing from a spanned scenario
  */
 export const cli_memory_ratio_range = (
 	scenario_key?: string,
@@ -431,12 +437,23 @@ export const cli_memory_ratio_range = (
 	const scenarios = benchmarks_cli.scenarios.filter((s) =>
 		scenario_key ? s.key === scenario_key : !s.tsv_only
 	);
-	const ratios = scenarios.flatMap((scenario) =>
-		cli_comparison_results(scenario)
-			.filter((r) => !labels || labels.includes(r.label))
-			.map((r) => cli_ratio_between(scenario.results, r.label, baseline_label, 'memory_mb'))
-			.filter((ratio) => ratio !== undefined)
-	);
+	const ratios: Array<number> = [];
+	for (const scenario of scenarios) {
+		const compared = cli_comparison_results(scenario).filter(
+			(r) => !labels || labels.includes(r.label)
+		);
+		if (labels && compared.length !== labels.length) return undefined;
+		for (const r of compared) {
+			const ratio = cli_ratio_between(scenario.results, r.label, baseline_label, 'memory_mb');
+			if (ratio === undefined) {
+				// a named tool without a figure, or a scenario without the baseline row,
+				// would silently narrow the span the sentence claims
+				if (labels || !scenario.results.some((s) => s.label === baseline_label)) return undefined;
+				continue;
+			}
+			ratios.push(ratio);
+		}
+	}
 	if (ratios.length === 0) return undefined;
 	return { min: Math.min(...ratios), max: Math.max(...ratios) };
 };

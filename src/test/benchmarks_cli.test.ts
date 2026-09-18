@@ -5,6 +5,8 @@ import {
 	benchmarks_cli,
 	cli_comparison_results,
 	cli_default_anchor_label,
+	cli_label_is_tsv,
+	cli_memory_ratio_range,
 	cli_ratio_between,
 	cli_ratio_vs_tsv,
 	CLI_DELIVERY_KEY,
@@ -251,6 +253,24 @@ describe('cli ratios over a scenario with two tsv rows', () => {
 		);
 	});
 
+	test('a tsv distribution the harness adds later is still tsv, by prefix', () => {
+		// a closed label set would admit a new `tsv-*` row as a competitor, and the
+		// "less memory than every other tool" ranges would quietly span it
+		for (const label of [CLI_TSV_LABEL, CLI_TSV_NPM_LABEL, CLI_TSV_WASM_LABEL, 'tsv-bun']) {
+			assert.isTrue(cli_label_is_tsv(label), label);
+		}
+		for (const label of ['oxfmt', 'biome', 'rsvelte-fmt', 'tsvelte', 'prettier + oxc-parser']) {
+			assert.isFalse(cli_label_is_tsv(label), label);
+		}
+		assert.deepEqual(
+			cli_comparison_results({
+				results: [...results, result('tsv-bun', 30, 20)],
+				tsv_only: false
+			}).map((r) => r.label),
+			['oxfmt', 'biome']
+		);
+	});
+
 	test('a tsv-only scenario compares native tsv with its own distributions', () => {
 		const delivery = [result('tsv', 20, 10), results[1]!, result(CLI_TSV_WASM_LABEL, 160, 120)];
 		assert.deepEqual(
@@ -271,6 +291,17 @@ describe('cli ratios over a scenario with two tsv rows', () => {
 		// the baseline row itself missing
 		const without_npm = results.filter((r) => r.label !== CLI_TSV_NPM_LABEL);
 		assert.isUndefined(cli_ratio_between(without_npm, 'oxfmt', CLI_TSV_NPM_LABEL, 'wall_ms'));
+	});
+});
+
+describe('cli_memory_ratio_range', () => {
+	test('a named tool missing from a spanned scenario voids the range rather than narrowing it', () => {
+		// the TLDR's "less memory than either" names two tools; a renamed row must not
+		// leave the sentence quoting a range measured over one
+		const key = CLI_SINGLE_FILE_KEY;
+		assert.isDefined(cli_memory_ratio_range(key, ['oxfmt', 'biome']));
+		assert.isUndefined(cli_memory_ratio_range(key, ['oxfmt', 'biome-renamed']));
+		assert.isUndefined(cli_memory_ratio_range(key, ['oxfmt'], 'tsv-renamed'));
 	});
 });
 

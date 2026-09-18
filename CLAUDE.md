@@ -171,7 +171,7 @@ Key files in `src/routes/docs/benchmarks/`:
 - `benchmark_data.ts` — TypeScript types matching the per-runtime JSON format, plus the format/parse, conformance, stability, and corpus derivations
 - `benchmark_sizes.ts` — the binary-size domain: category and capability grouping, and the synthesized combined builds
 - `benchmark_cross_runtime.ts` — the combined cross-runtime report: its types, derivations, and display helpers
-- `benchmark_display.ts` — value formatters (times, sizes, ratios), row labels, and per-category colors shared across the page
+- `benchmark_display.ts` — value formatters (times, sizes, ratios), row labels, and per-category colors shared across the page; sizes print in decimal units (1 KB = 1,000 B) so an artifact reads the same here as in tsv's own report
 - `benchmark_baseline.ts` — the hover-to-rebaseline ratios: `BaselineRow`, and the per-direction ratio, format, and color scales
 - `formatter_benchmark_data.ts` — the report's Zod schemas and types, plus `parse_formatter_benchmarks`, which validates the harness's `results.json` and keeps tsv's scenarios
 - `benchmarks_cli.ts` — shapes `benchmarks_formatters.json` for `BenchmarksCli.svelte` and owns the per-scenario prose; the numbers are all generated

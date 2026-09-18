@@ -160,7 +160,7 @@
 			{/if}
 		{/if}
 		{#if scenario.unshimmed}
-			<p class="aborted">{scenario.unshimmed}</p>
+			<p class="versions">{scenario.unshimmed}</p>
 		{/if}
 		{#if scenario.aborted}
 			<!-- an abort after timing keeps its table, so the sentence about withheld

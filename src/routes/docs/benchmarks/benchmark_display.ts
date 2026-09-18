@@ -27,10 +27,14 @@ export const format_ns = (ns: number): FormattedUnit => {
 	return { value: format_count(ms), unit: 'ms' };
 };
 
+/**
+ * A byte count in decimal units (1 KB = 1,000 B), as tsv's own report prints
+ * its binary sizes, so an artifact reads the same size here and there.
+ */
 export const format_bytes = (bytes: number): FormattedUnit => {
-	if (bytes < 1_024) return { value: `${bytes}`, unit: 'B' };
-	if (bytes < 1_048_576) return { value: (bytes / 1_024).toFixed(0), unit: 'KB' };
-	return { value: (bytes / 1_048_576).toFixed(1), unit: 'MB' };
+	if (bytes < 1_000) return { value: `${bytes}`, unit: 'B' };
+	if (bytes < 1_000_000) return { value: (bytes / 1_000).toFixed(0), unit: 'KB' };
+	return { value: (bytes / 1_000_000).toFixed(1), unit: 'MB' };
 };
 
 /**
@@ -91,10 +95,14 @@ export const format_share_approx = (fraction: number | undefined): string =>
  * An inclusive ratio range for prose (`2.9–4.6x`, `6–21x`), FLOORED at both ends
  * — to one decimal under 10, to a whole number from 10 — so a "less memory" claim
  * never overstates either bound while keeping the precision `format_ratio_approx`
- * gives a single ratio.
+ * gives a single ratio. Two ends that floor to the same figure collapse to it
+ * (`2.9x`, never `2.9–2.9x`).
  */
-export const format_ratio_range = (min: number, max: number): string =>
-	`${floor_ratio(min)}–${floor_ratio(max)}x`;
+export const format_ratio_range = (min: number, max: number): string => {
+	const low = floor_ratio(min);
+	const high = floor_ratio(max);
+	return low === high ? `${low}x` : `${low}–${high}x`;
+};
 
 const floor_ratio = (ratio: number): string =>
 	ratio >= 10 ? `${Math.floor(ratio)}` : (Math.floor(ratio * 10) / 10).toFixed(1);

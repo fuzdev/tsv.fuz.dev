@@ -1,6 +1,7 @@
 import { assert, describe, test } from 'vitest';
 
 import {
+	format_bytes,
 	format_corpus_source_files,
 	format_count,
 	format_label,
@@ -56,6 +57,21 @@ describe('prose ratio formatting', () => {
 		assert.strictEqual(format_ratio_range(2.95, 4.62), '2.9–4.6x');
 		// from 10 the decimal goes, as `format_ratio_approx` drops it
 		assert.strictEqual(format_ratio_range(6.54, 21.21), '6.5–21x');
+	});
+
+	test('a range whose ends floor to the same figure collapses to one', () => {
+		assert.strictEqual(format_ratio_range(2.91, 2.99), '2.9x');
+		assert.strictEqual(format_ratio_range(12.1, 12.9), '12x');
+	});
+});
+
+describe('format_bytes', () => {
+	test('uses decimal units, as tsv’s own report does', () => {
+		assert.deepEqual(format_bytes(999), { value: '999', unit: 'B' });
+		assert.deepEqual(format_bytes(1_000), { value: '1', unit: 'KB' });
+		assert.deepEqual(format_bytes(716_600), { value: '717', unit: 'KB' });
+		assert.deepEqual(format_bytes(2_806_479), { value: '2.8', unit: 'MB' });
+		assert.deepEqual(format_bytes(44_645_975), { value: '44.6', unit: 'MB' });
 	});
 });
 

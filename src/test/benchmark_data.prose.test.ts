@@ -4,9 +4,11 @@ import { benchmarks_json } from '$routes/docs/benchmarks/benchmarks.ts';
 import { benchmarks_cross_runtime_json } from '$routes/docs/benchmarks/benchmarks_cross_runtime.ts';
 import { benchmarks_conformance_json } from '$routes/docs/benchmarks/benchmarks_conformance.ts';
 import { benchmarks_formatters_json } from '$routes/docs/benchmarks/benchmarks_formatters.ts';
+import { format_ratio_approx } from '$routes/docs/benchmarks/benchmark_display.ts';
 import {
 	benchmarks_cli,
 	cli_comparison_results,
+	cli_label_is_tsv,
 	cli_memory_ratio_range,
 	cli_scenario_find,
 	cli_speedup_vs_tsv,
@@ -34,6 +36,17 @@ import {
 // The page's prose quotes ratios computed from the reports rather than
 // hand-written numbers, so a renamed entry or a dropped scenario would render
 // `—` mid-sentence instead of failing. These gate every pair the copy names.
+/**
+ * A ratio rendered inside a "~Nx faster than" sentence must clear 1 by enough
+ * to print as one: `format_ratio_approx` rounds to one decimal, so a ratio in
+ * `[1, 1.05)` passes an `isAbove(1)` gate and still renders "~1.0x faster", a
+ * claim of nothing.
+ */
+const assert_reads_faster = (ratio: number, label: string): void => {
+	assert.isAbove(ratio, 1, label);
+	assert.notStrictEqual(format_ratio_approx(ratio), '1.0x', `${label} renders as ~1.0x`);
+};
+
 describe('prose ratios resolve', () => {
 	// `[group, slower, faster]` in the direction each sentence reads — the copy says
 	// "X faster than" for the pairs tsv leads and "slower than" / "Y is faster than
@@ -66,7 +79,7 @@ describe('prose ratios resolve', () => {
 		for (const [group, slower, faster] of IN_PROCESS_PAIRS) {
 			const ratio = benchmark_speedup(benchmarks_json, group, slower, faster);
 			assert.isDefined(ratio, `${group}: ${slower} vs ${faster}`);
-			assert.isAbove(ratio, 1, `${group}: ${slower} vs ${faster}`);
+			assert_reads_faster(ratio, `${group}: ${slower} vs ${faster}`);
 		}
 	});
 
@@ -163,7 +176,7 @@ describe('prose ratios resolve', () => {
 			for (const label of ['oxfmt', 'biome']) {
 				const ratio = cli_speedup_vs_tsv_npm(key, label, 'wall_ms');
 				assert.isDefined(ratio, `${key}: ${label}`);
-				assert.isAbove(ratio, 1, `${key}: ${label}`);
+				assert_reads_faster(ratio, `${key}: ${label}`);
 			}
 		}
 		const memory = cli_memory_ratio_range(CLI_TS_REPO_KEY, ['oxfmt', 'biome'], CLI_TSV_NPM_LABEL);
@@ -244,7 +257,7 @@ describe('prose ratios resolve', () => {
 				[bare('wall_ms'), 'bare wall_ms'],
 				[bare('cpu_ms'), 'bare cpu_ms']
 			] as const) {
-				assert.isAbove(ratio, 1, `${label}: ${name} reads "faster than" but is below 1`);
+				assert_reads_faster(ratio, `${label}: ${name}`);
 			}
 		}
 		// "which is Node's startup rather than the engines ... a large share of a
@@ -324,7 +337,7 @@ describe('prose ratios resolve', () => {
 		assert(delivery, `no generated scenario has id "${CLI_DELIVERY_KEY}"`);
 		assert.isTrue(delivery.tsv_only);
 		for (const r of delivery.results) {
-			assert.ok(r.label.startsWith('tsv'), `${CLI_DELIVERY_KEY} carries a non-tsv row: ${r.label}`);
+			assert.ok(cli_label_is_tsv(r.label), `${CLI_DELIVERY_KEY} carries a non-tsv row: ${r.label}`);
 		}
 		const competitor_keys = benchmarks_cli.scenarios.filter((s) => !s.tsv_only).map((s) => s.key);
 		assert.isNotEmpty(competitor_keys);
