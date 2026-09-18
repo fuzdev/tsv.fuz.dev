@@ -31,8 +31,16 @@ describe('format_label', () => {
 describe('format_ns', () => {
 	test('the µs tier never prints 1000', () => {
 		assert.deepEqual(format_ns(999_499), { value: '999', unit: 'µs' });
-		assert.deepEqual(format_ns(999_500), { value: '1', unit: 'ms' });
-		assert.deepEqual(format_ns(1_000_000), { value: '1', unit: 'ms' });
+		assert.deepEqual(format_ns(999_500), { value: '1.0', unit: 'ms' });
+		assert.deepEqual(format_ns(1_000_000), { value: '1.0', unit: 'ms' });
+	});
+
+	test('the ms tier keeps one decimal under 10 ms and never prints 10.0', () => {
+		// a 3.9 ms row against an 11.3 ms anchor must not print as `4` and `11`
+		assert.deepEqual(format_ns(3_900_000), { value: '3.9', unit: 'ms' });
+		assert.deepEqual(format_ns(9_949_999), { value: '9.9', unit: 'ms' });
+		assert.deepEqual(format_ns(9_950_000), { value: '10', unit: 'ms' });
+		assert.deepEqual(format_ns(1_234_000_000), { value: '1,234', unit: 'ms' });
 	});
 });
 

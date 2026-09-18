@@ -262,6 +262,9 @@ export interface BaselineVersions {
 	// `@swc/core` — the TypeScript/JS parser row. Absent on reports produced
 	// before it.
 	swc?: string;
+	// `typescript` — the engine behind the `tsc` row, which runs on the conformance
+	// surface alone, so the perf reports never carry it.
+	tsc?: string;
 }
 
 export interface BinarySize {
@@ -491,6 +494,9 @@ export const derive_benchmark_groups = (baseline: BenchmarkBaseline): Array<Benc
 		// anchor, then the cross-tool rows, tsv's json wires, then tsv's internal engine
 		display_entries.sort(compare_speed_entries);
 
+		// the timed set is the per-group intersection, so every timed row carries the
+		// same count (a shape test pins that); the min is the intersection if they
+		// ever diverge, where the max would overstate what the slowest row timed
 		const iterated_counts = entries
 			.map((e) => e.files_iterated)
 			.filter((v): v is number => v != null);
@@ -499,7 +505,7 @@ export const derive_benchmark_groups = (baseline: BenchmarkBaseline): Array<Benc
 			language,
 			entries: display_entries,
 			canonical_entry: display_entries.find((e) => e.category === 'canonical'),
-			files_iterated: iterated_counts.length > 0 ? Math.max(...iterated_counts) : null
+			files_iterated: iterated_counts.length > 0 ? Math.min(...iterated_counts) : null
 		});
 	}
 

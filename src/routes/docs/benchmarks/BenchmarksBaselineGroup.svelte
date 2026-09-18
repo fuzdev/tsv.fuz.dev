@@ -42,7 +42,7 @@
 			annotation={row.annotation}
 			disabled={row.disabled}
 			coverage_only={row.coverage_only}
-			ratio_text={ratio != null ? format_baseline_ratio(direction, ratio) : '1.0x'}
+			ratio_text={format_baseline_ratio(direction, ratio ?? 1)}
 			ratio_color={ratio != null ? baseline_ratio_color(direction, ratio) : 'var(--text_40)'}
 			on_enter={row.disabled ? undefined : () => (hovered_key = row.key)}
 			on_leave={() => (hovered_key = undefined)}

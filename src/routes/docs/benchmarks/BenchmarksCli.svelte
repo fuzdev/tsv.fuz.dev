@@ -102,10 +102,10 @@
 						<tr>
 							<th class="formatter">formatter</th>
 							<th>time</th>
-							<th>vs baseline</th>
+							<th>vs baseline (time)</th>
 							<th>vs baseline (CPU work)</th>
 							<th>peak RSS</th>
-							<th>vs baseline</th>
+							<th>vs baseline (RSS)</th>
 						</tr>
 					</thead>
 					<tbody>
@@ -162,9 +162,14 @@
 			<p class="aborted">{scenario.unshimmed}</p>
 		{/if}
 		{#if scenario.aborted}
+			<!-- an abort after timing keeps its table, so the sentence about withheld
+				numbers belongs only under a scenario that has none -->
 			<p class="aborted">
-				{scenario.aborted} The harness aborts a scenario rather than publish numbers its formatters
-				didn't earn on the same work, and this page shows the abort rather than dropping it.
+				{scenario.aborted}
+				{#if rows.length === 0}
+					The harness aborts a scenario rather than publish numbers its formatters didn't earn on
+					the same work, and this page shows the abort rather than dropping it.
+				{/if}
 			</p>
 		{/if}
 	</div>

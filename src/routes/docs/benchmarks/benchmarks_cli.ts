@@ -30,7 +30,7 @@ import { benchmarks_formatters_json } from './benchmarks_formatters.ts';
 import type { FormatterScenario } from './formatter_benchmark_data.ts';
 
 export interface CliFormatterResult {
-	/** Display label; `tsv` is the reference row every ratio is computed against. */
+	/** Display label — the name a table's ratios are anchored by (see `cli_default_anchor_label`). */
 	label: string;
 	/** hyperfine wall-clock mean, in milliseconds — what you experience typing the command. */
 	wall_ms: number;
@@ -55,7 +55,11 @@ export interface CliScenario {
 	target: string;
 	/** One-line description of what makes the comparison fair. */
 	description: string;
-	/** Results ascending by wall-clock time, tsv-relative ratios computed by the component. */
+	/**
+	 * Results ascending by wall-clock time. The component computes each ratio
+	 * against its table's anchor row — the dispatcher row facing other tools, native
+	 * tsv in the tsv-only table, or whichever row is hovered.
+	 */
 	results: Array<CliFormatterResult>;
 	/**
 	 * hyperfine's untimed warmup runs and the timed runs each mean is taken over.
@@ -92,7 +96,10 @@ export interface BenchmarksCliReport {
 	scenarios: Array<CliScenario>;
 }
 
-/** The native tsv row every CLI ratio is computed against. */
+/**
+ * The native tsv row: the bare binary, what `cli_speedup_vs_tsv` and the
+ * tsv-only delivery table take their ratios against.
+ */
 export const CLI_TSV_LABEL = 'tsv';
 
 /**

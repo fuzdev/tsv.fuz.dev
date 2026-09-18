@@ -52,6 +52,12 @@ describe('benchmarks.json shape', () => {
 			// shared component reads off the leading row
 			assert.strictEqual(group.entries[0]?.category, 'canonical', `${key} canonical leads`);
 			assert.isNotNull(group.files_iterated, `${key} has no files_iterated`);
+			// the timed set is the group's intersection, so every timed row saw the
+			// same count — the one the chart heading quotes
+			for (const entry of benchmarks_json.entries) {
+				if (entry.group !== key || entry.files_iterated == null) continue;
+				assert.strictEqual(entry.files_iterated, group.files_iterated, `${key}/${entry.name}`);
+			}
 			for (const entry of group.entries) {
 				if (entry.disabled) continue;
 				// measured entries render the whole-sweep mean (total corpus time); a
@@ -359,6 +365,29 @@ describe('benchmarks_conformance.json shape', () => {
 				// engine-level rows only — binding/materialization variants are folded
 				assert.notMatch(row.name, /-internal|wasm-|-wasm/, `${group.language}/${row.name}`);
 			}
+		}
+	});
+
+	test('every engine the report carries reaches a coverage row', () => {
+		// The rows are keyed by ONE entry name per engine (`CONFORMANCE_ENGINE_NAMES`),
+		// so a harness that renames or re-picks a binding — yuku's native row
+		// returning, oxc's wasi pin rejoining — would drop an engine from the table
+		// without a type error. Fold each entry to its engine by stripping the
+		// binding/materialization suffixes and hold the row count to that set.
+		const to_engine = (name: string) =>
+			name.replace(/-(wasm|json|no-locations|internal|skip-expr-loc)/g, '');
+		const groups = derive_conformance_groups(benchmarks_conformance_json);
+		for (const group of groups) {
+			const engines = new Set(
+				benchmarks_conformance_json.entries
+					.filter((e) => e.group === `parse/${group.language}`)
+					.map((e) => to_engine(e.name))
+			);
+			assert.strictEqual(
+				group.rows.length,
+				engines.size,
+				`${group.language}: rows for ${[...engines].join(', ')}`
+			);
 		}
 	});
 

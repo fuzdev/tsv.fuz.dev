@@ -29,8 +29,6 @@
 		yuku_parser_wasm: '@yuku-parser/wasm',
 		malva: 'dprint-plugin-malva',
 		swc: '@swc/core',
-		// the `tsc` row's engine, on the conformance surface only
-		tsc: 'typescript',
 		// the Svelte PARSE rows come from a package whose name says "vite plugin" —
 		// it's the N-API addon, and a different package from `@rsvelte/fmt`
 		rsvelte_parse: '@rsvelte/vite-plugin-svelte-native',

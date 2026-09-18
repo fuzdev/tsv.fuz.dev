@@ -19,6 +19,10 @@ export const format_ns = (ns: number): FormattedUnit => {
 			value: (ns / 1_000).toFixed(ns < 10_000 ? 2 : ns < 100_000 ? 1 : 0),
 			unit: 'µs'
 		};
+	// one decimal under 10 ms, so the short CSS rows print values that still
+	// reproduce the ratios beside them (`3.9 ms` against `11.3 ms`, not `4` and `11`);
+	// the tier ends where its rounding would print `10.0`
+	if (ns < 9_950_000) return { value: (ns / 1_000_000).toFixed(1), unit: 'ms' };
 	const ms = Math.round(ns / 1_000_000);
 	return { value: format_count(ms), unit: 'ms' };
 };
@@ -177,13 +181,15 @@ export const category_color = (category: ImplementationCategory): string => {
 		case 'yuku':
 			return 'var(--color_j_40)';
 		// The palette has ten hues and the categories above spend all ten, so these
-		// two reuse a hue at a lighter shade. The pairing is chosen so a collision
-		// can't show up in a speed group: `swc` and `postcss` are parse-only, while
-		// `biome` and `dprint` are format-only, and placeholder rows mirror only
-		// within an operation. They DO meet in the binary-size table, which lists
-		// both operations' tools — hence the distinct shade rather than a bare reuse.
-		// A future biome/dprint parse row (or an swc formatter) would break that, and
-		// would need a real hue freed up.
+		// two reuse a hue at a lighter shade. The pairing is chosen so a colored
+		// collision can't show up in a speed group: `swc` and `postcss` are
+		// parse-only, `biome` and `dprint` format-only, and the biome/dprint rows
+		// the parse groups do carry are disabled placeholders (see
+		// `derive_benchmark_groups`), which `BenchmarksBar` draws with no fill. They
+		// DO meet in the binary-size table, which lists both operations' tools —
+		// hence the distinct shade rather than a bare reuse. A real biome/dprint
+		// parse row (or an swc formatter) would break that, and would need a hue
+		// freed up.
 		case 'swc':
 			return 'var(--color_a_50)'; // biome's hue, lighter
 		case 'postcss':
