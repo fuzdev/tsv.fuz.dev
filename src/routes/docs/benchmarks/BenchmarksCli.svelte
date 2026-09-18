@@ -147,8 +147,8 @@
 			{#if scenario.benchmark_runs > 0}
 				<p class="versions">
 					Each time is the mean of {scenario.benchmark_runs} runs, after {scenario.warmup_runs}
-					untimed warmup runs; each peak RSS is the mean of the per-run peaks over a separate pass
-					of {scenario.benchmark_runs} runs.
+					untimed warmup runs; each peak RSS is the mean of the per-run peaks over a separate,
+					unwarmed pass of {scenario.benchmark_runs} runs.
 				</p>
 			{/if}
 			{#if has_dispatcher_memory(scenario)}

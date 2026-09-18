@@ -163,7 +163,7 @@ const SCENARIO_COPY: Record<
 	[CLI_SVELTE_KEY]: {
 		heading: 'Svelte corpus',
 		description:
-			'The two Rust Svelte-native formatters head-to-head on a third-party .svelte corpus, rsvelte-fmt configured to tsv’s fixed style (width 100, tabs, single quotes, no trailing commas) so both do comparable line-break work. Over a directory rsvelte-fmt’s launcher also starts the oxfmt it delegates other files to, which finds none here — how it ships, so it stays. rsvelte-fmt 0.7.x’s check mode crashes nondeterministically on this corpus, in the harness’s preflight pass and never yet in a timed write run; about two in three attempts abort. The harness never retries — a run is published as it ended, complete or aborted — so a timed table here is an attempt the crash didn’t hit.',
+			'The two Rust Svelte-native formatters head-to-head on a third-party .svelte corpus, rsvelte-fmt configured to tsv’s fixed style so both do comparable line-break work. Over a directory rsvelte-fmt also starts the oxfmt it hands the files it doesn’t format itself to (its Node launcher resolves it, the binary spawns it once), which finds none here — how it ships, so it stays. rsvelte-fmt 0.7.x’s check mode crashes nondeterministically on this corpus, in the harness’s preflight pass and never yet in a timed write run; about two in three attempts abort. The harness never retries — a run is published as it ended, complete or aborted — so a timed table here is an attempt the crash didn’t hit.',
 		tsv_only: false
 	},
 	[CLI_DELIVERY_KEY]: {

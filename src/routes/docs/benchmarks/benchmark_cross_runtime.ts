@@ -59,8 +59,8 @@ export interface CrossRuntimeReport {
 	// means they divide — the cells that are NOT runtime effects, despite this
 	// report's subject being exactly those deltas. `[]` when every delta exceeds its
 	// noise. Unlike every other field here it qualifies a number the report already
-	// prints rather than adding one. Present from combined `version` 11 on; not
-	// rendered, kept for parity.
+	// prints rather than adding one. Present from combined `version` 11 on; rendered
+	// as a `≈` on the ratio cell (see `is_ratio_within_noise`).
 	within_noise?: Array<WithinNoiseCell>;
 	// Per-runtime measurements that were NOT stable — a cleaned cv past 10%, a raw cv
 	// past 10% on a row with fewer than 30 raw timings, or a |drift| past 5% —
@@ -290,6 +290,27 @@ export const derive_unavailable_by_runtime = (
 		.map((runtime) => by_runtime.get(runtime))
 		.filter((entry): entry is RuntimeUnavailable => entry != null && entry.rows.length > 0);
 };
+
+/**
+ * Is the ratio of `runtime` over `base` for one row inside the two measurements'
+ * combined noise — a delta the report itself says is not a runtime effect? Reads
+ * the composer's pairwise `within_noise` (combined `version` 15 on, where each
+ * cell names both runtimes); an older report's single-runtime cells are taken as
+ * against the ratio base only when `base` is the report's first runtime, the
+ * composer's own base. Absence is silence, not a claim the delta is real.
+ */
+export const is_ratio_within_noise = (
+	report: CrossRuntimeReport,
+	group: string,
+	name: string,
+	base: BenchmarkRuntime,
+	runtime: BenchmarkRuntime
+): boolean =>
+	(report.within_noise ?? []).some((cell) => {
+		if (cell.group !== group || cell.name !== name) return false;
+		if (cell.runtimes) return cell.runtimes.includes(base) && cell.runtimes.includes(runtime);
+		return cell.runtime === runtime && report.runtimes[0] === base;
+	});
 
 /**
  * Did `runtime` record `name` as a load failure? The table renders an absent

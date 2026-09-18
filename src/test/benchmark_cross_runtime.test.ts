@@ -8,6 +8,7 @@ import {
 	derive_unstable_cells,
 	format_cross_runtime_label,
 	is_impl_unavailable,
+	is_ratio_within_noise,
 	order_cross_runtime_runtimes,
 	type BenchmarkRuntime,
 	type CrossRuntimeReport,
@@ -162,6 +163,44 @@ describe('derive_unstable_cells', () => {
 
 	test('a report predating the field discloses nothing', () => {
 		assert.isEmpty(derive_unstable_cells(report(undefined)));
+	});
+});
+
+describe('is_ratio_within_noise', () => {
+	const report = (within_noise?: CrossRuntimeReport['within_noise']): CrossRuntimeReport => ({
+		version: 15,
+		kind: 'combined',
+		generated: '2026-01-01T00:00:00.000Z',
+		runtimes: ['deno', 'node', 'bun'],
+		within_noise,
+		sources: [],
+		rows: []
+	});
+
+	test('a pairwise cell matches the ratio between exactly its two runtimes, either way round', () => {
+		const r = report([
+			{ group: 'format/css', name: 'oxfmt', runtimes: ['deno', 'node'], delta: 0.01, noise: 0.04 }
+		]);
+		assert.isTrue(is_ratio_within_noise(r, 'format/css', 'oxfmt', 'node', 'deno'));
+		assert.isTrue(is_ratio_within_noise(r, 'format/css', 'oxfmt', 'deno', 'node'));
+		assert.isFalse(is_ratio_within_noise(r, 'format/css', 'oxfmt', 'node', 'bun'));
+		assert.isFalse(is_ratio_within_noise(r, 'format/css', 'tsv', 'node', 'deno'));
+		assert.isFalse(is_ratio_within_noise(r, 'parse/css', 'oxfmt', 'node', 'deno'));
+	});
+
+	test("an older single-runtime cell is against the composer's own base only", () => {
+		const r = report([
+			{ group: 'format/css', name: 'oxfmt', runtime: 'node', delta: 0.01, noise: 0.04 }
+		]);
+		// the composer's base is the report's first runtime (deno here), so the cell
+		// qualifies node/deno and nothing the site anchors on node
+		assert.isTrue(is_ratio_within_noise(r, 'format/css', 'oxfmt', 'deno', 'node'));
+		assert.isFalse(is_ratio_within_noise(r, 'format/css', 'oxfmt', 'node', 'deno'));
+		assert.isFalse(is_ratio_within_noise(r, 'format/css', 'oxfmt', 'node', 'bun'));
+	});
+
+	test('a report predating the field flags nothing — silence, not a claim', () => {
+		assert.isFalse(is_ratio_within_noise(report(undefined), 'format/css', 'oxfmt', 'node', 'deno'));
 	});
 });
 

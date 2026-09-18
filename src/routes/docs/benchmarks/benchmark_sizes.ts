@@ -167,8 +167,9 @@ export const RSVELTE_INSTALL_LABEL = 'rsvelte-fmt + oxfmt (binary)';
  * `<script>` and `<style>` through its own linked-in oxc engines, byte-identically
  * whether or not oxfmt is reachable. But pointed at a **directory** — how a
  * formatter is actually run over a project, and what the CLI benchmark times — it
- * delegates the non-`.svelte` files to oxfmt and exits non-zero without it, even
- * when that directory holds nothing but `.svelte`. So the bare binary is the
+ * formats the Svelte, JS/TS, CSS, and JSON files itself, hands the rest (Markdown,
+ * YAML, …) to a single oxfmt run, and exits non-zero without oxfmt, even when that
+ * directory holds nothing but `.svelte`. So the bare binary is the
  * single-file/editor figure and the sum is the project figure.
  *
  * Returns `undefined` when either half is missing (an older baseline predating the

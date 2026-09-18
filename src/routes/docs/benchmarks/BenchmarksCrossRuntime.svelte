@@ -7,6 +7,7 @@
 		derive_unstable_cells,
 		format_cross_runtime_label,
 		is_impl_unavailable,
+		is_ratio_within_noise,
 		order_cross_runtime_runtimes,
 		type BenchmarkRuntime,
 		type CrossRuntimeReport
@@ -156,11 +157,21 @@
 						{/each}
 						{#each others as runtime (runtime)}
 							{@const ratio = row.ratio_vs_base[runtime]}
+							{@const within_noise =
+								ratio != null &&
+								base != null &&
+								is_ratio_within_noise(report, group.group, row.name, base, runtime)}
 							<td
 								class="num ratio"
-								style:background={ratio != null ? cross_runtime_ratio_background(ratio) : undefined}
+								class:within-noise={within_noise}
+								title={within_noise
+									? `this delta is smaller than the two measurements' combined noise — not a runtime effect`
+									: undefined}
+								style:background={ratio != null && !within_noise
+									? cross_runtime_ratio_background(ratio)
+									: undefined}
 							>
-								{ratio != null ? format_speedup(ratio) : 'fail'}
+								{ratio != null ? `${within_noise ? '≈' : ''}${format_speedup(ratio)}` : 'fail'}
 							</td>
 						{/each}
 					</tr>
@@ -171,13 +182,15 @@
 {/each}
 <p class="text_40">
 	sweeps/sec — one sweep is a full pass over the group's timed file set (higher is faster); ratios
-	are vs <code>{base}</code> (&gt; 1 = faster than {base}). A <code>fail</code> is a row that
-	runtime contributed no number for — an implementation it can't load (listed above when the report
-	records it), or one its report doesn't carry. tsv's <code>native</code> rows load each runtime's
-	idiomatic binding of the same engine — the N-API addon under <code>node</code> and
-	<code>bun</code>, the C-FFI library under <code>deno</code> — so their <code>deno</code> column is
-	a first-class FFI-vs-N-API comparison, not a re-run of the same binding. The other tools'
-	<code>native</code> rows are their npm N-API addons under all three runtimes.
+	are vs <code>{base}</code> (&gt; 1 = faster than {base}). A ratio marked <code>≈</code> is a delta
+	smaller than the two measurements' combined noise, which the report flags itself — read it as
+	parity, not a runtime effect. A <code>fail</code> is a row that runtime contributed no number for
+	— an implementation it can't load (listed above when the report records it), or one its report
+	doesn't carry. tsv's <code>native</code> rows load each runtime's idiomatic binding of the same
+	engine — the N-API addon under <code>node</code> and <code>bun</code>, the C-FFI library under
+	<code>deno</code> — so their <code>deno</code> column is a first-class FFI-vs-N-API comparison,
+	not a re-run of the same binding. The other tools' <code>native</code> rows are their npm N-API
+	addons under all three runtimes.
 </p>
 
 <style>
@@ -200,6 +213,11 @@
 	}
 	.ratio {
 		font-weight: 700;
+	}
+	/* a delta the report says is inside measurement noise reads as parity, not a result */
+	.within-noise {
+		font-weight: 400;
+		opacity: 0.7;
 	}
 	td .swatch {
 		display: inline-block;
