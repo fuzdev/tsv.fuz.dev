@@ -77,5 +77,13 @@ describe('benchmarks_cross_runtime.json shape', () => {
 				assert.isNull(row.files_iterated_mismatch, `${group.group}/${row.name} file-set mismatch`);
 			}
 		}
+		// the derivation compares only the counts that are present, so a row whose
+		// counts are missing on some runtime would pass above with nothing compared —
+		// every runtime the report carries must have reported one for every row
+		for (const row of benchmarks_cross_runtime_json.rows) {
+			for (const runtime of benchmarks_cross_runtime_json.runtimes) {
+				assert.isNumber(row.files_iterated[runtime], `${row.group}/${row.name} ${runtime}`);
+			}
+		}
 	});
 });

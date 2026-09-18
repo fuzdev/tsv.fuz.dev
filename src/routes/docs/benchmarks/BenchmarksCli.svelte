@@ -94,7 +94,8 @@
 		<p>{scenario.description}</p>
 		{#if rows.length > 0}
 			<p class="versions">
-				Ratios are against <strong>{anchor_label}</strong> — hover a row to re-baseline on it.
+				Ratios are each row over <strong>{anchor_label}</strong>, so above 1 is slower, or heavier,
+				than it — hover a row to re-baseline on it.
 			</p>
 			<div class="table-scroll">
 				<table>

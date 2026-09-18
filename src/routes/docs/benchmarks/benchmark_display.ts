@@ -37,7 +37,7 @@ export const format_bytes = (bytes: number): FormattedUnit => {
  * Formats a corpus source's file count as a per-language breakdown
  * (`124 typescript, 15 svelte, 31 css`), largest language first and dropping
  * zero-count languages. Falls back to the plain `N files` total when the report
- * predates the per-language split (or lists no recognized language).
+ * predates the per-language split (or every language's count is zero).
  */
 export const format_corpus_source_files = (source: CorpusSource): string => {
 	const total = `${format_count(source.files)} files`;
@@ -79,6 +79,13 @@ export const format_memory_ratio = (ratio: number): string => `${ratio.toFixed(1
  */
 export const format_ratio_approx = (ratio: number | undefined): string =>
 	ratio === undefined ? '—' : ratio >= 10 ? `${Math.round(ratio)}x` : `${ratio.toFixed(1)}x`;
+
+/**
+ * A fraction as a whole-number percentage for prose (`38%`), always paired with
+ * a `~` in the copy; `—` for a missing one, as `format_ratio_approx`.
+ */
+export const format_share_approx = (fraction: number | undefined): string =>
+	fraction === undefined ? '—' : `${Math.round(fraction * 100)}%`;
 
 /**
  * An inclusive ratio range for prose (`2.9–4.6x`, `6–21x`), FLOORED at both ends

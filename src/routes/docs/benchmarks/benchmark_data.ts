@@ -61,9 +61,9 @@ export interface BenchmarkBaseline {
 	// Implementations that failed to initialize on the producing machine, as
 	// `{impl, reason, rows}`. An impl that doesn't load contributes NO row, so
 	// without this a tool that broke upstream is indistinguishable from one that was
-	// never measured (the Node report should be `[]`; Bun's carries its known
-	// `biome-wasm` load failure). Present from `version` 10 on, `rows` from `version` 12; not
-	// rendered here, kept for parity.
+	// never measured (`[]` in every committed report, which the shape tests pin for the
+	// perf report). Present from `version` 10 on, `rows` from `version` 12; not rendered
+	// here, kept for parity.
 	unavailable?: Array<UnavailableImpl>;
 	// Files a byte-graded row ACCEPTED whose output the producing bench's
 	// byte-parity check could not digest, as `{"<group>/<row>": count}` — `{}` when
@@ -681,6 +681,53 @@ export const derive_conformance_groups = (baseline: BenchmarkBaseline): Array<Co
 	}
 	result.sort((a, b) => (LANGUAGE_ORDER[a.language] ?? 9) - (LANGUAGE_ORDER[b.language] ?? 9));
 	return result;
+};
+
+/**
+ * The conformance corpus sources the page's prose reads by name: the two large
+ * TypeScript slices each selected by one parser here (test262 by tsv's runner,
+ * the TypeScript compiler's cases by tsc), and Prettier's third-party JS suite,
+ * which neither scoped. Paths as the report's `coverage_by_source` keys them.
+ */
+export const CONFORMANCE_SOURCE_PATHS = {
+	test262: 'benches/js/.cache/test262_files.json',
+	ts_repo: 'benches/js/.cache/ts_repo_files.json',
+	prettier_js: '../prettier/tests/format/js'
+} as const;
+
+/** One source's slice of a conformance group — see `derive_conformance_slice`. */
+export interface ConformanceSlice {
+	// the slice's files as a fraction of the group's corpus
+	share: number;
+	// the slice's file count (every engine shares it)
+	total: number;
+	// accepted counts per engine, keyed by the display names the coverage table uses
+	rows: Record<string, SourceCoverageCell>;
+}
+
+/**
+ * One corpus source's slice of a conformance group: its share of the group's
+ * files and each engine's accepted count on it, for prose that reads the
+ * aggregate by source rather than as one number. Engines are keyed as
+ * `derive_conformance_groups` names them, so a binding duplicate collapses the
+ * same way. `undefined` when the report lacks the group or the source.
+ */
+export const derive_conformance_slice = (
+	baseline: BenchmarkBaseline,
+	group: string,
+	source_path: string
+): ConformanceSlice | undefined => {
+	const by_impl = baseline.coverage_by_source?.[group]?.[source_path];
+	if (!by_impl) return undefined;
+	const group_total = baseline.corpus[parse_group_key(group).language];
+	const total = Object.values(by_impl)[0]?.total;
+	if (!group_total || total == null) return undefined;
+	const rows: Record<string, SourceCoverageCell> = {};
+	for (const [impl, cell] of Object.entries(by_impl)) {
+		const name = CONFORMANCE_ENGINE_NAMES[impl];
+		if (name) rows[name] = cell;
+	}
+	return { share: total / group_total, total, rows };
 };
 
 /**

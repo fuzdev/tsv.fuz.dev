@@ -38,7 +38,8 @@ export interface CliFormatterResult {
 	 * Total CPU time across all threads, in ms — hyperfine's `User` plus `System`,
 	 * the parallelism-neutral view. System time is counted because it is real work
 	 * the command demanded (file I/O, thread spawn, page faults) and an uneven share
-	 * of it per tool: a third of tsv's CPU on the multi-file repo, nearly half of rsvelte-fmt's.
+	 * of it per tool: a third of tsv's CPU on the TypeScript repo, nearly half of rsvelte-fmt's on
+	 * the Svelte corpus.
 	 */
 	cpu_ms: number;
 	/** Peak resident set size (RSS), in megabytes; `null` when the harness measured no memory. */
@@ -84,7 +85,7 @@ export interface CliScenario {
 	aborted?: string;
 	/**
 	 * Why a tsv row's launch cost isn't like-for-like, when it isn't: the harness
-	 * normally runs tsv's Node-launched rows through a bin shim copied from pnpm's
+	 * normally runs tsv's Node-launched rows through a bin shim derived from pnpm's
 	 * own, as every other tool's row runs, and says so when it couldn't.
 	 */
 	unshimmed?: string;
@@ -170,7 +171,7 @@ const SCENARIO_COPY: Record<
 	[CLI_SVELTE_KEY]: {
 		heading: 'Svelte corpus',
 		description:
-			'The two Rust Svelte-native formatters head-to-head on a third-party .svelte corpus, rsvelte-fmt configured to tsv’s fixed style so both do comparable line-break work. Over a directory rsvelte-fmt also starts the oxfmt it hands the files it doesn’t format itself to (its Node launcher resolves it, the binary spawns it once), which finds none here — how it ships, so it stays. rsvelte-fmt 0.7.x’s check mode crashes nondeterministically on this corpus, in the harness’s preflight pass and never yet in a timed write run; about two in three attempts abort. The harness never retries — a run is published as it ended, complete or aborted — so a timed table here is an attempt the crash didn’t hit.',
+			'The two Rust Svelte-native formatters head-to-head on a third-party .svelte corpus, rsvelte-fmt configured to tsv’s fixed style so both do comparable line-break work. Over a directory rsvelte-fmt also starts the oxfmt it hands the files it doesn’t format itself to (its Node launcher resolves it, the binary spawns it once), which finds none here — how it ships, so it stays. rsvelte-fmt 0.7.x aborts nondeterministically on this corpus when its check-mode output has stdout and stderr merged onto one pipe — how the harness’s preflight runs it, and how a CI invocation piping both through tee would; with the streams separated, or under hyperfine, it is clean, and the timed write runs have never hit it. The harness keeps the merged pipe rather than dodge the bug, and never retries — a run is published as it ended, complete or aborted, and about two in three attempts abort — so a timed table here is an attempt the crash didn’t hit. The oxfmt it spawns sits inside its time, not isolated.',
 		tsv_only: false
 	},
 	[CLI_DELIVERY_KEY]: {
@@ -328,6 +329,26 @@ export const cli_tsv_npm_overhead_ms_range = (): { min: number; max: number } | 
 	});
 	if (overheads.length === 0) return undefined;
 	return { min: Math.min(...overheads), max: Math.max(...overheads) };
+};
+
+/**
+ * What the npm dispatcher adds over the bare binary as a share of the
+ * dispatcher row's own run, in one scenario — Node's startup as a fraction of
+ * wall-clock and of CPU work, which a parallel run pays very differently.
+ *
+ * @returns the wall and CPU fractions, or `undefined` when either row is absent
+ */
+export const cli_tsv_npm_overhead_share = (
+	scenario_key: string
+): { wall: number; cpu: number } | undefined => {
+	const results = cli_scenario_find(scenario_key)?.results;
+	const npm = results?.find((r) => r.label === CLI_TSV_NPM_LABEL);
+	const tsv = results?.find((r) => r.label === CLI_TSV_LABEL);
+	if (!npm || !tsv || !npm.wall_ms || !npm.cpu_ms) return undefined;
+	return {
+		wall: (npm.wall_ms - tsv.wall_ms) / npm.wall_ms,
+		cpu: (npm.cpu_ms - tsv.cpu_ms) / npm.cpu_ms
+	};
 };
 
 /**

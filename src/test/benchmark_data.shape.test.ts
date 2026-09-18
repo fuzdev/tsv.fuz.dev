@@ -272,13 +272,20 @@ describe('benchmarks.json shape', () => {
 		}
 	});
 
-	test('speedup summary is fully populated', () => {
+	test('speedup summary is fully populated, and every cell reads "faster than Prettier"', () => {
 		const rows = derive_speedup_summary(derive_benchmark_groups(benchmarks_json));
 		assert.strictEqual(rows.length, 2); // native + wasm
 		for (const row of rows) {
-			assert.isDefined(row.format_svelte, row.variant);
-			assert.isDefined(row.format_typescript, row.variant);
-			assert.isDefined(row.format_css, row.variant);
+			// `BenchmarksSummary` captions the table as how much faster tsv is than
+			// Prettier, so a cell below 1 would render a slowdown under that caption
+			for (const [language, value] of [
+				['svelte', row.format_svelte],
+				['typescript', row.format_typescript],
+				['css', row.format_css]
+			] as const) {
+				assert.isDefined(value, `${row.variant} ${language}`);
+				assert.isAbove(value, 1, `${row.variant} ${language}`);
+			}
 		}
 	});
 
@@ -286,6 +293,17 @@ describe('benchmarks.json shape', () => {
 		// the headline detailed view switched to N-API under Node; guards against an
 		// `update-benchmarks` that pulls the wrong runtime's sibling report
 		assert.strictEqual(benchmarks_json.runtime, 'node');
+	});
+
+	test('the report records no binding disagreement, load failure, or ungraded output', () => {
+		// each is `[]`/`{}` when healthy, and `benchmark_data.ts` calls a non-empty one a
+		// bug in the producing bench — a load failure removes the impl's rows from the
+		// charts with no placeholder, and a native/wasm disagreement means the byte-parity
+		// claim is false. This is the gate, rather than a reviewer's eye on the copied
+		// report's diff.
+		assert.deepStrictEqual(benchmarks_json.variant_parity, []);
+		assert.deepStrictEqual(benchmarks_json.unavailable, []);
+		assert.deepStrictEqual(benchmarks_json.output_digest_ungraded, {});
 	});
 
 	test('every report row and size label maps to an explicit category', () => {
@@ -329,6 +347,17 @@ describe('benchmarks_conformance.json shape', () => {
 	test('conformance report is parse-only', () => {
 		for (const entry of benchmarks_conformance_json.entries) {
 			assert.match(entry.group, /^parse\//, `${entry.group}/${entry.name}`);
+		}
+	});
+
+	test('every impl loaded, and no byte-graded pair disagreed on output', () => {
+		// an accept-set disagreement between two bindings of one engine is legitimate
+		// here (oxc-parser's pinned-older wasm binding — the prose test bounds it), but a
+		// byte mismatch between tsv's own native and wasm rows contradicts the section's
+		// "byte-identical output" claim, and a load failure silently drops a coverage row
+		assert.deepStrictEqual(benchmarks_conformance_json.unavailable, []);
+		for (const finding of benchmarks_conformance_json.variant_parity ?? []) {
+			assert.strictEqual(finding.output_mismatch ?? 0, 0, `${finding.group}/${finding.impl}`);
 		}
 	});
 

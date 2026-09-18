@@ -13,6 +13,7 @@ import {
 	cli_speedup_vs_tsv_npm,
 	cli_tsv_npm_memory_mb,
 	cli_tsv_npm_overhead_ms_range,
+	cli_tsv_npm_overhead_share,
 	CLI_DELIVERY_KEY,
 	CLI_SCENARIO_KEYS,
 	CLI_SINGLE_FILE_KEY,
@@ -24,7 +25,9 @@ import {
 import { derive_unstable_cells } from '$routes/docs/benchmarks/benchmark_cross_runtime.ts';
 import {
 	benchmark_speedup,
+	CONFORMANCE_SOURCE_PATHS,
 	derive_benchmark_groups,
+	derive_conformance_slice,
 	is_entry_unstable
 } from '$routes/docs/benchmarks/benchmark_data.ts';
 
@@ -49,6 +52,10 @@ describe('prose ratios resolve', () => {
 		['parse/typescript', 'tsv-wasm-json-no-locations', 'yuku-parser-wasm'],
 		// "carrying it costs ~Nx the hand-off time" — the loc-bearing wire over the span-only one
 		['parse/typescript', 'tsv-json', 'tsv-json-no-locations'],
+		// "tsv's default AST ... lands behind" Oxc — a composite of the two pairs above
+		// it, true only while the loc cost outruns tsv's span-only lead, so it is gated
+		// as its own pair in the direction the sentence reads
+		['parse/typescript', 'tsv-json', 'oxc-parser'],
 		['parse/svelte', 'svelte/compiler', 'tsv-json'],
 		['parse/svelte', 'rsvelte-parse', 'tsv-json'],
 		['parse/css', 'tsv-json', 'svelte/compiler'],
@@ -128,7 +135,8 @@ describe('prose ratios resolve', () => {
 		// reach 1.1 or the range would print "1.0–Nx less memory", a claim of nothing
 		for (const range of [
 			cli_memory_ratio_range(CLI_TS_REPO_KEY, ['oxfmt', 'biome']),
-			cli_memory_ratio_range()
+			cli_memory_ratio_range(),
+			cli_memory_ratio_range(undefined, undefined, CLI_TSV_NPM_LABEL)
 		]) {
 			assert.isDefined(range);
 			assert.isAtLeast(range.min, 1.1);
@@ -259,6 +267,18 @@ describe('prose ratios resolve', () => {
 		}
 	});
 
+	test('the dispatcher overhead reads as a share of wall-clock far above its share of CPU', () => {
+		// "~N% of its wall-clock on the repo but ~M% of its CPU total": the note's point
+		// is the asymmetry, so the wall share must clearly exceed the CPU share, and
+		// both must be shares — inside (0, 1) — or the sentence prints nonsense
+		const share = cli_tsv_npm_overhead_share(CLI_TS_REPO_KEY);
+		assert.isDefined(share);
+		assert.isAbove(share.wall, 0);
+		assert.isBelow(share.wall, 1);
+		assert.isAbove(share.cpu, 0);
+		assert.isAbove(share.wall, share.cpu * 2, 'the wall-clock share is not clearly larger');
+	});
+
 	test('the dispatcher overhead is the "fixed cost" the delivery note calls it', () => {
 		// "a fixed cost of ~A–B ms in every scenario here, so its share shrinks against
 		// a real repo" — fixed means the absolute figure barely moves between a one-file
@@ -359,6 +379,23 @@ describe('prose ratios resolve', () => {
 		}
 	});
 
+	test('the TypeScript conformance slices the note reads by name are present', () => {
+		// "~N% of it is the test262 slice and ~M% the TypeScript compiler's ... on
+		// Prettier's third-party JS suite tsv accepts A, oxc-parser B, yuku-parser C,
+		// and tsc D" — every slice and every engine named must resolve, and the two
+		// self-selected slices must still be most of the aggregate for "mostly" to hold
+		const slice = (path: string) =>
+			derive_conformance_slice(benchmarks_conformance_json, 'parse/typescript', path);
+		const test262 = slice(CONFORMANCE_SOURCE_PATHS.test262);
+		const ts_repo = slice(CONFORMANCE_SOURCE_PATHS.ts_repo);
+		const prettier_js = slice(CONFORMANCE_SOURCE_PATHS.prettier_js);
+		assert(test262 && ts_repo && prettier_js, 'a named conformance source is missing');
+		assert.isAbove(test262.share + ts_repo.share, 0.5, 'the self-selected slices are not "mostly"');
+		for (const engine of ['tsv', 'oxc-parser', 'yuku-parser', 'tsc']) {
+			assert.isDefined(prettier_js.rows[engine], `${engine} on Prettier's JS suite`);
+		}
+	});
+
 	test("the conformance note on oxc-parser's two bindings reads the report", () => {
 		// "its wasm binding is pinned to an older release ... and the two accept sets
 		// differ by a couple of files" — both halves are facts about the copied report,
@@ -375,6 +412,19 @@ describe('prose ratios resolve', () => {
 		const gap = Math.abs(processed('oxc-parser') - processed('oxc-parser-wasm'));
 		assert.isAtLeast(gap, 1, 'the accept sets agree — the note claims they differ');
 		assert.isAtMost(gap, 5, 'the accept sets differ by more than "a couple of files"');
+	});
+
+	test('Prettier "is one of the rows that stop" at the sweep floor, as Benchmarking details says', () => {
+		// the disclosure that the headline denominator runs at the bench's per-row floor:
+		// each Prettier format row's raw timing count must be exactly its floor
+		const prettier_rows = benchmarks_json.entries.filter(
+			(e) => e.name === 'prettier' && e.group.startsWith('format/')
+		);
+		assert.isNotEmpty(prettier_rows);
+		for (const entry of prettier_rows) {
+			assert.isDefined(entry.min_iterations, entry.group);
+			assert.strictEqual(entry.raw_sample_size, entry.min_iterations, `${entry.group}/prettier`);
+		}
 	});
 
 	test('the corpus repos the TLDR names are present', () => {

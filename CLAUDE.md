@@ -143,7 +143,7 @@ CLI claims lead with the like-for-like dispatcher ratios
 (`cli_speedup_vs_tsv_npm`, `cli_memory_ratio_range`'s `baseline_label`) and give
 the bare-binary ones second; the copy has no fallback for a report without the
 row, and the prose test requires those ratios to resolve. The harness runs tsv's
-Node-launched rows through a bin shim copied from pnpm's own, so they pay the
+Node-launched rows through a bin shim derived from pnpm's own, so they pay the
 launch cost every other row pays; when it can't, it records the row as
 `unshimmed` and the table shows a note under it. A scenario renders on the
 page only once it has an entry in `SCENARIO_COPY` (`benchmarks_cli.ts`), and
