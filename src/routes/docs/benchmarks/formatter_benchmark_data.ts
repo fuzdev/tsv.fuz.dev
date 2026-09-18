@@ -112,6 +112,20 @@ export const FormatterBenchmarks = z.strictObject({
 	 * and tsv scale across cores while Prettier formats files one at a time.
 	 */
 	machine: z.string().min(1),
+	/**
+	 * A bare `node -e ""` timed under hyperfine on the same machine, with the PATH
+	 * the scenarios resolve `node` from: the launch floor every npm-bin row pays
+	 * before its formatter runs. A machine property beside `machine`, never a row,
+	 * so it can't be folded into an "every other tool" range. Absent on reports
+	 * from before the harness measured it.
+	 */
+	node_startup: z
+		.strictObject({
+			mean_ms: z.number().positive(),
+			stddev_ms: z.number().nonnegative(),
+			runs: z.number().int().positive()
+		})
+		.optional(),
 	/** Formatter name to version string, e.g. `prettier` to `3.9.1`. */
 	versions: z.record(z.string(), z.string().min(1)),
 	scenarios: z.array(FormatterScenario)

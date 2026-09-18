@@ -16,6 +16,7 @@ import {
 	cli_tsv_npm_memory_mb,
 	cli_tsv_npm_overhead_ms_range,
 	cli_tsv_npm_overhead_share,
+	cli_node_startup_ms,
 	CLI_DELIVERY_KEY,
 	CLI_SCENARIO_KEYS,
 	CLI_SINGLE_FILE_KEY,
@@ -83,6 +84,64 @@ describe('prose ratios resolve', () => {
 			assert.isDefined(ratio, `${group}: ${slower} vs ${faster}`);
 			assert_reads_faster(ratio, `${group}: ${slower} vs ${faster}`);
 		}
+	});
+
+	test('tsv "formats its three languages faster in every pairing measured here"', () => {
+		// The TLDR's absolute claim spans every timed format row, not just the pairs
+		// it quotes: dprint and malva are timed too. Like for like is native-vs-native
+		// and wasm-vs-wasm, and the JS rows face native tsv; gating tsv-wasm, tsv's
+		// slower build, against every non-tsv row is the stronger check and holds
+		for (const group of derive_benchmark_groups(benchmarks_json)) {
+			if (group.operation !== 'format') continue;
+			// a disabled row is a mirrored placeholder or coverage-only, timed at 0
+			const timed = group.entries.filter((e) => !e.disabled && e.mean_ns > 0);
+			const tsv_wasm = timed.find((e) => e.name === 'tsv-wasm');
+			assert(tsv_wasm, `${group.language}: no timed tsv-wasm row`);
+			const others = timed.filter((e) => !e.name.startsWith('tsv'));
+			assert.isNotEmpty(others, `${group.language}: nothing to pair against`);
+			for (const other of others) {
+				assert_reads_faster(other.mean_ns / tsv_wasm.mean_ns, `${group.language}: ${other.name}`);
+			}
+		}
+	});
+
+	test('only the two TypeScript groups run short of the corpus total, by a few files', () => {
+		// "in this report only the two TypeScript groups run short of the corpus total,
+		// by a few ambient .d.ts declarations ...; the Svelte and CSS groups run the
+		// whole corpus" — a rejected file drops out of its group for everyone, so the
+		// sentence goes stale as soon as any other group loses one, or the shortfall
+		// stops being "a few"
+		for (const group of derive_benchmark_groups(benchmarks_json)) {
+			const key = `${group.operation}/${group.language}`;
+			const total = benchmarks_json.corpus[group.language];
+			assert.isDefined(total, group.language);
+			assert.isNotNull(group.files_iterated, `${key}: no timed-set count`);
+			const shortfall = total - group.files_iterated;
+			if (group.language === 'typescript') {
+				assert.isAbove(shortfall, 0, `${key} runs the whole corpus`);
+				assert.isAtMost(shortfall, 5, `${key} is short by more than "a few"`);
+			} else {
+				assert.strictEqual(shortfall, 0, `${key} runs short of the corpus`);
+			}
+		}
+	});
+
+	test('rsvelte\'s Svelte target is "a release apart" from the svelte/compiler row\'s', () => {
+		// the parse note prints that sentence whenever the two differ, so the gap must
+		// stay one minor release at most or the copy understates it
+		const { svelte, rsvelte_parse_svelte_target } = benchmarks_json.versions;
+		assert.isString(svelte);
+		if (!rsvelte_parse_svelte_target || rsvelte_parse_svelte_target === svelte) return;
+		const minor_of = (version: string): number => {
+			const match = /^(\d+)\.(\d+)\./.exec(version);
+			assert(match, `${version} is not a semver`);
+			return Number(match[1]) * 1000 + Number(match[2]);
+		};
+		assert.isAtMost(
+			Math.abs(minor_of(rsvelte_parse_svelte_target) - minor_of(svelte)),
+			1,
+			'more than one minor release apart'
+		);
 	});
 
 	test('the "faster than Prettier" summary really divides by the prettier row', () => {
@@ -297,6 +356,19 @@ describe('prose ratios resolve', () => {
 		assert.isAbove(share.wall, share.cpu * 2, 'the wall-clock share is not clearly larger');
 	});
 
+	test('the Node launch floor, when published, sits inside the dispatcher overhead', () => {
+		// "a bare node -e '' takes ~N ms on this machine": Node's startup is one part
+		// of what the dispatcher row pays over the bare binary, so it must not exceed
+		// that gap — a floor above the overhead would mean the two measure different
+		// things (a different node, a different PATH)
+		const floor = cli_node_startup_ms();
+		if (floor === undefined) return;
+		const overhead = cli_tsv_npm_overhead_ms_range();
+		assert.isDefined(overhead);
+		assert.isAbove(floor, 0);
+		assert.isBelow(floor, overhead.max);
+	});
+
 	test('the dispatcher overhead is the "fixed cost" the delivery note calls it', () => {
 		// "a fixed cost of ~A–B ms in every scenario here, so its share shrinks against
 		// a real repo" — fixed means the absolute figure barely moves between a one-file
@@ -408,6 +480,15 @@ describe('prose ratios resolve', () => {
 		const ts_repo = slice(CONFORMANCE_SOURCE_PATHS.ts_repo);
 		const prettier_js = slice(CONFORMANCE_SOURCE_PATHS.prettier_js);
 		assert(test262 && ts_repo && prettier_js, 'a named conformance source is missing');
+		// "Prettier's HTML fixtures ride along in the Svelte set ... ~N% of it": a small
+		// share, or the "ride along" framing understates them
+		const html = derive_conformance_slice(
+			benchmarks_conformance_json,
+			'parse/svelte',
+			CONFORMANCE_SOURCE_PATHS.prettier_html
+		);
+		assert(html, "Prettier's HTML fixtures are missing from the Svelte conformance corpus");
+		assert.isBelow(html.share, 0.05, "Prettier's HTML fixtures are no longer a small share");
 		assert.isAbove(test262.share + ts_repo.share, 0.5, 'the self-selected slices are not "mostly"');
 		for (const engine of ['tsv', 'oxc-parser', 'yuku-parser', 'tsc']) {
 			assert.isDefined(prettier_js.rows[engine], `${engine} on Prettier's JS suite`);

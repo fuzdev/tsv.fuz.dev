@@ -32,6 +32,8 @@
 		// the wasm binding is its own scoped package, not a hyphenated suffix
 		yuku_parser_wasm: '@yuku-parser/wasm',
 		malva: 'dprint-plugin-malva',
+		// the wasm engine's release line, not `@biomejs/js-api`'s separate one
+		biome: '@biomejs/wasm-bundler',
 		swc: '@swc/core',
 		// the Svelte PARSE rows come from a package whose name says "vite plugin" —
 		// it's the N-API addon, and a different package from `@rsvelte/fmt`

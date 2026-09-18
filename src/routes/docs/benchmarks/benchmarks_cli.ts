@@ -9,7 +9,7 @@
 // the wall-clock ratios scale with core count and are machine-dependent — the
 // parallelism-neutral view is CPU work (hyperfine's `User` + `System` time). tsv runs only in
 // the JSX-free scenarios (it has no JSX/TSX parser); the Svelte scenario benches
-// it against rsvelte-fmt (`@rsvelte/fmt`), the other Rust Svelte-native formatter,
+// it against rsvelte-fmt (`@rsvelte/fmt`), another Rust Svelte-native formatter,
 // and the delivery scenario benches tsv against itself — the native binary, the
 // same binary through `@fuzdev/tsv`'s Node dispatcher, and `@fuzdev/tsv-wasm`.
 // The dispatcher row also runs beside native tsv in every scenario that faces
@@ -93,6 +93,11 @@ export interface CliScenario {
 
 export interface BenchmarksCliReport {
 	machine: string;
+	/**
+	 * A bare `node -e ""` on the same machine, in milliseconds — the launch floor
+	 * every npm-bin row pays (see the report schema). Absent on older reports.
+	 */
+	node_startup?: { mean_ms: number; stddev_ms: number; runs: number };
 	versions: Record<string, string>;
 	scenarios: Array<CliScenario>;
 }
@@ -174,7 +179,7 @@ const SCENARIO_COPY: Record<
 	[CLI_SVELTE_KEY]: {
 		heading: 'Svelte corpus',
 		description:
-			'The two Rust Svelte-native formatters head-to-head on a third-party .svelte corpus, rsvelte-fmt configured to tsv’s fixed style so both do comparable line-break work. Over a directory rsvelte-fmt also starts the oxfmt it hands the files it doesn’t format itself (Markdown, YAML, …) to — its Node launcher resolves it, the binary spawns it once — which finds no files here; that is how it ships, so it stays, and the spawn sits inside rsvelte-fmt’s time, not isolated. rsvelte-fmt 0.7.x aborts nondeterministically on this corpus when its check-mode output has stdout and stderr merged onto one pipe — how the harness’s preflight runs it, and how a CI invocation piping both through tee would. With the streams separated, or under hyperfine, it is clean, and the timed write runs have never hit it; the aborts are the preflight’s. The harness keeps the merged pipe rather than dodge the bug, and never retries: a run is published as it ended, complete or aborted, and about two in three attempts abort, so a timed table here is an attempt the crash didn’t hit.',
+			'Two Rust Svelte-native formatters head-to-head on a third-party .svelte corpus, rsvelte-fmt configured to tsv’s fixed style so both do comparable line-break work. Over a directory rsvelte-fmt also starts the oxfmt it hands the files it doesn’t format itself (Markdown, YAML, …) to — its Node launcher resolves it, the binary spawns it — which finds no files here; that is how it ships, so it stays, and the spawn sits inside rsvelte-fmt’s time, not isolated. Its on-disk style cache and oxfmt daemon serve only the delegated-CSS path the harness doesn’t take (a run on the default path writes no cache), and the harness pins both off regardless. rsvelte-fmt 0.7.x aborts nondeterministically on this corpus when its check-mode output has stdout and stderr merged onto one pipe — how the harness’s preflight runs it, and how a CI invocation piping both through tee would. With the streams separated, or under hyperfine, it is clean, and the timed write runs have never hit it; the aborts are the preflight’s. The harness keeps the merged pipe rather than dodge the bug, and never retries: a run is published as it ended, complete or aborted, and about two in three attempts abort, so a timed table here is an attempt the crash didn’t hit.',
 		tsv_only: false
 	},
 	[CLI_DELIVERY_KEY]: {
@@ -258,9 +263,20 @@ const to_scenarios = (): Array<CliScenario> =>
 
 export const benchmarks_cli: BenchmarksCliReport = {
 	machine: benchmarks_formatters_json.machine,
+	...(benchmarks_formatters_json.node_startup
+		? { node_startup: benchmarks_formatters_json.node_startup }
+		: null),
 	versions: benchmarks_formatters_json.versions,
 	scenarios: to_scenarios()
 };
+
+/**
+ * The machine's bare Node launch, in milliseconds — what the prose quotes as the
+ * floor under every npm-bin row.
+ *
+ * @returns the mean, or `undefined` when the report predates the measurement
+ */
+export const cli_node_startup_ms = (): number | undefined => benchmarks_cli.node_startup?.mean_ms;
 
 /**
  * One rendered CLI scenario by its id — for prose that needs more than a ratio,

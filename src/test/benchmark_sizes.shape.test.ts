@@ -116,6 +116,35 @@ describe('benchmarks.json binary sizes', () => {
 		);
 	});
 
+	test('tsv "builds smaller artifacts for the same capability" than Oxc and Biome', () => {
+		// The TLDR's size claim, like for like within each capability group: tsv's
+		// wasm build against the wasm competitor, its native builds against the native
+		// one (the ffi build stands in where a group has no napi build of tsv)
+		const groups = derive_size_groups(benchmarks_json.binary_sizes);
+		const bytes = (capability: string, label: string): number => {
+			const entry = groups
+				.find((g) => g.capability === capability)
+				?.entries.find((e) => e.label === label);
+			assert(entry && !entry.disabled, `${capability}: ${label} missing`);
+			return entry.bytes;
+		};
+		const PAIRS: Array<[string, string, string]> = [
+			['full', 'tsv-wasm', 'biome (wasm)'],
+			['full', 'tsv (napi)', OXC_FULL_LABEL],
+			['full', 'tsv (ffi)', OXC_FULL_LABEL],
+			['formatter', 'tsv format (ffi)', 'oxfmt (napi)'],
+			['parser', 'tsv-parse-wasm', 'oxc-parser (wasm)'],
+			['parser', 'tsv parse (ffi)', 'oxc-parser (napi)']
+		];
+		for (const [capability, tsv, other] of PAIRS) {
+			assert.isBelow(
+				bytes(capability, tsv),
+				bytes(capability, other),
+				`${capability}: ${tsv} vs ${other}`
+			);
+		}
+	});
+
 	test('formatter group gets a disabled oxfmt (wasm) placeholder just above oxfmt (napi), since oxfmt has no wasm build', () => {
 		const groups = derive_size_groups(benchmarks_json.binary_sizes);
 		const formatter = groups.find((g) => g.capability === 'formatter');

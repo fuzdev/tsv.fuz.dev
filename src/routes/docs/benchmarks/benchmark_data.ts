@@ -692,7 +692,9 @@ export const derive_conformance_groups = (baseline: BenchmarkBaseline): Array<Co
 export const CONFORMANCE_SOURCE_PATHS = {
 	test262: 'benches/js/.cache/test262_files.json',
 	ts_repo: 'benches/js/.cache/ts_repo_files.json',
-	prettier_js: '../prettier/tests/format/js'
+	prettier_js: '../prettier/tests/format/js',
+	// Prettier's HTML fixtures, parsed as Svelte inside the Svelte group
+	prettier_html: '../prettier/tests/format/html'
 } as const;
 
 /** One source's slice of a conformance group — see `derive_conformance_slice`. */

@@ -191,7 +191,8 @@ const synthesize_rsvelte_install = (sizes: Array<BinarySize>): BinarySize | unde
  * largest build; the `vs` ratio anchors on the group's single smallest build, so
  * exactly one entry reads 1.0x and every other is a multiple of it — whichever tool
  * that is. (It is not always tsv: yuku-parser's parse-only builds undercut tsv's,
- * which carry Svelte and CSS parsers besides.) A combined `oxc-parser + oxfmt` entry is
+ * which carry Svelte and CSS parsers besides, and malva's CSS-only plugin undercuts
+ * tsv's three-language format-only wasm build.) A combined `oxc-parser + oxfmt` entry is
  * synthesized into the full-toolchain group, since oxc ships parse and format apart.
  * oxfmt has no wasm build, so the formatter group gets a disabled `oxfmt (wasm)`
  * placeholder slotted just above its real `oxfmt (napi)` entry, holding the slot

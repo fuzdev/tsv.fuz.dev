@@ -74,9 +74,9 @@ src/
 └── test/
     ├── benchmark_data.test.ts       # unit tests for the per-runtime derivations (corpus repos, stability, coverage)
     ├── benchmark_data.shape.test.ts # shape gates over the committed per-runtime and conformance reports
-    ├── benchmark_data.prose.test.ts # gates every ratio the page's prose quotes
+    ├── benchmark_data.prose.test.ts # gates every ratio and direction claim the page's prose quotes
     ├── benchmark_sizes.test.ts      # unit tests for the binary-size capability grouping
-    ├── benchmark_sizes.shape.test.ts # shape gates over the committed report's binary sizes
+    ├── benchmark_sizes.shape.test.ts # shape gates over the committed report's binary sizes, and the tldr's like-for-like size claim
     ├── benchmark_cross_runtime.test.ts # unit tests for the combined-report derivations
     ├── benchmark_cross_runtime.shape.test.ts # shape gates over the committed combined report
     ├── benchmark_display.test.ts    # unit tests for the value formatters and row labels
@@ -114,7 +114,9 @@ The end-to-end CLI comparison against Prettier, Biome, and Oxfmt comes from a
 separate harness, a fork of Oxc's `bench-formatter` that adds tsv
 (../oxc-bench-formatter). Beside the console dump in its README it writes
 `results.json`: hyperfine's own export at full precision, the memory pass, the
-preflight rows, and the versions and machine the README lists. To update:
+preflight rows, the versions and machine the README lists, and (on newer reports)
+`node_startup`, a bare `node -e ""` timed on the same machine — the launch floor
+every npm-bin row pays, kept beside `machine` rather than as a row. To update:
 
 ```bash
 # 1. In ~/dev/oxc-bench-formatter — re-run, rewriting its README and results.json (times the npm-installed @fuzdev/tsv its lockfile pins)
