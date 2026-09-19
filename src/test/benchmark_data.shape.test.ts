@@ -37,9 +37,13 @@ describe('benchmarks.json shape', () => {
 	});
 
 	test('omissions account for exactly what each timed set leaves out', () => {
-		// reports before `version` 16 carry none; from 16 on every timed group is listed
+		// reports before `version` 16 carry none; from 16 on every timed group is listed.
+		// Keyed on the VERSION, not the field: the producer also omits it on a
+		// `BENCH_MODE=union` run, and a report copied from one must fail here rather
+		// than switch the gate off
+		if (benchmarks_json.version < 16) return;
 		const { omissions } = benchmarks_json;
-		if (omissions === undefined) return;
+		assert.isDefined(omissions, 'a version 16 perf report carries omissions');
 		for (const group of derive_benchmark_groups(benchmarks_json)) {
 			const key = `${group.operation}/${group.language}`;
 			const reported = omissions.find((o) => o.group === key);

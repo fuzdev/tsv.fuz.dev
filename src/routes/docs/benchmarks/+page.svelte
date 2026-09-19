@@ -982,21 +982,21 @@
 		<p>
 			Within a group every tool is timed on the same file set — the intersection of what every timed
 			tool accepted, so a file one rejects drops out for everyone. The count above each chart is
-			that intersection; in this report only the two TypeScript groups run short of the corpus
-			total, by a few ambient <code>.d.ts</code> declarations several other tools reject — some
-			because the synthetic <code>file.ts</code> name hides what they are, the rest as a limit of
-			their own — each excused by name in tsv's harness rather than skipped silently; the Svelte and
-			CSS groups run the whole corpus. These are warm numbers: every row runs warmup sweeps before
-			it is timed, so caches and allocators are primed and a cold one-shot call pays more; and each
-			native or wasm call pays a string encode across the binding boundary, and a decode wherever it
-			hands back text or JSON, which the JS tools skip. Rows run in a fixed order, not interleaved
-			or shuffled: the canonical row, then tsv's rows, then the alternatives. A forced garbage
-			collection before each row (not each sweep) bounds what one row's garbage costs the next
-			without removing order as a variable. Unlike the CLI section's ordering, that residue and any
-			thermal drift on a machine that throttles run against the rows after tsv's — every alternative
-			— so order bias there counts for tsv, not against it. The canonical row is the exception: it
-			runs before tsv's, so the bias runs against tsv in the summary table and in the CSS parse
-			group, where Svelte's <code>parseCss</code> is that row.
+			that intersection; where a group runs short of the corpus total, a note under its chart gives
+			the files and the share of the group's bytes left out, and which rows failed them — some
+			because the harness's synthetic <code>file.ts</code> name hides a declaration file for what it
+			is, the rest a limit of the tool's own — each excused by name in tsv's harness rather than
+			skipped silently. These are warm numbers: every row runs warmup sweeps before it is timed, so
+			caches and allocators are primed and a cold one-shot call pays more; and each native or wasm
+			call pays a string encode across the binding boundary, and a decode wherever it hands back
+			text or JSON, which the JS tools skip. Rows run in a fixed order, not interleaved or shuffled:
+			the canonical row, then tsv's rows, then the alternatives. A forced garbage collection before
+			each row (not each sweep) bounds what one row's garbage costs the next without removing order
+			as a variable. Unlike the CLI section's ordering, that residue and any thermal drift on a
+			machine that throttles run against the rows after tsv's — every alternative — so order bias
+			there counts for tsv, not against it. The canonical row is the exception: it runs before
+			tsv's, so the bias runs against tsv in the summary table and in the CSS parse group, where
+			Svelte's <code>parseCss</code> is that row.
 		</p>
 		<p>
 			Every row of a runtime runs in one process under one set of flags, so its native and wasm rows

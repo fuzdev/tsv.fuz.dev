@@ -105,24 +105,22 @@ describe('prose ratios resolve', () => {
 		}
 	});
 
-	test('only the two TypeScript groups run short of the corpus total, by a few files', () => {
-		// "in this report only the two TypeScript groups run short of the corpus total,
-		// by a few ambient .d.ts declarations ...; the Svelte and CSS groups run the
-		// whole corpus" — a rejected file drops out of its group for everyone, so the
-		// sentence goes stale as soon as any other group loses one, or the shortfall
-		// stops being "a few"
+	test('a group that runs short of the corpus total has a note saying by how much', () => {
+		// "where a group runs short of the corpus total, a note under its chart gives
+		// the files ... left out" — the note renders from `omissions`, so the sentence
+		// holds exactly when every shortfall is an omission the report carries. Reports
+		// before `version` 16 carry none, and render no note
+		if (benchmarks_json.version < 16) return;
 		for (const group of derive_benchmark_groups(benchmarks_json)) {
 			const key = `${group.operation}/${group.language}`;
 			const total = benchmarks_json.corpus[group.language];
 			assert.isDefined(total, group.language);
 			assert.isNotNull(group.files_iterated, `${key}: no timed-set count`);
-			const shortfall = total - group.files_iterated;
-			if (group.language === 'typescript') {
-				assert.isAbove(shortfall, 0, `${key} runs the whole corpus`);
-				assert.isAtMost(shortfall, 5, `${key} is short by more than "a few"`);
-			} else {
-				assert.strictEqual(shortfall, 0, `${key} runs short of the corpus`);
-			}
+			assert.strictEqual(
+				total - group.files_iterated,
+				group.omissions?.omitted_files ?? 0,
+				`${key}: the shortfall the heading shows is not the one the note states`
+			);
 		}
 	});
 

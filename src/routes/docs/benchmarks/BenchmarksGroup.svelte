@@ -25,12 +25,21 @@
 	// every row is timed on the files ALL of them process, so a file one tool fails
 	// leaves everyone's set — bytes lead, since one large file is a bigger share of
 	// the work than its count suggests
+	// `by_tool` counts are per row and `omitted_files` is their union, so two rows failing
+	// one file sum past it — the copy says "by row" and flags the overlap when there is one
 	const omitted = $derived(
-		group.omissions && {
-			files: format_count(group.omissions.omitted_files),
-			bytes_percent: format_percent(group.omissions.omitted_bytes, group.omissions.bytes_total),
-			tools: group.omissions.by_tool.map((t) => `${t.name} ${format_count(t.files)}`).join(', ')
-		}
+		group.omissions
+			? {
+					is_one: group.omissions.omitted_files === 1,
+					files: format_count(group.omissions.omitted_files),
+					files_total: format_count(group.omissions.files_total),
+					bytes_percent: format_percent(group.omissions.omitted_bytes, group.omissions.bytes_total),
+					tools: group.omissions.by_tool
+						.map((t) => `${t.name} ${format_count(t.files)}`)
+						.join(', '),
+					overlaps: group.omissions.by_tool.length > 1
+				}
+			: null
 	);
 
 	const rows: Array<BaselineRow> = $derived(
@@ -70,10 +79,10 @@
 	/>
 	{#if omitted}
 		<p class="text_40">
-			{omitted.files} {group.omissions?.omitted_files === 1 ? 'file' : 'files'}
+			{omitted.files} of {omitted.files_total} {omitted.is_one ? 'file' : 'files'}
 			({omitted.bytes_percent} of this group's bytes) left out of every row's timed set, because a
-			tool here can't process {group.omissions?.omitted_files === 1 ? 'it' : 'them'}:
-			{omitted.tools}
+			row here fails {omitted.is_one ? 'it' : 'them'} in this harness — files failed, by
+			row{omitted.overlaps ? ' (rows can overlap)' : ''}: {omitted.tools}
 		</p>
 	{/if}
 </div>

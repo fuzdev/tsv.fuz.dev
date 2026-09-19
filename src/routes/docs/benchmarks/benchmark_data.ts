@@ -76,9 +76,9 @@ export interface BenchmarkBaseline {
 	// Per timed group, the files and BYTES its intersection left out and the rows
 	// that left them. A file any timed row fails leaves EVERY row's timed set, so one
 	// tool's omit moves every number in the group — and a file count understates it
-	// (one harvested stylesheet is about a tenth of `format/css`'s bytes). A group
-	// nothing failed is listed with zeroes. Perf reports only; present from
-	// `version` 16 on.
+	// (a harvested per-collection stylesheet is one file). A group nothing failed is
+	// listed with zeroes. Perf surface, intersection mode, timed runs only — absent on
+	// a `BENCH_MODE=union` run; present from `version` 16 on.
 	omissions?: Array<GroupOmissions>;
 }
 
@@ -97,7 +97,9 @@ export interface GroupOmissions {
 
 // One row's share of a group's omissions. `categories` counts its failed files by
 // the bench's omit category (`tool_limit`, `unsupported_syntax`,
-// `harness_path_threading`, `harvest_artifact`, `tsv_failure`).
+// `harness_path_threading`, `harvest_artifact`, `tsv_failure`), plus `unlisted` for a
+// failure no omit entry claims — unreachable on a run the bench's coverage gate
+// passed, and named so the counts always sum to `files`. Keys arrive in that order.
 export interface ToolOmissions {
 	name: string;
 	files: number;
