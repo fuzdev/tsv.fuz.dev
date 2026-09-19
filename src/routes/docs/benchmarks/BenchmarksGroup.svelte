@@ -1,7 +1,7 @@
 <script lang="ts">
 	import type { BaselineRow } from './benchmark_baseline.ts';
 	import type { BenchmarkGroup } from './benchmark_data.ts';
-	import { format_count, format_language, format_ns } from './benchmark_display.ts';
+	import { format_count, format_language, format_ns, format_percent } from './benchmark_display.ts';
 	import BenchmarksBaselineGroup from './BenchmarksBaselineGroup.svelte';
 
 	const {
@@ -21,6 +21,17 @@
 	// the row's annotation; siblings get an empty one so the grid's column template
 	// stays uniform across the group (same trick as BenchmarksSizes' gzip fallback)
 	const has_coverage_only = $derived(group.entries.some((e) => e.coverage_only));
+
+	// every row is timed on the files ALL of them process, so a file one tool fails
+	// leaves everyone's set — bytes lead, since one large file is a bigger share of
+	// the work than its count suggests
+	const omitted = $derived(
+		group.omissions && {
+			files: format_count(group.omissions.omitted_files),
+			bytes_percent: format_percent(group.omissions.omitted_bytes, group.omissions.bytes_total),
+			tools: group.omissions.by_tool.map((t) => `${t.name} ${format_count(t.files)}`).join(', ')
+		}
+	);
 
 	const rows: Array<BaselineRow> = $derived(
 		group.entries.map((e) => ({
@@ -57,4 +68,12 @@
 		direction="speed"
 		label="{group.operation === 'format' ? 'Format' : 'Parse'} {format_language(group.language)}"
 	/>
+	{#if omitted}
+		<p class="text_40">
+			{omitted.files} {group.omissions?.omitted_files === 1 ? 'file' : 'files'}
+			({omitted.bytes_percent} of this group's bytes) left out of every row's timed set, because a
+			tool here can't process {group.omissions?.omitted_files === 1 ? 'it' : 'them'}:
+			{omitted.tools}
+		</p>
+	{/if}
 </div>

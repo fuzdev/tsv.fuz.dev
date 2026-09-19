@@ -2,11 +2,13 @@ import { assert, describe, test } from 'vitest';
 
 import { benchmarks_json } from '$routes/docs/benchmarks/benchmarks.ts';
 import {
+	derive_benchmark_groups,
 	derive_corpus_repos,
 	derive_unstable_entries,
 	format_coverage_percent,
 	format_unstable_readings,
 	is_entry_unstable,
+	is_payload_matched,
 	parse_group_key,
 	type BaselineEntry,
 	type BenchmarkBaseline
@@ -153,6 +155,52 @@ describe('format_unstable_readings', () => {
 			'cv 10.0%, drift -5.0%'
 		);
 		assert.strictEqual(format_unstable_readings({ cv: null, cv_raw: null, drift: null }), '');
+	});
+});
+
+describe('derive_benchmark_groups omissions', () => {
+	const baseline = (omissions: BenchmarkBaseline['omissions']): BenchmarkBaseline => ({
+		...benchmarks_json,
+		entries: [
+			entry({ name: 'prettier', group: 'format/css' }),
+			entry({ name: 'biome-wasm', group: 'format/css' })
+		],
+		omissions
+	});
+	const css_omissions = {
+		group: 'format/css',
+		files_total: 55,
+		bytes_total: 378_000,
+		omitted_files: 1,
+		omitted_bytes: 41_125,
+		by_tool: [{ name: 'biome-wasm', files: 1, bytes: 41_125, categories: { harvest_artifact: 1 } }]
+	};
+
+	test('a group carries the omissions reported under its key', () => {
+		const [group] = derive_benchmark_groups(baseline([css_omissions]));
+		assert.deepEqual(group?.omissions, css_omissions);
+	});
+
+	test('nothing omitted, another group, and an older report all read as null', () => {
+		const none = { ...css_omissions, omitted_files: 0, omitted_bytes: 0, by_tool: [] };
+		for (const omissions of [[none], [{ ...css_omissions, group: 'parse/css' }], undefined]) {
+			const [group] = derive_benchmark_groups(baseline(omissions));
+			assert.isNull(group?.omissions);
+		}
+	});
+});
+
+describe('is_payload_matched', () => {
+	test('equal tiers match, except own_shape — two dialects are two products', () => {
+		assert.isTrue(is_payload_matched({ payload: 'drop_in' }, { payload: 'drop_in' }));
+		assert.isTrue(is_payload_matched({ payload: 'span_only' }, { payload: 'span_only' }));
+		assert.isFalse(is_payload_matched({ payload: 'drop_in' }, { payload: 'span_only' }));
+		assert.isFalse(is_payload_matched({ payload: 'own_shape' }, { payload: 'own_shape' }));
+	});
+
+	test('a row with no tier makes the question unanswerable, not false', () => {
+		assert.isNull(is_payload_matched({ payload: null }, { payload: 'drop_in' }));
+		assert.isNull(is_payload_matched({}, { payload: 'drop_in' }));
 	});
 });
 

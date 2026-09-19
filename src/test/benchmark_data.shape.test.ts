@@ -36,6 +36,28 @@ describe('benchmarks.json shape', () => {
 		assert.isString(versions.prettier_svelte);
 	});
 
+	test('omissions account for exactly what each timed set leaves out', () => {
+		// reports before `version` 16 carry none; from 16 on every timed group is listed
+		const { omissions } = benchmarks_json;
+		if (omissions === undefined) return;
+		for (const group of derive_benchmark_groups(benchmarks_json)) {
+			const key = `${group.operation}/${group.language}`;
+			const reported = omissions.find((o) => o.group === key);
+			assert.ok(reported, `${key} has no omissions entry`);
+			// the timed set is the group's files minus the ones some timed row failed
+			assert.strictEqual(
+				reported.files_total - reported.omitted_files,
+				group.files_iterated,
+				`${key}: files_total − omitted_files is the timed set`
+			);
+			// no omit tolerates a failure of tsv's own — every one excuses a rival's gap
+			for (const tool of reported.by_tool) {
+				assert.notProperty(tool.categories, 'tsv_failure', `${key}/${tool.name}`);
+				assert.notProperty(tool.categories, 'unlisted', `${key}/${tool.name}`);
+			}
+		}
+	});
+
 	test('corpus covers every benchmarked language', () => {
 		for (const language of ['svelte', 'typescript', 'css']) {
 			assert.isAbove(benchmarks_json.corpus[language] ?? 0, 0, language);

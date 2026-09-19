@@ -73,7 +73,52 @@ export interface BenchmarkBaseline {
 	// so a growing count means that check is quietly covering less. Present from
 	// `version` 13 on; not rendered, kept for parity.
 	output_digest_ungraded?: Record<string, number>;
+	// Per timed group, the files and BYTES its intersection left out and the rows
+	// that left them. A file any timed row fails leaves EVERY row's timed set, so one
+	// tool's omit moves every number in the group — and a file count understates it
+	// (one harvested stylesheet is about a tenth of `format/css`'s bytes). A group
+	// nothing failed is listed with zeroes. Perf reports only; present from
+	// `version` 16 on.
+	omissions?: Array<GroupOmissions>;
 }
+
+// One timed group's omissions (see `BenchmarkBaseline.omissions`). Mirrors the
+// bench's `GroupOmissions`: `omitted_*` is the UNION over rows, `by_tool` is per
+// row, so its counts can sum past it.
+export interface GroupOmissions {
+	// `operation/language`, the same key `BaselineEntry.group` carries.
+	group: string;
+	files_total: number;
+	bytes_total: number;
+	omitted_files: number;
+	omitted_bytes: number;
+	by_tool: Array<ToolOmissions>;
+}
+
+// One row's share of a group's omissions. `categories` counts its failed files by
+// the bench's omit category (`tool_limit`, `unsupported_syntax`,
+// `harness_path_threading`, `harvest_artifact`, `tsv_failure`).
+export interface ToolOmissions {
+	name: string;
+	files: number;
+	bytes: number;
+	categories: Record<string, number>;
+}
+
+// What a PARSE row hands JS (see `BaselineEntry.payload`). Mirrors the bench's
+// `PayloadTier`.
+export type PayloadTier = 'drop_in' | 'span_only' | 'own_shape' | 'none';
+
+// Whether a ratio between two parse rows compares the same PRODUCT: their tiers are
+// equal and neither is `own_shape`. `null` when either row carries no tier — an
+// older report, or a format row, where the question does not arise.
+export const is_payload_matched = (
+	a: Pick<BaselineEntry, 'payload'>,
+	b: Pick<BaselineEntry, 'payload'>
+): boolean | null =>
+	a.payload == null || b.payload == null
+		? null
+		: a.payload === b.payload && a.payload !== 'own_shape';
 
 // Per-impl coverage for one corpus source (see `coverage_by_source`).
 export interface SourceCoverageCell {
@@ -216,6 +261,12 @@ export interface BaselineEntry {
 	// Files this impl was actually timed on (the per-group intersection in
 	// default mode). Present from baseline `version` 4 on.
 	files_iterated?: number | null;
+	// What a parse row hands JS — the canonical parser's own AST shape (`drop_in`),
+	// a `start`/`end`-only tree (`span_only`), the tool's own dialect or reduction
+	// (`own_shape`), or nothing materialized (`none`). Most of a parse row's time is
+	// building that product, so a ratio between two rows integrates it
+	// (`is_payload_matched`). `null` on format rows; present from `version` 16 on.
+	payload?: PayloadTier | null;
 	// Present from report `version` 5 on (matches the report's top-level);
 	// not rendered, kept for parity.
 	runtime?: string;
@@ -300,6 +351,9 @@ export interface BenchmarkGroup {
 	// files the timed benchmark actually iterated (the per-group intersection);
 	// null on older baselines (< version 4) that don't carry `files_iterated`
 	files_iterated: number | null;
+	// what the intersection left out, when it left anything out; null when nothing
+	// was omitted or the report predates `omissions` (< version 16)
+	omissions: GroupOmissions | null;
 }
 
 export interface BenchmarkDisplayEntry {
@@ -505,7 +559,9 @@ export const derive_benchmark_groups = (baseline: BenchmarkBaseline): Array<Benc
 			language,
 			entries: display_entries,
 			canonical_entry: display_entries.find((e) => e.category === 'canonical'),
-			files_iterated: iterated_counts.length > 0 ? Math.min(...iterated_counts) : null
+			files_iterated: iterated_counts.length > 0 ? Math.min(...iterated_counts) : null,
+			omissions:
+				baseline.omissions?.find((o) => o.group === group_key && o.omitted_files > 0) ?? null
 		});
 	}
 

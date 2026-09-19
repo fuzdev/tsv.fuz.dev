@@ -94,6 +94,13 @@ export const format_share_approx = (fraction: number | undefined): string =>
 	fraction === undefined ? '—' : `${Math.round(fraction * 100)}%`;
 
 /**
+ * A part of a whole as a percentage with one decimal (`11.2%`) — for a share small
+ * enough that rounding to a whole number would read as `0%`. `0%` for an empty whole.
+ */
+export const format_percent = (part: number, whole: number): string =>
+	whole > 0 ? `${((part / whole) * 100).toFixed(1)}%` : '0%';
+
+/**
  * An inclusive ratio range for prose (`2.9–4.6x`, `6–21x`), FLOORED at both ends
  * — to one decimal under 10, to a whole number from 10 — so a "less memory" claim
  * never overstates either bound while keeping the precision `format_ratio_approx`

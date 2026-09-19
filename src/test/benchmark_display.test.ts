@@ -6,6 +6,7 @@ import {
 	format_count,
 	format_label,
 	format_ratio_plain,
+	format_percent,
 	format_share_approx,
 	format_ns,
 	format_ratio_approx,
@@ -78,6 +79,15 @@ describe('format_bytes', () => {
 	test('the KB tier ends where it would round to 1000', () => {
 		assert.deepEqual(format_bytes(999_499), { value: '999', unit: 'KB' });
 		assert.deepEqual(format_bytes(999_500), { value: '1.0', unit: 'MB' });
+	});
+});
+
+describe('format_percent', () => {
+	test('keeps one decimal so a small share does not read as zero', () => {
+		assert.strictEqual(format_percent(41_125, 378_000), '10.9%');
+		assert.strictEqual(format_percent(1, 3000), '0.0%');
+		assert.strictEqual(format_percent(5, 5), '100.0%');
+		assert.strictEqual(format_percent(0, 0), '0%');
 	});
 });
 
