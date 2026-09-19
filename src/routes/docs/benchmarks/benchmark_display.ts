@@ -94,11 +94,20 @@ export const format_share_approx = (fraction: number | undefined): string =>
 	fraction === undefined ? '—' : `${Math.round(fraction * 100)}%`;
 
 /**
- * A part of a whole as a percentage with one decimal (`11.2%`) — for a share small
- * enough that rounding to a whole number would read as `0%`. `0%` for an empty whole.
+ * A part of a whole as a percentage with one decimal (`11.2%`). Rounded, with both
+ * edges clamped so neither can lie: a nonzero part never reads `0.0%` (`<0.1%`) and a
+ * partial one never reads `100.0%` (`>99.9%`). Not floored like
+ * `format_coverage_percent` — there only the top edge can mislead, where a share has
+ * two, and flooring would understate it. `0%` for an empty whole.
  */
-export const format_percent = (part: number, whole: number): string =>
-	whole > 0 ? `${((part / whole) * 100).toFixed(1)}%` : '0%';
+export const format_percent = (part: number, whole: number): string => {
+	if (whole <= 0 || part <= 0) return '0%';
+	if (part >= whole) return '100%';
+	const percent = (part / whole) * 100;
+	if (percent < 0.05) return '<0.1%';
+	if (percent >= 99.95) return '>99.9%';
+	return `${percent.toFixed(1)}%`;
+};
 
 /**
  * An inclusive ratio range for prose (`2.9–4.6x`, `6–21x`), FLOORED at both ends

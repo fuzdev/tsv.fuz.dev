@@ -83,10 +83,20 @@ describe('format_bytes', () => {
 });
 
 describe('format_percent', () => {
-	test('keeps one decimal so a small share does not read as zero', () => {
+	test('rounds to one decimal', () => {
 		assert.strictEqual(format_percent(41_125, 378_000), '10.9%');
-		assert.strictEqual(format_percent(1, 3000), '0.0%');
-		assert.strictEqual(format_percent(5, 5), '100.0%');
+		assert.strictEqual(format_percent(1, 3), '33.3%');
+	});
+
+	test('clamps both edges, so a nonzero share is never zero and a partial one never whole', () => {
+		assert.strictEqual(format_percent(1, 3000), '<0.1%');
+		assert.strictEqual(format_percent(2999, 3000), '>99.9%');
+		assert.strictEqual(format_percent(1, 1000), '0.1%');
+	});
+
+	test('exact ends carry no decimal', () => {
+		assert.strictEqual(format_percent(0, 3000), '0%');
+		assert.strictEqual(format_percent(5, 5), '100%');
 		assert.strictEqual(format_percent(0, 0), '0%');
 	});
 });
