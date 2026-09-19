@@ -1,0 +1,89 @@
+import { assert, describe, test } from 'vitest';
+
+import { benchmarks_json } from '$routes/docs/benchmarks/benchmarks.ts';
+import { benchmarks_conformance_json } from '$routes/docs/benchmarks/benchmarks_conformance.ts';
+import { benchmarks_cross_runtime_json } from '$routes/docs/benchmarks/benchmarks_cross_runtime.ts';
+import { derive_cross_runtime_groups } from '$routes/docs/benchmarks/benchmark_cross_runtime.ts';
+
+// The combined report shape the committed copy is pinned to — tsv's composer's
+// `COMBINED_SCHEMA_VERSION`. Exact rather than a floor, so `npm run
+// update-benchmarks` pulling a newer shape fails here until
+// `benchmark_cross_runtime.ts` mirrors the new fields and this is re-pinned.
+const COMBINED_VERSION = 15;
+
+// Shape gate for the committed cross-runtime `benchmarks_cross_runtime.json` (the
+// bench composer's combined `report.json`) — a different, slimmer shape than the
+// per-runtime baseline, consumed by the Cross-runtime section.
+describe('benchmarks_cross_runtime.json shape', () => {
+	test('combined report carries the current version and kind', () => {
+		assert.strictEqual(benchmarks_cross_runtime_json.version, COMBINED_VERSION);
+		assert.strictEqual(benchmarks_cross_runtime_json.kind, 'combined');
+		// the committed fixture must be same-vintage — if this trips, re-run every
+		// runtime and recompose rather than committing a mixed set (the site would
+		// show the unreliable-ratios warning banner)
+		assert.notStrictEqual(benchmarks_cross_runtime_json.mixed_vintage, true);
+	});
+
+	test('the conformance report is same-vintage with the perf siblings', () => {
+		// combined `version` 13 records it; a stale one means `update-benchmarks`
+		// copied a conformance report from a different refresh than the perf trio
+		// (the site would show the parse-conformance section's warning banner)
+		const vintage = benchmarks_cross_runtime_json.conformance_vintage;
+		assert.isOk(vintage, 'conformance_vintage recorded');
+		assert.notStrictEqual(vintage.stale, true);
+		assert.strictEqual(vintage.git_commit, benchmarks_conformance_json.git_commit);
+	});
+
+	test('the flagship report is the node sibling the combined report was composed from', () => {
+		// `update-benchmarks` copies three files from one `deno task bench`; if a copy
+		// is skipped or taken from another worktree, the detailed view and the
+		// cross-runtime tables silently describe different builds. The composer
+		// can't see the copied files, so this is the site-side vintage gate
+		const node = benchmarks_cross_runtime_json.sources.find((s) => s.runtime === 'node');
+		assert.isOk(node, 'combined report carries a node source');
+		assert.strictEqual(node.git_commit, benchmarks_json.git_commit);
+		assert.strictEqual(node.timestamp, benchmarks_json.timestamp);
+		assert.strictEqual(node.tsv, benchmarks_json.versions.tsv);
+	});
+
+	test('runtimes include the flagship and its cross-runtime peers', () => {
+		const { runtimes } = benchmarks_cross_runtime_json;
+		assert.include(runtimes, 'node'); // the flagship the headline view leads with
+		assert.include(runtimes, 'deno');
+		assert.include(runtimes, 'bun');
+	});
+
+	test('every group derives rows with the flagship runtime populated', () => {
+		const groups = derive_cross_runtime_groups(benchmarks_cross_runtime_json);
+		assert.isAtLeast(groups.length, 6); // format+parse × svelte/typescript/css
+		for (const group of groups) {
+			assert.isAbove(group.rows.length, 0, group.group);
+			for (const row of group.rows) {
+				assert.isNumber(row.ops_per_second.node, `${group.group}/${row.name} missing node ops`);
+				// ratios anchor on node (the display-order base, not the report's
+				// deno-first storage order), so node's own ratio is exactly 1
+				assert.strictEqual(row.ratio_vs_base.node, 1, `${group.group}/${row.name} node anchor`);
+			}
+		}
+	});
+
+	test('the committed reports timed identical file sets across runtimes', () => {
+		// a mismatch means part of a published ratio is corpus composition, not
+		// runtime — recompose from same-box, same-commit siblings rather than
+		// committing a report that needs the ⚠ files annotation
+		const groups = derive_cross_runtime_groups(benchmarks_cross_runtime_json);
+		for (const group of groups) {
+			for (const row of group.rows) {
+				assert.isNull(row.files_iterated_mismatch, `${group.group}/${row.name} file-set mismatch`);
+			}
+		}
+		// the derivation compares only the counts that are present, so a row whose
+		// counts are missing on some runtime would pass above with nothing compared —
+		// every runtime the report carries must have reported one for every row
+		for (const row of benchmarks_cross_runtime_json.rows) {
+			for (const runtime of benchmarks_cross_runtime_json.runtimes) {
+				assert.isNumber(row.files_iterated[runtime], `${row.group}/${row.name} ${runtime}`);
+			}
+		}
+	});
+});

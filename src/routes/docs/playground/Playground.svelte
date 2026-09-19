@@ -5,15 +5,16 @@
 
 	import Code from '@fuzdev/fuz_code/Code.svelte';
 	import CodeTextarea from '@fuzdev/fuz_code/CodeTextarea.svelte';
-	import {supports_css_highlight_api} from '@fuzdev/fuz_code/highlight_manager.ts';
-	import {to_error_message} from '@fuzdev/fuz_util/error.ts';
+	import { supports_css_highlight_api } from '@fuzdev/fuz_code/highlight_manager.ts';
+	import CopyToClipboard from '@fuzdev/fuz_ui/CopyToClipboard.svelte';
+	import { to_error_message } from '@fuzdev/fuz_util/error.ts';
 
-	import {playground_example} from './playground_example.ts';
+	import { playground_example } from './playground_example.ts';
 
-	// `@fuzdev/tsv_wasm` is loaded lazily, in the browser only — a dynamic import
-	// so the ~900KB WASM lands in its own chunk, fetched the first time this
+	// `@fuzdev/tsv-wasm` is loaded lazily, in the browser only — a dynamic import
+	// so the ~1MB-gzipped WASM lands in its own chunk, fetched the first time this
 	// component mounts and never pulled into `/docs` or the prerendered HTML.
-	let tsv: typeof import('@fuzdev/tsv_wasm') | null = $state(null);
+	let tsv: typeof import('@fuzdev/tsv-wasm') | null = $state(null);
 	let load_error: string | null = $state(null);
 
 	// the editable source — starts as the deliberately-unformatted example so the
@@ -23,7 +24,7 @@
 	const ready = $derived(tsv !== null);
 
 	// A tsv call's outcome: its string result, or the thrown error's message.
-	type Outcome = {value: string; error: null} | {value: null; error: string};
+	type Outcome = { value: string; error: null } | { value: null; error: string };
 
 	// Run a tsv call, capturing a thrown error as a message; `null` until the WASM
 	// loads. Lets `formatted` and `ast` share one shape and recompute as `source` changes
@@ -31,9 +32,9 @@
 	const run = (fn: (t: NonNullable<typeof tsv>) => string): Outcome | null => {
 		if (!tsv) return null;
 		try {
-			return {value: fn(tsv), error: null};
+			return { value: fn(tsv), error: null };
 		} catch (err) {
-			return {value: null, error: to_error_message(err)};
+			return { value: null, error: to_error_message(err) };
 		}
 	};
 
@@ -59,7 +60,7 @@
 		let cancelled = false;
 		void (async () => {
 			try {
-				const mod = await import('@fuzdev/tsv_wasm');
+				const mod = await import('@fuzdev/tsv-wasm');
 				await mod.init();
 				if (cancelled) return;
 				tsv = mod;
@@ -71,6 +72,8 @@
 			cancelled = true;
 		};
 	});
+
+	const is_base = $derived(source === playground_example);
 
 	const reset = (): void => {
 		source = playground_example;
@@ -84,8 +87,8 @@
 	};
 </script>
 
-<header class="row">
-	<button type="button" class="plain" onclick={reset} disabled={!ready}>reset</button>
+<header class="row mb_xs">
+	<button type="button" class="plain" onclick={reset} disabled={!ready || is_base}>reset</button>
 	<button type="button" class="plain" onclick={format} disabled={!ready || error !== null}>
 		format
 	</button>
@@ -107,12 +110,15 @@
 	{#if !ready}
 		<p>loading the formatter…</p>
 	{:else if error}
-		<p class="parse_error">{error}</p>
+		<p class="parse-error">{error}</p>
 	{:else}
 		<p>formatted</p>
 		<Code lang="svelte" content={formatted?.value ?? ''} />
 		<p>AST</p>
-		<Code lang="json" content={ast?.value ?? ''} class="ast" />
+		<div class="ast-output">
+			<CopyToClipboard text={ast?.value ?? ''} class="ast-copy" />
+			<Code lang="json" content={ast?.value ?? ''} class="ast" />
+		</div>
 	{/if}
 </section>
 
@@ -132,11 +138,31 @@
 	section :global(.ast) {
 		max-height: 500px;
 	}
+	/* float a copy button over the AST pane's top-right corner; it stays pinned as
+	   the pane scrolls since it's absolute to this wrapper, not inside the scroller */
+	.ast-output {
+		position: relative;
+	}
+	.ast-output :global(.ast-copy) {
+		--font_size: var(--font_size_lg);
+		position: absolute;
+		top: var(--space_xs);
+		/* clear the pane's scrollbar */
+		right: var(--space_md);
+		z-index: 1;
+		background: var(--shade_00);
+	}
+	/* TODO hacky: fuz_ui's CopyToClipboard sets an inline `style:width="100%"` on
+	   its icon wrapper div, which only `!important` can beat from here — drop this
+	   once that wrapper stops hardcoding its width */
+	.ast-output :global(.ast-copy > div) {
+		width: auto !important;
+	}
 	.error {
 		color: var(--color_e_40);
 		white-space: pre-wrap;
 	}
-	.parse_error {
+	.parse-error {
 		color: var(--color_c_50);
 		white-space: pre-wrap;
 	}

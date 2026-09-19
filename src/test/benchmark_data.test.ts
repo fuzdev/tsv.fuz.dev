@@ -1,57 +1,229 @@
-import {assert, describe, test} from 'vitest';
+import { assert, describe, test } from 'vitest';
 
-import {benchmarks_json} from '$routes/docs/benchmarks/benchmarks.ts';
+import { benchmarks_json } from '$routes/docs/benchmarks/benchmarks.ts';
 import {
 	derive_benchmark_groups,
-	derive_speedup_summary,
+	derive_corpus_repos,
+	derive_unstable_entries,
+	format_coverage_percent,
+	format_unstable_readings,
+	is_entry_unstable,
+	is_payload_matched,
+	parse_group_key,
+	type BaselineEntry,
+	type BenchmarkBaseline
 } from '$routes/docs/benchmarks/benchmark_data.ts';
 
-// Shape gate for the committed benchmarks.json: the bench report format drifts
-// (it once went 3 months stale across a key rename that rendered as `undefined`),
-// and `benchmarks.ts` casts the JSON, so typechecking alone won't catch it.
-// When `npm run update-benchmarks` pulls in a new shape, these fail loudly.
-describe('benchmarks.json shape', () => {
-	test('baseline version is current', () => {
-		assert.isAtLeast(benchmarks_json.version, 4);
-	});
-
-	test('binary sizes include the ratio anchors', () => {
-		const labels = benchmarks_json.binary_sizes.map((s) => s.label);
-		assert.include(labels, 'tsv (native)'); // native anchor
-		assert.include(labels, 'tsv_wasm'); // wasm anchor (the full build)
-	});
-
-	test('versions carries the keys the meta component renders', () => {
-		const {versions} = benchmarks_json;
-		assert.isString(versions.svelte);
-		assert.isString(versions.acorn_ts);
-		assert.isString(versions.prettier);
-		assert.isString(versions.prettier_svelte);
-	});
-
-	test('corpus covers every benchmarked language', () => {
-		for (const language of ['svelte', 'typescript', 'css']) {
-			assert.isAbove(benchmarks_json.corpus[language] ?? 0, 0, language);
+describe('derive_corpus_repos', () => {
+	test('maps the committed corpus sources to deduped org/name repo links', () => {
+		const repos = derive_corpus_repos(benchmarks_json.corpus_sources);
+		assert.isNotEmpty(repos);
+		// one entry per URL — no repo appears twice even though svelte.dev contributes
+		// several source subpaths
+		const urls = repos.map((r) => r.url);
+		assert.strictEqual(new Set(urls).size, urls.length, 'urls are distinct');
+		const svelte_dev = repos.filter((r) => r.url === 'https://github.com/sveltejs/svelte.dev');
+		assert.strictEqual(svelte_dev.length, 1, 'svelte.dev collapses to one entry');
+		// each label is the linkified `org/name`, derived from (and ending) its URL
+		for (const repo of repos) {
+			assert.match(repo.label, /^[^/]+\/[^/]+$/, repo.url);
+			assert.isTrue(repo.url.endsWith(repo.label), `${repo.url} ends with ${repo.label}`);
 		}
 	});
 
-	test('every group derives a canonical entry and a timed-set count', () => {
-		const groups = derive_benchmark_groups(benchmarks_json);
-		assert.isAtLeast(groups.length, 6); // format+parse × svelte/typescript/css
-		for (const group of groups) {
-			const key = `${group.operation}/${group.language}`;
-			assert.ok(group.canonical_entry, `${key} has no canonical entry`);
-			assert.isNotNull(group.files_iterated, `${key} has no files_iterated`);
-		}
+	test('collapses shared repos and drops sources with no detected repo', () => {
+		const ref = (slug: string, subpath: string) => ({
+			url: `https://github.com/${slug}`,
+			slug,
+			commit: '0123456789abcdef0123456789abcdef01234567',
+			subpath
+		});
+		const repos = derive_corpus_repos([
+			{
+				path: '../corpora/collections/zzz/src',
+				files: 1,
+				repo: ref('fuzdev/zzz', 'src')
+			},
+			{
+				path: '../corpora/collections/svelte.dev/apps/svelte.dev/src',
+				files: 1,
+				repo: ref('sveltejs/svelte.dev', 'apps/svelte.dev/src')
+			},
+			{
+				path: '../corpora/collections/svelte.dev/packages/repl/src',
+				files: 1,
+				repo: ref('sveltejs/svelte.dev', 'packages/repl/src') // same repo → collapsed
+			},
+			{ path: 'benches/js/.cache/svelte_styles', files: 1 } // no detected repo → dropped
+		]);
+		assert.deepStrictEqual(repos, [
+			{ url: 'https://github.com/fuzdev/zzz', label: 'fuzdev/zzz' },
+			{
+				url: 'https://github.com/sveltejs/svelte.dev',
+				label: 'sveltejs/svelte.dev'
+			}
+		]);
 	});
 
-	test('speedup summary is fully populated', () => {
-		const rows = derive_speedup_summary(derive_benchmark_groups(benchmarks_json));
-		assert.strictEqual(rows.length, 2); // native + wasm
-		for (const row of rows) {
-			assert.isDefined(row.format_svelte, row.variant);
-			assert.isDefined(row.format_typescript, row.variant);
-			assert.isDefined(row.format_css, row.variant);
+	test('handles a missing corpus_sources field', () => {
+		assert.deepStrictEqual(derive_corpus_repos(undefined), []);
+	});
+});
+
+const entry = (overrides: Partial<BaselineEntry>): BaselineEntry => ({
+	name: 'x',
+	group: 'format/css',
+	mean_ns: 1,
+	p50_ns: 1,
+	p75_ns: 1,
+	p90_ns: 1,
+	p95_ns: 1,
+	p99_ns: 1,
+	min_ns: 1,
+	max_ns: 1,
+	std_dev_ns: 0,
+	cv: 0.01,
+	ops_per_second: 1,
+	sample_size: 100,
+	cv_raw: 0.01,
+	drift: 0,
+	raw_sample_size: 100,
+	...overrides
+});
+
+describe('is_entry_unstable', () => {
+	test('a clean row is stable', () => {
+		assert.isFalse(is_entry_unstable(entry({})));
+	});
+
+	test('a cleaned cv at the threshold is unstable', () => {
+		assert.isTrue(is_entry_unstable(entry({ cv: 0.1 })));
+	});
+
+	test('a raw cv past the threshold counts only on a small sample', () => {
+		assert.isTrue(is_entry_unstable(entry({ cv_raw: 0.2, raw_sample_size: 29 })));
+		assert.isFalse(is_entry_unstable(entry({ cv_raw: 0.2, raw_sample_size: 30 })));
+	});
+
+	test('drift counts in either direction', () => {
+		assert.isTrue(is_entry_unstable(entry({ drift: -0.05 })));
+		assert.isTrue(is_entry_unstable(entry({ drift: 0.07 })));
+		assert.isFalse(is_entry_unstable(entry({ drift: -0.049 })));
+	});
+
+	test('an untimed row is not unstable, and missing raw fields are silence', () => {
+		assert.isFalse(is_entry_unstable(entry({ cv: null, mean_ns: null })));
+		assert.isFalse(is_entry_unstable(entry({ cv: null, mean_ns: null, drift: 0.4 })));
+		assert.isFalse(is_entry_unstable(entry({ cv_raw: null, drift: null, raw_sample_size: null })));
+	});
+
+	test('a timed row missing only its cleaned cv is still checked by drift and raw cv', () => {
+		assert.isTrue(is_entry_unstable(entry({ cv: null, drift: 0.4 })));
+		assert.isTrue(is_entry_unstable(entry({ cv: null, cv_raw: 0.5, raw_sample_size: 10 })));
+		assert.isFalse(is_entry_unstable(entry({ cv: null })));
+	});
+});
+
+describe('derive_unstable_entries', () => {
+	const baseline = (entries: Array<BaselineEntry>): BenchmarkBaseline =>
+		({ entries }) as unknown as BenchmarkBaseline;
+
+	test('keeps only the unstable rows, worst reading first across cv, raw cv, and |drift|', () => {
+		const derived = derive_unstable_entries(
+			baseline([
+				entry({ name: 'clean' }),
+				entry({ name: 'cv', cv: 0.12 }),
+				entry({ name: 'drift', drift: -0.3 }),
+				entry({ name: 'raw', cv_raw: 0.2, raw_sample_size: 10 })
+			])
+		);
+		assert.deepStrictEqual(
+			derived.map((e) => e.name),
+			['drift', 'raw', 'cv']
+		);
+	});
+});
+
+describe('format_unstable_readings', () => {
+	test('names each reading, signs drift, and omits absent ones', () => {
+		assert.strictEqual(
+			format_unstable_readings({ cv: 0.478, cv_raw: 0.52, drift: 0.38 }),
+			'cv 47.8%, raw cv 52.0%, drift +38.0%'
+		);
+		assert.strictEqual(
+			format_unstable_readings({ cv: 0.1, drift: -0.05 }),
+			'cv 10.0%, drift -5.0%'
+		);
+		assert.strictEqual(format_unstable_readings({ cv: null, cv_raw: null, drift: null }), '');
+	});
+});
+
+describe('derive_benchmark_groups omissions', () => {
+	const baseline = (omissions: BenchmarkBaseline['omissions']): BenchmarkBaseline => ({
+		...benchmarks_json,
+		entries: [
+			entry({ name: 'prettier', group: 'format/css' }),
+			entry({ name: 'biome-wasm', group: 'format/css' })
+		],
+		omissions
+	});
+	const css_omissions = {
+		group: 'format/css',
+		files_total: 55,
+		bytes_total: 378_000,
+		omitted_files: 1,
+		omitted_bytes: 41_125,
+		by_tool: [{ name: 'biome-wasm', files: 1, bytes: 41_125, categories: { harvest_artifact: 1 } }]
+	};
+
+	test('a group carries the omissions reported under its key', () => {
+		const [group] = derive_benchmark_groups(baseline([css_omissions]));
+		assert.deepEqual(group?.omissions, css_omissions);
+	});
+
+	test('nothing omitted, another group, and an older report all read as null', () => {
+		const none = { ...css_omissions, omitted_files: 0, omitted_bytes: 0, by_tool: [] };
+		for (const omissions of [[none], [{ ...css_omissions, group: 'parse/css' }], undefined]) {
+			const [group] = derive_benchmark_groups(baseline(omissions));
+			assert.isNull(group?.omissions);
 		}
+	});
+});
+
+describe('is_payload_matched', () => {
+	test('equal tiers match, except own_shape — two dialects are two products', () => {
+		assert.isTrue(is_payload_matched({ payload: 'drop_in' }, { payload: 'drop_in' }));
+		assert.isTrue(is_payload_matched({ payload: 'span_only' }, { payload: 'span_only' }));
+		assert.isFalse(is_payload_matched({ payload: 'drop_in' }, { payload: 'span_only' }));
+		assert.isFalse(is_payload_matched({ payload: 'own_shape' }, { payload: 'own_shape' }));
+	});
+
+	test('a row with no tier makes the question unanswerable, not false', () => {
+		assert.isNull(is_payload_matched({ payload: null }, { payload: 'drop_in' }));
+		assert.isNull(is_payload_matched({}, { payload: 'drop_in' }));
+	});
+});
+
+describe('format_coverage_percent', () => {
+	test('floors — only exact totality reads 100%', () => {
+		// 44219/44220 rounds to 100.00% but must not display as it: floor, so a
+		// visibly non-total count never sits beside a "100.00%" label.
+		assert.strictEqual(format_coverage_percent(44_219 / 44_220), '99.99%');
+		assert.strictEqual(format_coverage_percent(1), '100.00%');
+		assert.strictEqual(format_coverage_percent(0.998549), '99.85%');
+		assert.strictEqual(format_coverage_percent(0), '0.00%');
+	});
+});
+
+describe('parse_group_key', () => {
+	test('splits an operation/language key', () => {
+		assert.deepStrictEqual(parse_group_key('format/svelte'), {
+			operation: 'format',
+			language: 'svelte'
+		});
+	});
+
+	test('a key missing its language yields an empty one rather than undefined', () => {
+		assert.deepStrictEqual(parse_group_key('format'), { operation: 'format', language: '' });
 	});
 });
