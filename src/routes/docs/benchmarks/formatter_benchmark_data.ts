@@ -72,6 +72,12 @@ export const FormatterScenario = z.strictObject({
 	 */
 	warmup_runs: z.number().int().nonnegative(),
 	benchmark_runs: z.number().int().nonnegative(),
+	/**
+	 * Seconds the harness idled before each formatter's warmups, to even out the
+	 * thermal drift its fixed command order creates. Absent from the scenarios that
+	 * don't settle, and from reports predating it; `0` means a run that turned it off.
+	 */
+	settle_seconds: z.number().nonnegative().optional(),
 	/** Empty in the harness's upstream scenarios, which run no preflight. */
 	preflight: z.array(FormatterPreflight),
 	/**
@@ -126,7 +132,10 @@ export const FormatterBenchmarks = z.strictObject({
 			runs: z.number().int().positive()
 		})
 		.optional(),
-	/** Formatter name to version string, e.g. `prettier` to `3.9.1`. */
+	/**
+	 * Formatter name to version string, e.g. `prettier` to `3.9.1`, plus `node` —
+	 * not a formatter, but what five of the rows launch before theirs runs.
+	 */
 	versions: z.record(z.string(), z.string().min(1)),
 	scenarios: z.array(FormatterScenario)
 });
@@ -155,7 +164,7 @@ export const parse_formatter_benchmarks = (results: unknown): FormatterBenchmark
 	if (!parsed.success) {
 		throw new Error(`formatter benchmarks: ${z.prettifyError(parsed.error)}`);
 	}
-	const { machine, versions, scenarios: all_scenarios } = parsed.data;
+	const { machine, node_startup, versions, scenarios: all_scenarios } = parsed.data;
 
 	for (const scenario of all_scenarios) {
 		// A scenario with no timings either aborted before hyperfine ran — it says so,
@@ -181,5 +190,5 @@ export const parse_formatter_benchmarks = (results: unknown): FormatterBenchmark
 		throw new Error('formatter benchmarks: no tsv version in the report');
 	}
 
-	return { machine, versions, scenarios };
+	return { machine, node_startup, versions, scenarios };
 };
