@@ -135,11 +135,23 @@ describe('benchmarks_cli shape', () => {
 		const delivery = rows(CLI_DELIVERY_KEY);
 		const single = rows(CLI_SINGLE_FILE_KEY);
 		assert.strictEqual(delivery.target.split(',')[0], single.target, 'same corpus file');
+		// the provenance is the stronger claim: same bytes, not just the same label
+		assert.strictEqual(delivery.corpus, single.corpus, 'same corpus revision');
 		for (const label of [CLI_TSV_LABEL, CLI_TSV_NPM_LABEL]) {
 			const a = delivery.results.find((r) => r.label === label);
 			const b = single.results.find((r) => r.label === label);
 			assert(a && b, `${label} is missing from one of the two scenarios`);
 			assert.closeTo(a.wall_ms, b.wall_ms, b.wall_ms * 0.1, `${label} wall_ms`);
+		}
+	});
+
+	test('every rendered scenario names the corpus revision it ran on', () => {
+		// the page prints the provenance under each table, and most of the corpora
+		// track their upstream default branch — an empty or unknown one would leave
+		// numbers no rerun can be compared against
+		for (const scenario of benchmarks_cli.scenarios) {
+			assert.isNotEmpty(scenario.corpus, `${scenario.key} records no corpus`);
+			assert.notMatch(scenario.corpus, /unknown|not a git checkout/, scenario.key);
 		}
 	});
 
@@ -180,6 +192,7 @@ describe('to_abort_note', () => {
 		id: 'x',
 		name: 'x',
 		target: '',
+		corpus: 'abc1234 2026-01-01',
 		warmup_runs: 1,
 		benchmark_runs: 1,
 		preflight: [],

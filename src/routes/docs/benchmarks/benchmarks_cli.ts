@@ -54,6 +54,8 @@ export interface CliScenario {
 	heading: string;
 	/** The harness's own one-line corpus label, rendered beside the heading. */
 	target: string;
+	/** Which revision of the corpus the numbers came from, as the harness records it. */
+	corpus: string;
 	/** One-line description of what makes the comparison fair. */
 	description: string;
 	/**
@@ -101,9 +103,9 @@ export interface BenchmarksCliReport {
 	machine: string;
 	/**
 	 * A bare `node -e ""` on the same machine, in milliseconds — the launch floor
-	 * every npm-bin row pays (see the report schema). Absent on older reports.
+	 * every npm-bin row pays (see the report schema).
 	 */
-	node_startup?: { mean_ms: number; stddev_ms: number; runs: number };
+	node_startup: { mean_ms: number; stddev_ms: number; runs: number };
 	versions: Record<string, string>;
 	scenarios: Array<CliScenario>;
 }
@@ -167,7 +169,14 @@ const SCENARIO_COPY: Record<
 	string,
 	Omit<
 		CliScenario,
-		'key' | 'target' | 'results' | 'warmup_runs' | 'benchmark_runs' | 'aborted' | 'unshimmed'
+		| 'key'
+		| 'target'
+		| 'corpus'
+		| 'results'
+		| 'warmup_runs'
+		| 'benchmark_runs'
+		| 'aborted'
+		| 'unshimmed'
 	>
 > = {
 	[CLI_TS_REPO_KEY]: {
@@ -257,6 +266,7 @@ const to_scenarios = (): Array<CliScenario> =>
 						key,
 						...copy,
 						target: scenario.target,
+						corpus: scenario.corpus,
 						results: to_results(scenario),
 						warmup_runs: scenario.warmup_runs,
 						benchmark_runs: scenario.benchmark_runs,
@@ -272,9 +282,7 @@ const to_scenarios = (): Array<CliScenario> =>
 
 export const benchmarks_cli: BenchmarksCliReport = {
 	machine: benchmarks_formatters_json.machine,
-	...(benchmarks_formatters_json.node_startup
-		? { node_startup: benchmarks_formatters_json.node_startup }
-		: null),
+	node_startup: benchmarks_formatters_json.node_startup,
 	versions: benchmarks_formatters_json.versions,
 	scenarios: to_scenarios()
 };
@@ -283,9 +291,9 @@ export const benchmarks_cli: BenchmarksCliReport = {
  * The machine's bare Node launch, in milliseconds — what the prose quotes as the
  * floor under every npm-bin row.
  *
- * @returns the mean, or `undefined` when the report predates the measurement
+ * @returns the mean of the report's `node -e ""` runs
  */
-export const cli_node_startup_ms = (): number | undefined => benchmarks_cli.node_startup?.mean_ms;
+export const cli_node_startup_ms = (): number => benchmarks_cli.node_startup.mean_ms;
 
 /**
  * The idle the harness takes before each formatter's warmups, in seconds — what

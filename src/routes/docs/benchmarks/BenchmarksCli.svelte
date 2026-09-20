@@ -92,6 +92,7 @@
 	<div class="mb_xl2">
 		<h3>{scenario.heading}: {scenario.target}</h3>
 		<p>{scenario.description}</p>
+		<p class="versions">Corpus: {scenario.corpus}</p>
 		{#if rows.length > 0}
 			<p class="versions">
 				Ratios are each row over <strong>{anchor_label}</strong>, so above 1 is slower, or heavier,

@@ -353,13 +353,12 @@ describe('prose ratios resolve', () => {
 		assert.isAbove(share.wall, share.cpu * 2, 'the wall-clock share is not clearly larger');
 	});
 
-	test('the Node launch floor, when published, sits inside the dispatcher overhead', () => {
+	test('the Node launch floor sits inside the dispatcher overhead', () => {
 		// "a bare node -e '' takes ~N ms on this machine": Node's startup is one part
 		// of what the dispatcher row pays over the bare binary, so it must not exceed
 		// that gap — a floor above the overhead would mean the two measure different
 		// things (a different node, a different PATH)
 		const floor = cli_node_startup_ms();
-		if (floor === undefined) return;
 		const overhead = cli_tsv_npm_overhead_ms_range();
 		assert.isDefined(overhead);
 		assert.isAbove(floor, 0);

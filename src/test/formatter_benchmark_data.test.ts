@@ -37,6 +37,7 @@ const scenario = (overrides: Partial<FormatterScenario> = {}): FormatterScenario
 	id: 'large-single-file',
 	name: 'Large Single File',
 	target: 'TypeScript compiler parser.ts (~540KB)',
+	corpus: '539588 bytes, sha256:dcddb577aa14',
 	warmup_runs: 3,
 	benchmark_runs: 20,
 	preflight: [preflight('oxfmt'), preflight('tsv')],
@@ -56,6 +57,7 @@ const jsx_scenario = (overrides: Partial<FormatterScenario> = {}): FormatterScen
 		id: 'js-ts-no-embedded',
 		name: 'JS/TS (no embedded)',
 		target: 'Outline repository (js/ts/tsx only)',
+		corpus: '8cf997c 2026-07-14',
 		preflight: [],
 		timings: [timing('biome', 300), timing('oxfmt', 120)],
 		fastest: 'oxfmt',
@@ -66,6 +68,7 @@ const jsx_scenario = (overrides: Partial<FormatterScenario> = {}): FormatterScen
 
 const report = (overrides: Partial<FormatterBenchmarks> = {}): FormatterBenchmarks => ({
 	machine: 'Some CPU · 12 threads · linux x64',
+	node_startup: { mean_ms: 19, stddev_ms: 0.7, runs: 20 },
 	versions: { prettier: '3.9.6', oxfmt: '0.68.0', tsv: '0.4.0 (@fuzdev/tsv-linux-x64-gnu)' },
 	scenarios: [scenario(), jsx_scenario()],
 	...overrides

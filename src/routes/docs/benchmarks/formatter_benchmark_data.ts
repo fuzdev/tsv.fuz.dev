@@ -70,6 +70,13 @@ export const FormatterScenario = z.strictObject({
 	/** The corpus, as the harness describes it. */
 	target: z.string().min(1),
 	/**
+	 * Which revision of that corpus these numbers came from — a commit and date, or
+	 * a size and content hash for a single downloaded file. Most of the corpora
+	 * track their upstream default branch, so without it two runs of a scenario
+	 * can't be told apart.
+	 */
+	corpus: z.string().min(1),
+	/**
 	 * The counts the scenario resolved, recorded before anything can abort it. 0 only
 	 * in the harness's upstream scenarios when hyperfine itself failed.
 	 */
@@ -78,7 +85,7 @@ export const FormatterScenario = z.strictObject({
 	/**
 	 * Seconds the harness idled before each formatter's warmups, to even out the
 	 * thermal drift its fixed command order creates. Absent from the scenarios that
-	 * don't settle, and from reports predating it; `0` means a run that turned it off.
+	 * don't settle; `0` means a run that turned it off.
 	 */
 	settle_seconds: z.number().nonnegative().optional(),
 	/** Empty in the harness's upstream scenarios, which run no preflight. */
@@ -125,16 +132,13 @@ export const FormatterBenchmarks = z.strictObject({
 	 * A bare `node -e ""` timed under hyperfine on the same machine, with the PATH
 	 * the scenarios resolve `node` from: the launch floor every npm-bin row pays
 	 * before its formatter runs. A machine property beside `machine`, never a row,
-	 * so it can't be folded into an "every other tool" range. Absent on reports
-	 * from before the harness measured it.
+	 * so it can't be folded into an "every other tool" range.
 	 */
-	node_startup: z
-		.strictObject({
-			mean_ms: z.number().positive(),
-			stddev_ms: z.number().nonnegative(),
-			runs: z.number().int().positive()
-		})
-		.optional(),
+	node_startup: z.strictObject({
+		mean_ms: z.number().positive(),
+		stddev_ms: z.number().nonnegative(),
+		runs: z.number().int().positive()
+	}),
 	/**
 	 * Formatter name to version string, e.g. `prettier` to `3.9.1`, plus `node` —
 	 * not a formatter, but what five of the rows launch before theirs runs.

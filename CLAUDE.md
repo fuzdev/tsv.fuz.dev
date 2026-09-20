@@ -114,9 +114,10 @@ The end-to-end CLI comparison against Prettier, Biome, and Oxfmt comes from a
 separate harness, a fork of Oxc's `bench-formatter` that adds tsv
 (../oxc-bench-formatter). Beside the console dump in its README it writes
 `results.json`: hyperfine's own export at full precision, the memory pass, the
-preflight rows, the versions and machine the README lists, and (on newer reports)
-`node_startup`, a bare `node -e ""` timed on the same machine — the launch floor
-every npm-bin row pays, kept beside `machine` rather than as a row — and, per
+preflight rows, the versions and machine the README lists, `node_startup`, a bare
+`node -e ""` timed on the same machine — the launch floor every npm-bin row pays,
+kept beside `machine` rather than as a row — each scenario's `corpus`, the
+revision of the corpus its numbers came from, rendered under its table, and, per
 settling scenario, `settle_seconds`, the idle before each formatter's warmups, which
 the tables' run-count notes and the run-order note quote when present. To update:
 

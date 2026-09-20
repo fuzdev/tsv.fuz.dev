@@ -232,8 +232,7 @@
 	const cli_npm_overhead = cli_tsv_npm_overhead_ms_range();
 	// and as a share of the dispatcher's parallel repo run, wall-clock against CPU work
 	const cli_npm_ts_share = cli_tsv_npm_overhead_share(CLI_TS_REPO_KEY);
-	// the machine's bare Node launch, the floor under every npm-bin row — quoted
-	// when the report carries it; older reports leave the floor unisolated
+	// the machine's bare Node launch, the floor under every npm-bin row
 	const node_startup_ms = cli_node_startup_ms();
 	// the idle before each formatter's warmups, which narrows the run-order drift —
 	// quoted when every scenario records the same one (a plain string, so the leading
@@ -548,11 +547,8 @@
 					shim, Node startup, the dispatcher loading its own modules, and spawn — paid before the
 					binary starts, which is ~{format_share_approx(cli_npm_ts_share?.wall)} of its wall-clock
 					on the repo but ~{format_share_approx(cli_npm_ts_share?.cpu)} of its CPU total. Every
-					other row pays a Node start of its own{#if node_startup_ms === undefined}
-						, which the harness doesn't isolate
-					{:else}
-						: a bare <code>node -e ""</code> takes ~{Math.round(node_startup_ms)} ms on this machine
-					{/if}.
+					other row pays a Node start of its own: a bare <code>node -e ""</code> takes
+					~{Math.round(node_startup_ms)} ms on this machine.
 				</li>
 				<li>
 					CPU work is a clean engine proxy only while the threads do real work: a JS tool's figure
