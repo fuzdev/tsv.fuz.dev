@@ -77,16 +77,24 @@ describe('benchmarks_cli shape', () => {
 				assert.isEmpty(scenario.speedups, `${scenario.id} aborted but carries speedups`);
 				continue;
 			}
-			assert.strictEqual(scenario.fastest, 'tsv', `${scenario.id} fastest`);
+			// hyperfine anchors its summary on the fastest row, so that is the denominator
+			// — read off the report rather than assumed to be tsv, which would make this
+			// gate "tsv must win" and fail CI on an honest slower run instead of
+			// publishing it. That `fastest` names the row the timings agree is fastest is
+			// the claim worth checking.
+			const fastest = scenario.timings.reduce((a, b) => (a.mean_ms <= b.mean_ms ? a : b));
+			assert.strictEqual(scenario.fastest, fastest.name, `${scenario.id} fastest`);
 			// from the raw timings, not the rendered report: the generated data also
 			// carries tsv scenarios the page has no copy for, and their numbers must
 			// parse just as soundly
-			const tsv = scenario.timings.find((t) => t.name === 'tsv');
-			assert(tsv, `${scenario.id} has no tsv timing row`);
+			assert(
+				scenario.timings.some((t) => t.name === 'tsv'),
+				`${scenario.id} has no tsv timing row`
+			);
 			for (const speedup of scenario.speedups) {
 				const other = scenario.timings.find((t) => t.name === speedup.name);
 				assert(other, `${scenario.id}/${speedup.name} has no timing row`);
-				const derived = other.mean_ms / tsv.mean_ms;
+				const derived = other.mean_ms / fastest.mean_ms;
 				// the harness derives the ratio from full-precision means and records both
 				// rounded, so recomputing lands within a fraction of a percent — wide enough
 				// for that, far too tight to hide a slip (a wrong unit would be off by 1000x)

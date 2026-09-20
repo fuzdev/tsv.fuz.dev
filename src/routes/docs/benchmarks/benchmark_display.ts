@@ -28,8 +28,10 @@ export const format_ns = (ns: number): FormattedUnit => {
 };
 
 /**
- * A byte count in decimal units (1 KB = 1,000 B), as tsv's own report prints
- * its binary sizes, so an artifact reads the same size here and there.
+ * A byte count in decimal units (1 KB = 1,000 B), as tsv's own report reckons
+ * its binary sizes — but rounded to whole KB below the MB tier, where the report
+ * keeps a decimal, so the same artifact reads `966 KB` here and `966.4 KB` there.
+ * These are bar annotations, not a size table.
  */
 export const format_bytes = (bytes: number): FormattedUnit => {
 	if (bytes < 1_000) return { value: `${bytes}`, unit: 'B' };
@@ -55,7 +57,7 @@ export const format_corpus_source_files = (source: CorpusSource): string => {
 };
 
 /**
- * Formats a gzipped binary size as a bar annotation (e.g. `716.6 KB gz`), or
+ * Formats a gzipped binary size as a bar annotation (e.g. `717 KB gz`), or
  * `undefined` when the baseline lacks it (older runs, or no `gzip` available
  * on the generating machine).
  */

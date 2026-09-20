@@ -7,7 +7,8 @@ import {
 	OXC_FULL_LABEL,
 	OXFMT_WASM_LABEL,
 	RSVELTE_INSTALL_LABEL,
-	RSVELTE_LABEL
+	RSVELTE_LABEL,
+	SIZE_CAPABILITY_BY_LABEL
 } from '$routes/docs/benchmarks/benchmark_sizes.ts';
 
 // Shape gate for the binary-size half of the committed benchmarks.json: the size
@@ -18,6 +19,23 @@ describe('benchmarks.json binary sizes', () => {
 		const labels = benchmarks_json.binary_sizes.map((s) => s.label);
 		assert.include(labels, 'tsv (napi)'); // flagship N-API build (perf report anchor)
 		assert.include(labels, 'tsv-wasm'); // the full wasm build — smallest full-toolchain, size baseline
+	});
+
+	test('every hand-stated capability label still names a build in the report', () => {
+		// `categorize_size_capability` falls back to `full` for a label whose name says
+		// nothing about what it does, which is right only for builds that really ship
+		// both operations. The four labels in the table are the exceptions, matched by
+		// exact string — a rename upstream misses the lookup and lands silently in
+		// `full`, where `swc (napi)` (a 32 MB parser) would become the flagship group's
+		// `max` and rescale every bar in it.
+		const labels = new Set(benchmarks_json.binary_sizes.map((s) => s.label));
+		for (const label of Object.keys(SIZE_CAPABILITY_BY_LABEL)) {
+			assert.ok(
+				labels.has(label),
+				`"${label}" is hand-mapped to a capability but no longer names a build — ` +
+					`it now falls through to "full"`
+			);
+		}
 	});
 
 	test('binary sizes group by capability with one smallest-build ratio anchor', () => {

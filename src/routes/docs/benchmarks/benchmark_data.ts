@@ -506,6 +506,11 @@ const compare_speed_entries = (a: BenchmarkDisplayEntry, b: BenchmarkDisplayEntr
 const to_placeholder = (entry: BenchmarkDisplayEntry): BenchmarkDisplayEntry => ({
 	...entry,
 	bar_fraction: 0,
+	// zeroed with the rest: the oxc placeholders are copied from the TypeScript parse
+	// group, so keeping the source row's timing would carry a TypeScript mean into
+	// the CSS and Svelte groups — a number ~100x any real row there, reaching
+	// `BaselineRow.raw` one `disabled` guard away from being rendered
+	mean_ns: 0,
 	files_processed: null,
 	files_total: null,
 	disabled: true
@@ -797,7 +802,10 @@ export const derive_conformance_slice = (
  * (matching the harness's own `coverage_pct` convention in tsv's report.ts).
  */
 export const format_coverage_percent = (fraction: number): string =>
-	`${(Math.floor(fraction * 10_000) / 100).toFixed(2)}%`;
+	// the epsilon is for the already-divided fraction: scaling it back up reintroduces
+	// representation error BELOW the floor, which reads an exact hundredth one low
+	// (`0.57` floors to `56.99%`). Far above that error, far below a real hundredth.
+	`${(Math.floor(fraction * 10_000 + 1e-9) / 100).toFixed(2)}%`;
 
 export const derive_speedup_summary = (groups: Array<BenchmarkGroup>): Array<SpeedupRow> => {
 	const find_speedup = (
@@ -806,9 +814,10 @@ export const derive_speedup_summary = (groups: Array<BenchmarkGroup>): Array<Spe
 		primary_name: string
 	): number | undefined => {
 		const group = groups.find((g) => g.operation === operation && g.language === language);
-		if (!group?.canonical_entry) return undefined;
+		// a coverage-only or placeholder row carries a zero timing, on either side of
+		// the ratio — the canonical row is no more guaranteed to be timed than the other
+		if (!group?.canonical_entry?.mean_ns) return undefined;
 		const entry = group.entries.find((e) => e.name === primary_name);
-		// a coverage-only row carries a zero timing, which no ratio can divide by
 		if (!entry?.mean_ns) return undefined;
 		return group.canonical_entry.mean_ns / entry.mean_ns;
 	};

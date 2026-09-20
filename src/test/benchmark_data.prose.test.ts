@@ -26,13 +26,15 @@ import {
 	CLI_TSV_WASM_LABEL
 } from '$routes/docs/benchmarks/benchmarks_cli.ts';
 import { derive_unstable_cells } from '$routes/docs/benchmarks/benchmark_cross_runtime.ts';
+import { IN_PROCESS_PAIRS as IN_PROCESS_PAIRS_BY_KEY } from '$routes/docs/benchmarks/benchmarks_prose.ts';
 import {
 	benchmark_speedup,
 	categorize_name,
 	CONFORMANCE_SOURCE_PATHS,
 	derive_benchmark_groups,
 	derive_conformance_slice,
-	is_entry_unstable
+	is_entry_unstable,
+	is_payload_matched
 } from '$routes/docs/benchmarks/benchmark_data.ts';
 
 // The page's prose quotes ratios computed from the reports rather than
@@ -50,34 +52,11 @@ const assert_reads_faster = (ratio: number, label: string): void => {
 };
 
 describe('prose ratios resolve', () => {
-	// `[group, slower, faster]` in the direction each sentence reads — the copy says
-	// "X faster than" for the pairs tsv leads and "slower than" / "Y is faster than
-	// tsv" for the ones it trails (yuku on TypeScript, the JS parsers on CSS), so
-	// every ratio here must land above 1 or the sentence has flipped.
-	const IN_PROCESS_PAIRS: Array<[string, string, string]> = [
-		['format/typescript', 'oxfmt', 'tsv'],
-		['format/typescript', 'prettier', 'tsv'],
-		['format/typescript', 'biome-wasm', 'tsv-wasm'],
-		['format/svelte', 'prettier', 'tsv'],
-		['format/svelte', 'biome-wasm', 'tsv-wasm'],
-		['format/css', 'oxfmt', 'tsv'],
-		['format/css', 'biome-wasm', 'tsv-wasm'],
-		['parse/typescript', 'oxc-parser', 'tsv-json-no-locations'],
-		['parse/typescript', 'tsv-json-no-locations', 'yuku-parser'],
-		['parse/typescript', 'tsv-wasm-json-no-locations', 'yuku-parser-wasm'],
-		// "carrying it costs ~Nx the hand-off time" — the loc-bearing wire over the span-only one
-		['parse/typescript', 'tsv-json', 'tsv-json-no-locations'],
-		// "tsv's default AST ... lands behind" Oxc — a composite of the two pairs above
-		// it, true only while the loc cost outruns tsv's span-only lead, so it is gated
-		// as its own pair in the direction the sentence reads
-		['parse/typescript', 'tsv-json', 'oxc-parser'],
-		// "(and behind swc's ...)" — the same composite, against swc's span-only AST
-		['parse/typescript', 'tsv-json', 'swc'],
-		['parse/svelte', 'svelte/compiler', 'tsv-json'],
-		['parse/svelte', 'rsvelte-parse', 'tsv-json'],
-		['parse/css', 'tsv-json', 'svelte/compiler'],
-		['parse/css', 'tsv-json', 'postcss']
-	];
+	// The copy says "X faster than" for the pairs tsv leads and "slower than" / "Y is
+	// faster than tsv" for the ones it trails (yuku on TypeScript, the JS parsers on
+	// CSS), so every ratio here must land above 1 or the sentence has flipped. The
+	// table is the page's own, so a pairing added to the copy is gated by construction.
+	const IN_PROCESS_PAIRS = Object.values(IN_PROCESS_PAIRS_BY_KEY);
 
 	test('every in-process pair the TLDR quotes is present and runs the way the sentence reads', () => {
 		for (const [group, slower, faster] of IN_PROCESS_PAIRS) {
@@ -183,6 +162,39 @@ describe('prose ratios resolve', () => {
 						`drift ${entry.drift}, n=${entry.sample_size}) — re-run before publishing`
 				);
 			}
+		}
+	});
+
+	test('the pairings the copy calls payload-matched are, and the ones it excludes are not', () => {
+		// The page names four pairings as comparing the same PRODUCT and rules two out
+		// ("swc ... isn't payload-matched to either tsv wire", "the `no-locs` entries
+		// are the one payload-matched pairing" for oxc-parser). Those are claims about
+		// the report's `payload` tiers, so read them off it rather than trusting prose.
+		const entry = (group: string, name: string) => {
+			const found = benchmarks_json.entries.find((e) => e.group === group && e.name === name);
+			assert(found, `${group}/${name} is missing`);
+			return found;
+		};
+		const matched = (group: string, a: string, b: string) =>
+			is_payload_matched(entry(group, a), entry(group, b));
+
+		for (const [group, a, b] of [
+			['parse/typescript', 'tsv-json-no-locations', 'oxc-parser'],
+			['parse/typescript', 'tsv-json-no-locations', 'yuku-parser'],
+			['parse/typescript', 'tsv-wasm-json-no-locations', 'yuku-parser-wasm'],
+			['parse/svelte', 'tsv-json', 'rsvelte-parse']
+		] as const) {
+			assert.isTrue(matched(group, a, b), `${group}: ${a} vs ${b} is no longer payload-matched`);
+		}
+
+		for (const [group, a, b] of [
+			// swc's own AST shape, ruled out against both wires
+			['parse/typescript', 'tsv-json', 'swc'],
+			['parse/typescript', 'tsv-json-no-locations', 'swc'],
+			// oxc against tsv's default wire — the pairing the copy says is NOT the matched one
+			['parse/typescript', 'tsv-json', 'oxc-parser']
+		] as const) {
+			assert.isFalse(matched(group, a, b), `${group}: ${a} vs ${b} is now payload-matched`);
 		}
 	});
 

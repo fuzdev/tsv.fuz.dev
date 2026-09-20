@@ -1,12 +1,19 @@
 import type { Gen } from '@fuzdev/gro/gen.ts';
 import { readFile } from 'node:fs/promises';
+import { fileURLToPath } from 'node:url';
 import { resolve } from 'node:path';
 
 import { parse_formatter_benchmarks } from './formatter_benchmark_data.ts';
 
 // The formatter comparison harness lives in a sibling checkout and publishes its
-// numbers as `results.json` — see `formatter_benchmark_data.ts`.
-const RESULTS_PATH = '../oxc-bench-formatter/results.json';
+// numbers as `results.json` — see `formatter_benchmark_data.ts`. Resolved from this
+// module rather than the cwd: a missing report is a benign skip, so resolving
+// against the cwd would turn a `gro gen` run from a subdirectory into a silent
+// no-op that `gro gen --check` still passes.
+const RESULTS_PATH = resolve(
+	fileURLToPath(import.meta.url),
+	'../../../../../../oxc-bench-formatter/results.json'
+);
 
 /**
  * Generate `benchmarks_formatters.json` from the sibling formatter-benchmark
@@ -20,23 +27,21 @@ const RESULTS_PATH = '../oxc-bench-formatter/results.json';
  */
 export const gen: Gen = {
 	generate: async ({ log }) => {
-		const path = resolve(RESULTS_PATH);
-
 		let results;
 		try {
-			results = await readFile(path, 'utf8');
+			results = await readFile(RESULTS_PATH, 'utf8');
 		} catch (error) {
 			// only "it isn't there" is benign; an unreadable file is a real problem
 			if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error;
-			log.info(`skipping formatter benchmarks, no report at ${path}`);
+			log.info(`skipping formatter benchmarks, no report at ${RESULTS_PATH}`);
 			return null;
 		}
 
 		const benchmarks = parse_formatter_benchmarks(JSON.parse(results));
-		log.info(`read ${benchmarks.scenarios.length} tsv scenario(s) from ${path}`);
+		log.info(`read ${benchmarks.scenarios.length} tsv scenario(s) from ${RESULTS_PATH}`);
 		// indented here: gro's gen formats no JSON (tsv has no JSON formatter yet), so
 		// the output is committed exactly as returned, tab-indented like the copied reports
 		return JSON.stringify(benchmarks, null, '\t') + '\n';
 	},
-	dependencies: { files: [resolve(RESULTS_PATH)] }
+	dependencies: { files: [RESULTS_PATH] }
 };

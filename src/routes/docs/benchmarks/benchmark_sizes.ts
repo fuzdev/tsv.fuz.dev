@@ -58,7 +58,7 @@ export type SizeCapability = 'full' | 'formatter' | 'parser';
  * A dprint plugin is a formatter that happens to parse internally — the opposite
  * shape, and the reason it can't ride the same fallback.
  */
-const SIZE_CAPABILITY_BY_LABEL: Record<string, SizeCapability> = {
+export const SIZE_CAPABILITY_BY_LABEL: Record<string, SizeCapability> = {
 	'dprint (wasm)': 'formatter',
 	'malva (wasm)': 'formatter',
 	'swc (napi)': 'parser',
@@ -188,7 +188,10 @@ const synthesize_rsvelte_install = (sizes: Array<BinarySize>): BinarySize | unde
 /**
  * Groups the binary sizes by capability (full / formatter / parser), each group
  * mixing wasm and native builds sorted smallest-first. Bars scale to the group's
- * largest build; the `vs` ratio anchors on the group's single smallest build, so
+ * largest ENTRY, synthesized sums included — so the `+` rows below set the scale in
+ * the groups that carry one, and every real build reads against an install
+ * footprint rather than against another single artifact. The `vs` ratio anchors on
+ * the group's single smallest build, so
  * exactly one entry reads 1.0x and every other is a multiple of it — whichever tool
  * that is. (It is not always tsv: yuku-parser's parse-only builds undercut tsv's,
  * which carry Svelte and CSS parsers besides, and malva's CSS-only plugin undercuts
