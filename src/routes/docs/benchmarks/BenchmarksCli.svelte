@@ -130,7 +130,7 @@
 									{format_cell(row, row.cpu_ratio, true)}
 								</td>
 								<td>
-									{row.result.memory_mb == null ? '—' : `${Math.round(row.result.memory_mb)} MB`}
+									{row.result.memory_mb == null ? '—' : `${Math.round(row.result.memory_mb)} MiB`}
 								</td>
 								<td class="speedup">
 									{format_cell(
@@ -148,8 +148,11 @@
 			{#if scenario.benchmark_runs > 0}
 				<p class="versions">
 					Each time is the mean of {scenario.benchmark_runs} runs, after {scenario.warmup_runs}
-					untimed warmup runs; each peak RSS is the mean of the per-run peaks over a separate,
-					unwarmed pass of {scenario.benchmark_runs} runs.
+					untimed warmup
+					runs{scenario.settle_seconds
+						? ` and a ${scenario.settle_seconds} s idle before each formatter's`
+						: ''}; each peak RSS is the mean of the per-run peaks over a separate, unwarmed pass of
+					{scenario.benchmark_runs} runs.
 				</p>
 			{/if}
 			{#if has_dispatcher_memory(scenario)}

@@ -71,6 +71,12 @@ export interface CliScenario {
 	warmup_runs: number;
 	benchmark_runs: number;
 	/**
+	 * Seconds the harness idled before each formatter's warmups, so every row starts
+	 * from a more alike machine despite the fixed command order. Absent when the
+	 * report doesn't record one; `0` is a run that turned it off.
+	 */
+	settle_seconds?: number;
+	/**
 	 * Every row is a tsv distribution, so the scenario compares tsv with itself and
 	 * says nothing about other tools — claims spanning "every other tool" skip it.
 	 */
@@ -167,7 +173,7 @@ const SCENARIO_COPY: Record<
 	[CLI_TS_REPO_KEY]: {
 		heading: 'TypeScript repo',
 		description:
-			'Every formatter scoped to the same file set and pinned to tsv’s fixed style, so they make the same break decisions over the same files; a preflight check aborts the scenario rather than publish a comparison the tools didn’t run on equal work.',
+			'Every formatter scoped to the same file set and pinned to tsv’s fixed style, so they do comparable line-break work over the same files; a preflight check aborts the scenario rather than publish a comparison the tools didn’t run on equal work.',
 		tsv_only: false
 	},
 	[CLI_SINGLE_FILE_KEY]: {
@@ -254,6 +260,9 @@ const to_scenarios = (): Array<CliScenario> =>
 						results: to_results(scenario),
 						warmup_runs: scenario.warmup_runs,
 						benchmark_runs: scenario.benchmark_runs,
+						...(scenario.settle_seconds === undefined
+							? null
+							: { settle_seconds: scenario.settle_seconds }),
 						...(scenario.aborted === undefined ? null : { aborted: to_abort_note(scenario) }),
 						...(scenario.unshimmed ? { unshimmed: to_unshimmed_note(scenario.unshimmed) } : null)
 					}
@@ -277,6 +286,19 @@ export const benchmarks_cli: BenchmarksCliReport = {
  * @returns the mean, or `undefined` when the report predates the measurement
  */
 export const cli_node_startup_ms = (): number | undefined => benchmarks_cli.node_startup?.mean_ms;
+
+/**
+ * The idle the harness takes before each formatter's warmups, in seconds — what
+ * the prose quotes beside the fixed run order.
+ *
+ * @returns the settle, or `undefined` when no rendered scenario records one, a
+ * run turned it off, or the scenarios disagree (the per-table notes still say each)
+ */
+export const cli_settle_seconds = (): number | undefined => {
+	const settles = new Set(benchmarks_cli.scenarios.map((s) => s.settle_seconds));
+	const [settle] = settles;
+	return settles.size === 1 && settle ? settle : undefined;
+};
 
 /**
  * One rendered CLI scenario by its id — for prose that needs more than a ratio,

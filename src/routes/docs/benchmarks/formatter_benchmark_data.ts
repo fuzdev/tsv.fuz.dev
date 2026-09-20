@@ -20,7 +20,10 @@ export const FormatterTiming = z.strictObject({
 });
 export type FormatterTiming = z.infer<typeof FormatterTiming>;
 
-/** A single formatter's peak-RSS measurement in one scenario. */
+/**
+ * A single formatter's peak-RSS measurement in one scenario. The harness's `_mb`
+ * are GNU time's KiB over 1024 — MiB, which is how the page labels them.
+ */
 export const FormatterMemory = z.strictObject({
 	name: z.string().min(1),
 	mean_mb: z.number().positive(),

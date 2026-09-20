@@ -9,6 +9,7 @@ import {
 	cli_memory_ratio_range,
 	cli_ratio_between,
 	cli_ratio_vs_tsv,
+	cli_settle_seconds,
 	CLI_DELIVERY_KEY,
 	CLI_SCENARIO_KEYS,
 	CLI_SINGLE_FILE_KEY,
@@ -156,6 +157,20 @@ describe('benchmarks_cli shape', () => {
 				assert.strictEqual(entry.rejected, 0, `${scenario.id}/${entry.name} rejected files`);
 				assert.isFalse(entry.unavailable, `${scenario.id}/${entry.name} never launched`);
 			}
+		}
+	});
+});
+
+describe('cli_settle_seconds', () => {
+	test("the settle the run-order note quotes is every rendered scenario's", () => {
+		// the note says the harness idles before "each formatter's warmups" without
+		// naming a scenario, so one figure has to hold for all of them; a report that
+		// records none, or a run that turned it off, quotes nothing
+		const settle = cli_settle_seconds();
+		if (settle === undefined) return;
+		assert.isAbove(settle, 0);
+		for (const scenario of benchmarks_cli.scenarios) {
+			assert.strictEqual(scenario.settle_seconds, settle, scenario.key);
 		}
 	});
 });

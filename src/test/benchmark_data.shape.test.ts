@@ -15,7 +15,7 @@ import { categorize_size } from '$routes/docs/benchmarks/benchmark_sizes.ts';
 // `REPORT_SCHEMA_VERSION`, shared by the per-runtime and conformance reports. Exact
 // rather than a floor, so `npm run update-benchmarks` pulling a newer shape fails
 // here until `benchmark_data.ts` mirrors the new fields and this is re-pinned.
-const REPORT_VERSION = 15;
+const REPORT_VERSION = 16;
 
 // Shape gate for the committed benchmarks.json: the bench report format drifts,
 // and `benchmarks.ts` casts the JSON, so typechecking alone won't catch a renamed
@@ -37,13 +37,11 @@ describe('benchmarks.json shape', () => {
 	});
 
 	test('omissions account for exactly what each timed set leaves out', () => {
-		// reports before `version` 16 carry none; from 16 on every timed group is listed.
-		// Keyed on the VERSION, not the field: the producer also omits it on a
-		// `BENCH_MODE=union` run, and a report copied from one must fail here rather
-		// than switch the gate off
-		if (benchmarks_json.version < 16) return;
+		// every timed group is listed. Required rather than skipped when absent: the
+		// producer also omits the field on a `BENCH_MODE=union` run, and a report copied
+		// from one must fail here rather than switch the gate off
 		const { omissions } = benchmarks_json;
-		assert.isDefined(omissions, 'a version 16 perf report carries omissions');
+		assert.isDefined(omissions, 'an intersection-mode perf report carries omissions');
 		for (const group of derive_benchmark_groups(benchmarks_json)) {
 			const key = `${group.operation}/${group.language}`;
 			const reported = omissions.find((o) => o.group === key);
@@ -176,19 +174,9 @@ describe('benchmarks.json shape', () => {
 			format(language)?.entries.filter((e) => e.category === 'dprint') ?? [];
 
 		// typescript actually runs dprint — its entry is real, not a placeholder
+		// (the page's dprint note is unconditional, so the report must carry the row)
 		const ts_dprint = dprint_rows('typescript');
-
-		// The dprint row postdates older reports. With no measured entry there is
-		// nothing to mirror, and the derivation deliberately leaves every group
-		// untouched — so assert exactly that (no invented rows) and stop. Refreshing
-		// the report is what promotes this to the full assertion below.
-		if (ts_dprint.length === 0) {
-			assert.isEmpty(
-				dprint_rows('svelte'),
-				'svelte must not invent a dprint row when the report carries none'
-			);
-			return;
-		}
+		assert.isNotEmpty(ts_dprint, 'typescript format must carry a dprint row');
 		for (const e of ts_dprint) assert.isNotOk(e.disabled, `${e.name} should be a real entry`);
 
 		// css runs dprint's own CSS plugin, malva, through the same Wasm host — a REAL
@@ -229,11 +217,9 @@ describe('benchmarks.json shape', () => {
 		const groups = derive_benchmark_groups(benchmarks_json);
 		const svelte_format = groups.find((g) => g.operation === 'format' && g.language === 'svelte');
 		assert.ok(svelte_format, 'svelte format group missing');
+		// the page's rsvelte-fmt note is unconditional, so the report must carry the row
 		const rsvelte = svelte_format.entries.find((e) => e.name === 'rsvelte-fmt');
-
-		// The row postdates older reports; refreshing the report promotes this to
-		// the full assertion, exactly as the dprint test above works.
-		if (!rsvelte) return;
+		assert.ok(rsvelte, 'svelte format must carry the rsvelte-fmt row');
 
 		// Inert: no bar, and never the ratio anchor — it has no timing to anchor on.
 		assert.ok(rsvelte.disabled, 'rsvelte-fmt should render inert');

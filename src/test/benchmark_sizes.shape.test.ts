@@ -78,16 +78,10 @@ describe('benchmarks.json binary sizes', () => {
 		const formatter = groups.find((g) => g.capability === 'formatter');
 		assert.ok(formatter, 'formatter group missing');
 
+		// the page's size notes on both entries are unconditional, so the report must
+		// carry the build (`benchmark_sizes.test.ts` covers the no-build case)
 		const bare = formatter.entries.find((e) => e.label === RSVELTE_LABEL);
-		// The rsvelte rows postdate older reports; refreshing the report promotes
-		// this to the full assertion.
-		if (!bare) {
-			assert.isEmpty(
-				formatter.entries.filter((e) => e.label === RSVELTE_INSTALL_LABEL),
-				'must not synthesize the rsvelte pair when the report carries no rsvelte build'
-			);
-			return;
-		}
+		assert.ok(bare, 'rsvelte-fmt build missing from formatter group');
 
 		const combined = formatter.entries.find((e) => e.label === RSVELTE_INSTALL_LABEL);
 		assert.ok(combined, 'rsvelte-fmt + oxfmt entry missing from formatter group');

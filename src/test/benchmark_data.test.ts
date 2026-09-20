@@ -190,6 +190,31 @@ describe('derive_benchmark_groups omissions', () => {
 	});
 });
 
+describe('derive_benchmark_groups dprint placeholder', () => {
+	const baseline = (names: Array<string>): BenchmarkBaseline => ({
+		...benchmarks_json,
+		entries: [
+			entry({ name: 'prettier', group: 'format/svelte' }),
+			...names.map((name) => entry({ name, group: 'format/typescript' }))
+		]
+	});
+	const svelte_dprint = (names: Array<string>) => {
+		const svelte = derive_benchmark_groups(baseline(names)).find((g) => g.language === 'svelte');
+		assert.ok(svelte, 'svelte format group missing');
+		return svelte.entries.filter((e) => e.category === 'dprint');
+	};
+
+	test('a measured dprint row is mirrored into svelte, disabled', () => {
+		const mirrored = svelte_dprint(['prettier', 'dprint-wasm']);
+		assert.strictEqual(mirrored.length, 1);
+		assert.ok(mirrored[0]?.disabled);
+	});
+
+	test('a report with no dprint row invents none', () => {
+		assert.isEmpty(svelte_dprint(['prettier']));
+	});
+});
+
 describe('is_payload_matched', () => {
 	test('equal tiers match, except own_shape — two dialects are two products', () => {
 		assert.isTrue(is_payload_matched({ payload: 'drop_in' }, { payload: 'drop_in' }));

@@ -28,6 +28,7 @@ import {
 import { derive_unstable_cells } from '$routes/docs/benchmarks/benchmark_cross_runtime.ts';
 import {
 	benchmark_speedup,
+	categorize_name,
 	CONFORMANCE_SOURCE_PATHS,
 	derive_benchmark_groups,
 	derive_conformance_slice,
@@ -108,9 +109,7 @@ describe('prose ratios resolve', () => {
 	test('a group that runs short of the corpus total has a note saying by how much', () => {
 		// "where a group runs short of the corpus total, a note under its chart gives
 		// the files ... left out" — the note renders from `omissions`, so the sentence
-		// holds exactly when every shortfall is an omission the report carries. Reports
-		// before `version` 16 carry none, and render no note
-		if (benchmarks_json.version < 16) return;
+		// holds exactly when every shortfall is an omission the report carries
 		for (const group of derive_benchmark_groups(benchmarks_json)) {
 			const key = `${group.operation}/${group.language}`;
 			const total = benchmarks_json.corpus[group.language];
@@ -511,6 +510,17 @@ describe('prose ratios resolve', () => {
 		assert.isAtMost(gap, 5, 'the accept sets differ by more than "a couple of files"');
 	});
 
+	test('the byte check left "one pathologically deep TypeScript file" undigested, on tsv\'s rows', () => {
+		// the conformance note excuses exactly one file from tsv's native/wasm byte
+		// parity; a growing count is the check quietly covering less
+		const ungraded = Object.entries(benchmarks_conformance_json.output_digest_ungraded ?? {});
+		assert.isNotEmpty(ungraded, 'the note discloses a file the report no longer carries');
+		for (const [row, count] of ungraded) {
+			assert.match(row, /^parse\/typescript\/tsv-/, row);
+			assert.strictEqual(count, 1, row);
+		}
+	});
+
 	test('Prettier "is one of the rows that stop" at the sweep floor, as Benchmarking details says', () => {
 		// the disclosure that the headline denominator runs at the bench's per-row floor:
 		// each Prettier format row's raw timing count must be exactly its floor
@@ -521,6 +531,20 @@ describe('prose ratios resolve', () => {
 		for (const entry of prettier_rows) {
 			assert.isDefined(entry.min_iterations, entry.group);
 			assert.strictEqual(entry.raw_sample_size, entry.min_iterations, `${entry.group}/prettier`);
+		}
+	});
+
+	test('the higher sweep floor is "each group\'s reference row"\'s, and only theirs', () => {
+		// Benchmarking details quotes the lowest floor for every row and a second one in
+		// parentheses for the reference rows, so exactly those rows may sit above it
+		const timed = benchmarks_json.entries.filter((e) => e.min_iterations != null);
+		const floor = Math.min(...timed.map((e) => e.min_iterations!));
+		for (const entry of timed) {
+			assert.strictEqual(
+				entry.min_iterations! > floor,
+				categorize_name(entry.name) === 'canonical',
+				`${entry.group}/${entry.name}: floor ${entry.min_iterations}`
+			);
 		}
 	});
 

@@ -116,7 +116,9 @@ separate harness, a fork of Oxc's `bench-formatter` that adds tsv
 `results.json`: hyperfine's own export at full precision, the memory pass, the
 preflight rows, the versions and machine the README lists, and (on newer reports)
 `node_startup`, a bare `node -e ""` timed on the same machine — the launch floor
-every npm-bin row pays, kept beside `machine` rather than as a row. To update:
+every npm-bin row pays, kept beside `machine` rather than as a row — and, per
+settling scenario, `settle_seconds`, the idle before each formatter's warmups, which
+the tables' run-count notes and the run-order note quote when present. To update:
 
 ```bash
 # 1. In ~/dev/oxc-bench-formatter — re-run, rewriting its README and results.json (times the npm-installed @fuzdev/tsv its lockfile pins)
