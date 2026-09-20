@@ -6,7 +6,7 @@
 		corpus_repo_ref_url,
 		derive_corpus_repos
 	} from './benchmark_data.ts';
-	import { format_count } from './benchmark_display.ts';
+	import { format_count, format_version_label } from './benchmark_display.ts';
 
 	const {
 		baseline
@@ -17,31 +17,6 @@
 	const site = site_context.get();
 
 	const corpus_repos = $derived(derive_corpus_repos(baseline.corpus_sources));
-
-	// Display names for version keys whose underscore form isn't just hyphenation;
-	// everything else hyphenates (`oxc_parser` → `oxc-parser`).
-	const VERSION_LABELS: Record<string, string> = {
-		// Svelte's fork, a different npm package from the unscoped `acorn-typescript`
-		acorn_ts: '@sveltejs/acorn-typescript',
-		prettier_svelte: 'prettier-plugin-svelte',
-		// the tool name would read as the dprint CLI, which is a different version line
-		dprint: '@dprint/typescript',
-		rsvelte_fmt: '@rsvelte/fmt',
-		// the oxc-parser wasm row's binding, its own scoped package
-		oxc_parser_wasm: '@oxc-parser/binding-wasm32-wasi',
-		// the wasm binding is its own scoped package, not a hyphenated suffix
-		yuku_parser_wasm: '@yuku-parser/wasm',
-		malva: 'dprint-plugin-malva',
-		// the wasm engine's release line, not `@biomejs/js-api`'s separate one
-		biome: '@biomejs/wasm-bundler',
-		swc: '@swc/core',
-		// the Svelte PARSE rows come from a package whose name says "vite plugin" —
-		// it's the N-API addon, and a different package from `@rsvelte/fmt`
-		rsvelte_parse: '@rsvelte/vite-plugin-svelte-native',
-		// not a tool version at all: the upstream Svelte that addon targets, worth
-		// showing beside the svelte pin the oracle row uses
-		rsvelte_parse_svelte_target: "rsvelte's upstream svelte"
-	};
 
 	// every tool version the report carries, in report order, so a tool added
 	// upstream appears without a site edit — tsv itself renders under "run"
@@ -74,7 +49,7 @@
 		<h4 class="mt_0 mb_sm">versions</h4>
 		<ul class="unstyled">
 			{#each versions as [key, version] (key)}
-				<li>{VERSION_LABELS[key] ?? key.replaceAll('_', '-')} {version}</li>
+				<li>{format_version_label(key)} {version}</li>
 			{/each}
 		</ul>
 	</div>

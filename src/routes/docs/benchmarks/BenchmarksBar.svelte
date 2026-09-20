@@ -12,8 +12,7 @@
 		annotation,
 		disabled = false,
 		coverage_only = false,
-		on_enter,
-		on_leave
+		baseline_key
 	}: {
 		label: string;
 		bar_fraction: number;
@@ -33,10 +32,10 @@
 		// "we chose not to measure this" and "this tool wasn't here" are different
 		// claims and the gray alone can't tell them apart
 		coverage_only?: boolean;
-		// hover-to-rebaseline: fired when the pointer enters/leaves the row so the
-		// group can adopt this row as its ratio anchor; omitted on inert placeholders
-		on_enter?: (() => void) | undefined;
-		on_leave?: (() => void) | undefined;
+		// hover-to-rebaseline: the key the group's delegated `mouseover` reads off this
+		// row to adopt it as the ratio anchor. Omitted on inert placeholders, which
+		// publish no key and so can never become the anchor.
+		baseline_key?: string | undefined;
 	} = $props();
 
 	// the parenthesized binding suffix (`(wasm)`/`(node napi)`) describes how the
@@ -54,17 +53,15 @@
 
 <!-- the grid is a table to assistive tech (its parent is the `role="table"`):
 	each row is one tool, its cells the label, measurement, annotation, and ratio;
-	the bar itself only repeats the measurement visually, so it is hidden. The
-	hover handlers only re-baseline the group's ratios — a non-essential visual
-	aid over data that's fully visible regardless, with the default anchor serving
-	keyboard and no-hover users — so the row carries no focus path -->
+	the bar itself only repeats the measurement visually, so it is hidden. Hover is
+	handled by the group, which reads `data-baseline-key` off whichever row the
+	pointer is over — see `BenchmarksBaselineGroup` -->
 <div
 	class="bar-row"
 	class:has-annotation={annotation != null}
 	class:disabled
 	role="row"
-	onmouseenter={on_enter}
-	onmouseleave={on_leave}
+	data-baseline-key={baseline_key}
 >
 	<span class="bar-label" role="rowheader">{display_label}</span>
 	<div class="bar-track" role="cell" aria-hidden="true">

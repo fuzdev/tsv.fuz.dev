@@ -191,6 +191,39 @@ export const LANGUAGE_LABELS: Record<string, string> = {
 /** A report language key for display (`typescript` → `TypeScript`), verbatim when unknown. */
 export const format_language = (language: string): string => LANGUAGE_LABELS[language] ?? language;
 
+/**
+ * Display names for the report's version keys whose underscore form isn't just
+ * hyphenation — mostly scoped npm packages whose bare tool name would point at a
+ * different release line. Everything absent here hyphenates (`oxc_parser` →
+ * `oxc-parser`) through `format_version_label`.
+ */
+export const VERSION_LABELS: Record<string, string> = {
+	// Svelte's fork, a different npm package from the unscoped `acorn-typescript`
+	acorn_ts: '@sveltejs/acorn-typescript',
+	prettier_svelte: 'prettier-plugin-svelte',
+	// the tool name would read as the dprint CLI, which is a different version line
+	dprint: '@dprint/typescript',
+	rsvelte_fmt: '@rsvelte/fmt',
+	// the oxc-parser wasm row's binding, its own scoped package
+	oxc_parser_wasm: '@oxc-parser/binding-wasm32-wasi',
+	// the wasm binding is its own scoped package, not a hyphenated suffix
+	yuku_parser_wasm: '@yuku-parser/wasm',
+	malva: 'dprint-plugin-malva',
+	// the wasm engine's release line, not `@biomejs/js-api`'s separate one
+	biome: '@biomejs/wasm-bundler',
+	swc: '@swc/core',
+	// the Svelte PARSE rows come from a package whose name says "vite plugin" —
+	// it's the N-API addon, and a different package from `@rsvelte/fmt`
+	rsvelte_parse: '@rsvelte/vite-plugin-svelte-native',
+	// not a tool version at all: the upstream Svelte that addon targets, worth
+	// showing beside the svelte pin the oracle row uses
+	rsvelte_parse_svelte_target: "rsvelte's upstream svelte"
+};
+
+/** Formats a report version key for the meta panel, hyphenating the ones `VERSION_LABELS` doesn't name. */
+export const format_version_label = (key: string): string =>
+	VERSION_LABELS[key] ?? key.replaceAll('_', '-');
+
 export const format_label = (name: string): string => {
 	const override = LABEL_OVERRIDES[name];
 	if (override) return override;

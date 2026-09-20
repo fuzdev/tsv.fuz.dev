@@ -37,8 +37,8 @@
 			<thead>
 				<tr>
 					<th scope="col"></th>
-					<th scope="col" class="num">files accepted</th>
-					<th scope="col" class="num">coverage</th>
+					<th scope="col" class="benchmarks-num">files accepted</th>
+					<th scope="col" class="benchmarks-num">coverage</th>
 				</tr>
 			</thead>
 			<tbody>
@@ -49,11 +49,11 @@
 								<small class="text_40">({row.note})</small>
 							{/if}
 						</td>
-						<td class="num">
+						<td class="benchmarks-num">
 							{format_count(row.files_processed)} /
 							{format_count(row.files_total)}
 						</td>
-						<td class="num percent">{format_coverage_percent(row.coverage_fraction)}</td>
+						<td class="benchmarks-num percent">{format_coverage_percent(row.coverage_fraction)}</td>
 					</tr>
 				{/each}
 			</tbody>

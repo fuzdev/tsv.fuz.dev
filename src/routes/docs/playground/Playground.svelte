@@ -39,10 +39,27 @@
 	};
 
 	const formatted = $derived.by(() => run((t) => t.format_svelte(source)));
-	const ast = $derived.by(() => run((t) => JSON.stringify(t.parse_svelte(source), null, 2)));
 
-	// format and parse fail together on malformed input — surface one message, not two
-	const error = $derived(formatted?.error ?? ast?.error ?? null);
+	// The AST pane trails the editor by an idle beat while the formatted pane stays
+	// live. Formatting is cheap (~1 ms on a 9 KB component), but the AST is parsed,
+	// serialized to JSON, and syntax-highlighted — half a megabyte of it for that
+	// same component — and rebuilding that DOM per keystroke is what a large paste
+	// feels. The default example is small enough that the delay never shows.
+	const AST_DEBOUNCE_MS = 150;
+	// seeded from the example, like `source`, so the first render has an AST to show
+	let ast_source = $state(playground_example);
+	$effect(() => {
+		const next = source;
+		const id = setTimeout(() => (ast_source = next), AST_DEBOUNCE_MS);
+		return () => clearTimeout(id);
+	});
+	const ast = $derived.by(() => run((t) => JSON.stringify(t.parse_svelte(ast_source), null, 2)));
+
+	// The top-level error is the LIVE pane's, so it tracks what is in the editor now;
+	// the AST pane renders its own beside its (debounced, possibly still-broken)
+	// source rather than folding it in here, where it would read as a message about
+	// text the user has already fixed.
+	const error = $derived(formatted?.error ?? null);
 
 	// CodeTextarea highlights via the experimental CSS Custom Highlight API; where
 	// it's unsupported the editor still works but shows no token colors. Defaulting to
@@ -115,10 +132,16 @@
 		<p>formatted</p>
 		<Code lang="svelte" content={formatted?.value ?? ''} />
 		<p>AST</p>
-		<div class="ast-output">
-			<CopyToClipboard text={ast?.value ?? ''} class="ast-copy" />
-			<Code lang="json" content={ast?.value ?? ''} class="ast" />
-		</div>
+		{#if ast?.error}
+			<!-- the debounced source can still be the broken one the live pane has
+				already moved past, so this pane carries its own message -->
+			<p class="parse-error">{ast.error}</p>
+		{:else}
+			<div class="ast-output">
+				<CopyToClipboard text={ast?.value ?? ''} class="ast-copy" />
+				<Code lang="json" content={ast?.value ?? ''} class="ast" />
+			</div>
+		{/if}
 	{/if}
 </section>
 

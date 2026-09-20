@@ -1,5 +1,8 @@
 import { assert, describe, test } from 'vitest';
 
+import { benchmarks_json } from '$routes/docs/benchmarks/benchmarks.ts';
+import { benchmarks_conformance_json } from '$routes/docs/benchmarks/benchmarks_conformance.ts';
+
 import {
 	format_bytes,
 	format_corpus_source_files,
@@ -10,7 +13,9 @@ import {
 	format_share_approx,
 	format_ns,
 	format_ratio_approx,
-	format_ratio_range
+	format_ratio_range,
+	format_version_label,
+	VERSION_LABELS
 } from '$routes/docs/benchmarks/benchmark_display.ts';
 
 describe('format_label', () => {
@@ -144,5 +149,31 @@ describe('format_corpus_source_files', () => {
 			format_corpus_source_files({ path: 'x', files: 3, by_language: { css: 0 } }),
 			'3 files'
 		);
+	});
+});
+
+describe('format_version_label', () => {
+	test('names the scoped packages whose bare tool name is a different release line', () => {
+		assert.strictEqual(format_version_label('biome'), '@biomejs/wasm-bundler');
+		assert.strictEqual(format_version_label('rsvelte_parse'), '@rsvelte/vite-plugin-svelte-native');
+	});
+
+	test('hyphenates every key the table does not name', () => {
+		assert.strictEqual(format_version_label('oxc_parser'), 'oxc-parser');
+		assert.strictEqual(format_version_label('svelte'), 'svelte');
+	});
+});
+
+describe('VERSION_LABELS', () => {
+	test('every named key is one the report actually carries', () => {
+		// a key the report dropped is a label that can never render, and one whose
+		// bare name would otherwise have been shown hyphenated and wrong
+		const keys = new Set([
+			...Object.keys(benchmarks_json.versions),
+			...Object.keys(benchmarks_conformance_json.versions)
+		]);
+		for (const key of Object.keys(VERSION_LABELS)) {
+			assert.ok(keys.has(key), `"${key}" is named but no report carries it`);
+		}
 	});
 });

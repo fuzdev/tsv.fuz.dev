@@ -1,4 +1,8 @@
 <script lang="ts">
+	// the classes this page's components share, which scoped `<style>` can't reach
+	// across — imported here so they ship with this route, not with every one
+	import './benchmarks.css';
+
 	import TomeContent from '@fuzdev/fuz_ui/TomeContent.svelte';
 	import TomeSection from '@fuzdev/fuz_ui/TomeSection.svelte';
 	import TomeSectionHeader from '@fuzdev/fuz_ui/TomeSectionHeader.svelte';
@@ -398,7 +402,7 @@
 		<TomeSectionHeader text="Like Prettier but speedier" />
 		<BenchmarksSummary rows={speedup_rows} />
 		{#if unstable_entries.length}
-			<aside class="mixed-vintage">
+			<aside class="benchmarks-warning">
 				⚠ Some rows in the {node_display} report were not measured stably, so the ratios through
 				them are unreliable:
 				<ul>
@@ -772,7 +776,7 @@
 			about that gap.
 		</p>
 		{#if benchmarks_cross_runtime_json.conformance_vintage?.stale}
-			<aside class="mixed-vintage">
+			<aside class="benchmarks-warning">
 				⚠ The conformance report backing this section comes from a different commit than the speed
 				reports above, so the two sections describe different builds until they are re-run from one
 				commit.

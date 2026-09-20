@@ -45,7 +45,7 @@ tsv.fuz.dev is the public face of the tsv tool:
 - Landing page (home) with links to benchmarks and docs
 - Benchmarks page with bar charts and summary tables
 - Docs section (introduction, playground, benchmarks)
-- Interactive playground (`/docs/playground`) — edit a deliberately-unformatted Svelte example in a syntax-highlighted editor (fuz_code's `CodeTextarea`); the formatted output and parsed AST update live alongside it; runs `@fuzdev/tsv-wasm` as lazily-loaded WASM
+- Interactive playground (`/docs/playground`) — edit a deliberately-unformatted Svelte example in a syntax-highlighted editor (fuz_code's `CodeTextarea`); the formatted output updates live alongside it and the parsed AST follows on a short idle; runs `@fuzdev/tsv-wasm` as lazily-loaded WASM
 - Theme controls via fuz_ui's `ThemeRoot` in the root layout (no separate about/settings page)
 - Shows install instructions led by the native `@fuzdev/tsv` (prebuilt N-API addon for Node/Bun, ships the `tsv` CLI), then `@fuzdev/tsv-wasm` (universal, same `tsv` CLI) and the format/parse subsets
 
@@ -62,7 +62,7 @@ src/
 │   ├── +page.svelte          # Home: hero, links to docs and benchmarks
 │   ├── +layout.svelte        # Root layout: fuz_css/fuz_code CSS, ThemeRoot, SiteState
 │   ├── +layout.ts            # prerender: true, ssr: true
-│   ├── style.css             # global styles
+│   ├── style.css             # global styles (currently empty of rules)
 │   ├── library.ts            # builds library_json from virtual:svelte-docinfo + pkg.json
 │   └── docs/
 │       ├── +layout.svelte    # Docs layout (Docs wrapper; sets library_context)
@@ -180,10 +180,11 @@ Key files in `src/routes/docs/benchmarks/`:
 - `benchmark_baseline.ts` — the hover-to-rebaseline ratios: `BaselineRow`, `BaselineDirection`, and the per-direction ratio, format (`format_speedup_signed` for speed, `benchmark_display.ts`'s `format_ratio_plain` for size), and color scales
 - `formatter_benchmark_data.ts` — the report's Zod schemas and types, plus `parse_formatter_benchmarks`, which validates the harness's `results.json` and keeps tsv's scenarios
 - `benchmarks_cli.ts` — shapes `benchmarks_formatters.json` for `BenchmarksCli.svelte` and owns the per-scenario prose; the numbers are all generated
+- `benchmarks.css` — the two classes the page's components share (`benchmarks-warning`, `benchmarks-num`), which Svelte's scoped `<style>` can't reach across. Imported by the benchmarks `+page.svelte` rather than the root stylesheet, so they ship with the docs chunk instead of every route
 - `benchmarks_prose.ts` — `IN_PROCESS_PAIRS`, the in-process pairings the page's copy names, keyed by the name the page gives each ratio. The page reads it by key and `benchmark_data.prose.test.ts` iterates its values, so a pairing added to the copy is gated by construction
 - `benchmarks.ts`, `benchmarks_cross_runtime.ts`, `benchmarks_conformance.ts`, `benchmarks_formatters.ts` — re-export the JSON with types
 - `BenchmarksBar.svelte`, `BenchmarksGroup.svelte`, etc. — visualization components
-- `BenchmarksBaselineGroup.svelte` — shared interactive column behind the format, parse, and binary-size groups: hovering a row re-baselines that group's ratios (each of the three groups per section is independent), restoring the default anchor (the canonical reference — Prettier for format, the JS baseline for parse — and the smallest build for size) on mouseleave. `benchmark_baseline.ts`'s `compute_baseline_ratio`/`format_baseline_ratio`/`baseline_ratio_color` carry the per-`BaselineDirection` (`speed`/`size`) formulas it and the derivations share
+- `BenchmarksBaselineGroup.svelte` — shared interactive column behind the format, parse, and binary-size groups: hovering a row re-baselines that group's ratios (each of the three groups per section is independent), restoring the default anchor (the canonical reference — Prettier for format, the JS baseline for parse — and the smallest build for size) when the pointer leaves the group. The group owns one delegated `pointerover` and reads `data-baseline-key` off the row under the pointer, rather than each of the page's 74 rows carrying its own handlers; a disabled row publishes no key, so it can never become the anchor. There is no focus path — re-baselining is a pointer affordance over data that is fully visible regardless. `benchmark_baseline.ts`'s `compute_baseline_ratio`/`format_baseline_ratio`/`baseline_ratio_color` carry the per-`BaselineDirection` (`speed`/`size`) formulas it and the derivations share
 
 ## Architecture
 
@@ -196,6 +197,7 @@ Key files in `src/routes/docs/benchmarks/`:
 - Tests and routes import route modules through the `$routes` alias (`svelte.config.js`), not a `#routes/*` subpath import — this repo has no `package.json` `imports` map
 - `library.ts` builds component metadata at runtime from the `virtual:svelte-docinfo` module (provided by the `svelte-docinfo` Vite plugin); the docs index passes it to `DocsContent`
 - The playground (`/docs/playground`) loads `@fuzdev/tsv-wasm` via a browser-only dynamic `import()` inside `Playground.svelte`, so the WASM code-splits into its own chunk fetched only on that route, keeping `/docs` and the prerendered pages WASM-free. `@fuzdev/tsv-wasm` is in `vite.config.ts` `optimizeDeps.exclude` (like `@fuzdev/blake3-wasm`)
+- The playground's formatted pane recomputes on every keystroke (formatting is ~1 ms even on a 9 KB component) while the AST pane trails a ~150 ms idle: the AST is parsed, serialized, and syntax-highlighted — around half a megabyte of it for that same component — and rebuilding that DOM per keystroke is what a large paste feels. The top-level error is the live pane's; the AST pane renders its own, since its debounced source can still be the broken text the editor has moved past
 - The playground's editor is fuz_code's `CodeTextarea` (live syntax highlighting via the experimental CSS Custom Highlight API). It needs `@fuzdev/fuz_code/theme_highlight.css`, imported inside `Playground.svelte` rather than the root layout so it stays on this route only; `supports_css_highlight_api()` drives a graceful-degradation note where the API is unavailable (the editor still works, unstyled)
 
 ## Deployment

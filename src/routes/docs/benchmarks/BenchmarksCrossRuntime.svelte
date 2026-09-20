@@ -45,7 +45,7 @@
 	const format_ops = (n: number | undefined): string => (n == null ? 'fail' : n.toFixed(2));
 
 	// An absent number reads as a load failure only when the report says so; every
-	// other gap is a row that runtime never measured, which a mixed-vintage set
+	// other gap is a row that runtime never measured, which a mixed-vintage report set
 	// makes ordinary. Both render as `fail`, so the title carries the difference.
 	const missing_cell_title = (name: string, runtime: BenchmarkRuntime): string =>
 		is_impl_unavailable(report, runtime, name)
@@ -63,19 +63,19 @@
 </script>
 
 {#if report.mixed_vintage}
-	<aside class="mixed-vintage">
+	<aside class="benchmarks-warning">
 		⚠ The per-runtime reports backing these tables come from different commits/versions, so the
 		ratios are unreliable until every runtime is re-run.
 	</aside>
 {/if}
 {#if report.mixed_machine}
-	<aside class="mixed-vintage">
+	<aside class="benchmarks-warning">
 		⚠ The per-runtime reports backing these tables were produced on different hardware, so the
 		ratios are not comparable until every runtime is re-run on one machine.
 	</aside>
 {/if}
 {#if unavailable.length}
-	<aside class="mixed-vintage">
+	<aside class="benchmarks-warning">
 		⚠ Some implementations don't load on every runtime:
 		<ul class="unavailable">
 			{#each unavailable as { runtime, rows } (runtime)}
@@ -87,7 +87,7 @@
 	</aside>
 {/if}
 {#if unstable.length}
-	<aside class="mixed-vintage">
+	<aside class="benchmarks-warning">
 		⚠ Some measurements were not stable, so every ratio through them is unreliable:
 		<ul class="unavailable">
 			{#each unstable as cell (cell.group + '/' + cell.name + '/' + cell.runtime)}
@@ -117,10 +117,10 @@
 				<tr>
 					<th scope="col"></th>
 					{#each runtimes as runtime (runtime)}
-						<th scope="col" class="num">{runtime}</th>
+						<th scope="col" class="benchmarks-num">{runtime}</th>
 					{/each}
 					{#each others as runtime (runtime)}
-						<th scope="col" class="num">{runtime}/{base}</th>
+						<th scope="col" class="benchmarks-num">{runtime}/{base}</th>
 					{/each}
 				</tr>
 			</thead>
@@ -146,7 +146,7 @@
 							{@const ops = row.ops_per_second[runtime]}
 							{@const cell_unstable = is_unstable(group.group + '/' + row.name, runtime)}
 							<td
-								class="num"
+								class="benchmarks-num"
 								title={ops == null
 									? missing_cell_title(row.name, runtime)
 									: cell_unstable
@@ -163,7 +163,7 @@
 								base != null &&
 								is_ratio_within_noise(report, group.group, row.name, base, runtime)}
 							<td
-								class="num ratio"
+								class="benchmarks-num ratio"
 								class:within-noise={within_noise}
 								title={within_noise
 									? `this delta is smaller than the two measurements' combined noise — not a runtime effect`
@@ -230,7 +230,7 @@
 		border-radius: var(--border_radius_xs);
 		vertical-align: middle;
 	}
-	/* same warning tint as the mixed-vintage asides */
+	/* same warning tint as the asides above the tables */
 	.files-mismatch {
 		margin-left: var(--space_xs);
 		color: var(--color_c_50);

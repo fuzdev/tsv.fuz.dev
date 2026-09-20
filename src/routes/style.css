@@ -1,14 +1,4 @@
 /* global stylesheet imported by `src/routes/+layout.svelte` */
 
-/* a warning aside: the red tint over fuz_css's base aside styling, shared by the
-   benchmarks page and its cross-runtime tables */
-.mixed-vintage {
-	border-left-color: var(--color_c_50);
-}
-
-/* a numeric table cell, shared by the benchmarks page's tables */
-.num {
-	text-align: right;
-	white-space: nowrap;
-	font-variant-numeric: tabular-nums;
-}
+/* Nothing global yet — the benchmarks page's shared classes live beside it in
+   `docs/benchmarks/benchmarks.css`, so they ship with that route. */
