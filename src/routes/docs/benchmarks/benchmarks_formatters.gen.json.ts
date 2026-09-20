@@ -1,7 +1,6 @@
 import type { Gen } from '@fuzdev/gro/gen.ts';
 import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
-import { resolve } from 'node:path';
 
 import { parse_formatter_benchmarks } from './formatter_benchmark_data.ts';
 
@@ -10,9 +9,8 @@ import { parse_formatter_benchmarks } from './formatter_benchmark_data.ts';
 // module rather than the cwd: a missing report is a benign skip, so resolving
 // against the cwd would turn a `gro gen` run from a subdirectory into a silent
 // no-op that `gro gen --check` still passes.
-const RESULTS_PATH = resolve(
-	fileURLToPath(import.meta.url),
-	'../../../../../../oxc-bench-formatter/results.json'
+const RESULTS_PATH = fileURLToPath(
+	new URL('../../../../../oxc-bench-formatter/results.json', import.meta.url)
 );
 
 /**

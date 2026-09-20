@@ -182,7 +182,7 @@ const LABEL_OVERRIDES: Record<string, string> = {
 };
 
 /** The report's language keys as the page prints them, shared by every group heading. */
-export const LANGUAGE_LABELS: Record<string, string> = {
+const LANGUAGE_LABELS: Record<string, string> = {
 	svelte: 'Svelte',
 	typescript: 'TypeScript',
 	css: 'CSS'

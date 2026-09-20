@@ -189,14 +189,14 @@ const synthesize_rsvelte_install = (sizes: Array<BinarySize>): BinarySize | unde
  * Groups the binary sizes by capability (full / formatter / parser), each group
  * mixing wasm and native builds sorted smallest-first. Bars scale to the group's
  * largest ENTRY, synthesized sums included — so the `+` rows below set the scale in
- * the groups that carry one, and every real build reads against an install
- * footprint rather than against another single artifact. The `vs` ratio anchors on
- * the group's single smallest build, so
- * exactly one entry reads 1.0x and every other is a multiple of it — whichever tool
- * that is. (It is not always tsv: yuku-parser's parse-only builds undercut tsv's,
- * which carry Svelte and CSS parsers besides, and malva's CSS-only plugin undercuts
- * tsv's three-language format-only wasm build.) A combined `oxc-parser + oxfmt` entry is
- * synthesized into the full-toolchain group, since oxc ships parse and format apart.
+ * the groups that carry one, and every real build reads against an install footprint
+ * rather than against another single artifact. The `vs` ratio anchors on the group's
+ * single smallest build, so exactly one entry reads 1.0x and every other is a
+ * multiple of it — whichever tool that is. (It is not always tsv: yuku-parser's
+ * parse-only builds undercut tsv's, which carry Svelte and CSS parsers besides, and
+ * malva's CSS-only plugin undercuts tsv's three-language format-only wasm build.) A
+ * combined `oxc-parser + oxfmt` entry is synthesized into the full-toolchain group,
+ * since oxc ships parse and format apart.
  * oxfmt has no wasm build, so the formatter group gets a disabled `oxfmt (wasm)`
  * placeholder slotted just above its real `oxfmt (napi)` entry, holding the slot
  * rather than omitting it. The formatter group likewise carries both rsvelte-fmt

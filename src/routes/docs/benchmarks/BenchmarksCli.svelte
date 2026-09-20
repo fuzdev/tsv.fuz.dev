@@ -33,6 +33,19 @@
 	// and size groups do; only one row is ever hovered, so one slot serves every table
 	let hovered: { key: string; label: string } | undefined = $state(undefined);
 
+	// Read off the row under the pointer rather than handled per row, as
+	// `BenchmarksBaselineGroup` does it: one pair of listeners per table instead of
+	// two per row, and `pointerover` brings pen and touch along, where a tap
+	// re-baselines the row it lands on and the lift restores the default.
+	const to_hovered = (
+		event: PointerEvent,
+		key: string
+	): { key: string; label: string } | undefined => {
+		const row = (event.target as Element | null)?.closest<HTMLElement>('[data-baseline-label]');
+		const label = row?.dataset.baselineLabel;
+		return label === undefined ? undefined : { key, label };
+	};
+
 	// Every ratio is `row / anchor` (>1 = the anchor is that many times faster /
 	// lighter), the same `cli_ratio_between` the page's prose quotes. The anchor is
 	// the hovered row, else the scenario's default (`cli_default_anchor_label`: the
@@ -92,9 +105,9 @@
 	<div class="mb_xl2">
 		<h3>{scenario.heading}: {scenario.target}</h3>
 		<p>{scenario.description}</p>
-		<p class="versions">Corpus: {scenario.corpus}</p>
+		<p class="note">Corpus: {scenario.corpus}</p>
 		{#if rows.length > 0}
-			<p class="versions">
+			<p class="note">
 				Ratios are each row over <strong>{anchor_label}</strong>, so above 1 is slower, or heavier,
 				than it — hover a row to re-baseline on it.
 			</p>
@@ -110,17 +123,21 @@
 							<th scope="col">vs baseline (RSS)</th>
 						</tr>
 					</thead>
-					<tbody>
+					<!-- hover only re-baselines the table's ratios — a visual aid over data that is
+						fully visible regardless, with the default anchor serving keyboard and
+						no-pointer readers — so the rows carry no focus path (as
+						`BenchmarksBaselineGroup`). `pointerleave` here restores the default anchor
+						when the pointer leaves the table entirely. -->
+					<tbody
+						onpointerover={(event) => (hovered = to_hovered(event, scenario.key))}
+						onpointerleave={() => (hovered = undefined)}
+					>
 						{#each rows as row (row.result.label)}
-							<!-- hover only re-baselines the table's ratios — a visual aid over data that
-								is fully visible regardless, with the default anchor serving keyboard and
-								no-hover users — so the row carries no focus path (as `BenchmarksBar`) -->
 							<tr
 								class:tsv={row.is_tsv}
 								class:tsv-distribution={row.is_tsv_distribution}
 								class:anchor={row.is_anchor}
-								onmouseenter={() => (hovered = { key: scenario.key, label: row.result.label })}
-								onmouseleave={() => (hovered = undefined)}
+								data-baseline-label={row.result.label}
 							>
 								<td class="formatter">{row.result.label}</td>
 								<td>{format_time(row.result.wall_ms)}</td>
@@ -147,7 +164,7 @@
 				</table>
 			</div>
 			{#if scenario.benchmark_runs > 0}
-				<p class="versions">
+				<p class="note">
 					Each time is the mean of {scenario.benchmark_runs} runs, after {scenario.warmup_runs}
 					untimed warmup
 					runs{scenario.settle_seconds
@@ -157,14 +174,14 @@
 				</p>
 			{/if}
 			{#if has_dispatcher_memory(scenario)}
-				<p class="versions">
+				<p class="note">
 					The peak RSS of <strong>{CLI_TSV_NPM_LABEL}</strong> is its Node launcher's, not the
 					binary's.
 				</p>
 			{/if}
 		{/if}
 		{#if scenario.unshimmed}
-			<p class="versions">{scenario.unshimmed}</p>
+			<p class="note">{scenario.unshimmed}</p>
 		{/if}
 		{#if scenario.aborted}
 			<!-- an abort after timing keeps its table, so the sentence about withheld
@@ -180,7 +197,7 @@
 	</div>
 {/each}
 
-<p class="versions">
+<p class="note">
 	Measured on {report.machine} — {versions}. Wall-clock ratios scale with core count; "vs baseline
 	(CPU work)" is the parallelism-neutral view.
 </p>
@@ -223,7 +240,9 @@
 	tr.anchor .speedup {
 		opacity: 0.5;
 	}
-	.versions {
+	/* the small print under each table — the corpus, the ratio legend, the run
+	   counts, and the machine and versions footer */
+	.note {
 		font-size: var(--font_size_sm);
 		opacity: 0.7;
 	}

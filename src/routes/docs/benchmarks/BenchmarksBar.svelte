@@ -32,9 +32,9 @@
 		// "we chose not to measure this" and "this tool wasn't here" are different
 		// claims and the gray alone can't tell them apart
 		coverage_only?: boolean;
-		// hover-to-rebaseline: the key the group's delegated `mouseover` reads off this
-		// row to adopt it as the ratio anchor. Omitted on inert placeholders, which
-		// publish no key and so can never become the anchor.
+		// hover-to-rebaseline: the key the group's delegated `pointerover` reads off
+		// this row to adopt it as the ratio anchor. Omitted on inert placeholders,
+		// which publish no key and so can never become the anchor.
 		baseline_key?: string | undefined;
 	} = $props();
 
