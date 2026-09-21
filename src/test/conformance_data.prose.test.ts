@@ -19,8 +19,23 @@ describe('conformance prose reads the report', () => {
 		for (const path of ['benches/js/.cache/wpt_css', '../prettier/tests/format/css']) {
 			const row = css?.sources.find((s) => s.origins[0]?.path === path);
 			assert(row, `css ${path} is missing`);
+			assert.isNotEmpty(row.cells, path);
 			for (const cell of row.cells) assert.isAbove(cell?.rejected ?? 0, 0, path);
 		}
+	});
+
+	test('"tsv\'s 100% on test262 is a result" the report still carries', () => {
+		// no selector flags that cell, so nothing else holds the hand-written figure
+		const typescript = derive_conformance_matrices(conformance_json).find(
+			(m) => m.language === 'typescript'
+		);
+		const row = typescript?.sources.find(
+			(s) => s.origins[0]?.path === 'benches/js/.cache/test262_files.json'
+		);
+		const cell = row?.cells[typescript?.engines.findIndex((e) => e.name === 'tsv') ?? -1];
+		assert(cell, 'tsv has no test262 cell');
+		assert.isFalse(cell.selected);
+		assert.strictEqual(cell.rejected, 0);
 	});
 
 	test('the CSS conformance note names the order the table shows', () => {
@@ -55,7 +70,7 @@ describe('conformance prose reads the report', () => {
 		assert.isAtMost(gap, 5, 'the accept sets differ by more than "a couple of files"');
 	});
 
-	test('the byte check left "one pathologically deep TypeScript file" undigested, on tsv\'s rows', () => {
+	test('the byte check left "one file the report discloses" undigested, on tsv\'s rows', () => {
 		// the conformance note excuses exactly one file from tsv's native/wasm byte
 		// parity; a growing count is the check quietly covering less
 		const ungraded = Object.entries(conformance_json.output_digest_ungraded ?? {});

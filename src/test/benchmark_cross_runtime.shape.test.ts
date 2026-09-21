@@ -25,7 +25,7 @@ describe('benchmarks_cross_runtime.json shape', () => {
 	});
 
 	test('the conformance report is same-vintage with the perf siblings', () => {
-		// combined `version` 13 records it; a stale one means `update-benchmarks`
+		// the combined report records it; a stale one means `update-benchmarks`
 		// copied a conformance report from a different refresh than the perf trio,
 		// which the site has no banner for
 		const vintage = benchmarks_cross_runtime_json.conformance_vintage;
@@ -72,6 +72,7 @@ describe('benchmarks_cross_runtime.json shape', () => {
 		// runtime, and the site has no annotation for it — recompose from same-box,
 		// same-commit siblings. Every runtime must have reported a count for every
 		// row, or the comparison would pass with nothing compared.
+		assert.isNotEmpty(benchmarks_cross_runtime_json.rows);
 		for (const row of benchmarks_cross_runtime_json.rows) {
 			for (const runtime of benchmarks_cross_runtime_json.runtimes) {
 				assert.isNumber(row.files_iterated[runtime], `${row.group}/${row.name} ${runtime}`);

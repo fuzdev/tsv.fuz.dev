@@ -2,6 +2,7 @@ import { assert, describe, test } from 'vitest';
 
 import {
 	format_bytes,
+	format_gzip_size,
 	format_count,
 	format_coverage_percent,
 	format_label,
@@ -144,6 +145,14 @@ describe('format_bytes', () => {
 	test('the KB tier ends where it would round to 1000', () => {
 		assert.deepEqual(format_bytes(999_499), { value: '999', unit: 'KB' });
 		assert.deepEqual(format_bytes(999_500), { value: '1.0', unit: 'MB' });
+	});
+});
+
+describe('format_gzip_size', () => {
+	test('a measured size reads with its unit, an unmeasured one is undefined', () => {
+		assert.strictEqual(format_gzip_size(716_600), '717 KB gz');
+		assert.isUndefined(format_gzip_size(null));
+		assert.isUndefined(format_gzip_size(undefined));
 	});
 });
 

@@ -176,16 +176,16 @@
 				<a href="https://github.com/fuzdev/corpora">fuzdev/corpora</a> commit) are fixed.
 			</li>
 			<li>
-				Nothing is skipped and no failure is timed around: every scenario starts with a preflight
-				parse check, and a run that errors partway fails the scenario instead of being timed. A
-				scenario whose preflight fails is aborted before timing and shown as aborted rather than
-				dropped — a crash in one formatter's check must not become a fast partial run.
+				Nothing is skipped and no failure is timed around: every scenario here starts with a
+				preflight parse check, and a run that errors partway fails the scenario instead of being
+				timed. A scenario whose preflight fails is aborted before timing and shown as aborted rather
+				than dropped — a crash in one formatter's check must not become a fast partial run.
 			</li>
 			<li>
 				hyperfine runs commands in the order given, with no interleaving or shuffling, so on a
 				machine that throttles the later tools run warmer{settle_note}. Every scenario tsv runs in
-				puts the bare binary last, with its Node dispatcher row just before it, so that drift counts
-				against tsv, not for it.
+				puts the bare binary last, with its Node dispatcher row just before it (the tables sort by
+				time, not run order), so that drift counts against tsv, not for it.
 			</li>
 		</ul>
 	</aside>

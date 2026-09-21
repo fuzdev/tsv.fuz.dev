@@ -38,8 +38,8 @@ import {
 // hand-written numbers, so a renamed entry or a dropped scenario would render
 // `—` mid-sentence instead of failing. These gate every pair the copy names.
 /**
- * A ratio rendered inside a "~Nx faster than" sentence must clear 1 by enough
- * to print as one: `format_ratio_approx` rounds to one decimal, so a ratio in
+ * A ratio rendered inside a "~Nx faster than" (or "as long", "the memory") sentence
+ * must clear 1 by enough to print as one: `format_ratio_approx` rounds to one decimal, so a ratio in
  * `[1, 1.05)` passes an `isAbove(1)` gate and still renders "~1.0x faster", a
  * claim of nothing.
  */
@@ -215,12 +215,11 @@ describe('prose ratios resolve', () => {
 
 	test('every CLI ratio the prose quotes is present', () => {
 		// (the TypeScript-repo wall/CPU pairs are covered by the CPU-work test below)
-		// the TLDR's "less memory than either" range, scoped to the tools it names, and
-		// the CLI note's "less than every other tool in every scenario" — both read as
-		// "less" and both are floored to one decimal for display, so the LOW end must
-		// reach 1.1 or the range would print "1.0–Nx less memory", a claim of nothing
+		// the CLI note's "less than every other tool in every scenario", against the bare
+		// binary and the dispatcher — both read as "less" and both are floored to one
+		// decimal for display, so the LOW end must reach 1.1 or the range would print
+		// "1.0–Nx less memory", a claim of nothing
 		for (const range of [
-			cli_memory_ratio_range({ scenario_key: CLI_TS_REPO_KEY, labels: ['oxfmt', 'biome'] }),
 			cli_memory_ratio_range(),
 			cli_memory_ratio_range({ baseline_label: CLI_TSV_NPM_LABEL })
 		]) {
@@ -236,7 +235,7 @@ describe('prose ratios resolve', () => {
 			const ratio = cli_speedup_vs_tsv(CLI_DELIVERY_KEY, label, metric);
 			assert.isDefined(ratio, `${CLI_DELIVERY_KEY}: ${label} ${metric}`);
 			// the copy reads "takes ~Nx as long" / "~Nx the memory", so each must exceed 1
-			assert.isAbove(ratio, 1, `${CLI_DELIVERY_KEY}: ${label} ${metric}`);
+			assert_reads_faster(ratio, `${CLI_DELIVERY_KEY}: ${label} ${metric}`);
 		}
 	});
 
@@ -265,7 +264,7 @@ describe('prose ratios resolve', () => {
 		const file_cost = cli_speedup_vs_tsv(CLI_DELIVERY_KEY, CLI_TSV_NPM_LABEL, 'wall_ms');
 		assert.isDefined(repo_cost);
 		assert.isDefined(file_cost);
-		assert.isAbove(repo_cost, 1);
+		assert_reads_faster(repo_cost, `${CLI_TS_REPO_KEY}: dispatcher cost`);
 		assert.isBelow(repo_cost, file_cost, 'the dispatcher cost does not shrink on the repo');
 		// the Svelte bullet's like-for-like pair: that scenario may be published
 		// aborted, but the copy quotes the dispatcher ratio wherever it quotes the
@@ -274,7 +273,7 @@ describe('prose ratios resolve', () => {
 			const ratio = cli_speedup_vs_tsv_npm(CLI_SVELTE_KEY, 'rsvelte-fmt', metric);
 			const bare = cli_speedup_vs_tsv(CLI_SVELTE_KEY, 'rsvelte-fmt', metric);
 			assert.strictEqual(ratio !== undefined, bare !== undefined, `${CLI_SVELTE_KEY}: ${metric}`);
-			if (ratio !== undefined) assert.isAbove(ratio, 1, `${CLI_SVELTE_KEY}: ${metric}`);
+			if (ratio !== undefined) assert_reads_faster(ratio, `${CLI_SVELTE_KEY}: ${metric}`);
 		}
 	});
 
@@ -339,24 +338,21 @@ describe('prose ratios resolve', () => {
 				assert_reads_faster(ratio, `${label}: ${name}`);
 			}
 		}
-		// "launch cost, not the engines ... ~N% of its wall-clock on the repo but ~M% of
-		// its CPU total": the dispatcher
-		// must cost the repo run relatively more wall-clock than CPU work
-		const npm_wall = defined(
-			cli_speedup_vs_tsv(CLI_TS_REPO_KEY, CLI_TSV_NPM_LABEL, 'wall_ms'),
-			'dispatcher wall_ms'
-		);
-		const npm_cpu = defined(
-			cli_speedup_vs_tsv(CLI_TS_REPO_KEY, CLI_TSV_NPM_LABEL, 'cpu_ms'),
-			'dispatcher cpu_ms'
-		);
-		assert.isAbove(npm_wall, npm_cpu);
 		// "even Prettier's CPU time runs above its wall-clock"
 		for (const key of [CLI_SINGLE_FILE_KEY, CLI_TS_REPO_KEY]) {
 			const prettier = cli_scenario_find(key)?.results.find((r) => r.label === 'prettier');
 			assert(prettier, `${key} has no prettier row`);
 			assert.isAbove(prettier.cpu_ms, prettier.wall_ms, `${key}: prettier CPU > wall`);
 		}
+		// "on the single file a tool that spins up a worker pool it can't use reads CPU
+		// above wall-clock too"
+		const pooled = cli_scenario_find(CLI_SINGLE_FILE_KEY)?.results.filter(
+			(r) => !cli_label_is_tsv(r.label) && !r.label.startsWith('prettier')
+		);
+		assert(
+			pooled?.some((r) => r.cpu_ms > r.wall_ms),
+			'no pooled tool reads CPU > wall'
+		);
 	});
 
 	test('the Node launch floor sits inside the dispatcher overhead', () => {

@@ -8,7 +8,7 @@ import type { BinarySize, ImplementationCategory } from './benchmark_data.ts';
 // Binary-size categorization
 
 /** The suffix every synthesized canonical bundle's label carries (tsv's `canonical_bundles.ts`). */
-export const JS_BUNDLE_SUFFIX = '(js bundle)';
+const JS_BUNDLE_SUFFIX = '(js bundle)';
 
 /**
  * The color category for a binary-size label — the size table's analog of

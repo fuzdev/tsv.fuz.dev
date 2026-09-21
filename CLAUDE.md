@@ -157,16 +157,16 @@ in the schema TSDoc in `formatter_benchmark_data.ts`.
 - `benchmark_data.ts` — per-runtime report types, plus the format/parse, stability, and corpus derivations; imports none of the others
 - `BenchmarksCorpus.svelte` — the per-source corpus table both pages' `Corpus` sections render, from `benchmark_data.ts`'s `derive_corpus_source_table`; a source no repo names needs a hand label (`CORPUS_SOURCE_LABELS`), and the conformance page hand-labels every source (`CONFORMANCE_SOURCE_LABELS`, which its matrix also reads); the shape test holds both
 - `benchmark_display.ts` — value formatters, row labels, per-category colors; imports only `benchmark_data.ts`'s types
-- `benchmark_sizes.ts`, `benchmark_cross_runtime.ts` — one domain each, built on `benchmark_data.ts` (the cross-runtime one on `benchmark_display.ts` too); the conformance page's `conformance_data.ts` does the same from its own directory — a matrix per language (corpus sources × engines, the aggregate as the leading row), with two hand-stated maps the report has no field for: the source labels and `CONFORMANCE_SELECTORS`, the engine that selected a source and so reads 100% on it by construction; the shape test holds both to the report
+- `benchmark_sizes.ts`, `benchmark_cross_runtime.ts` — one domain each, built on `benchmark_data.ts` (the cross-runtime one on `benchmark_display.ts` too); the conformance page's `conformance_data.ts` does the same from its own directory — a matrix per language (corpus sources × engines, the aggregate as the leading row), with hand-stated maps the report has no field for: the engine names, the row notes, the source labels, and `CONFORMANCE_SELECTORS`, the engine that selected a source and so reads 100% on it by construction; the shape test holds each to the report
 - `benchmark_baseline.ts` + `BenchmarksBaselineGroup.svelte` — hover-to-rebaseline: hovering a row re-anchors that group's ratios, restoring the default anchor on leave; pointer-only by design, and a disabled row never anchors. `BenchmarksCli.svelte`'s tables behave the same way
 - `formatter_benchmark_data.ts` — the harness report's Zod schemas and `parse_formatter_benchmarks`
 - `benchmarks_cli.ts` — shapes the CLI report for `BenchmarksCli.svelte` and owns the per-scenario prose and the `cli_*` claim helpers
 - `benchmarks_prose.ts` — `IN_PROCESS_PAIRS`, the in-process pairings the copy names; the page reads it by key and the prose test iterates it, so a pairing added to the copy is gated by construction
 - `benchmarks.ts`, `benchmarks_cross_runtime.ts`, `benchmarks_formatters.ts` (and the conformance page's `conformance.ts`) — re-export the JSON with types
-- `BenchmarksCliSection.svelte` — the CLI section's prose and its claims; the other `Benchmarks*.svelte` are visualizations
+- `BenchmarksCliSection.svelte` — the CLI section's prose and its claims; the other `Benchmarks*.svelte` are visualizations (`BenchmarksSummary.svelte` carries its table's Prettier caption, which the prose test gates)
 - `benchmarks.css` — classes the components share, imported by the benchmarks and conformance `+page.svelte`s rather than the root stylesheet so they ship with those routes only
 
-The page quotes no hand-written ratios or counts: its prose computes them from
+The page quotes no hand-written ratios or counts from the reports: its prose computes them from
 the same reports the charts render, through tested helpers in the TS modules, so
 the components' scripts hold no untested reductions.
 

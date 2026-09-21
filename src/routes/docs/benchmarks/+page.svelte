@@ -342,15 +342,16 @@
 					Oxfmt formats TypeScript, JS, and CSS with its own native engine; for Svelte it delegates
 					to a Prettier it bundles, with a bundled copy of
 					<a href="https://github.com/sveltejs/prettier-plugin-svelte">prettier-plugin-svelte</a> —
-					the embedded <code>&lt;script&gt;</code> still goes through its native engine, the
-					<code>&lt;style&gt;</code> through that Prettier's CSS printer.
+					only the embedded <code>&lt;script&gt;</code> goes through its native engine; the markup,
+					its expressions, and the <code>&lt;style&gt;</code> are that Prettier's.
 				</li>
 				<li>
 					Biome has no dedicated Svelte formatter: its Svelte row runs with
 					<code>html.experimentalFullSupportEnabled</code>, the experimental HTML-superset pipeline
-					that lets it format <code>.svelte</code> at all; without the flag it returns empty output.
-					Embedded script and style are formatted too, so the work is comparable. Its row also pays
-					a cold first sweep each time the harness rebuilds its wasm instance, a few percent.
+					that lets it format <code>.svelte</code> at all; without the flag it returns only the
+					script. Embedded script and style are formatted too, so the work is comparable. Its row
+					also pays a cold first sweep each time the harness rebuilds its wasm instance, a few
+					percent.
 				</li>
 				<li>
 					There's no native Biome entry: <code>@biomejs/js-api</code>, its in-process API, backs
@@ -556,12 +557,12 @@
 		<TomeSectionHeader text={DETAILS_SECTION_TITLE} />
 		<p>
 			One asymmetry in the in-process timings isn't isolated: oxfmt's programmatic
-			<code>format</code> is async-only, so each call pays an N-API task dispatch and promise
-			resolution inside its timing that tsv's sync call doesn't, and the native work may run off the
-			JS thread — still one file at a time, since each call is awaited before the next, but not
-			strictly one thread. Each row is the total time to process its group's timed files once — not
-			the multi-core batch throughput a CLI gets when it formats many files at once, which most of
-			these tools (tsv included) can do.
+			<code>format</code> is async-only (as is Prettier's, without the N-API hop), so each call pays
+			an N-API task dispatch and promise resolution inside its timing that tsv's sync call doesn't,
+			and the native work may run off the JS thread — still one file at a time, since each call is
+			awaited before the next, but not strictly one thread. Each row is the total time to process
+			its group's timed files once — not the multi-core batch throughput a CLI gets when it formats
+			many files at once, which most of these tools (tsv included) can do.
 		</p>
 		<p>
 			Within a group every tool is timed on the same file set — the intersection of what every timed
@@ -602,8 +603,8 @@
 	<TomeSection>
 		<TomeSectionHeader text={CORPUS_SECTION_TITLE} />
 		<p>
-			Every in-process number on this page is measured on {format_count(corpus_counts.files)} files
-			of <code>.svelte</code>, <code>.ts</code>/<code>.js</code>, and <code>.css</code> — real-world
+			Every in-process number on this page comes from {format_count(corpus_counts.files)} files of
+			<code>.svelte</code>, <code>.ts</code>/<code>.js</code>, and <code>.css</code> — real-world
 			code only, vendored at one pinned commit in the
 			<!-- eslint-disable-next-line svelte/no-navigation-without-resolve -->
 			<a href={corpus_snapshot_url}>
@@ -651,7 +652,9 @@
 			implementation, or the binding boundary — not a difference in tsv's algorithms. Nor is it
 			quite one binary: the same engine and settings, but the N-API build keeps panic unwinding
 			where the FFI one aborts. A delta the report finds inside the two measurements' combined noise
-			is marked <code>≈</code> in the tables and reads as parity, not an effect.
+			is marked <code>≈</code> in the tables and reads as parity, not an effect. It can't see
+			variance between whole runs: Bun's allocation-heavy JS rows (Prettier, PostCSS) have sat at
+			two levels ~10–14% apart.
 		</p>
 		<aside>
 			<p>

@@ -53,9 +53,10 @@
 				<li>
 					A greyed <code>100%</code> marks the parser that chose a source, so reads 100% on it by
 					construction: svelte/compiler on the Svelte set (the files it rejects are excluded, so the
-					others read as drop-in fidelity against it), <code>tsc</code>{tsc_label} on its compiler's
-					cases, and tsv on test262, so another parser's number there is its rate on tsv's slice,
-					not on test262.
+					others read as drop-in fidelity against it) and <code>tsc</code>{tsc_label} on its
+					compiler's cases. tsv's 100% on test262 is a result: the suite's own metadata picks the
+					tests, less the Annex B grammar tsv declines (see
+					<a href="#{docs_slugify(CORPUS_SECTION_TITLE)}">Corpus</a>).
 				</li>
 				<li>
 					The other sources keep intentionally-invalid and out-of-scope inputs (wpt's
@@ -67,8 +68,7 @@
 					PostCSS sitting above tsv is two grammars, not a gap. The CSS reference is Svelte's
 					<code>parseCss</code>, which tsv is a drop-in for and no validity oracle in either
 					direction; PostCSS keeps selectors and at-rule preludes as unparsed strings, so it accepts
-					preprocessor syntax, malformed rules, and modern CSS <code>parseCss</code> doesn't
-					implement yet.
+					preprocessor syntax and malformed rules.
 				</li>
 				<li>
 					One column per engine, not per binding. That is exact for tsv, whose native and wasm rows
@@ -101,7 +101,7 @@
 			sources, none of them the real-world code the <TomeLink slug="benchmarks" /> time: formatter
 			and compiler test suites, read from pinned checkouts, and three conformance suites the harness
 			harvests into caches. Every file is parsed as a module, except test262's, parsed at the goal
-			each test declares.
+			each test declares; <code>tsc</code> alone infers the goal itself.
 		</p>
 		<ul>
 			<li>
@@ -122,9 +122,10 @@
 				The web-platform-tests CSS is extracted from its tests' <code>&lt;style&gt;</code> blocks.
 			</li>
 			<li>
-				JSX is out by construction — Prettier's JSX fixtures and the compiler's <code>.tsx</code>
-				cases are dropped, since tsv rejects JSX by design where oxc-parser, yuku-parser, swc, and
-				tsc can parse it — so these tables say nothing about that gap.
+				JSX is out by construction: Prettier's JSX suite and the compiler's <code>.tsx</code> cases
+				are dropped, and every parser runs in TypeScript mode, where the JSX left in Prettier's JS
+				fixtures is rejected. tsv rejects JSX by design where oxc-parser, yuku-parser, swc, and tsc
+				can parse it, so these tables say nothing about that gap.
 			</li>
 		</ul>
 		<p>

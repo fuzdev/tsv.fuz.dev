@@ -108,8 +108,7 @@ export const derive_conformance_groups = (baseline: BenchmarkBaseline): Array<Co
 	return result;
 };
 
-// The two harvested TypeScript caches a parser here selected, as the report's
-// `coverage_by_source` keys them.
+// The two harvested TypeScript caches, as the report's `coverage_by_source` keys them.
 const SOURCE_TEST262 = 'benches/js/.cache/test262_files.json';
 const SOURCE_TS_REPO = 'benches/js/.cache/ts_repo_files.json';
 
@@ -135,13 +134,14 @@ export const CONFORMANCE_SOURCE_LABELS: Record<string, string> = {
  * rather than by achievement: group key → source path (`*` for every source of
  * the group) → engine display name. Hand-stated because the report carries no
  * such field — svelte/compiler's rejects are excluded from the whole Svelte set,
- * tsc kept only the compiler cases it parses cleanly, and the test262 cache is
- * the expected-valid subset of the tests tsv's runner grades. The shape test
- * holds every entry to the report: it must resolve, and its cell must be full.
+ * and tsc kept only the compiler cases it parses cleanly. test262 has no entry:
+ * its own metadata picks the expected-valid tests, never tsv's verdict, so tsv's
+ * 100% there is a result. The shape test holds every entry to the report: it
+ * must resolve, and its cell must be full.
  */
 export const CONFORMANCE_SELECTORS: Record<string, Record<string, string>> = {
 	'parse/svelte': { '*': 'svelte/compiler' },
-	'parse/typescript': { [SOURCE_TEST262]: 'tsv', [SOURCE_TS_REPO]: 'tsc' }
+	'parse/typescript': { [SOURCE_TS_REPO]: 'tsc' }
 };
 
 /** One engine's coverage of one corpus source, or of the whole group. */

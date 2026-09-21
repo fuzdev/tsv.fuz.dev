@@ -437,7 +437,7 @@ export const cli_comparison_results = (
  *
  * @param scenarios - the scenarios to read, the rendered ones by default
  * @returns the low and high ratio, or `undefined` when nothing was measured, or
- * when a named tool or the baseline row is missing from a spanned scenario
+ * when a named tool or the baseline's figure is missing from a spanned scenario
  */
 export const cli_memory_ratio_range = (
 	options: { scenario_key?: string; labels?: Array<string>; baseline_label?: string } = {},
@@ -454,9 +454,10 @@ export const cli_memory_ratio_range = (
 		for (const r of compared) {
 			const ratio = cli_ratio_between(scenario.results, r.label, baseline_label, 'memory_mb');
 			if (ratio === undefined) {
-				// a named tool without a figure, or a scenario without the baseline row,
+				// a named tool without a figure, or a scenario without the baseline's,
 				// would silently narrow the span the sentence claims
-				if (labels || !scenario.results.some((s) => s.label === baseline_label)) return undefined;
+				const baseline = scenario.results.find((s) => s.label === baseline_label);
+				if (labels || baseline?.memory_mb == null) return undefined;
 				continue;
 			}
 			ratios.push(ratio);

@@ -130,10 +130,9 @@
 					{#if scenario.benchmark_runs > 0}
 						Each time is the mean of {scenario.benchmark_runs} runs, after {scenario.warmup_runs}
 						untimed warmup
-						runs{scenario.settle_seconds
-							? ` and a ${scenario.settle_seconds} s idle before each formatter's`
-							: ''}; each peak RSS is the mean of the per-run peaks over a separate, unwarmed pass
-						of {scenario.benchmark_runs} runs.
+						runs{scenario.settle_seconds ? ` that follow a ${scenario.settle_seconds} s idle` : ''};
+						each peak RSS is the mean of the per-run peaks over a separate, unwarmed pass of
+						{scenario.benchmark_runs} runs.
 					{/if}
 					{#if has_dispatcher_memory(scenario)}
 						The peak RSS of <strong>{CLI_TSV_NPM_LABEL}</strong> is its Node launcher's, not the

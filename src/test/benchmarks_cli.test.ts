@@ -233,6 +233,11 @@ describe('cli claims spanning scenarios', () => {
 	test('a scenario without the baseline row voids the range rather than narrowing it', () => {
 		const no_baseline = scenario('s', { results: [result('oxfmt', 60, 100)] });
 		assert.isUndefined(cli_memory_ratio_range({}, [facing, no_baseline]));
+		// the row is there but its memory pass measured nothing
+		const no_figure = scenario('s', {
+			results: [result(CLI_TSV_LABEL, 20, null), result('oxfmt', 60, 100)]
+		});
+		assert.isUndefined(cli_memory_ratio_range({}, [facing, no_figure]));
 	});
 
 	test('a tsv-only scenario is spanned only by name', () => {

@@ -39,7 +39,9 @@ describe('conformance.json shape', () => {
 
 	test('every impl of a per-source slice reports the same slice total', () => {
 		// a source row's file count and share are read off its impls' shared total
-		for (const [group, sources] of Object.entries(conformance_json.coverage_by_source ?? {})) {
+		const by_group = Object.entries(conformance_json.coverage_by_source ?? {});
+		assert.isNotEmpty(by_group, 'the report carries no coverage_by_source');
+		for (const [group, sources] of by_group) {
 			for (const [source, by_impl] of Object.entries(sources)) {
 				const totals = new Set(Object.values(by_impl).map((cell) => cell.total));
 				assert.strictEqual(totals.size, 1, `${group} ${source}: ${[...totals].join(', ')}`);
@@ -190,9 +192,12 @@ describe('conformance matrices over the committed report', () => {
 	});
 
 	test('only the sources every parser accepts in full are folded', () => {
-		// the folded row's label says so, and the TypeScript group is the one that has it
+		// the folded row's label says so
 		const folded = matrices.flatMap((m) => m.sources.filter((s) => s.folded));
-		assert.strictEqual(folded.length, 1);
-		for (const cell of folded[0]?.cells ?? []) assert.strictEqual(cell?.rejected, 0);
+		assert.isNotEmpty(folded, 'no matrix folds a row');
+		for (const row of folded) {
+			assert.isNotEmpty(row.cells);
+			for (const cell of row.cells) assert.strictEqual(cell?.rejected, 0);
+		}
 	});
 });

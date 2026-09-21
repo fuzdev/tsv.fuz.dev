@@ -51,7 +51,7 @@ describe('derive_conformance_groups', () => {
 });
 
 describe('derive_conformance_matrices', () => {
-	const TEST262 = 'benches/js/.cache/test262_files.json';
+	const TS_REPO = 'benches/js/.cache/ts_repo_files.json';
 	const cell = (processed: number, total: number) => ({ processed, total });
 	const coverage = (name: string, group: string, processed: number, total: number) =>
 		entry({ name, group, files_processed: processed, files_total: total });
@@ -66,11 +66,11 @@ describe('derive_conformance_matrices', () => {
 			],
 			corpus_sources: [
 				{
-					path: TEST262,
+					path: TS_REPO,
 					files: 60,
 					repo: {
-						url: 'https://github.com/tc39/test262',
-						slug: 'tc39/test262',
+						url: 'https://github.com/microsoft/TypeScript',
+						slug: 'microsoft/TypeScript',
 						commit: '',
 						subpath: ''
 					}
@@ -87,7 +87,7 @@ describe('derive_conformance_matrices', () => {
 					'tsv-wasm-json': cell(27, 30),
 					tsc: cell(29, 30)
 				},
-				[TEST262]: { 'tsv-json': cell(60, 60), 'tsv-wasm-json': cell(60, 60), tsc: cell(59, 60) }
+				[TS_REPO]: { 'tsv-json': cell(59, 60), 'tsv-wasm-json': cell(59, 60), tsc: cell(60, 60) }
 			})
 		);
 		assert.isEmpty(rest);
@@ -103,18 +103,22 @@ describe('derive_conformance_matrices', () => {
 				[97, 3, false]
 			]
 		);
-		const [test262, unknown] = matrix.sources;
-		assert(test262 && unknown, 'two source rows');
-		assert.deepEqual(test262.origins, [
-			{ path: TEST262, label: 'test262', url: 'https://github.com/tc39/test262' }
+		const [ts_repo, unknown] = matrix.sources;
+		assert(ts_repo && unknown, 'two source rows');
+		assert.deepEqual(ts_repo.origins, [
+			{
+				path: TS_REPO,
+				label: "TypeScript compiler's cases",
+				url: 'https://github.com/microsoft/TypeScript'
+			}
 		]);
-		assert.strictEqual(test262.files, 60);
-		// tsv selected test262, so its full cell is construction; tsc's is a result
+		assert.strictEqual(ts_repo.files, 60);
+		// tsc selected its compiler's cases, so its full cell is construction; tsv's is a result
 		assert.deepEqual(
-			test262.cells.map((c) => [c?.rejected, c?.selected]),
+			ts_repo.cells.map((c) => [c?.rejected, c?.selected]),
 			[
-				[1, false],
-				[0, true]
+				[0, true],
+				[1, false]
 			]
 		);
 		// a path without a label or a corpus source still gets its row
@@ -154,7 +158,7 @@ describe('derive_conformance_matrices', () => {
 		const [lone] = derive_conformance_matrices(
 			typescript_baseline({
 				'../a': { 'tsv-json': cell(5, 5), tsc: cell(5, 5) },
-				[TEST262]: { 'tsv-json': cell(60, 60), tsc: cell(60, 60) }
+				[TS_REPO]: { 'tsv-json': cell(60, 60), tsc: cell(60, 60) }
 			})
 		);
 		assert.deepEqual(
