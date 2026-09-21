@@ -204,6 +204,12 @@ export const corpus_repo_ref_url = (repo: CorpusRepoRef): string => {
 		: `${repo.url}/tree/${repo.commit}`;
 };
 
+const COMMIT_LABEL_LENGTH = 9;
+
+/** A repo ref's commit as prose and tables print it, `undefined` for an unpinned ref. */
+export const corpus_repo_ref_commit = (repo: CorpusRepoRef): string | undefined =>
+	repo.commit ? repo.commit.slice(0, COMMIT_LABEL_LENGTH) : undefined;
+
 /**
  * The GitHub URL for a corpus source, pinned to the measured commit + subpath when
  * detected. `undefined` when the source has no detected origin (the local
@@ -677,33 +683,82 @@ export const derive_unstable_entries = (baseline: BenchmarkBaseline): Array<Base
 				Math.max(a.cv ?? 0, a.cv_raw ?? 0, Math.abs(a.drift ?? 0))
 		);
 
-// Corpus source repos
+// Corpus source table
 
-export interface CorpusRepo {
-	// public repo URL the entry links to
-	url: string;
-	// `org/name`, derived from the URL — the linkified display label
+/**
+ * Reader-facing names for the perf report's corpus sources that have no repo to
+ * name them. The shape test fails on a repo-less source missing here, so a cache
+ * tsv adds can't reach the page as a raw path unnoticed.
+ */
+export const CORPUS_SOURCE_LABELS: Record<string, string> = {
+	'benches/js/.cache/svelte_styles': 'harvested <style> blocks'
+};
+
+/** One corpus source as the corpus table prints it. */
+export interface CorpusSourceRow {
+	path: string;
+	// the hand-stated label, else the repo's `org/name`, else the raw path
 	label: string;
+	// the path within the repo, only where unlabeled sources share a repo and the
+	// `org/name` alone wouldn't tell them apart
+	subpath: string | undefined;
+	// pinned to the measured commit + subpath when the report detected them
+	url: string | undefined;
+	// abbreviated SHA; `undefined` for a source with no repo or no pin
+	commit: string | undefined;
+	files: number;
+	// aligned to the table's `languages`; `undefined` where the report lacks the split
+	by_language: Array<number | undefined>;
+}
+
+export interface CorpusSourceTable {
+	// the report's `corpus` keys, in report order
+	languages: Array<string>;
+	// in report order, which groups the sources by origin
+	rows: Array<CorpusSourceRow>;
+	// the report's own per-language totals, aligned to `languages`, and their sum
+	totals: { files: number; by_language: Array<number> };
 }
 
 /**
- * The distinct source repos behind a report's corpus, one entry per URL in
- * first-seen order (the author's ecosystem leads, the upstream framework repos
- * trail, matching the source order). Sources sharing a repo (svelte.dev's several
- * packages) collapse to one entry; a source with no detected repo (the
- * `svelte_styles` CSS cache) is dropped. Every URL comes from the report's own
+ * Itemizes a report's corpus: a row per source with its per-language file counts,
+ * and the report's own totals alongside. Every link comes from the source's
  * `repo` — for a snapshot collection that is the UPSTREAM the snapshot vendored,
- * so the list still names the projects, not the snapshot repo (which
- * `corpus_snapshot` names once).
+ * so the rows name the projects, not the snapshot repo (which `corpus_snapshot`
+ * names once).
+ *
+ * @param baseline - the report whose `corpus_sources` to itemize
+ * @param labels - reader-facing names by source path, for the sources a repo's `org/name` doesn't describe
  */
-export const derive_corpus_repos = (sources: Array<CorpusSource>): Array<CorpusRepo> => {
-	const by_url: Map<string, CorpusRepo> = new Map();
-	for (const source of sources) {
-		const repo = source.repo;
-		if (!repo || by_url.has(repo.url)) continue;
-		by_url.set(repo.url, { url: repo.url, label: repo.slug });
+export const derive_corpus_source_table = (
+	baseline: BenchmarkBaseline,
+	labels: Record<string, string> = {}
+): CorpusSourceTable => {
+	const languages = Object.keys(baseline.corpus);
+	const unlabeled_per_repo: Map<string, number> = new Map();
+	for (const source of baseline.corpus_sources) {
+		if (!source.repo || labels[source.path] !== undefined) continue;
+		unlabeled_per_repo.set(source.repo.url, (unlabeled_per_repo.get(source.repo.url) ?? 0) + 1);
 	}
-	return [...by_url.values()];
+	const by_language = languages.map((language) => baseline.corpus[language] ?? 0);
+	return {
+		languages,
+		rows: baseline.corpus_sources.map((source): CorpusSourceRow => {
+			const label = labels[source.path];
+			const repo = source.repo;
+			const shared = !!repo && (unlabeled_per_repo.get(repo.url) ?? 0) > 1;
+			return {
+				path: source.path,
+				label: label ?? repo?.slug ?? source.path,
+				subpath: label === undefined && shared && repo.subpath ? repo.subpath : undefined,
+				url: corpus_source_url(source),
+				commit: repo && corpus_repo_ref_commit(repo),
+				files: source.files,
+				by_language: languages.map((language) => source.by_language?.[language])
+			};
+		}),
+		totals: { files: by_language.reduce((sum, n) => sum + n, 0), by_language }
+	};
 };
 
 // Prose counts

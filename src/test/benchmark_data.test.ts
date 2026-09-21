@@ -4,7 +4,7 @@ import {
 	benchmark_time_share_beyond,
 	derive_benchmark_groups,
 	derive_corpus_counts,
-	derive_corpus_repos,
+	derive_corpus_source_table,
 	derive_sweep_stats,
 	derive_unstable_entries,
 	is_entry_unstable,
@@ -16,39 +16,104 @@ import {
 
 import { create_baseline, create_baseline_entry } from './benchmark_test_helpers.ts';
 
-describe('derive_corpus_repos', () => {
-	test('collapses shared repos and drops sources with no detected repo', () => {
-		const ref = (slug: string, subpath: string) => ({
-			url: `https://github.com/${slug}`,
-			slug,
-			commit: '0123456789abcdef0123456789abcdef01234567',
-			subpath
-		});
-		const repos = derive_corpus_repos([
+describe('derive_corpus_source_table', () => {
+	const ref = (
+		slug: string,
+		subpath: string,
+		commit = '0123456789abcdef0123456789abcdef01234567'
+	) => ({
+		url: `https://github.com/${slug}`,
+		slug,
+		commit,
+		subpath
+	});
+
+	test('itemizes the sources in report order with the report totals alongside', () => {
+		const table = derive_corpus_source_table(
+			create_baseline({
+				corpus: { svelte: 3, typescript: 4, css: 2 },
+				corpus_sources: [
+					{
+						path: '../corpora/collections/zzz/src',
+						files: 5,
+						by_language: { svelte: 3, typescript: 2, css: 0 },
+						repo: ref('fuzdev/zzz', 'src')
+					},
+					{ path: 'benches/js/.cache/styles', files: 2, by_language: { css: 2 } },
+					{ path: '../old/src', files: 2 }
+				]
+			}),
+			{ 'benches/js/.cache/styles': 'harvested styles' }
+		);
+		assert.deepStrictEqual(table.languages, ['svelte', 'typescript', 'css']);
+		assert.deepStrictEqual(table.totals, { files: 9, by_language: [3, 4, 2] });
+		assert.deepStrictEqual(table.rows, [
 			{
 				path: '../corpora/collections/zzz/src',
-				files: 1,
-				repo: ref('fuzdev/zzz', 'src')
+				label: 'fuzdev/zzz',
+				subpath: undefined,
+				url: 'https://github.com/fuzdev/zzz/tree/0123456789abcdef0123456789abcdef01234567/src',
+				commit: '012345678',
+				files: 5,
+				by_language: [3, 2, 0]
 			},
+			// no repo: the hand label names it, and a language the split omits stays unknown
 			{
-				path: '../corpora/collections/svelte.dev/apps/svelte.dev/src',
-				files: 1,
-				repo: ref('sveltejs/svelte.dev', 'apps/svelte.dev/src')
+				path: 'benches/js/.cache/styles',
+				label: 'harvested styles',
+				subpath: undefined,
+				url: undefined,
+				commit: undefined,
+				files: 2,
+				by_language: [undefined, undefined, 2]
 			},
+			// neither repo nor label: the raw path, and no split at all
 			{
-				path: '../corpora/collections/svelte.dev/packages/repl/src',
-				files: 1,
-				repo: ref('sveltejs/svelte.dev', 'packages/repl/src') // same repo → collapsed
-			},
-			{ path: 'benches/js/.cache/svelte_styles', files: 1 } // no detected repo → dropped
-		]);
-		assert.deepStrictEqual(repos, [
-			{ url: 'https://github.com/fuzdev/zzz', label: 'fuzdev/zzz' },
-			{
-				url: 'https://github.com/sveltejs/svelte.dev',
-				label: 'sveltejs/svelte.dev'
+				path: '../old/src',
+				label: '../old/src',
+				subpath: undefined,
+				url: undefined,
+				commit: undefined,
+				files: 2,
+				by_language: [undefined, undefined, undefined]
 			}
 		]);
+	});
+
+	test('a subpath tells apart only the unlabeled sources sharing a repo', () => {
+		const table = derive_corpus_source_table(
+			create_baseline({
+				corpus_sources: [
+					{ path: 'a', files: 1, repo: ref('sveltejs/svelte.dev', 'apps/svelte.dev/src') },
+					{ path: 'b', files: 1, repo: ref('sveltejs/svelte.dev', 'packages/repl/src') },
+					{ path: 'c', files: 1, repo: ref('sveltejs/kit', 'packages/kit/src') },
+					{ path: 'd', files: 1, repo: ref('prettier/prettier', 'tests/format/js') },
+					{ path: 'e', files: 1, repo: ref('prettier/prettier', 'tests/format/css') }
+				]
+			}),
+			{ d: "Prettier's JS fixtures" }
+		);
+		assert.deepStrictEqual(
+			table.rows.map((row) => [row.label, row.subpath]),
+			[
+				['sveltejs/svelte.dev', 'apps/svelte.dev/src'],
+				['sveltejs/svelte.dev', 'packages/repl/src'],
+				['sveltejs/kit', undefined],
+				["Prettier's JS fixtures", undefined],
+				// the labeled sibling already reads apart, so this one needs no subpath
+				['prettier/prettier', undefined]
+			]
+		);
+	});
+
+	test('an unpinned repo links its root and shows no commit', () => {
+		const table = derive_corpus_source_table(
+			create_baseline({
+				corpus_sources: [{ path: 'a', files: 1, repo: ref('tc39/test262', '', '') }]
+			})
+		);
+		assert.strictEqual(table.rows[0]?.url, 'https://github.com/tc39/test262');
+		assert.isUndefined(table.rows[0]?.commit);
 	});
 });
 

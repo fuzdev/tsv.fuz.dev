@@ -24,8 +24,12 @@
 	import {
 		benchmark_speedup,
 		benchmark_time_share_beyond,
+		corpus_repo_ref_commit,
+		corpus_repo_ref_url,
+		CORPUS_SOURCE_LABELS,
 		derive_benchmark_groups,
 		derive_corpus_counts,
+		derive_corpus_source_table,
 		derive_sweep_stats,
 		derive_speedup_summary,
 		derive_unstable_entries
@@ -52,6 +56,7 @@
 	import BenchmarksGroup from './BenchmarksGroup.svelte';
 	import BenchmarksSizes from './BenchmarksSizes.svelte';
 	import BenchmarksMeta from './BenchmarksMeta.svelte';
+	import BenchmarksCorpus from './BenchmarksCorpus.svelte';
 	import BenchmarksCrossRuntime from './BenchmarksCrossRuntime.svelte';
 	import BenchmarksCliSection from './BenchmarksCliSection.svelte';
 
@@ -63,6 +68,7 @@
 	// `TomeSectionHeader` builds its ids so a rename can't orphan a link.
 	const CLI_SECTION_TITLE = 'End-to-end CLI benchmark';
 	const DETAILS_SECTION_TITLE = 'Benchmarking details';
+	const CORPUS_SECTION_TITLE = 'Corpus';
 	const CROSS_RUNTIME_SECTION_TITLE = 'Cross-runtime';
 
 	// The benchmarked runtime and its version, read from the report itself so the
@@ -76,6 +82,13 @@
 	// copied data; the harvest is disclosed beside the file count rather than netted
 	// out of it, and quoted only when the report distinguishes it.
 	const corpus_counts = derive_corpus_counts(benchmarks_json);
+	const corpus_source_table = derive_corpus_source_table(benchmarks_json, CORPUS_SOURCE_LABELS);
+	// the one repo that vendors every source, linked at the commit the report measured
+	const corpus_snapshot = benchmarks_json.corpus_snapshot;
+	const corpus_snapshot_url = corpus_snapshot
+		? corpus_repo_ref_url(corpus_snapshot)
+		: 'https://github.com/fuzdev/corpora';
+	const corpus_snapshot_commit = corpus_snapshot && corpus_repo_ref_commit(corpus_snapshot);
 	// The rows the report itself flagged as unstable (see `is_entry_unstable`) —
 	// disclosed beside the headline ratios, since each divides two of these means.
 	const unstable_entries = derive_unstable_entries(benchmarks_json);
@@ -198,7 +211,7 @@
 			The corpus is {format_count(corpus_counts.files)} files of real-world code — Svelte's own
 			repos (svelte, kit, svelte.dev), the <a href="https://github.com/fuzdev">fuz.dev repos</a>,
 			and a few of the author's personal SvelteKit apps and sites, itemized under
-			<a href="#{docs_slugify(DETAILS_SECTION_TITLE)}">Benchmarking details</a>. On that basis:
+			<a href="#{docs_slugify(CORPUS_SECTION_TITLE)}">Corpus</a>. On that basis:
 		</p>
 		<ul>
 			<li>
@@ -416,8 +429,8 @@
 					~{parse_css_wire_share} of tsv's time there (the gap to the internal row), and CSS is a
 					simple enough grammar that Svelte's <code>parseCss</code> and PostCSS both finish ahead of
 					<code>tsv-json</code>. The CSS corpus is also the page's weakest sample (see
-					<a href="#{docs_slugify(DETAILS_SECTION_TITLE)}">Benchmarking details</a>), so those
-					ratios carry the most noise.
+					<a href="#{docs_slugify(CORPUS_SECTION_TITLE)}">Corpus</a>), so those ratios carry the
+					most noise.
 				</li>
 				<li>
 					Biome is grayed out across all three parse groups:
@@ -626,16 +639,23 @@
 			behind the headline ratios reads every row's raw cv and drift but proves less at the floor —
 			where Prettier, the denominator of every ratio in the summary table, sits.
 		</p>
+		<BenchmarksMeta baseline={benchmarks_json} />
+	</TomeSection>
+
+	<TomeSection>
+		<TomeSectionHeader text={CORPUS_SECTION_TITLE} />
 		<p>
-			What's measured: {format_count(corpus_counts.files)} files of <code>.svelte</code>,
-			<code>.ts</code>/<code>.js</code>, and <code>.css</code> — real-world code only, vendored at
-			one pinned commit in the <a href="https://github.com/fuzdev/corpora">fuzdev/corpora</a>
-			snapshot so one clone reproduces the corpus behind every number, from two sources: the
-			author's libraries, apps, and sites (the fuz.dev ecosystem plus personal SvelteKit apps and
-			sites), and upstream framework source (Svelte, SvelteKit, and the svelte.dev site). The CSS
-			set also includes real-authored CSS extracted from those components'
-			<code>&lt;style&gt;</code> blocks, concatenated per corpus collection — a harvest the harness
-			regenerates from the snapshot rather than a file in
+			Every in-process number on this page is measured on {format_count(corpus_counts.files)} files
+			of <code>.svelte</code>, <code>.ts</code>/<code>.js</code>, and <code>.css</code> — real-world
+			code only, vendored at one pinned commit in the
+			<!-- eslint-disable-next-line svelte/no-navigation-without-resolve -->
+			<a href={corpus_snapshot_url}>
+				fuzdev/corpora{corpus_snapshot_commit ? `@${corpus_snapshot_commit}` : ''}
+			</a> snapshot so one clone reproduces it, from two sources: the author's libraries, apps, and
+			sites (the fuz.dev ecosystem plus personal SvelteKit apps and sites), and upstream framework
+			source (Svelte, SvelteKit, and the svelte.dev site). The CSS set also includes real-authored
+			CSS extracted from those components' <code>&lt;style&gt;</code> blocks, concatenated per
+			corpus collection — a harvest the harness regenerates from the snapshot rather than a file in
 			it{corpus_counts.harvested_css && corpus.css
 				? `, ${format_count(corpus_counts.harvested_css)} of the ${format_count(corpus.css)} CSS entries in the count above`
 				: ''} — since standalone CSS files are rare in this ecosystem; the same bytes appear in the
@@ -655,7 +675,8 @@
 			inside their tags — so every tool re-indents them, and much of the CSS here measures a full
 			re-indent rather than the already-formatted steady state.
 		</p>
-		<BenchmarksMeta baseline={benchmarks_json} />
+		<p>Each source below links its upstream at the commit the snapshot vendored.</p>
+		<BenchmarksCorpus table={corpus_source_table} />
 	</TomeSection>
 
 	<TomeSection>

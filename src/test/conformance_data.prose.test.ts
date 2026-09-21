@@ -1,7 +1,9 @@
 import { assert, describe, test } from 'vitest';
 
 import { conformance_json } from '$routes/docs/conformance/conformance.ts';
+import { derive_corpus_source_table } from '$routes/docs/benchmarks/benchmark_data.ts';
 import {
+	CONFORMANCE_SOURCE_LABELS,
 	derive_conformance_groups,
 	derive_conformance_matrices
 } from '$routes/docs/conformance/conformance_data.ts';
@@ -62,5 +64,24 @@ describe('conformance prose reads the report', () => {
 			assert.match(row, /^parse\/typescript\/tsv-/, row);
 			assert.strictEqual(count, 1, row);
 		}
+	});
+
+	test('the Corpus section splits pinned checkouts from three unpinned harvests', () => {
+		// "test suites, read from pinned checkouts, and three conformance suites the
+		// harness harvests into caches ... The harvested suites link their upstream unpinned"
+		const { rows } = derive_corpus_source_table(conformance_json, CONFORMANCE_SOURCE_LABELS);
+		const harvested = rows.filter((row) => row.path.includes('/.cache/'));
+		assert.strictEqual(harvested.length, 3);
+		for (const row of rows) {
+			assert.isDefined(row.url, row.path);
+			assert.strictEqual(row.commit === undefined, harvested.includes(row), row.path);
+		}
+	});
+
+	test("Prettier's CSS fixtures carry the TypeScript/JS files the Corpus section explains", () => {
+		const table = derive_corpus_source_table(conformance_json, CONFORMANCE_SOURCE_LABELS);
+		const row = table.rows.find((r) => r.path === '../prettier/tests/format/css');
+		assert(row, 'the source is missing');
+		assert.isAbove(row.by_language[table.languages.indexOf('typescript')] ?? 0, 0);
 	});
 });

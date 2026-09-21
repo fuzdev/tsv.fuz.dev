@@ -3,13 +3,15 @@ import { assert, describe, test } from 'vitest';
 import { benchmarks_json } from '$routes/docs/benchmarks/benchmarks.ts';
 import { benchmarks_cross_runtime_json } from '$routes/docs/benchmarks/benchmarks_cross_runtime.ts';
 import {
-	derive_corpus_repos,
+	CORPUS_SOURCE_LABELS,
 	categorize_name,
+	derive_corpus_source_table,
 	derive_benchmark_groups,
 	derive_speedup_summary
 } from '$routes/docs/benchmarks/benchmark_data.ts';
 import { VERSION_LABELS } from '$routes/docs/benchmarks/benchmark_display.ts';
 import { conformance_json } from '$routes/docs/conformance/conformance.ts';
+import { CONFORMANCE_SOURCE_LABELS } from '$routes/docs/conformance/conformance_data.ts';
 import { categorize_size } from '$routes/docs/benchmarks/benchmark_sizes.ts';
 
 // The report shape version the committed copies are pinned to — tsv's
@@ -352,21 +354,55 @@ describe('benchmarks.json shape', () => {
 	});
 });
 
-describe('derive_corpus_repos', () => {
-	test('maps the committed corpus sources to deduped org/name repo links', () => {
-		const repos = derive_corpus_repos(benchmarks_json.corpus_sources);
-		assert.isNotEmpty(repos);
-		// one entry per URL — no repo appears twice even though svelte.dev contributes
-		// several source subpaths
-		const urls = repos.map((r) => r.url);
-		assert.strictEqual(new Set(urls).size, urls.length, 'urls are distinct');
-		const svelte_dev = repos.filter((r) => r.url === 'https://github.com/sveltejs/svelte.dev');
-		assert.strictEqual(svelte_dev.length, 1, 'svelte.dev collapses to one entry');
-		// each label is the linkified `org/name`, derived from (and ending) its URL
-		for (const repo of repos) {
-			assert.match(repo.label, /^[^/]+\/[^/]+$/, repo.url);
-			assert.isTrue(repo.url.endsWith(repo.label), `${repo.url} ends with ${repo.label}`);
+describe('corpus source tables over the committed reports', () => {
+	const tables = [
+		['benchmarks', derive_corpus_source_table(benchmarks_json, CORPUS_SOURCE_LABELS)],
+		['conformance', derive_corpus_source_table(conformance_json, CONFORMANCE_SOURCE_LABELS)]
+	] as const;
+
+	test("the source rows sum to the report's own totals", () => {
+		// the table prints both, so a source the report's totals count but its
+		// `corpus_sources` dropped would show as a sum that doesn't add up
+		for (const [name, table] of tables) {
+			assert.isNotEmpty(table.rows, name);
+			assert.strictEqual(
+				table.rows.reduce((sum, row) => sum + row.files, 0),
+				table.totals.files,
+				name
+			);
+			table.languages.forEach((language, i) => {
+				assert.strictEqual(
+					table.rows.reduce((sum, row) => sum + (row.by_language[i] ?? 0), 0),
+					table.totals.by_language[i],
+					`${name} ${language}`
+				);
+			});
 		}
+	});
+
+	test('no raw source path reaches readers', () => {
+		for (const [name, table] of tables) {
+			for (const row of table.rows) {
+				assert.notStrictEqual(row.label, row.path, `${name} ${row.path} has no label`);
+			}
+		}
+	});
+
+	test('rows read apart', () => {
+		// svelte.dev contributes several subpaths of one repo, which the subpath splits
+		for (const [name, table] of tables) {
+			const keys = table.rows.map((row) => `${row.label} ${row.subpath ?? ''}`);
+			assert.strictEqual(new Set(keys).size, keys.length, name);
+		}
+	});
+
+	test('every perf source with a repo is pinned, as the Corpus section says', () => {
+		// "each source below links its upstream at the commit the snapshot vendored"
+		const [, table] = tables[0];
+		for (const row of table.rows) {
+			if (row.url) assert.isDefined(row.commit, row.path);
+		}
+		assert.isDefined(benchmarks_json.corpus_snapshot);
 	});
 });
 

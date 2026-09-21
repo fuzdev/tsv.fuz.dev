@@ -500,7 +500,7 @@ describe('prose ratios resolve', () => {
 		assert.deepStrictEqual(others('parse/css'), ['postcss']);
 	});
 
-	test('the corpus figures Benchmarking details quotes resolve', () => {
+	test('the corpus figures the Corpus section quotes resolve', () => {
 		// the page has no fallback copy for them
 		const counts = derive_corpus_counts(benchmarks_json);
 		assert.isAbove(counts.harvested_css, 0);

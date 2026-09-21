@@ -118,7 +118,7 @@ const SOURCE_TS_REPO = 'benches/js/.cache/ts_repo_files.json';
  * renders raw, and the shape test fails on it, so a source tsv adds can't reach
  * the page as a cache path unnoticed.
  */
-const CONFORMANCE_SOURCE_LABELS: Record<string, string> = {
+export const CONFORMANCE_SOURCE_LABELS: Record<string, string> = {
 	'../prettier-plugin-svelte/test': "prettier-plugin-svelte's tests",
 	'../prettier/tests/format/typescript': "Prettier's TypeScript fixtures",
 	'../prettier/tests/format/js': "Prettier's JS fixtures",

@@ -1,25 +1,16 @@
 <script lang="ts">
 	import { site_context } from '@fuzdev/fuz_ui/site.svelte.ts';
 
-	import {
-		type BenchmarkBaseline,
-		corpus_repo_ref_url,
-		derive_corpus_repos
-	} from './benchmark_data.ts';
-	import { format_count, format_version_label } from './benchmark_display.ts';
+	import type { BenchmarkBaseline } from './benchmark_data.ts';
+	import { format_version_label } from './benchmark_display.ts';
 
 	const {
-		baseline,
-		corpus_repos: show_corpus_repos = true
+		baseline
 	}: {
 		baseline: BenchmarkBaseline;
-		// off where the page already links every corpus source itself
-		corpus_repos?: boolean;
 	} = $props();
 
 	const site = site_context.get();
-
-	const corpus_repos = $derived(derive_corpus_repos(baseline.corpus_sources));
 
 	// every tool version the report carries, in report order, so a tool added
 	// upstream appears without a site edit — tsv itself renders under "run"
@@ -40,14 +31,6 @@
 </script>
 
 <div class="meta font_size_sm">
-	<div>
-		<h3 class="mt_0 mb_sm">corpus stats</h3>
-		<ul class="unstyled">
-			{#each Object.entries(baseline.corpus) as [lang, count] (lang)}
-				<li>{lang}: {format_count(count)} file{count !== 1 ? 's' : ''}</li>
-			{/each}
-		</ul>
-	</div>
 	<div>
 		<h3 class="mt_0 mb_sm">versions</h3>
 		<ul class="unstyled">
@@ -76,28 +59,6 @@
 			<li>{baseline.runtime} {baseline.machine.runtime_version}</li>
 		</ul>
 	</div>
-	{#if show_corpus_repos && corpus_repos.length}
-		<div class="corpus-repos">
-			<h3 class="mt_0 mb_sm">corpus repos</h3>
-			{#if baseline.corpus_snapshot}
-				<p class="mt_0 mb_sm">
-					snapshot
-					<!-- eslint-disable-next-line svelte/no-navigation-without-resolve -->
-					<a href={corpus_repo_ref_url(baseline.corpus_snapshot)}>
-						{baseline.corpus_snapshot.slug}@{baseline.corpus_snapshot.commit.slice(0, 9)}
-					</a>
-				</p>
-			{/if}
-			<ul class="unstyled repos">
-				{#each corpus_repos as repo (repo.url)}
-					<li>
-						<!-- eslint-disable-next-line svelte/no-navigation-without-resolve -->
-						<a href={repo.url}>{repo.label}</a>
-					</li>
-				{/each}
-			</ul>
-		</div>
-	{/if}
 </div>
 
 <style>
@@ -111,15 +72,5 @@
 		display: flex;
 		gap: var(--space_xl);
 		flex-wrap: wrap;
-	}
-	/* the repos list spans its own row below the compact stat columns and wraps horizontally */
-	.corpus-repos {
-		flex-basis: 100%;
-	}
-	.repos {
-		display: flex;
-		flex-wrap: wrap;
-		column-gap: var(--space_lg);
-		row-gap: var(--space_xs);
 	}
 </style>
