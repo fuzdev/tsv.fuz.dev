@@ -8,6 +8,11 @@
 	border-left-color: var(--color_c_50);
 }
 
+/* a wide table scrolls in its own container, so the page body never scrolls sideways */
+.benchmarks-table-scroll {
+	overflow-x: auto;
+}
+
 /* a full-width data table whose first column names each row: the row headers
    are `<th scope="row">` for assistive tech but read as the body text they sit in */
 .benchmarks-table {

@@ -85,7 +85,7 @@
 		<h3>{scenario.heading}: {scenario.target}</h3>
 		<p>{scenario.description}</p>
 		{#if rows.length > 0}
-			<div class="table-scroll">
+			<div class="benchmarks-table-scroll">
 				<table class="benchmarks-table">
 					<thead>
 						<tr>
@@ -172,15 +172,11 @@
 </p>
 
 <style>
-	/* wide table scrolls in its own container so the page body never scrolls sideways */
-	.table-scroll {
-		overflow-x: auto;
-	}
 	/* fixed columns, so re-baselining on hover changes the ratios' text and nothing
 	   else; the floor keeps a narrow screen scrolling rather than squeezing */
 	table {
 		table-layout: fixed;
-		min-width: 40rem;
+		min-width: 64rem;
 	}
 	th,
 	td {

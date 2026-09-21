@@ -109,73 +109,75 @@
 {#each groups as group (group.group)}
 	<div class="mb_xl5">
 		<h3>{format_group_label(group.operation, group.language)}</h3>
-		<table class="benchmarks-table">
-			<thead>
-				<tr>
-					<th scope="col">implementation</th>
-					{#each runtimes as runtime (runtime)}
-						<th scope="col" class="benchmarks-num">{runtime}</th>
-					{/each}
-					{#each others as runtime (runtime)}
-						<th scope="col" class="benchmarks-num">{runtime}/{base}</th>
-					{/each}
-				</tr>
-			</thead>
-			<tbody>
-				{#each group.rows as row (row.name)}
+		<div class="benchmarks-table-scroll">
+			<table class="benchmarks-table">
+				<thead>
 					<tr>
-						<th scope="row">
-							<i class="swatch" aria-hidden="true" style:background={category_color(row.category)}
-							></i>
-							{format_cross_runtime_label(row.name)}
-							{#if row.files_iterated_mismatch}
-								<small
-									class="files-mismatch"
-									title="the runtimes timed different file sets ({runtimes.join(
-										'/'
-									)}) — each runtime times the files every implementation in the group accepted under it, so part of this row's ratio is file-set composition, not runtime"
-								>
-									⚠ files {files_mismatch_label(row.files_iterated_mismatch)}
-								</small>
-							{/if}
-						</th>
+						<th scope="col">implementation</th>
 						{#each runtimes as runtime (runtime)}
-							{@const ops = row.ops_per_second[runtime]}
-							{@const cell_unstable = is_unstable(group.group + '/' + row.name, runtime)}
-							<td
-								class="benchmarks-num"
-								title={ops == null
-									? missing_cell_title(row.name, runtime)
-									: cell_unstable
-										? 'this measurement was not stable — see the note above the tables'
-										: undefined}
-							>
-								{format_ops(ops)}{cell_unstable ? ' ⚠' : ''}
-							</td>
+							<th scope="col" class="benchmarks-num">{runtime}</th>
 						{/each}
 						{#each others as runtime (runtime)}
-							{@const ratio = row.ratio_vs_base[runtime]}
-							{@const within_noise =
-								ratio != null &&
-								base != null &&
-								is_ratio_within_noise(report, group.group, row.name, base, runtime)}
-							<td
-								class="benchmarks-num ratio"
-								class:within-noise={within_noise}
-								title={within_noise
-									? `this delta is smaller than the two measurements' combined noise — not a runtime effect`
-									: undefined}
-								style:background={ratio != null && !within_noise
-									? cross_runtime_ratio_background(ratio)
-									: undefined}
-							>
-								{ratio != null ? `${within_noise ? '≈' : ''}${format_speedup(ratio)}` : 'fail'}
-							</td>
+							<th scope="col" class="benchmarks-num">{runtime}/{base}</th>
 						{/each}
 					</tr>
-				{/each}
-			</tbody>
-		</table>
+				</thead>
+				<tbody>
+					{#each group.rows as row (row.name)}
+						<tr>
+							<th scope="row">
+								<i class="swatch" aria-hidden="true" style:background={category_color(row.category)}
+								></i>
+								{format_cross_runtime_label(row.name)}
+								{#if row.files_iterated_mismatch}
+									<small
+										class="files-mismatch"
+										title="the runtimes timed different file sets ({runtimes.join(
+											'/'
+										)}) — each runtime times the files every implementation in the group accepted under it, so part of this row's ratio is file-set composition, not runtime"
+									>
+										⚠ files {files_mismatch_label(row.files_iterated_mismatch)}
+									</small>
+								{/if}
+							</th>
+							{#each runtimes as runtime (runtime)}
+								{@const ops = row.ops_per_second[runtime]}
+								{@const cell_unstable = is_unstable(group.group + '/' + row.name, runtime)}
+								<td
+									class="benchmarks-num"
+									title={ops == null
+										? missing_cell_title(row.name, runtime)
+										: cell_unstable
+											? 'this measurement was not stable — see the note above the tables'
+											: undefined}
+								>
+									{format_ops(ops)}{cell_unstable ? ' ⚠' : ''}
+								</td>
+							{/each}
+							{#each others as runtime (runtime)}
+								{@const ratio = row.ratio_vs_base[runtime]}
+								{@const within_noise =
+									ratio != null &&
+									base != null &&
+									is_ratio_within_noise(report, group.group, row.name, base, runtime)}
+								<td
+									class="benchmarks-num ratio"
+									class:within-noise={within_noise}
+									title={within_noise
+										? `this delta is smaller than the two measurements' combined noise — not a runtime effect`
+										: undefined}
+									style:background={ratio != null && !within_noise
+										? cross_runtime_ratio_background(ratio)
+										: undefined}
+								>
+									{ratio != null ? `${within_noise ? '≈' : ''}${format_speedup(ratio)}` : 'fail'}
+								</td>
+							{/each}
+						</tr>
+					{/each}
+				</tbody>
+			</table>
+		</div>
 	</div>
 {/each}
 <p>
@@ -195,6 +197,13 @@
 </p>
 
 <style>
+	/* the floor keeps a narrow screen scrolling rather than wrapping the row labels */
+	table {
+		min-width: 56rem;
+	}
+	tbody th {
+		white-space: nowrap;
+	}
 	/* the per-runtime load failures inside the disclosure aside */
 	.unavailable {
 		margin-block: var(--space_xs);
