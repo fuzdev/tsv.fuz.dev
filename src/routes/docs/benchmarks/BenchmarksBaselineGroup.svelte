@@ -33,7 +33,7 @@
 
 	// Hover is handled here rather than per row: the anchor is the GROUP's state, so
 	// the group is where the pointer belongs, and one delegated listener serves a
-	// group where 74 rows across the page would each have carried their own
+	// group where 71 rows across the page would each have carried their own
 	// (`to_baseline_key`). A disabled row publishes no key, so it can never become
 	// the anchor.
 </script>

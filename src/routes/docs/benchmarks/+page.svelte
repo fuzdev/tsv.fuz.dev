@@ -127,11 +127,11 @@
 	const unstable_entries = derive_unstable_entries(benchmarks_json);
 	const format_groups = groups.filter((g) => g.operation === 'format');
 	const parse_groups = groups.filter((g) => g.operation === 'parse');
-	// The disabled oxc rows mirrored into the svelte and css parse groups. Counted
+	// The disabled oxc rows mirrored into the css parse group. Counted
 	// rather than stated: the mirror carries every oxc template the TypeScript group
 	// has, which is two bindings today and needn't stay two.
 	const oxc_slot_count = count_placeholder_entries(
-		parse_groups.find((g) => g.language !== 'typescript'),
+		parse_groups.find((g) => g.language === 'css'),
 		'oxc'
 	);
 	const oxc_slots =
@@ -362,12 +362,9 @@
 			{/if}
 		</ul>
 		<p>
-			Each section's notes contextualize its numbers. The charts are the {node_display} run; a
+			The charts are the {node_display} run; a
 			<a href="#{docs_slugify(CROSS_RUNTIME_SECTION_TITLE)}">cross-runtime comparison</a> closes the
-			page. Every ratio column starts against a reference row — Prettier for format, the JS parser
-			tsv is a drop-in for on parse, the smallest build for size, tsv's npm dispatcher in the
-			tool-facing CLI tables — and hovering any measured row re-baselines its chart or table on that
-			row.
+			page.
 		</p>
 	</TomeSection>
 
@@ -417,12 +414,8 @@
 					nothing). Nothing grades output against an oracle: the bench checks that output is
 					non-empty, that tsv's native and wasm builds agree byte for byte, and that a tool's
 					refusal is seen as one, so a tool emitting wrong output quickly would still read as fast.
-					Seeing a refusal takes reading: Biome's <code>formatContent</code> and Oxfmt's
-					<code>format</code> hand the input back beside diagnostics instead of throwing, which on a
-					mostly-formatted corpus looks like success, so the harness reads the diagnostics, counts
-					such a file as rejected (it leaves every row's timed set), and proves at startup that each
-					row's call still reports an invalid source. tsv's own output is checked against Prettier's
-					in <a href="https://github.com/fuzdev/tsv">its repo's gates</a>, separately from timing.
+					tsv's own output is checked against Prettier's in
+					<a href="https://github.com/fuzdev/tsv">its repo's gates</a>, separately from timing.
 				</li>
 				<li>
 					Every tool that takes a filename gets a synthetic one (<code>file.ts</code>,
@@ -450,9 +443,8 @@
 					<code>html.experimentalFullSupportEnabled</code>, the experimental HTML-superset pipeline
 					that lets it format <code>.svelte</code> at all; without the flag it returns empty output.
 					Embedded script and style are formatted too (per a one-off check in tsv's harness, not a
-					probe it re-runs), so the work is comparable. The harness manages one tool's memory,
-					Biome's: its wasm workspace never releases the linear memory an open file retains, so the
-					harness rebuilds the instance once it has grown — outside every timer, though the row pays
+					probe it re-runs), so the work is comparable. Its wasm workspace never releases memory, so
+					the harness rebuilds the instance as it grows — outside every timer, though the row pays
 					each fresh instance's cold first sweep, a few percent by the harness's own probe.
 				</li>
 				<li>
@@ -464,18 +456,18 @@
 					The dprint entry is
 					<a href="https://dprint.dev/plugins/typescript/">dprint-plugin-typescript</a>, the engine
 					<code>deno fmt</code> runs for TypeScript and JS, loaded in-process as its wasm plugin. It
-					rejects CSS and Svelte, and no dprint markup plugin is wired in, so it's grayed out in the
-					Svelte group and its CSS slot goes to
-					<a href="https://github.com/g-plane/malva">malva</a>, a third-party CSS plugin for the
-					same host. This times the engine, not the <code>deno fmt</code> CLI: a subprocess per file
-					would measure process startup, not formatting.
+					rejects CSS and Svelte, and no dprint markup plugin is wired in, so it has no Svelte row
+					and its CSS slot goes to <a href="https://github.com/g-plane/malva">malva</a>, a
+					third-party CSS plugin for the same host. This times the engine, not the
+					<code>deno fmt</code> CLI: a subprocess per file would measure process startup, not
+					formatting.
 				</li>
 				<li>
 					<a href="https://github.com/baseballyama/rsvelte" rel="external">rsvelte-fmt</a>, the
-					second Rust-native Svelte formatter here, is grayed out for a different reason: it ran
-					over every Svelte file (its platform binary, invoked directly) but isn't timed, since it
-					ships no in-process API and a process per file would measure spawn rather than formatting.
-					Its row reports coverage only.
+					second Rust-native Svelte formatter here, is grayed out in the Svelte group: it ran over
+					every Svelte file (its platform binary, invoked directly) but isn't timed, since it ships
+					no in-process API and a process per file would measure spawn rather than formatting. Its
+					row reports coverage only.
 					{#if cli_svelte_wall != null}
 						For multi-threaded CLI speed, see the
 						<a href="#{docs_slugify(CLI_SECTION_TITLE)}">CLI section</a>.
@@ -499,22 +491,21 @@
 			</a>
 			that <a href="https://github.com/ryanatkn/oxc-bench-formatter" rel="external">adds tsv</a>. It
 			times the whole CLI end to end — process spawn, file discovery, I/O, each tool's default
-			multi-file parallelism — plus peak memory (each run's peak RSS under GNU <code>time</code>,
-			averaged over a separate, unwarmed pass of the same number of runs rather than read off the
-			timed ones): what you experience typing the command, on real code. tsv appears only in the
-			JSX-free scenarios (it has no JSX/TSX parser). Every formatter is installed from npm, pinned
-			by the fork's lockfile, and the other tools are timed through their packages' bins as pnpm
-			links them — a shell shim that starts Node first (Prettier runs in JS from there; Biome's and
-			rsvelte-fmt's bins launch a native binary each ships, not timed on its own here; Oxfmt's loads
-			its native engine into Node as an addon and has no standalone binary). Facing them, tsv gets
-			two rows. <code>{CLI_TSV_NPM_LABEL}</code> is the launcher-matched, like-for-like one: the
-			Node bin of <a href="https://www.npmjs.com/package/@fuzdev/tsv"><code>@fuzdev/tsv</code></a>,
-			what <code>npx tsv</code> runs, launching the native binary as Biome's and rsvelte-fmt's bins
-			do, behind the same kind of pnpm bin shim (a table says so when the harness couldn't set one
-			up). <code>tsv</code> runs the binary directly from the platform package, skipping Node: what
-			the binary costs on its own. Tables facing other tools start their ratios against the
-			dispatcher row; the last table is tsv against itself, anchored on the bare binary — what the
-			Node dispatcher and the WASM fallback each add.
+			multi-file parallelism — plus peak memory: what you experience typing the command, on real
+			code. tsv appears only in the JSX-free scenarios (it has no JSX/TSX parser). Every formatter
+			is installed from npm, pinned by the fork's lockfile, and the other tools are timed through
+			their packages' bins as pnpm links them — a shell shim that starts Node first (Prettier runs
+			in JS from there; Biome's and rsvelte-fmt's bins launch a native binary each ships, not timed
+			on its own here; Oxfmt's loads its native engine into Node as an addon and has no standalone
+			binary). Facing them, tsv gets two rows. <code>{CLI_TSV_NPM_LABEL}</code> is the
+			launcher-matched, like-for-like one: the Node bin of
+			<a href="https://www.npmjs.com/package/@fuzdev/tsv"><code>@fuzdev/tsv</code></a>, what
+			<code>npx tsv</code> runs, launching the native binary as Biome's and rsvelte-fmt's bins do,
+			behind the same kind of pnpm bin shim (a table says so when the harness couldn't set one up).
+			<code>tsv</code> runs the binary directly from the platform package, skipping Node: what the
+			binary costs on its own. Tables facing other tools start their ratios against the dispatcher
+			row; the last table is tsv against itself, anchored on the bare binary — what the Node
+			dispatcher and the WASM fallback each add.
 		</p>
 		<BenchmarksCli report={benchmarks_cli} />
 		<aside class="mt_xl5">
@@ -587,8 +578,7 @@
 					its own dialect — outputs still differ where the tools decide differently. The preflight
 					asserts that every formatter reporting a file count reports the same one (the two Prettier
 					rows report none and sit that check out) and that every formatter finds at least one file
-					to change, so a mis-scoped tool formatting nothing can't post an unbeatable time; a
-					self-test before the suite checks those guards still read each tool's diagnostics. The
+					to change, so a mis-scoped tool formatting nothing can't post an unbeatable time. The
 					cost: these rows aren't comparable with upstream's published numbers, which leave the
 					tools nearer their defaults.
 				</li>
@@ -676,15 +666,12 @@
 				<li>
 					oxc-parser, yuku-parser, and swc parse TypeScript and JS only (and JSX, not measured here)
 					— no CSS, no Svelte, no formatter — so they're timed in the TypeScript parse group alone
-					(oxc-parser holds {oxc_slots} in the other two). oxc-parser's AST has no line/column
+					(oxc-parser holds {oxc_slots} in the CSS group). oxc-parser's AST has no line/column
 					option (only a <code>range</code> flag repeating the offsets as a pair), so the span-only
-					<code>no-locs</code> entries are the one payload-matched pairing. Its experimental
-					raw-transfer mode (native only) is not a row: tsv's harness measured it setup-dominated
-					and slower than the eager JSON path it does time. Its wasm row runs an older release than
-					its native row — the newest whose wasi binding loads in the harness install — so the
-					wasm-vs-wasm pairing crosses oxc versions (both listed under Benchmarking details). That
-					binding hands back its JSON unparsed, so the harness materializes it through oxc's own
-					parse wrapper into the tree the native row returns.
+					<code>no-locs</code> entries are the one payload-matched pairing. Its wasm row runs an
+					older release than its native row — the newest whose wasi binding loads in the harness
+					install — so the wasm-vs-wasm pairing crosses oxc versions (both listed under Benchmarking
+					details).
 				</li>
 				<li>
 					When line/column is needed, the fast path is not tsv's default <code>loc</code>-bearing
@@ -771,10 +758,10 @@
 					binding difference; the native row stands.
 				</li>
 				<li>
-					The yuku-parser row is its wasm binding: the native one segfaults on test262's
-					escaped-identifier tests, where a single identifier is a long run of braced unicode
-					escapes. Wasm runs the same parser with the fault contained, so the number stands — and on
-					the speed corpus above, which has no such identifiers, both bindings are measured.
+					The yuku-parser row is its wasm binding: the native one segfaults on some of test262's
+					escaped-identifier tests. Wasm runs the same parser with the fault contained, so the
+					number stands — and on the speed corpus above, which has no such identifiers, both
+					bindings are measured.
 				</li>
 				<li>
 					For Svelte the corpus excludes the files svelte/compiler itself rejects, so its number is
@@ -934,14 +921,9 @@
 				</li>
 				<li>
 					<code>{RSVELTE_INSTALL_LABEL}</code> is what you install to format a project, and the
-					fairer comparison to tsv's single build. As observed with the benched release (its docs
-					describe every non-Svelte path, and each component's embedded script and style, as
-					delegated to oxfmt), over a directory it formats the Svelte, JS/TS, CSS, and JSON files
-					itself, hands everything else (Markdown, YAML, …) to one <code>oxfmt</code> run, and exits
-					non-zero without oxfmt even when the directory holds nothing but <code>.svelte</code>
-					(oxfmt is an optional peer dependency, so installing <code>@rsvelte/fmt</code> alone
-					doesn't pull it in). A single <code>.svelte</code> file needs no oxfmt: it formats the
-					embedded <code>&lt;script&gt;</code> and <code>&lt;style&gt;</code> itself.
+					fairer comparison to tsv's single build. Over a directory the benched release exits
+					non-zero without oxfmt, an optional peer dependency it hands every file type it doesn't
+					format itself; a single <code>.svelte</code> file needs none.
 				</li>
 				<li>
 					<code>dprint (wasm)</code> and <code>malva (wasm)</code> are two plugins for the same

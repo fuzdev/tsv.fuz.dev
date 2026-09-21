@@ -366,7 +366,7 @@ export interface BenchmarkDisplayEntry {
 	files_processed: number | null;
 	files_total: number | null;
 	// A placeholder entry mirrored from another language's group for a tool that
-	// doesn't run in this one (e.g. `oxc-parser` under svelte/css parse) — rendered
+	// doesn't run in this one (e.g. `oxc-parser` under css parse) — rendered
 	// grayed-out and inert so the parse groups share one entry order. Absent on real,
 	// measured entries. Also set on a `coverage_only` row, which shares the inert
 	// rendering for a different reason (see below).
@@ -575,19 +575,18 @@ export const derive_benchmark_groups = (baseline: BenchmarkBaseline): Array<Benc
 
 	result.sort(compare_group_order);
 
-	// Neither `biome` nor (for svelte/css) `oxc-parser` has a real entry in every
-	// parse group. `biome`'s `@biomejs/js-api` never exposes a parser to JS at all
-	// (only formatting and linting), so no parse group has a real biome entry;
-	// `oxc-parser` only parses TypeScript/JS, so the svelte and css parse groups
-	// lack it. Mirror both in as disabled placeholders — biome always, oxc-parser
-	// only where it's missing — then re-sort so they fall into their fixed slots
-	// (biome then oxc, right after the canonical row), giving all three parse groups
-	// one shared entry order.
+	// Two tools hold a grayed-out slot in parse groups they don't run in. `biome`'s
+	// `@biomejs/js-api` never exposes a parser to JS at all (only formatting and
+	// linting), so no parse group has a real biome entry and every one gets a
+	// placeholder. `oxc-parser` only parses TypeScript/JS; it is mirrored into the css
+	// group alone, since oxc does ship CSS tooling (oxfmt formats it) and a Svelte
+	// parser is nothing it claims. Then re-sort so they fall into their fixed slots
+	// (biome then oxc, right after the canonical row).
 	//
-	// `yuku-parser` is deliberately NOT mirrored, though it is TypeScript/JS-only too.
-	// A grayed-out slot states a SCOPE gap: biome and oxc are broad web toolchains, so
-	// a missing Svelte or CSS parser is worth showing. yuku claims nothing wider, so
-	// an empty slot would invent a shortfall against a promise it never made.
+	// A grayed-out slot states a SCOPE gap in a broad web toolchain, so nothing
+	// narrower is mirrored: not `yuku-parser`, TypeScript/JS-only by design, and not
+	// `@dprint/typescript` into the svelte format group — an empty slot there would
+	// invent a shortfall against a promise the tool never made.
 	const ts_parse = result.find((g) => g.operation === 'parse' && g.language === 'typescript');
 	const oxc_templates = ts_parse?.entries.filter((e) => e.category === 'oxc') ?? [];
 	for (const group of result) {
@@ -599,31 +598,10 @@ export const derive_benchmark_groups = (baseline: BenchmarkBaseline): Array<Benc
 		)
 			? []
 			: [to_placeholder({ name: 'biome-wasm', category: 'biome' })];
-		const needs_oxc =
-			group.language !== 'typescript' && !group.entries.some((e) => e.category === 'oxc');
+		const needs_oxc = group.language === 'css' && !group.entries.some((e) => e.category === 'oxc');
 		const oxc_placeholders = needs_oxc ? oxc_templates.map(to_placeholder) : [];
 		group.entries.push(...biome_placeholders, ...oxc_placeholders);
 		group.entries.sort(compare_speed_entries);
-	}
-
-	// The format-side analogue: `@dprint/typescript` formats TypeScript/JS only and
-	// rejects Svelte outright, so the svelte FORMAT group has no real dprint entry.
-	// Mirror it in as a disabled placeholder so the format groups share one entry
-	// order, exactly as oxc-parser is mirrored into the svelte/css parse groups
-	// above. css is NOT filled: the bench runs dprint's own CSS plugin, malva,
-	// through the same Wasm host, and that row shares dprint's category
-	// (`CATEGORY_BY_NAME`), so the "no dprint-category entry" guard below already
-	// leaves it alone. Guarded on the template existing, so a report predating the
-	// dprint row renders unchanged.
-	const ts_format = result.find((g) => g.operation === 'format' && g.language === 'typescript');
-	const dprint_templates = ts_format?.entries.filter((e) => e.category === 'dprint') ?? [];
-	if (dprint_templates.length > 0) {
-		for (const group of result) {
-			if (group.operation !== 'format') continue;
-			if (group.entries.some((e) => e.category === 'dprint')) continue;
-			group.entries.push(...dprint_templates.map(to_placeholder));
-			group.entries.sort(compare_speed_entries);
-		}
 	}
 
 	return result;

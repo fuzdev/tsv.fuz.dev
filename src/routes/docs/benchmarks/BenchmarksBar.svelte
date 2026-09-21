@@ -42,13 +42,12 @@
 	} = $props();
 
 	// the parenthesized binding suffix (`(wasm)`/`(node napi)`) describes how the
-	// tool actually ran in this (Node) report - meaningless for the disabled
-	// placeholders of single-variant tools (biome and dprint each ship only a wasm
-	// build here, so there's no ambiguity to lose). oxc-parser keeps its suffix even
-	// when disabled since it has two placeholder rows (napi and wasm) that would
-	// otherwise become indistinguishable.
+	// tool actually ran in this (Node) report - meaningless for biome's disabled
+	// placeholder, since it ships only a wasm build here and there's no ambiguity to
+	// lose. oxc-parser keeps its suffix even when disabled since it has two
+	// placeholder rows (napi and wasm) that would otherwise become indistinguishable.
 	const display_label = $derived(
-		disabled && (category === 'biome' || category === 'dprint')
+		disabled && category === 'biome'
 			? format_label(label).replace(/ \([^)]*\)$/, '')
 			: format_label(label)
 	);
@@ -98,10 +97,10 @@
 		grid-template-columns: 16rem 1fr 5.6rem 3.4rem;
 		align-items: center;
 		gap: var(--space_sm);
-		/* rows sit flush (no inter-row gap) with a little padding, so the hover
+		/* rows sit flush (no inter-row gap) with a little padding, so the anchor
 		 * highlight reads as one contiguous, full-height band per row */
 		padding-block: var(--space_xs);
-		border-radius: var(--border_radius_xs);
+		padding-right: var(--space_xs);
 	}
 	.bar-row.has-annotation {
 		grid-template-columns: 16rem 1fr 5.6rem 6rem 3.4rem;
@@ -109,15 +108,12 @@
 	.bar-row.disabled {
 		opacity: 0.6;
 	}
-	/* hovering an enabled row makes it the group's ratio anchor (driven in JS); the
-	 * highlight marks which row every ratio in the group is now measured against */
-	.bar-row:not(.disabled):hover {
-		background-color: var(--fg_10);
-	}
-	/* the row every ratio in the group is currently taken against, marked as the CLI
-	 * tables mark theirs */
+	/* the row every ratio in the group is currently taken against — the default, or
+	 * whichever enabled row is hovered (driven in JS) — marked as the CLI tables mark
+	 * theirs */
 	.bar-row.anchor {
-		box-shadow: inset var(--border_width_3) 0 0 var(--color_a_50);
+		background-color: var(--fg_05);
+		box-shadow: inset var(--border_width_3) 0 0 var(--fg_50);
 	}
 	.bar-annotation {
 		font-size: var(--font_size_xs);

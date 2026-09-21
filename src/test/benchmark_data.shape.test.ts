@@ -91,7 +91,7 @@ describe('benchmarks.json shape', () => {
 		}
 	});
 
-	test('svelte/css parse groups get disabled oxc placeholders, typescript keeps real ones', () => {
+	test('the css parse group gets disabled oxc placeholders, svelte none, typescript keeps real ones', () => {
 		const groups = derive_benchmark_groups(benchmarks_json);
 		const parse = (language: string) =>
 			groups.find((g) => g.operation === 'parse' && g.language === language);
@@ -102,10 +102,13 @@ describe('benchmarks.json shape', () => {
 		assert.isNotEmpty(ts_oxc);
 		for (const e of ts_oxc) assert.isNotOk(e.disabled, `${e.name} should be a real entry`);
 
-		// svelte and css mirror those oxc entries in, disabled, in the same fixed slot:
-		// directly after the biome placeholder (both lead the cross-tool comparisons,
-		// right after the canonical row) and before tsv's json wires
-		for (const language of ['svelte', 'css']) {
+		// a Svelte parser is nothing oxc claims, so that group holds no slot for it
+		assert.isEmpty(parse('svelte')?.entries.filter((e) => e.category === 'oxc'));
+
+		// css mirrors those oxc entries in, disabled, in a fixed slot: directly after
+		// the biome placeholder (both lead the cross-tool comparisons, right after the
+		// canonical row) and before tsv's json wires
+		for (const language of ['css']) {
 			const group = parse(language);
 			assert.ok(group, `${language} parse group missing`);
 			const oxc = group.entries.filter((e) => e.category === 'oxc');
@@ -166,7 +169,7 @@ describe('benchmarks.json shape', () => {
 		}
 	});
 
-	test('svelte gets a disabled dprint placeholder; typescript keeps dprint and css keeps malva real', () => {
+	test('typescript keeps dprint and css keeps malva real; svelte gets no dprint slot', () => {
 		const groups = derive_benchmark_groups(benchmarks_json);
 		const format = (language: string) =>
 			groups.find((g) => g.operation === 'format' && g.language === language);
@@ -190,18 +193,12 @@ describe('benchmarks.json shape', () => {
 		);
 		for (const e of css_dprint) assert.isNotOk(e.disabled, `${e.name} should be a real entry`);
 
-		// svelte mirrors the typescript entry in, disabled: `@dprint/typescript`
-		// rejects Svelte outright and the bench loads no Svelte plugin for the host
-		const svelte_dprint = dprint_rows('svelte');
-		assert.strictEqual(svelte_dprint.length, ts_dprint.length, 'svelte dprint placeholder count');
-		for (const e of svelte_dprint) {
-			assert.ok(e.disabled, `svelte ${e.name} should be disabled`);
-			assert.strictEqual(e.bar_fraction, 0, `svelte ${e.name} bar`);
-		}
+		// `@dprint/typescript` claims nothing about Svelte, so no slot is mirrored there
+		assert.isEmpty(dprint_rows('svelte'), 'svelte holds no dprint slot');
 
-		// in every group the dprint-category row sits directly after biome in the
-		// shared cross-tool ordering, real or placeholder alike
-		for (const language of ['svelte', 'css']) {
+		// the dprint-category row sits directly after biome in the shared cross-tool
+		// ordering
+		for (const language of ['typescript', 'css']) {
 			const names = format(language)!.entries.map((e) => e.name);
 			const first_biome = names.findIndex((n) => n.includes('biome'));
 			const first_dprint = names.findIndex((n) => n.includes('dprint') || n.includes('malva'));

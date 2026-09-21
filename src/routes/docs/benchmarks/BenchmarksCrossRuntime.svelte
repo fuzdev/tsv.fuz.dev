@@ -178,7 +178,7 @@
 		</table>
 	</div>
 {/each}
-<p class="text_40">
+<p>
 	sweeps/sec — one sweep is a full pass over the group's timed file set (higher is faster); ratios
 	are vs <code>{base}</code> (&gt; 1 = faster than {base}). A ratio marked <code>≈</code> is a delta
 	smaller than the two measurements' combined noise, which the report flags itself — read it as

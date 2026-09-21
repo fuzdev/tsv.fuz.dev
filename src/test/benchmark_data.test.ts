@@ -195,28 +195,35 @@ describe('derive_benchmark_groups omissions', () => {
 	});
 });
 
-describe('derive_benchmark_groups dprint placeholder', () => {
-	const baseline = (names: Array<string>): BenchmarkBaseline => ({
+describe('derive_benchmark_groups placeholders state a scope gap only', () => {
+	const groups = derive_benchmark_groups({
 		...benchmarks_json,
 		entries: [
 			entry({ name: 'prettier', group: 'format/svelte' }),
-			...names.map((name) => entry({ name, group: 'format/typescript' }))
+			entry({ name: 'dprint-wasm', group: 'format/typescript' }),
+			entry({ name: 'svelte/compiler', group: 'parse/svelte' }),
+			entry({ name: 'svelte/compiler', group: 'parse/css' }),
+			entry({ name: 'oxc-parser', group: 'parse/typescript' }),
+			entry({ name: 'yuku-parser', group: 'parse/typescript' })
 		]
 	});
-	const svelte_dprint = (names: Array<string>) => {
-		const svelte = derive_benchmark_groups(baseline(names)).find((g) => g.language === 'svelte');
-		assert.ok(svelte, 'svelte format group missing');
-		return svelte.entries.filter((e) => e.category === 'dprint');
-	};
+	const disabled = (operation: string, language: string) =>
+		groups
+			.find((g) => g.operation === operation && g.language === language)
+			?.entries.filter((e) => e.disabled)
+			.map((e) => e.name);
 
-	test('a measured dprint row is mirrored into svelte, disabled', () => {
-		const mirrored = svelte_dprint(['prettier', 'dprint-wasm']);
-		assert.strictEqual(mirrored.length, 1);
-		assert.ok(mirrored[0]?.disabled);
+	test('a TypeScript-only plugin is not mirrored into the svelte format group', () => {
+		assert.deepEqual(disabled('format', 'svelte'), []);
 	});
 
-	test('a report with no dprint row invents none', () => {
-		assert.isEmpty(svelte_dprint(['prettier']));
+	test('oxc-parser holds a slot in the css parse group, never the svelte one', () => {
+		assert.deepEqual(disabled('parse', 'css'), ['biome-wasm', 'oxc-parser']);
+		assert.deepEqual(disabled('parse', 'svelte'), ['biome-wasm']);
+	});
+
+	test('biome holds one in every parse group', () => {
+		assert.deepEqual(disabled('parse', 'typescript'), ['biome-wasm']);
 	});
 });
 

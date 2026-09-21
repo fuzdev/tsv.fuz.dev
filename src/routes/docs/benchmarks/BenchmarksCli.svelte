@@ -8,9 +8,7 @@
 	} from './benchmark_display.ts';
 	import {
 		cli_default_anchor_label,
-		cli_label_is_tsv,
 		cli_ratio_between,
-		CLI_TSV_LABEL,
 		CLI_TSV_NPM_LABEL,
 		type BenchmarksCliReport,
 		type CliScenario,
@@ -49,9 +47,6 @@
 	// scenario with no tsv row has nothing to anchor on and renders no table.
 	interface Row {
 		result: CliFormatterResult;
-		is_tsv: boolean;
-		/** tsv through another distribution, beside other tools — a second tsv row, set apart from them. */
-		is_tsv_distribution: boolean;
 		is_anchor: boolean;
 		wall_ratio: number | undefined;
 		cpu_ratio: number | undefined;
@@ -62,7 +57,6 @@
 	const to_rows = (scenario: CliScenario, anchor_label: string | undefined): Array<Row> => {
 		if (anchor_label === undefined) return [];
 		return scenario.results.map((result) => {
-			const is_tsv = result.label === CLI_TSV_LABEL;
 			const is_anchor = result.label === anchor_label;
 			const ratio = (metric: CliMetric) =>
 				is_anchor
@@ -70,8 +64,6 @@
 					: cli_ratio_between(scenario.results, result.label, anchor_label, metric);
 			return {
 				result,
-				is_tsv,
-				is_tsv_distribution: !is_tsv && !scenario.tsv_only && cli_label_is_tsv(result.label),
 				is_anchor,
 				wall_ratio: ratio('wall_ms'),
 				cpu_ratio: ratio('cpu_ms'),
@@ -128,12 +120,7 @@
 						onpointerleave={() => (hovered = undefined)}
 					>
 						{#each rows as row (row.result.label)}
-							<tr
-								class:tsv={row.is_tsv}
-								class:tsv-distribution={row.is_tsv_distribution}
-								class:anchor={row.is_anchor}
-								data-baseline-key={row.result.label}
-							>
+							<tr class:anchor={row.is_anchor} data-baseline-key={row.result.label}>
 								<th scope="row" class="formatter">{row.result.label}</th>
 								<td>{format_ms(row.result.wall_ms)}</td>
 								<td class="speedup">
@@ -216,16 +203,15 @@
 		font-style: italic;
 		opacity: 0.8;
 	}
-	tr.tsv {
-		font-weight: 700;
-		background-color: var(--fg_10);
-	}
-	tr.tsv-distribution {
+	/* the row every ratio in the table is currently taken against — the default, or
+	   whichever row is hovered — marked as the bar groups mark theirs; a row's
+	   background means nothing else here, so the base `tr:hover` tint is matched to it */
+	tr.anchor,
+	tbody tr:hover {
 		background-color: var(--fg_05);
 	}
-	/* the row every ratio in the table is currently taken against */
 	tr.anchor .formatter {
-		box-shadow: inset var(--border_width_3) 0 0 var(--color_a_50);
+		box-shadow: inset var(--border_width_3) 0 0 var(--fg_50);
 	}
 	tr.anchor .speedup {
 		opacity: 0.5;
