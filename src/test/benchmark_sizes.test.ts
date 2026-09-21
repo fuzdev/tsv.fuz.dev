@@ -1,11 +1,13 @@
 import { assert, describe, test } from 'vitest';
 
 import {
+	categorize_size,
 	categorize_size_capability,
 	derive_size_groups,
 	OXC_FULL_LABEL,
 	RSVELTE_INSTALL_LABEL,
-	OXFMT_WASM_LABEL
+	OXFMT_WASM_LABEL,
+	type SizeCapability
 } from '$routes/docs/benchmarks/benchmark_sizes.ts';
 import type { BinarySize } from '$routes/docs/benchmarks/benchmark_data.ts';
 
@@ -28,6 +30,19 @@ describe('categorize_size_capability', () => {
 		assert.strictEqual(categorize_size_capability('malva (wasm)'), 'formatter');
 		assert.strictEqual(categorize_size_capability('swc (napi)'), 'parser');
 		assert.strictEqual(categorize_size_capability('rsvelte compiler (napi)'), 'parser');
+	});
+
+	test('the canonical js bundles land one per capability, colored as canonical', () => {
+		// by keyword `prettier + parsers` reads as a parser and the prettier bundle as full
+		const labels: Array<[string, SizeCapability]> = [
+			['svelte + acorn-typescript parsers (js bundle)', 'parser'],
+			['prettier + svelte plugin (js bundle)', 'formatter'],
+			['prettier + parsers (js bundle)', 'full']
+		];
+		for (const [label, capability] of labels) {
+			assert.strictEqual(categorize_size_capability(label), capability);
+			assert.strictEqual(categorize_size(label), 'canonical');
+		}
 	});
 
 	test('the two dprint plugins share a bucket', () => {

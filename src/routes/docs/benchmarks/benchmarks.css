@@ -29,7 +29,7 @@
 	text-align: left;
 }
 
-/* a numeric table cell, used by the conformance and cross-runtime tables */
+/* a numeric table cell, used by the cross-runtime tables */
 .benchmarks-num {
 	text-align: right;
 	white-space: nowrap;

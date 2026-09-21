@@ -1,9 +1,10 @@
-// The parse-conformance domain: the coverage tables `ConformanceTable.svelte`
-// renders and the per-source slices the page's prose reads, derived from the
-// conformance report (the per-runtime report shape, `corpus_kind: 'conformance'`).
+// The parse-conformance domain: the per-source coverage matrices
+// `ConformanceTable.svelte` renders, derived from the conformance report (the
+// per-runtime report shape, `corpus_kind: 'conformance'`).
 
 import {
 	compare_group_order,
+	corpus_source_url,
 	parse_group_key,
 	type BenchmarkBaseline,
 	type SourceCoverageCell
@@ -58,25 +59,13 @@ const CONFORMANCE_ENGINE_NAMES: Record<string, string> = {
 };
 
 /**
- * Qualifiers rendered beside a coverage row, keyed by report entry name. The
+ * Qualifiers rendered beside an engine's name, keyed by report entry name. The
  * table is per engine and says nothing about bindings — so a note here is for
- * when the row's reading needs a caveat the coverage number can't carry, whether
- * that's the binding or the grammar being measured.
+ * the one case where WHICH binding stands in is worth saying.
  */
 const CONFORMANCE_ROW_NOTES: Record<string, string> = {
-	'yuku-parser-wasm': 'wasm — native segfaults',
-	// tsc selected part of this corpus, where it therefore scores 100% by
-	// construction — the same shape as svelte/compiler on the Svelte set, but
-	// invisible here because it holds for only a SLICE of the TypeScript group
-	// rather than the whole of it. Without the note the blended number reads as
-	// one achieved result, and its shortfall reads as a defect in the corpus
-	// rather than as the corpora tsc never selected. Spelled out below the tables.
-	tsc: 'oracle for part of this corpus',
-	// The CSS group's reference row is svelte/compiler's `parseCss`, which is not a
-	// validity oracle in either direction — so PostCSS sitting slightly above it is
-	// a grammar difference, not a conformance verdict. Spelled out in the notes
-	// below the tables.
-	postcss: 'a different CSS grammar'
+	// the native binding segfaults on this corpus, spelled out in the page's notes
+	'yuku-parser-wasm': 'wasm'
 };
 
 /**
@@ -119,51 +108,195 @@ export const derive_conformance_groups = (baseline: BenchmarkBaseline): Array<Co
 	return result;
 };
 
-/**
- * The conformance corpus sources the page's prose reads by name: the two large
- * TypeScript slices each selected by one parser here (test262 by tsv's runner,
- * the TypeScript compiler's cases by tsc), and Prettier's third-party JS suite,
- * which neither scoped. Paths as the report's `coverage_by_source` keys them.
- */
-export const CONFORMANCE_SOURCE_PATHS = {
-	test262: 'benches/js/.cache/test262_files.json',
-	ts_repo: 'benches/js/.cache/ts_repo_files.json',
-	prettier_js: '../prettier/tests/format/js',
-	// Prettier's HTML fixtures, parsed as Svelte inside the Svelte group
-	prettier_html: '../prettier/tests/format/html'
-} as const;
+// The two harvested TypeScript caches a parser here selected, as the report's
+// `coverage_by_source` keys them.
+const SOURCE_TEST262 = 'benches/js/.cache/test262_files.json';
+const SOURCE_TS_REPO = 'benches/js/.cache/ts_repo_files.json';
 
-/** One source's slice of a conformance group — see `derive_conformance_slice`. */
-export interface ConformanceSlice {
-	// the slice's files as a fraction of the group's corpus
-	share: number;
-	// the slice's file count (every engine shares it)
+/**
+ * Reader-facing names for the report's corpus source paths. A path missing here
+ * renders raw, and the shape test fails on it, so a source tsv adds can't reach
+ * the page as a cache path unnoticed.
+ */
+const CONFORMANCE_SOURCE_LABELS: Record<string, string> = {
+	'../prettier-plugin-svelte/test': "prettier-plugin-svelte's tests",
+	'../prettier/tests/format/typescript': "Prettier's TypeScript fixtures",
+	'../prettier/tests/format/js': "Prettier's JS fixtures",
+	'../prettier/tests/format/css': "Prettier's CSS fixtures",
+	'../prettier/tests/format/html': "Prettier's HTML fixtures",
+	'../svelte/packages/svelte/tests': "Svelte's tests",
+	'benches/js/.cache/wpt_css': 'web-platform-tests CSS',
+	[SOURCE_TEST262]: 'test262',
+	[SOURCE_TS_REPO]: "TypeScript compiler's cases"
+};
+
+/**
+ * The engine that SELECTED a corpus source, so reads 100% on it by construction
+ * rather than by achievement: group key → source path (`*` for every source of
+ * the group) → engine display name. Hand-stated because the report carries no
+ * such field — svelte/compiler's rejects are excluded from the whole Svelte set,
+ * tsc kept only the compiler cases it parses cleanly, and the test262 cache is
+ * the expected-valid subset of the tests tsv's runner grades. The shape test
+ * holds every entry to the report: it must resolve, and its cell must be full.
+ */
+export const CONFORMANCE_SELECTORS: Record<string, Record<string, string>> = {
+	'parse/svelte': { '*': 'svelte/compiler' },
+	'parse/typescript': { [SOURCE_TEST262]: 'tsv', [SOURCE_TS_REPO]: 'tsc' }
+};
+
+/** One engine's coverage of one corpus source, or of the whole group. */
+export interface ConformanceCell {
+	processed: number;
 	total: number;
-	// accepted counts per engine, keyed by the display names the coverage table uses
-	rows: Record<string, SourceCoverageCell>;
+	// total - processed, the magnitude a near-100% percentage compresses
+	rejected: number;
+	coverage_fraction: number;
+	// this engine selected the source, so the cell is 100% by construction
+	selected: boolean;
 }
 
-/**
- * One corpus source's slice of a conformance group: its share of the group's
- * files and each engine's accepted count on it, for prose that reads the
- * aggregate by source rather than as one number. Engines are keyed as
- * `derive_conformance_groups` names them, so a binding duplicate collapses the
- * same way. `undefined` when the report lacks the group or the source.
- */
-export const derive_conformance_slice = (
-	baseline: BenchmarkBaseline,
-	group: string,
-	source_path: string
-): ConformanceSlice | undefined => {
-	const by_impl = baseline.coverage_by_source?.[group]?.[source_path];
-	if (!by_impl) return undefined;
-	const group_total = baseline.corpus[parse_group_key(group).language];
-	const total = Object.values(by_impl)[0]?.total;
-	if (!group_total || total == null) return undefined;
-	const rows: Record<string, SourceCoverageCell> = {};
-	for (const [impl, cell] of Object.entries(by_impl)) {
-		const name = CONFORMANCE_ENGINE_NAMES[impl];
-		if (name) rows[name] = cell;
-	}
-	return { share: total / group_total, total, rows };
+/** A matrix column — one engine, named as `derive_conformance_groups` names it. */
+export interface ConformanceEngine {
+	name: string;
+	note?: string;
+}
+
+/** A corpus source a matrix row covers, for its linked label. */
+export interface ConformanceSourceOrigin {
+	path: string;
+	// `undefined` for a path `CONFORMANCE_SOURCE_LABELS` lacks, which renders raw
+	label: string | undefined;
+	url: string | undefined;
+}
+
+export interface ConformanceSourceRow {
+	// one origin, or several for the folded row
+	origins: Array<ConformanceSourceOrigin>;
+	// the sources every engine accepts in full, folded into one trailing row
+	folded: boolean;
+	files: number;
+	// `files` as a fraction of the group's corpus
+	share: number;
+	// aligned to the matrix's `engines`; `undefined` where the report lacks the cell
+	cells: Array<ConformanceCell | undefined>;
+}
+
+export interface ConformanceMatrix {
+	language: string;
+	files_total: number;
+	// ordered as `derive_conformance_groups` orders its rows
+	engines: Array<ConformanceEngine>;
+	// largest source first, the folded row last; empty when the report predates
+	// `coverage_by_source`
+	sources: Array<ConformanceSourceRow>;
+	// the whole group per engine, aligned to `engines`
+	aggregate: Array<ConformanceCell>;
+}
+
+const to_conformance_cell = (
+	processed: number,
+	total: number,
+	selected: boolean
+): ConformanceCell => ({
+	processed,
+	total,
+	rejected: total - processed,
+	coverage_fraction: total > 0 ? processed / total : 0,
+	selected
+});
+
+// a source no engine selected and none rejects any of says nothing a reader can
+// compare, so two or more of them fold into one row
+const is_foldable = (row: ConformanceSourceRow): boolean =>
+	row.cells.some((cell) => cell !== undefined) &&
+	row.cells.every((cell) => cell === undefined || (!cell.selected && cell.rejected === 0));
+
+const fold_conformance_rows = (
+	rows: Array<ConformanceSourceRow>,
+	files_total: number
+): ConformanceSourceRow => {
+	const files = rows.reduce((sum, row) => sum + row.files, 0);
+	return {
+		origins: rows.flatMap((row) => row.origins),
+		folded: true,
+		files,
+		share: files_total > 0 ? files / files_total : 0,
+		cells: (rows[0]?.cells ?? []).map((_, i) => {
+			const cells = rows.map((row) => row.cells[i]);
+			if (!cells.every((cell) => cell !== undefined)) return undefined;
+			return to_conformance_cell(
+				cells.reduce((sum, cell) => sum + cell.processed, 0),
+				cells.reduce((sum, cell) => sum + cell.total, 0),
+				false
+			);
+		})
+	};
 };
+
+/**
+ * Derives one coverage matrix per language from a conformance report: a row per
+ * corpus source and a column per engine, with the group aggregate alongside. The
+ * aggregate blends sources that answer different questions, so the rows are the
+ * finding — and a cell whose engine selected the source (`CONFORMANCE_SELECTORS`)
+ * is flagged rather than left to read as a result. Engines fold and order as in
+ * `derive_conformance_groups`.
+ */
+export const derive_conformance_matrices = (
+	baseline: BenchmarkBaseline
+): Array<ConformanceMatrix> =>
+	derive_conformance_groups(baseline).map((group) => {
+		const group_key = `parse/${group.language}`;
+		const selectors = CONFORMANCE_SELECTORS[group_key];
+		const engines = group.rows.map(({ name, note }): ConformanceEngine => ({ name, note }));
+
+		const rows = Object.entries(baseline.coverage_by_source?.[group_key] ?? {}).map(
+			([path, by_impl]): ConformanceSourceRow => {
+				const by_engine: Record<string, SourceCoverageCell> = {};
+				for (const [impl, cell] of Object.entries(by_impl)) {
+					const name = CONFORMANCE_ENGINE_NAMES[impl];
+					if (name) by_engine[name] ??= cell;
+				}
+				const selector = selectors?.[path] ?? selectors?.['*'];
+				// every impl shares the slice total, which the shape test holds
+				const files = Math.max(0, ...Object.values(by_impl).map((cell) => cell.total));
+				const source = baseline.corpus_sources.find((s) => s.path === path);
+				return {
+					origins: [
+						{
+							path,
+							label: CONFORMANCE_SOURCE_LABELS[path],
+							url: source && corpus_source_url(source)
+						}
+					],
+					folded: false,
+					files,
+					share: group.files_total > 0 ? files / group.files_total : 0,
+					cells: engines.map((engine) => {
+						const cell = by_engine[engine.name];
+						return (
+							cell && to_conformance_cell(cell.processed, cell.total, engine.name === selector)
+						);
+					})
+				};
+			}
+		);
+
+		const foldable = rows.filter(is_foldable);
+		const sources = foldable.length > 1 ? rows.filter((row) => !is_foldable(row)) : rows;
+		// largest first, path as a stable tiebreak
+		sources.sort(
+			(a, b) =>
+				b.files - a.files || (a.origins[0]?.path ?? '').localeCompare(b.origins[0]?.path ?? '')
+		);
+		if (foldable.length > 1) sources.push(fold_conformance_rows(foldable, group.files_total));
+
+		return {
+			language: group.language,
+			files_total: group.files_total,
+			engines,
+			sources,
+			aggregate: group.rows.map((row) =>
+				to_conformance_cell(row.files_processed, row.files_total, false)
+			)
+		};
+	});

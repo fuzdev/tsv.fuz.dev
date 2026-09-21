@@ -45,7 +45,7 @@ tsv.fuz.dev is the public face of the tsv tool:
 - Landing page (home) with links to benchmarks and docs
 - Benchmarks page with bar charts and summary tables
 - Docs section (introduction, playground, benchmarks, conformance)
-- Conformance page with parse-coverage tables over deliberately hard corpora
+- Conformance page with per-corpus-source parse-coverage tables over deliberately hard corpora
 - Interactive playground (`/docs/playground`) — edit a deliberately-unformatted Svelte example in a syntax-highlighted editor (fuz_code's `CodeTextarea`); the formatted output updates live alongside it and the parsed AST follows on a short idle; runs `@fuzdev/tsv-wasm` as lazily-loaded WASM
 - Theme controls via fuz_ui's `ThemeRoot` in the root layout (no separate about/settings page)
 - Shows install instructions led by the native `@fuzdev/tsv` (prebuilt N-API addon for Node/Bun, ships the `tsv` CLI), then `@fuzdev/tsv-wasm` (universal, same `tsv` CLI) and the format/parse subsets
@@ -77,7 +77,7 @@ src/
     ├── benchmark_data.test.ts       # unit tests for the per-runtime derivations (groups, stability, corpus, sweeps)
     ├── benchmark_data.shape.test.ts # shape gates over the committed per-runtime report
     ├── benchmark_data.prose.test.ts # gates the ratio, direction, and count claims the benchmarks page's prose quotes
-    ├── conformance_data.test.ts     # unit tests for the conformance grouping
+    ├── conformance_data.test.ts     # unit tests for the conformance grouping and per-source matrices
     ├── conformance_data.shape.test.ts # shape gates over the committed conformance report
     ├── conformance_data.prose.test.ts # gates the claims the conformance page's prose quotes
     ├── benchmark_sizes.test.ts      # unit tests for the binary-size capability grouping
@@ -156,7 +156,7 @@ in the schema TSDoc in `formatter_benchmark_data.ts`.
 
 - `benchmark_data.ts` — per-runtime report types, plus the format/parse, stability, and corpus derivations; imports none of the others
 - `benchmark_display.ts` — value formatters, row labels, per-category colors; imports only `benchmark_data.ts`'s types
-- `benchmark_sizes.ts`, `benchmark_cross_runtime.ts` — one domain each, built on those two; the conformance page's `conformance_data.ts` does the same from its own directory
+- `benchmark_sizes.ts`, `benchmark_cross_runtime.ts` — one domain each, built on those two; the conformance page's `conformance_data.ts` does the same from its own directory — a matrix per language (corpus sources × engines, the aggregate as the leading row), with two hand-stated maps the report has no field for: the source labels and `CONFORMANCE_SELECTORS`, the engine that selected a source and so reads 100% on it by construction; the shape test holds both to the report
 - `benchmark_baseline.ts` + `BenchmarksBaselineGroup.svelte` — hover-to-rebaseline: hovering a row re-anchors that group's ratios, restoring the default anchor on leave; pointer-only by design, and a disabled row never anchors. `BenchmarksCli.svelte`'s tables behave the same way
 - `formatter_benchmark_data.ts` — the harness report's Zod schemas and `parse_formatter_benchmarks`
 - `benchmarks_cli.ts` — shapes the CLI report for `BenchmarksCli.svelte` and owns the per-scenario prose and the `cli_*` claim helpers

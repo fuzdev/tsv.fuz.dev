@@ -1,73 +1,105 @@
-<!--
-	TODO: show per-corpus-source coverage, not just the per-language aggregate.
-
-	Each group's aggregate blends corpora that answer different questions, so the
-	single percentage below is a summary rather than the finding. `parse/typescript`
-	is mostly test262 — ECMAScript, not TypeScript — so a real TS gap moves the
-	number by tenths of a point and reads as noise. And on the corpus a tool's own
-	parser selected, that tool scores 100% BY CONSTRUCTION rather than by
-	achievement (tsc on the tsc corpus, svelte/compiler on the Svelte set), which
-	the aggregate presents as if it were a result.
-
-	The data is already here: the report carries `coverage_by_source`
-	(`group → source → impl → {processed, total}`) from `version` 8 on — the
-	machine-readable half of the per-source tables in tsv's own markdown report,
-	which splits exactly this way and for exactly this reason. `conformance_data.ts`'s
-	`derive_conformance_slice` already reads it for the page's by-slice prose; what's
-	missing here is a nested table or a per-source breakdown under each group.
--->
 <script lang="ts">
-	import type { ConformanceGroup } from './conformance_data.ts';
+	import type { ConformanceCell, ConformanceMatrix } from './conformance_data.ts';
 	import {
 		format_count,
 		format_coverage_percent,
-		format_language
+		format_language,
+		format_percent
 	} from '../benchmarks/benchmark_display.ts';
 
 	const {
-		groups
+		matrices
 	}: {
-		groups: Array<ConformanceGroup>;
+		matrices: Array<ConformanceMatrix>;
 	} = $props();
 </script>
 
-{#each groups as group (group.language)}
+<!-- a percentage this close to 100% compresses the gap, so the rejected count rides
+	beside it; a cell whose engine selected the source shows no number at all -->
+{#snippet coverage_cell(cell: ConformanceCell | undefined)}
+	<td class="coverage-num">
+		{#if !cell}
+			—
+		{:else if cell.selected}
+			<span class="text_40">selected</span>
+		{:else}
+			{format_coverage_percent(cell.coverage_fraction)}
+			<small class="text_40">
+				{#if cell.rejected > 0}−{format_count(cell.rejected)}{/if}
+			</small>
+		{/if}
+	</td>
+{/snippet}
+
+{#each matrices as matrix (matrix.language)}
 	<div class="mb_xl5">
 		<h3>
-			Parsing {format_count(group.files_total)}
-			{format_language(group.language)} files
+			Parsing {format_count(matrix.files_total)}
+			{format_language(matrix.language)} files
 		</h3>
-		<table class="benchmarks-table">
-			<thead>
-				<tr>
-					<th scope="col">parser</th>
-					<th scope="col" class="benchmarks-num">files accepted</th>
-					<th scope="col" class="benchmarks-num">coverage</th>
-				</tr>
-			</thead>
-			<tbody>
-				{#each group.rows as row (row.name)}
+		<div class="benchmarks-table-scroll">
+			<table class="benchmarks-table">
+				<thead>
 					<tr>
-						<th scope="row">
-							{row.name}
-							{#if row.note}<small>({row.note})</small>{/if}
-						</th>
-						<td class="benchmarks-num">
-							{format_count(row.files_processed)} /
-							{format_count(row.files_total)}
-						</td>
-						<td class="benchmarks-num">
-							<strong>{format_coverage_percent(row.coverage_fraction)}</strong>
-						</td>
+						<th scope="col">source</th>
+						<th scope="col" colspan="2">files</th>
+						{#each matrix.engines as engine (engine.name)}
+							<th scope="col" class="coverage-num">
+								{engine.name}
+								{#if engine.note}<small>({engine.note})</small>{/if}
+							</th>
+						{/each}
 					</tr>
-				{/each}
-			</tbody>
-		</table>
+				</thead>
+				<tbody>
+					<!-- the whole group leads as the sum the source rows break down: it blends
+						sources that answer different questions, so the rows under it are the finding -->
+					<tr>
+						<th scope="row">all sources</th>
+						<td class="coverage-num">{format_count(matrix.files_total)}</td>
+						<td></td>
+						{#each matrix.aggregate as cell, i (matrix.engines[i]?.name)}
+							{@render coverage_cell(cell)}
+						{/each}
+					</tr>
+					{#each matrix.sources as source (source.origins[0]?.path)}
+						<tr>
+							<th scope="row">
+								{#each source.origins as origin, i (origin.path)}
+									{i > 0 ? ', ' : ''}
+									{#if origin.url}
+										<!-- eslint-disable-next-line svelte/no-navigation-without-resolve -->
+										<a href={origin.url} rel="external">
+											{#if origin.label}{origin.label}{:else}<code>{origin.path}</code>{/if}
+										</a>
+									{:else if origin.label}
+										{origin.label}
+									{:else}
+										<code>{origin.path}</code>
+									{/if}
+								{/each}
+								{#if source.folded}<small>(all accepted by every parser)</small>{/if}
+							</th>
+							<td class="coverage-num">{format_count(source.files)}</td>
+							<td class="coverage-num text_40">
+								{format_percent(source.files, matrix.files_total)}
+							</td>
+							{#each source.cells as cell, i (matrix.engines[i]?.name)}
+								{@render coverage_cell(cell)}
+							{/each}
+						</tr>
+					{/each}
+				</tbody>
+			</table>
+		</div>
 	</div>
 {/each}
 
 <style>
-	table {
-		max-width: 40rem;
+	/* left-aligned like the text cells they sit among (`selected`, the source names),
+	   where the cross-runtime tables' `.benchmarks-num` aligns pure numbers right */
+	.coverage-num {
+		white-space: nowrap;
+		font-variant-numeric: tabular-nums;
 	}
 </style>

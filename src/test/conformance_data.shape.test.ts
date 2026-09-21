@@ -1,7 +1,11 @@
 import { assert, describe, test } from 'vitest';
 
 import { conformance_json } from '$routes/docs/conformance/conformance.ts';
-import { derive_conformance_groups } from '$routes/docs/conformance/conformance_data.ts';
+import {
+	CONFORMANCE_SELECTORS,
+	derive_conformance_groups,
+	derive_conformance_matrices
+} from '$routes/docs/conformance/conformance_data.ts';
 
 // tsv's `REPORT_SCHEMA_VERSION`, pinned exactly as in `benchmark_data.shape.test.ts`.
 const REPORT_VERSION = 16;
@@ -35,8 +39,7 @@ describe('conformance.json shape', () => {
 	});
 
 	test('every impl of a per-source slice reports the same slice total', () => {
-		// `derive_conformance_slice` reads the slice total off the first impl, and
-		// the share prose (`~81% of it is the test262 slice`) rests on it
+		// a source row's file count and share are read off its impls' shared total
 		for (const [group, sources] of Object.entries(conformance_json.coverage_by_source ?? {})) {
 			for (const [source, by_impl] of Object.entries(sources)) {
 				const totals = new Set(Object.values(by_impl).map((cell) => cell.total));
@@ -115,22 +118,82 @@ describe('conformance.json shape', () => {
 		assert.ok(yuku, 'typescript coverage must carry a yuku-parser row');
 		// the row's own qualifier, so the table says which binding without the
 		// reader having to reach the note below it
-		assert.strictEqual(yuku.note, 'wasm — native segfaults');
+		assert.strictEqual(yuku.note, 'wasm');
 	});
 
-	test('tsc reaches the typescript coverage group, and only it, with its oracle note', () => {
+	test('tsc reaches the typescript coverage group, and only it', () => {
 		// tsc parses TypeScript/JS alone and rides this surface only (it is a verdict,
-		// not a speed). It also SELECTED one slice of this corpus, where it scores 100%
-		// by construction — the note is what keeps the blended aggregate from reading as
-		// one achieved number, so a silent note rename must fail here rather than on the
-		// published page.
+		// not a speed)
 		const groups = derive_conformance_groups(conformance_json);
 		const row_named = (language: string) =>
 			groups.find((g) => g.language === language)?.rows.find((r) => r.name === 'tsc');
-		const tsc = row_named('typescript');
-		assert.ok(tsc, 'typescript coverage must carry a tsc row');
-		assert.strictEqual(tsc.note, 'oracle for part of this corpus');
+		assert.ok(row_named('typescript'), 'typescript coverage must carry a tsc row');
 		assert.isUndefined(row_named('svelte'), 'tsc parses no Svelte');
 		assert.isUndefined(row_named('css'), 'tsc parses no CSS');
+	});
+});
+
+describe('conformance matrices over the committed report', () => {
+	const matrices = derive_conformance_matrices(conformance_json);
+
+	test('every source row is labeled, linked, and counted as the corpus sources count it', () => {
+		for (const matrix of matrices) {
+			assert.isNotEmpty(matrix.sources, matrix.language);
+			for (const source of matrix.sources) {
+				for (const origin of source.origins) {
+					// a raw cache path must not reach readers
+					assert.isDefined(origin.label, `${matrix.language} ${origin.path} has no label`);
+					assert.isDefined(origin.url, `${matrix.language} ${origin.path} has no link`);
+				}
+				const counted = source.origins.reduce((sum, origin) => {
+					const corpus_source = conformance_json.corpus_sources.find((s) => s.path === origin.path);
+					return sum + (corpus_source?.by_language?.[matrix.language] ?? 0);
+				}, 0);
+				assert.strictEqual(source.files, counted, `${matrix.language} ${source.origins[0]?.path}`);
+			}
+		}
+	});
+
+	test("each engine's source cells sum to its aggregate", () => {
+		// the rows are the aggregate unblended, so a source the matrix dropped or an
+		// engine keyed to a different binding than the aggregate's shows up here
+		for (const matrix of matrices) {
+			for (const [i, engine] of matrix.engines.entries()) {
+				const cells = matrix.sources.map((s) => s.cells[i]);
+				const sum = (key: 'processed' | 'total') =>
+					cells.reduce((total, cell) => total + (cell?.[key] ?? NaN), 0);
+				const id = `${matrix.language}/${engine.name}`;
+				assert.strictEqual(sum('processed'), matrix.aggregate[i]?.processed, id);
+				assert.strictEqual(sum('total'), matrix.aggregate[i]?.total, id);
+			}
+		}
+	});
+
+	test('every hand-stated selector resolves, and reads 100% on what it selected', () => {
+		for (const [group_key, by_source] of Object.entries(CONFORMANCE_SELECTORS)) {
+			const matrix = matrices.find((m) => `parse/${m.language}` === group_key);
+			assert(matrix, `${group_key} is missing`);
+			for (const [path, engine_name] of Object.entries(by_source)) {
+				const i = matrix.engines.findIndex((e) => e.name === engine_name);
+				assert.isAtLeast(i, 0, `${group_key}: no ${engine_name} column`);
+				const rows =
+					path === '*'
+						? matrix.sources
+						: matrix.sources.filter((s) => s.origins.some((o) => o.path === path));
+				assert.isNotEmpty(rows, `${group_key}: no ${path} row`);
+				for (const row of rows) {
+					const cell = row.cells[i];
+					assert(cell?.selected, `${group_key} ${path}: ${engine_name} is not flagged`);
+					assert.strictEqual(cell.rejected, 0, `${engine_name} no longer reads 100% on its slice`);
+				}
+			}
+		}
+	});
+
+	test('only the sources every parser accepts in full are folded', () => {
+		// the folded row's label says so, and the TypeScript group is the one that has it
+		const folded = matrices.flatMap((m) => m.sources.filter((s) => s.folded));
+		assert.strictEqual(folded.length, 1);
+		for (const cell of folded[0]?.cells ?? []) assert.strictEqual(cell?.rejected, 0);
 	});
 });

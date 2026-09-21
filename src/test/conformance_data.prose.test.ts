@@ -2,52 +2,28 @@ import { assert, describe, test } from 'vitest';
 
 import { conformance_json } from '$routes/docs/conformance/conformance.ts';
 import {
-	CONFORMANCE_SOURCE_PATHS,
 	derive_conformance_groups,
-	derive_conformance_slice
+	derive_conformance_matrices
 } from '$routes/docs/conformance/conformance_data.ts';
 
 // Gates the claims the conformance page's prose makes about the committed report,
 // as `benchmark_data.prose.test.ts` does for the benchmarks page.
 describe('conformance prose reads the report', () => {
-	test('the TypeScript conformance slices the note reads by name are present', () => {
-		// "~N% of it is the test262 slice and ~M% the TypeScript compiler's ... on
-		// Prettier's third-party JS suite tsv accepts A, oxc-parser B, yuku-parser C,
-		// and tsc D" — every slice and every engine named must resolve, and the two
-		// self-selected slices must still be most of the aggregate for "mostly" to hold
-		const slice = (path: string) =>
-			derive_conformance_slice(conformance_json, 'parse/typescript', path);
-		const test262 = slice(CONFORMANCE_SOURCE_PATHS.test262);
-		const ts_repo = slice(CONFORMANCE_SOURCE_PATHS.ts_repo);
-		const prettier_js = slice(CONFORMANCE_SOURCE_PATHS.prettier_js);
-		assert(test262 && ts_repo && prettier_js, 'a named conformance source is missing');
-		// "Prettier's HTML fixtures ride along in the Svelte set ... ~N% of it": a small
-		// share, or the "ride along" framing understates them
-		const html = derive_conformance_slice(
-			conformance_json,
-			'parse/svelte',
-			CONFORMANCE_SOURCE_PATHS.prettier_html
-		);
-		assert(html, "Prettier's HTML fixtures are missing from the Svelte conformance corpus");
-		assert.isBelow(html.share, 0.05, "Prettier's HTML fixtures are no longer a small share");
-		assert.isAbove(test262.share + ts_repo.share, 0.5, 'the self-selected slices are not "mostly"');
-		for (const engine of ['tsv', 'oxc-parser', 'yuku-parser', 'tsc']) {
-			assert.isDefined(prettier_js.rows[engine], `${engine} on Prettier's JS suite`);
-		}
-		// "Two rows read 100% on a slice they selected themselves"
-		for (const [engine, selected] of [
-			['tsv', test262],
-			['tsc', ts_repo]
-		] as const) {
-			const cell = selected.rows[engine];
-			assert(cell, `${engine} on its own slice`);
-			assert.strictEqual(cell.processed, cell.total, `${engine} no longer reads 100% on its slice`);
+	test('the unfiltered sources are the ones no parser fully accepts', () => {
+		// "The other sources keep intentionally-invalid and out-of-scope inputs ... so read
+		// a row's parsers against each other, not against 100%" — named for wpt's CSS and
+		// Prettier's `.css` fixtures, where every parser must fall short for it to hold
+		const css = derive_conformance_matrices(conformance_json).find((m) => m.language === 'css');
+		for (const path of ['benches/js/.cache/wpt_css', '../prettier/tests/format/css']) {
+			const row = css?.sources.find((s) => s.origins[0]?.path === path);
+			assert(row, `css ${path} is missing`);
+			for (const cell of row.cells) assert.isAbove(cell?.rejected ?? 0, 0, path);
 		}
 	});
 
 	test('the CSS conformance note names the order the table shows', () => {
-		// "PostCSS landing a shade above tsv ... tsv, too, lands a little above parseCss",
-		// and for Svelte "its number is 100% by construction"
+		// "PostCSS sitting above tsv is two grammars, not a gap", over a `parseCss`
+		// reference tsv is a drop-in for
 		const coverage = (language: string, name: string): number => {
 			const row = derive_conformance_groups(conformance_json)
 				.find((g) => g.language === language)
@@ -57,7 +33,6 @@ describe('conformance prose reads the report', () => {
 		};
 		assert.isAbove(coverage('css', 'PostCSS'), coverage('css', 'tsv'));
 		assert.isAbove(coverage('css', 'tsv'), coverage('css', 'svelte/compiler'));
-		assert.strictEqual(coverage('svelte', 'svelte/compiler'), 1);
 	});
 
 	test("the conformance note on oxc-parser's two bindings reads the report", () => {

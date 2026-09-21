@@ -4,6 +4,7 @@ import { benchmarks_json } from '$routes/docs/benchmarks/benchmarks.ts';
 import {
 	categorize_size_capability,
 	derive_size_groups,
+	JS_BUNDLE_SUFFIX,
 	OXC_FULL_LABEL,
 	OXFMT_WASM_LABEL,
 	RSVELTE_INSTALL_LABEL,
@@ -18,18 +19,21 @@ describe('benchmarks.json binary sizes', () => {
 	test('binary sizes include the flagship tsv builds', () => {
 		const labels = benchmarks_json.binary_sizes.map((s) => s.label);
 		assert.include(labels, 'tsv (napi)'); // flagship N-API build (perf report anchor)
-		assert.include(labels, 'tsv-wasm'); // the full wasm build — smallest full-toolchain, size baseline
+		assert.include(labels, 'tsv-wasm'); // the full wasm build — the tldr's wasm size claim reads it
 	});
 
 	test('every hand-stated capability label still names a build in the report', () => {
 		// `categorize_size_capability` falls back to `full` for a label whose name says
 		// nothing about what it does, which is right only for builds that really ship
-		// both operations. The four labels in the table are the exceptions, matched by
+		// both operations. The labels in the table are the exceptions, matched by
 		// exact string — a rename upstream misses the lookup and lands silently in
 		// `full`, where `swc (napi)` (a 32 MB parser) would become the flagship group's
 		// `max` and rescale every bar in it.
 		const labels = new Set(benchmarks_json.binary_sizes.map((s) => s.label));
 		for (const label of Object.keys(SIZE_CAPABILITY_BY_LABEL)) {
+			// the canonical bundles arrived with report `version` 17 — a report written
+			// before it carries none, which is an older report rather than a rename
+			if (label.endsWith(JS_BUNDLE_SUFFIX) && benchmarks_json.version < 17) continue;
 			assert.ok(
 				labels.has(label),
 				`"${label}" is hand-mapped to a capability but no longer names a build — ` +

@@ -3,7 +3,6 @@
 
 import type {
 	BenchmarkBaseline,
-	CorpusSource,
 	GroupOmissions,
 	ImplementationCategory
 } from './benchmark_data.ts';
@@ -72,22 +71,6 @@ export const format_ms_range = (range: { min: number; max: number } | undefined)
 /** Peak memory in whole MiB (`50 MiB`); `—` when the harness measured none. */
 export const format_mib = (mib: number | null | undefined): string =>
 	mib == null ? '—' : `${Math.round(mib)} MiB`;
-
-/**
- * Formats a corpus source's file count as a per-language breakdown
- * (`124 typescript, 15 svelte, 31 css`), largest language first and dropping
- * zero-count languages. Falls back to the plain `N files` total when the report
- * predates the per-language split (or every language's count is zero).
- */
-export const format_corpus_source_files = (source: CorpusSource): string => {
-	const total = `${format_count(source.files)} files`;
-	if (!source.by_language) return total;
-	const parts = Object.entries(source.by_language)
-		.filter((entry): entry is [string, number] => (entry[1] ?? 0) > 0)
-		.sort((a, b) => b[1] - a[1])
-		.map(([language, count]) => `${format_count(count)} ${language}`);
-	return parts.length > 0 ? parts.join(', ') : total;
-};
 
 /**
  * Formats a gzipped binary size as a bar annotation (e.g. `717 KB gz`), or

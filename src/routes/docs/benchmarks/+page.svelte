@@ -301,6 +301,20 @@
 			<ul>
 				<li>wasm-vs-wasm and native-vs-native (N-API here) are the like-for-like pairings.</li>
 				<li>
+					<a href="https://github.com/baseballyama/rsvelte" rel="external">rsvelte-fmt</a>, the
+					second Rust-native Svelte formatter here, is grayed out in the Svelte group: it ran over
+					every Svelte file (its platform binary, invoked directly) but isn't timed, since it ships
+					no in-process API and a process per file would measure spawn rather than formatting.
+					{#if cli_svelte_wall != null}
+						For multi-threaded CLI speed with rsvelte included, see the
+						<a href="#{docs_slugify(CLI_SECTION_TITLE)}">CLI section</a>.
+					{:else if cli_svelte?.aborted}
+						Its multi-threaded CLI run in the
+						<a href="#{docs_slugify(CLI_SECTION_TITLE)}">CLI section</a> is currently aborted rather
+						than timed.
+					{/if}
+				</li>
+				<li>
 					Every formatter is pinned to tsv's fixed style (width 100, tabs, single quotes, no
 					trailing commas) in its own option dialect, so each row does comparable layout work; the
 					harness checks that each pin landed on every timed formatter tsv faces by formatting a
@@ -356,20 +370,6 @@
 					third-party CSS plugin for the same host. This times the engine, not the
 					<code>deno fmt</code> CLI: a subprocess per file would measure process startup, not
 					formatting.
-				</li>
-				<li>
-					<a href="https://github.com/baseballyama/rsvelte" rel="external">rsvelte-fmt</a>, the
-					second Rust-native Svelte formatter here, is grayed out in the Svelte group: it ran over
-					every Svelte file (its platform binary, invoked directly) but isn't timed, since it ships
-					no in-process API and a process per file would measure spawn rather than formatting.
-					{#if cli_svelte_wall != null}
-						For multi-threaded CLI speed, see the
-						<a href="#{docs_slugify(CLI_SECTION_TITLE)}">CLI section</a>.
-					{:else if cli_svelte?.aborted}
-						Its multi-threaded CLI run in the
-						<a href="#{docs_slugify(CLI_SECTION_TITLE)}">CLI section</a> is currently aborted rather
-						than timed.
-					{/if}
 				</li>
 			</ul>
 		</aside>
@@ -481,14 +481,27 @@
 	<TomeSection>
 		<TomeSectionHeader text="Binary size" />
 		<p>
-			tsv covers only Svelte, TypeScript/JS, and CSS, so it can be smaller when that's all you need
-			— which matters most in the browser via wasm. Bars and ratios are raw on-disk bytes; the
+			The size of each tool's artifact, grouped by what it does. tsv covers Svelte, TypeScript/JS,
+			and CSS. Size matters most in the browser. Bars and ratios are raw on-disk bytes; the
 			<code>gz</code> annotation beside each is the gzipped size, the better estimate of a download.
 		</p>
 		<BenchmarksSizes sizes={benchmarks_json.binary_sizes} />
 		<aside>
 			<p>Notes:</p>
 			<ul>
+				<li>
+					The <code>(js bundle)</code> entries are the reference toolchain — Prettier with
+					prettier-plugin-svelte, and the parsers tsv replaces (Svelte's, plus acorn with
+					acorn-typescript) — and the only entries here that aren't a file a package ships. Neither
+					publishes a single artifact, and installed size counts every language Prettier supports in
+					two module formats, so each entry is instead a minified, tree-shaken bundle of the least
+					one job needs for tsv's three languages: what you would deploy to a browser, not what Node
+					loads (a plain <code>import 'prettier'</code> plus the plugin is several times larger,
+					since Prettier's package entry registers every language it supports). The full entry is
+					barely larger than the formatter because the formatter already contains the Svelte parser.
+					Minified JS compresses much better than wasm, so these read smaller by <code>gz</code>
+					than by raw bytes — and a size says nothing of the speed measured above.
+				</li>
 				<li>
 					Each group mixes wasm and native builds under one anchor, so a ratio can cross kinds —
 					compare like with like within a group. tsv's entries: <code>tsv (ffi)</code>,

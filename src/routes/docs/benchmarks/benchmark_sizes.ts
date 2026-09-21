@@ -7,12 +7,17 @@ import type { BinarySize, ImplementationCategory } from './benchmark_data.ts';
 
 // Binary-size categorization
 
+/** The suffix every synthesized canonical bundle's label carries (tsv's `canonical_bundles.ts`). */
+export const JS_BUNDLE_SUFFIX = '(js bundle)';
+
 /**
  * The color category for a binary-size label — the size table's analog of
  * `categorize_name`, read off the label prefix since size labels carry a
  * parenthesized build kind rather than a report row name.
  */
 export const categorize_size = (label: string): ImplementationCategory => {
+	// the canonical toolchain's synthesized bundles — see `CANONICAL_BUNDLE_LABELS`
+	if (label.endsWith(JS_BUNDLE_SUFFIX)) return 'canonical';
 	// covers `tsv-wasm` plus the `tsv-format-wasm`/`tsv-parse-wasm` subsets
 	if (label.startsWith('tsv') && label.includes('wasm')) return 'tsv_wasm';
 	if (label.startsWith('tsv')) return 'tsv_native';
@@ -36,7 +41,7 @@ export type SizeCapability = 'full' | 'formatter' | 'parser';
  * keyword heuristic below can't reach them.
  *
  * The heuristic reads `parse`/`format`/`fmt` out of the label, which works only
- * while a tool is named after its job. These four aren't, and the fallback for an
+ * while a tool is named after its job. These aren't, and the fallback for an
  * unreadable label is `full` — a heading that reads "parse + format" over builds
  * that ship no formatter at all, or none but a formatter. So each one is stated
  * instead:
@@ -52,10 +57,19 @@ export type SizeCapability = 'full' | 'formatter' | 'parser';
  *   svelte2tsx, HMR diffing and a resolver — so `parser` is the least-wrong
  *   heading rather than a claim of scope match. The notes beside the table say so.
  *
+ * - The three `(js bundle)` labels are the canonical toolchain — prettier and the
+ *   canonical parsers — as minified bundles the tsv harness builds, one per
+ *   capability by construction, so each is stated rather than read: the keyword
+ *   heuristic would file `prettier + parsers` under `parser` and the plain
+ *   prettier bundle under `full`.
+ *
  * `biome` is deliberately not here: the bucket sizes what an artifact ships, and
  * Biome's wasm build really is the whole toolchain.
  */
 export const SIZE_CAPABILITY_BY_LABEL: Record<string, SizeCapability> = {
+	'svelte + acorn-typescript parsers (js bundle)': 'parser',
+	'prettier + svelte plugin (js bundle)': 'formatter',
+	'prettier + parsers (js bundle)': 'full',
 	'dprint (wasm)': 'formatter',
 	'malva (wasm)': 'formatter',
 	'swc (napi)': 'parser',

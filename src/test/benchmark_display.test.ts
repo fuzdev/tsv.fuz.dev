@@ -2,7 +2,6 @@ import { assert, describe, test } from 'vitest';
 
 import {
 	format_bytes,
-	format_corpus_source_files,
 	format_count,
 	format_coverage_percent,
 	format_label,
@@ -178,27 +177,6 @@ describe('format_count', () => {
 	test('groups thousands in the pinned locale', () => {
 		assert.strictEqual(format_count(44_220), '44,220');
 		assert.strictEqual(format_count(7), '7');
-	});
-});
-
-describe('format_corpus_source_files', () => {
-	test('lists languages largest first, dropping empty ones', () => {
-		assert.strictEqual(
-			format_corpus_source_files({
-				path: 'x',
-				files: 1_170,
-				by_language: { svelte: 15, typescript: 1_124, css: 31, html: 0 }
-			}),
-			'1,124 typescript, 31 css, 15 svelte'
-		);
-	});
-
-	test('falls back to the total without a usable per-language split', () => {
-		assert.strictEqual(format_corpus_source_files({ path: 'x', files: 1_500 }), '1,500 files');
-		assert.strictEqual(
-			format_corpus_source_files({ path: 'x', files: 3, by_language: { css: 0 } }),
-			'3 files'
-		);
 	});
 });
 

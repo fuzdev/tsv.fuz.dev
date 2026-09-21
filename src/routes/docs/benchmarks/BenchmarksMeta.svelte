@@ -9,9 +9,12 @@
 	import { format_count, format_version_label } from './benchmark_display.ts';
 
 	const {
-		baseline
+		baseline,
+		corpus_repos: show_corpus_repos = true
 	}: {
 		baseline: BenchmarkBaseline;
+		// off where the page already links every corpus source itself
+		corpus_repos?: boolean;
 	} = $props();
 
 	const site = site_context.get();
@@ -73,7 +76,7 @@
 			<li>{baseline.runtime} {baseline.machine.runtime_version}</li>
 		</ul>
 	</div>
-	{#if corpus_repos.length}
+	{#if show_corpus_repos && corpus_repos.length}
 		<div class="corpus-repos">
 			<h3 class="mt_0 mb_sm">corpus repos</h3>
 			{#if baseline.corpus_snapshot}

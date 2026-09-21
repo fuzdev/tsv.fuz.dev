@@ -312,7 +312,9 @@ export interface BaselineVersions {
 export interface BinarySize {
 	label: string;
 	bytes: number;
-	kind: 'native' | 'wasm';
+	// `js` (report `version` 17) is a minified JS bundle the tsv harness builds
+	// itself — the canonical toolchain's rows, which no package ships as one file.
+	kind: 'native' | 'wasm' | 'js';
 	// Gzipped on-disk size (≈ npm-tarball wire size); `null` when `gzip` was
 	// unavailable on the machine that generated the baseline.
 	gzip_bytes: number | null;

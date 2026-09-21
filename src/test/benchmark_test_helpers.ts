@@ -41,7 +41,7 @@ export const create_baseline_entry = (overrides: Partial<BaselineEntry> = {}): B
  * whole input it reads rather than inheriting the committed report's.
  */
 export const create_baseline = (overrides: Partial<BenchmarkBaseline> = {}): BenchmarkBaseline => ({
-	version: 16,
+	version: 17,
 	runtime: 'node',
 	timestamp: '2026-01-01T00:00:00.000Z',
 	git_commit: 'abc1234',
