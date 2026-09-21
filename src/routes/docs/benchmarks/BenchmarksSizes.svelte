@@ -38,7 +38,7 @@
 </script>
 
 {#each size_groups as group (group.capability)}
-	<div class="mb_lg">
+	<div class="mb_xl5">
 		<h3>{group.heading}</h3>
 		<BenchmarksBaselineGroup rows={to_rows(group)} direction="size" label={group.heading} />
 	</div>

@@ -383,7 +383,7 @@
 
 	<TomeSection>
 		<TomeSectionHeader text="Format speed" />
-		<p class="mb_xl5">
+		<p>
 			tsv's formatter is similar to <a href="https://oxc.rs/docs/guide/usage/formatter">Oxfmt</a>,
 			<a href="https://biomejs.dev/formatter/">Biome</a>, and
 			<a href="https://dprint.dev/plugins/typescript/">dprint</a>. It formats Svelte, TypeScript,
@@ -393,7 +393,7 @@
 		{#each format_groups as group (group.language)}
 			<BenchmarksGroup {group} {corpus} />
 		{/each}
-		<aside class="mt_xl5">
+		<aside>
 			<p>Notes:</p>
 			<ul>
 				<li>wasm-vs-wasm and native-vs-native (N-API here) are the like-for-like pairings.</li>
@@ -475,7 +475,7 @@
 
 	<TomeSection>
 		<TomeSectionHeader text={CLI_SECTION_TITLE} />
-		<p class="mb_xl5">
+		<p>
 			The numbers above time tsv's engine in-process, one file at a time. This section comes from a
 			fork of Oxc's own
 			<a href="https://github.com/oxc-project/bench-formatter" rel="external">
@@ -500,7 +500,7 @@
 			dispatcher and the WASM fallback each add.
 		</p>
 		<BenchmarksCli report={benchmarks_cli} />
-		<aside class="mt_xl5">
+		<aside>
 			<p>Notes:</p>
 			<ul>
 				<li>
@@ -608,7 +608,7 @@
 
 	<TomeSection>
 		<TomeSectionHeader text="Parse speed" />
-		<p class="mb_xl5">
+		<p>
 			tsv and <a href="https://oxc.rs/docs/guide/usage/parser">oxc-parser</a> share a mechanism:
 			both serialize the AST to JSON in Rust and hand it to the engine's <code>JSON.parse</code>,
 			native and wasm alike. The deliverables differ: tsv's default wire (<code>tsv-json</code> /
@@ -627,7 +627,7 @@
 			raw engine speed, and their gap to the JSON rows is what serializing and handing off costs
 			tsv, not a cross-tool comparison.
 		</p>
-		<p class="mb_xl5">
+		<p>
 			yuku-parser, a JS/TS parser written in Zig, emits the same span-only AST as oxc, so it too
 			compares against the <code>no-locs</code> entries. It gets there differently — a compact
 			binary buffer its JS side decodes into objects lazily — so the bench forces the whole tree and
@@ -637,7 +637,7 @@
 		{#each parse_groups as group (group.language)}
 			<BenchmarksGroup {group} {corpus} />
 		{/each}
-		<aside class="mt_xl5">
+		<aside>
 			<p>Notes:</p>
 			<ul>
 				<li>
@@ -710,7 +710,7 @@
 
 	<TomeSection>
 		<TomeSectionHeader text="Parse conformance" />
-		<p class="mb_xl5">
+		<p>
 			Where the speed numbers use real-world code, this section measures parse <em>coverage</em>:
 			how much of a much larger, deliberately hard corpus each parser accepts — Prettier's and
 			prettier-plugin-svelte's format-test suites (Prettier's HTML fixtures ride along in the Svelte
@@ -736,7 +736,7 @@
 			</aside>
 		{/if}
 		<BenchmarksConformance groups={conformance_groups} />
-		<aside class="mt_xl5">
+		<aside>
 			<p>Notes:</p>
 			<ul>
 				<li>
@@ -846,7 +846,7 @@
 			<code>gz</code> annotation beside each is the gzipped size, the better estimate of a download.
 		</p>
 		<BenchmarksSizes sizes={benchmarks_json.binary_sizes} />
-		<aside class="mt_xl5">
+		<aside>
 			<p>Notes:</p>
 			<ul>
 				<li>
@@ -1002,7 +1002,7 @@
 			deliberately tricky edge cases measure conformance, not typical throughput, and the
 			parse-conformance section covers them.
 		</p>
-		<p class="mb_xl3">
+		<p>
 			Two caveats on that corpus. It is dominated by the author's own code plus Svelte's, the same
 			code tsv is developed and tested against and mostly tsv-formatted already, so every ratio here
 			is "on this corpus", not a universal figure; the CLI section's Svelte corpus shares only its
@@ -1034,7 +1034,7 @@
 			the binary-size table counts. A delta the report finds inside the two measurements' combined
 			noise is marked <code>≈</code> in the tables and reads as parity, not an effect.
 		</p>
-		<aside class="mt_xl5 mb_xl5">
+		<aside>
 			<p>
 				The <code>tsv-internal</code> rows cross the native binding boundary but materialize nothing
 				on the JS side, so a delta there is the boundary plus each engine's hand-off of the source

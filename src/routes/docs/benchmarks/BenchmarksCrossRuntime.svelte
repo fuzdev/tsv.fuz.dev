@@ -100,14 +100,14 @@
 	</aside>
 {/if}
 {#if runtime_versions.length}
-	<ul class="unstyled versions benchmarks-note">
+	<ul class="unstyled versions">
 		{#each runtime_versions as { runtime, version } (runtime)}
 			<li><code>{runtime}</code> {version}</li>
 		{/each}
 	</ul>
 {/if}
 {#each groups as group (group.group)}
-	<div class="mb_xl4">
+	<div class="mb_xl5">
 		<h3 class="mt_0 mb_sm">{format_group_label(group.operation, group.language)}</h3>
 		<table class="benchmarks-table">
 			<thead>

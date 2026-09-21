@@ -45,15 +45,16 @@
 				{#each group.rows as row (row.name)}
 					<tr>
 						<th scope="row">
-							{row.name}{#if row.note}
-								<small class="text_40">({row.note})</small>
-							{/if}
+							{row.name}
+							{#if row.note}<small>({row.note})</small>{/if}
 						</th>
 						<td class="benchmarks-num">
 							{format_count(row.files_processed)} /
 							{format_count(row.files_total)}
 						</td>
-						<td class="benchmarks-num percent">{format_coverage_percent(row.coverage_fraction)}</td>
+						<td class="benchmarks-num">
+							<strong>{format_coverage_percent(row.coverage_fraction)}</strong>
+						</td>
 					</tr>
 				{/each}
 			</tbody>
@@ -64,22 +65,5 @@
 <style>
 	table {
 		max-width: 40rem;
-	}
-	thead th {
-		font-weight: 400;
-		font-size: var(--font_size_sm);
-		color: var(--text_40);
-		padding-block: var(--space_xs);
-	}
-	tbody th,
-	td {
-		padding-block: var(--space_xs);
-	}
-	/* darker row separators than the base style's */
-	tr {
-		border-bottom-color: var(--border_color);
-	}
-	.percent {
-		font-weight: 700;
 	}
 </style>

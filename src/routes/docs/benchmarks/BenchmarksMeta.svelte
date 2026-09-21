@@ -36,7 +36,7 @@
 	const commit_url = $derived(`${site.repo_url}/commit/${baseline.git_commit}`);
 </script>
 
-<div class="meta benchmarks-note">
+<div class="meta font_size_sm">
 	<div>
 		<h3 class="mt_0 mb_sm">corpus stats</h3>
 		<ul class="unstyled">

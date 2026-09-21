@@ -89,25 +89,20 @@
 {#each report.scenarios as scenario (scenario.key)}
 	{@const anchor_label = to_anchor_label(scenario)}
 	{@const rows = to_rows(scenario, anchor_label)}
-	<div class="mb_xl2">
+	<div class="mb_xl5">
 		<h3>{scenario.heading}: {scenario.target}</h3>
 		<p>{scenario.description}</p>
-		<p class="benchmarks-note">Corpus: {scenario.corpus}</p>
 		{#if rows.length > 0}
-			<p class="benchmarks-note">
-				Ratios are each row over <strong>{anchor_label}</strong>, so above 1 is slower, or heavier,
-				than it — hover a row to re-baseline on it.
-			</p>
 			<div class="table-scroll">
 				<table class="benchmarks-table">
 					<thead>
 						<tr>
 							<th scope="col" class="formatter">formatter</th>
 							<th scope="col">time</th>
-							<th scope="col">vs baseline (time)</th>
-							<th scope="col">vs baseline (CPU work)</th>
+							<th scope="col">time ratio</th>
+							<th scope="col">CPU ratio</th>
 							<th scope="col">peak RSS</th>
-							<th scope="col">vs baseline (RSS)</th>
+							<th scope="col">RSS ratio</th>
 						</tr>
 					</thead>
 					<!-- hover only re-baselines the table's ratios — a visual aid over data that is
@@ -143,30 +138,35 @@
 					</tbody>
 				</table>
 			</div>
-			{#if scenario.benchmark_runs > 0}
-				<p class="benchmarks-note">
-					Each time is the mean of {scenario.benchmark_runs} runs, after {scenario.warmup_runs}
-					untimed warmup
-					runs{scenario.settle_seconds
-						? ` and a ${scenario.settle_seconds} s idle before each formatter's`
-						: ''}; each peak RSS is the mean of the per-run peaks over a separate, unwarmed pass of
-					{scenario.benchmark_runs} runs.
-				</p>
-			{/if}
-			{#if has_dispatcher_memory(scenario)}
-				<p class="benchmarks-note">
-					The peak RSS of <strong>{CLI_TSV_NPM_LABEL}</strong> is its Node launcher's, not the
-					binary's.
-				</p>
-			{/if}
+			<!-- one note per table: the corpus revision, the run counts, and what the
+				dispatcher row's memory figure is -->
+			<p>
+				<small>
+					Corpus: {scenario.corpus}.
+					{#if scenario.benchmark_runs > 0}
+						Each time is the mean of {scenario.benchmark_runs} runs, after {scenario.warmup_runs}
+						untimed warmup
+						runs{scenario.settle_seconds
+							? ` and a ${scenario.settle_seconds} s idle before each formatter's`
+							: ''}; each peak RSS is the mean of the per-run peaks over a separate, unwarmed pass
+						of {scenario.benchmark_runs} runs.
+					{/if}
+					{#if has_dispatcher_memory(scenario)}
+						The peak RSS of <strong>{CLI_TSV_NPM_LABEL}</strong> is its Node launcher's, not the
+						binary's.
+					{/if}
+				</small>
+			</p>
+		{:else}
+			<p><small>Corpus: {scenario.corpus}</small></p>
 		{/if}
 		{#if scenario.unshimmed}
-			<p class="benchmarks-note">{scenario.unshimmed}</p>
+			<p><small>{scenario.unshimmed}</small></p>
 		{/if}
 		{#if scenario.aborted}
 			<!-- an abort after timing keeps its table, so the sentence about withheld
 				numbers belongs only under a scenario that has none -->
-			<p class="aborted">
+			<p>
 				{scenario.aborted}
 				{#if rows.length === 0}
 					The harness aborts a scenario rather than publish numbers its formatters didn't earn on
@@ -177,9 +177,11 @@
 	</div>
 {/each}
 
-<p class="benchmarks-note">
-	Measured on {report.machine} — {versions}. Wall-clock ratios scale with core count; "vs baseline
-	(CPU work)" is the parallelism-neutral view.
+<p>
+	<small>
+		Measured on {report.machine} — {versions}. Wall-clock ratios scale with core count; "CPU ratio"
+		is the parallelism-neutral view.
+	</small>
 </p>
 
 <style>
@@ -189,7 +191,6 @@
 	}
 	th,
 	td {
-		padding-block: var(--space_xs);
 		text-align: right;
 		white-space: nowrap;
 	}
@@ -198,10 +199,6 @@
 	}
 	.speedup {
 		font-weight: 600;
-	}
-	.aborted {
-		font-style: italic;
-		opacity: 0.8;
 	}
 	/* the row every ratio in the table is currently taken against — the default, or
 	   whichever row is hovered — marked as the bar groups mark theirs; a row's

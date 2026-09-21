@@ -32,7 +32,7 @@
 				['css', row.format_css]
 			] as const}
 			<tr>
-				<th scope="row" class="variant">{row.variant}</th>
+				<th scope="row">{row.variant}</th>
 				{#each cells as [language, value] (language)}
 					<td class="speedup">{value != null ? format_speedup(value) : '—'}</td>
 				{/each}
@@ -42,13 +42,6 @@
 </table>
 
 <style>
-	th,
-	td {
-		padding-block: var(--space_xs);
-	}
-	th.variant {
-		font-weight: 600;
-	}
 	.speedup {
 		font-size: var(--font_size_xl);
 		font-weight: 700;
