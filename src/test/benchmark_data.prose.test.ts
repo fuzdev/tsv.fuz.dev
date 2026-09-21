@@ -135,7 +135,7 @@ describe('prose ratios resolve', () => {
 	});
 
 	test('oxfmt formats Svelte at Prettier speed, as the note says it delegates', () => {
-		// "for Svelte it delegates to Prettier internally" — if a future oxfmt grows its
+		// "for Svelte it delegates to a Prettier it bundles" — if a future oxfmt grows its
 		// own Svelte path the two rows will part ways and the note is stale
 		const ratio = benchmark_speedup(benchmarks_json, 'format/svelte', 'oxfmt', 'prettier');
 		assert.isDefined(ratio);
@@ -170,7 +170,7 @@ describe('prose ratios resolve', () => {
 
 	test('the pairings the copy calls payload-matched are, and the ones it excludes are not', () => {
 		// The page names four pairings as comparing the same PRODUCT and rules two out
-		// ("swc ... isn't payload-matched to either tsv wire", "the `no-locs` entries
+		// ("swc's own AST shape ... matches neither tsv wire", "the `no-locs` entries
 		// are the one payload-matched pairing" for oxc-parser). Those are claims about
 		// the report's `payload` tiers, so read them off it rather than trusting prose.
 		const entry = (group: string, name: string) => {
@@ -370,8 +370,7 @@ describe('prose ratios resolve', () => {
 	});
 
 	test('the dispatcher overhead is the "fixed cost" the delivery note calls it', () => {
-		// "a fixed cost of ~A–B ms in every scenario here, so its share shrinks against
-		// a real repo" — fixed means the absolute figure barely moves between a one-file
+		// "That launch cost is fixed, so its share shrinks on a real repo" — fixed means the absolute figure barely moves between a one-file
 		// run and a repo, so the span must stay tight around a positive cost
 		const overhead = cli_tsv_npm_overhead_ms_range();
 		assert.isDefined(overhead);
@@ -386,7 +385,7 @@ describe('prose ratios resolve', () => {
 		);
 		assert(wasm, 'delivery scenario has no tsv-wasm row');
 		assert.isAbove(wasm.cpu_ms, wasm.wall_ms);
-		// the Svelte copy: "rsvelte-fmt 0.7.x’s check mode crashes nondeterministically on this corpus"
+		// the Svelte copy: "rsvelte-fmt 0.7.x aborts nondeterministically on this corpus"
 		const rsvelte_version = benchmarks_cli.versions['rsvelte-fmt'];
 		assert.isDefined(rsvelte_version);
 		assert.match(rsvelte_version, /^0\.7\./, 'the Svelte copy names rsvelte-fmt 0.7.x');
@@ -452,7 +451,7 @@ describe('prose ratios resolve', () => {
 	});
 
 	test('the run-order note holds: every scenario runs the dispatcher row, then bare tsv, last', () => {
-		// "Every scenario here puts the bare tsv binary last, with its Node dispatcher
+		// "Every scenario tsv runs in puts the bare binary last, with its Node dispatcher
 		// row just before it" — hyperfine reports commands in the order it ran them,
 		// and the generated timings keep that order. An aborted scenario has no timings
 		// to order, so its preflight rows, which the harness runs in the same order, stand in.
@@ -493,7 +492,7 @@ describe('prose ratios resolve', () => {
 	});
 
 	test("the parse note on oxc-parser's wasm row running an older release reads the report", () => {
-		// "Its wasm row runs an older release than its native row ... so the wasm-vs-wasm
+		// "oxc-parser's wasm row runs an older release than its native row ... so the wasm-vs-wasm
 		// pairing crosses oxc versions" — the bindings re-aligning makes the note a fiction
 		const { versions } = benchmarks_json;
 		assert.isDefined(versions.oxc_parser_wasm);
@@ -527,19 +526,18 @@ describe('prose ratios resolve', () => {
 		}
 	});
 
-	test('the corpus repos the TLDR names are present', () => {
-		// "Svelte's own repos (svelte, kit, svelte.dev), the fuz.dev repos, and a few
-		// of the author's personal SvelteKit sites" — gate the names so the sentence
-		// can't outlive the corpus
+	test('the corpus repos the Corpus section names are present', () => {
+		// "the fuz.dev ecosystem ... and upstream framework source (Svelte, SvelteKit, and
+		// the svelte.dev site)" — gate the names so the sentence can't outlive the corpus
 		const slugs = new Set(
 			(benchmarks_json.corpus_sources ?? []).map((s) => s.repo?.slug).filter(Boolean)
 		);
 		for (const slug of ['sveltejs/svelte', 'sveltejs/kit', 'sveltejs/svelte.dev']) {
-			assert.ok(slugs.has(slug), `TLDR names ${slug} but the corpus lacks it`);
+			assert.ok(slugs.has(slug), `the page names ${slug} but the corpus lacks it`);
 		}
 		assert.ok(
 			[...slugs].some((slug) => slug?.startsWith('fuzdev/')),
-			'TLDR names the fuz.dev repos but the corpus has none'
+			'the page names the fuz.dev repos but the corpus has none'
 		);
 	});
 });

@@ -176,7 +176,7 @@ const SCENARIO_COPY: Record<string, CliScenarioCopy> = {
 	[CLI_SVELTE_KEY]: {
 		heading: 'Svelte corpus',
 		description:
-			'Two Rust Svelte-native formatters head-to-head on a third-party .svelte corpus, rsvelte-fmt configured to tsv’s fixed style so both do comparable line-break work. Its time includes the oxfmt it spawns for the files it doesn’t format itself — none here, but that is how it ships — and the harness pins its style cache and oxfmt daemon off. rsvelte-fmt 0.7.x aborts nondeterministically on this corpus under the harness’s preflight, a condition the harness keeps rather than works around, and it never retries: a run is published as it ended, complete or aborted.',
+			'Two Rust Svelte-native formatters head-to-head on a third-party .svelte corpus, rsvelte-fmt configured to tsv’s fixed style so both do comparable line-break work. Its time includes the oxfmt it spawns for the files it doesn’t format itself. rsvelte-fmt 0.7.x aborts nondeterministically on this corpus under the harness’s preflight, and the harness never retries: a run is published as it ended, complete or aborted.',
 		tsv_only: false
 	},
 	[CLI_DELIVERY_KEY]: {

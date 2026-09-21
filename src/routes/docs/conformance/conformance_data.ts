@@ -204,7 +204,8 @@ const to_conformance_cell = (
 });
 
 // a source no engine selected and none rejects any of says nothing a reader can
-// compare, so two or more of them fold into one row
+// compare, so two or more of them fold into one row; a group with a `*` selector
+// (Svelte) never folds, so its rows keep showing which 100% is by construction
 const is_foldable = (row: ConformanceSourceRow): boolean =>
 	row.cells.some((cell) => cell !== undefined) &&
 	row.cells.every((cell) => cell === undefined || (!cell.selected && cell.rejected === 0));

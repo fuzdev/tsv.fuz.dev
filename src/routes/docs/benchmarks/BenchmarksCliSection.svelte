@@ -88,14 +88,14 @@
 		multi-file parallelism — plus peak memory: what you experience typing the command, on real code.
 		tsv appears only in the JSX-free scenarios (it has no JSX/TSX parser). Every formatter is
 		installed from npm, pinned by the fork's lockfile, and the other tools are timed through their
-		packages' bins as pnpm links them — a shell shim that starts Node first. Facing them, tsv gets
-		two rows. <code>{CLI_TSV_NPM_LABEL}</code> is the launcher-matched, like-for-like one: the Node
-		bin of <a href="https://www.npmjs.com/package/@fuzdev/tsv"><code>@fuzdev/tsv</code></a>, what
-		<code>npx tsv</code> runs, launching the native binary as Biome's and rsvelte-fmt's bins do,
-		behind the same kind of pnpm bin shim. <code>tsv</code> runs the binary directly from the
-		platform package, skipping Node: what the binary costs on its own. Tables facing other tools
-		start their ratios against the dispatcher row; the last table is tsv against itself, anchored on
-		the bare binary — what the Node dispatcher and the WASM package each add.
+		packages' Node bins. Facing them, tsv gets two rows. <code>{CLI_TSV_NPM_LABEL}</code> is the
+		launcher-matched, like-for-like one: the Node bin of
+		<a href="https://www.npmjs.com/package/@fuzdev/tsv"><code>@fuzdev/tsv</code></a>, what
+		<code>npx tsv</code> runs, launching the native binary as Biome's and rsvelte-fmt's bins do.
+		<code>tsv</code> runs the binary directly from the platform package, skipping Node: what the
+		binary costs on its own. Tables facing other tools start their ratios against the dispatcher
+		row; the last table is tsv against itself, anchored on the bare binary — what the Node
+		dispatcher and the WASM package each add.
 	</p>
 	<BenchmarksCli report={benchmarks_cli} />
 	<aside>
@@ -134,9 +134,8 @@
 				the bare binary. The figure is the largest single process in each command's tree, not the
 				sum (the CPU-work column does sum the tree), so a row that launches a native binary from
 				Node — Biome's, rsvelte-fmt's, and tsv's dispatcher — is understated: the smaller processes
-				in its tree don't count. Prettier's, Oxfmt's, and the bare <code>tsv</code> rows each run as
-				one process here and are measured whole. The dispatcher's peak,
-				~{format_mib(npm_memory_mb)}, is still below every other tool's.
+				in its tree don't count. The dispatcher's peak, ~{format_mib(npm_memory_mb)}, is still below
+				every other tool's.
 			</li>
 			<li>
 				On the large single file, where a Node bin's fixed launch cost weighs most against a short
@@ -146,10 +145,8 @@
 			</li>
 			<li>
 				The delivery table is tsv against tsv, on one file. Through <code>@fuzdev/tsv</code>'s Node
-				dispatcher (npx's own resolution isn't counted) the same binary takes ~{delivery_npm_wall}
-				as long — Node starting up, the dispatcher resolving and spawning the binary, and Node
-				staying resident until it exits. That launch cost is fixed, so its share shrinks on a real
-				repo, where the dispatcher takes ~{npm_ts_cost} as long.
+				dispatcher the same binary takes ~{delivery_npm_wall} as long. That launch cost is fixed, so
+				its share shrinks on a real repo, where the dispatcher takes ~{npm_ts_cost} as long.
 				<a href="https://www.npmjs.com/package/@fuzdev/tsv-wasm"><code>@fuzdev/tsv-wasm</code></a> —
 				the package for platforms without a prebuilt binary, not the default — runs the same CLI
 				over a WASM engine inside Node at ~{wasm_wall} the time and ~{wasm_memory} the memory of the
@@ -168,8 +165,7 @@
 			<li>
 				The tools are pinned but one corpus isn't: the TypeScript repo is Outline at its default
 				branch's head, so its file set moves whenever it is re-cloned. Every formatter is scoped to
-				the JSX-free <code>.ts</code>/<code>.js</code> family — the others by their config, tsv
-				(which has none) by the extensions it walks — leaving out the <code>.tsx</code> and
+				the JSX-free <code>.ts</code>/<code>.js</code> family, leaving out the <code>.tsx</code> and
 				<code>.jsx</code> tsv can't parse, and the preflight file-count check holds the tools that
 				report a count to the same set. The single file (the TypeScript compiler's
 				<code>parser.ts</code> at a pinned release) and the Svelte corpus (a pinned

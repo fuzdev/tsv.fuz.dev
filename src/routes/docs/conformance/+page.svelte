@@ -54,8 +54,7 @@
 					A greyed <code>100%</code> marks the parser that chose a source, so reads 100% on it by
 					construction: svelte/compiler on the Svelte set (the files it rejects are excluded, so the
 					others read as drop-in fidelity against it) and <code>tsc</code>{tsc_label} on its
-					compiler's cases. tsv's 100% on test262 is a result: the suite's own metadata picks the
-					tests, less the Annex B grammar tsv declines (see
+					compiler's cases. tsv's 100% on test262 is a result, not a selection (see
 					<a href="#{docs_slugify(CORPUS_SECTION_TITLE)}">Corpus</a>).
 				</li>
 				<li>
