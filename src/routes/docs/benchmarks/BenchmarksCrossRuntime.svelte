@@ -108,7 +108,7 @@
 {/if}
 {#each groups as group (group.group)}
 	<div class="mb_xl5">
-		<h3 class="mt_0 mb_sm">{format_group_label(group.operation, group.language)}</h3>
+		<h3>{format_group_label(group.operation, group.language)}</h3>
 		<table class="benchmarks-table">
 			<thead>
 				<tr>
@@ -180,7 +180,7 @@
 {/each}
 <p>
 	sweeps/sec — one sweep is a full pass over the group's timed file set (higher is faster); ratios
-	are vs <code>{base}</code> (&gt; 1 = faster than {base}). A ratio marked <code>≈</code> is a delta
+	are vs <code>{base}</code>, negative when slower than it. A ratio marked <code>≈</code> is a delta
 	smaller than the two measurements' combined noise, which the report flags itself — read it as
 	parity, not a runtime effect. A <code>fail</code> is a row that runtime contributed no number for
 	— an implementation it can't load (listed above when the report records it), or one its report
@@ -195,11 +195,6 @@
 </p>
 
 <style>
-	/* an `h3` by rank, under the section's `h2`, that keeps the smaller `h4` scale */
-	h3 {
-		--font_size: var(--font_size_lg);
-		font-weight: 700;
-	}
 	/* the per-runtime load failures inside the disclosure aside */
 	.unavailable {
 		margin-block: var(--space_xs);

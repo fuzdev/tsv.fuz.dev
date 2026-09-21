@@ -458,7 +458,7 @@ export const compare_group_order = (
 /**
  * Fixed slot for a format/parse row, applied in place of a size-ordered sort so the
  * rows read in a stable, meaningful sequence across every group: the canonical
- * reference first (the default 1.0x anchor), then the cross-tool comparisons
+ * reference first (the default 1.00x anchor), then the cross-tool comparisons
  * (alphabetically: biome, dprint — whose category malva shares — oxc, postcss,
  * rsvelte, swc, yuku), then tsv's JSON-materializing
  * wires (the span-only `no-locations` wire before the default `loc`-carrying one),
@@ -524,7 +524,7 @@ export const derive_benchmark_groups = (baseline: BenchmarkBaseline): Array<Benc
 	for (const [group_key, entries] of Map.groupBy(baseline.entries, (e) => e.group)) {
 		const { operation, language } = parse_group_key(group_key);
 		// The sort below leads each group with its canonical reference (Prettier for
-		// format, the JS baseline for parse), so the first row is the default 1.0x
+		// format, the JS baseline for parse), so the first row is the default 1.00x
 		// anchor; the shared component reads that default off the first row and
 		// recomputes every ratio, re-baselining onto whichever row is hovered. (Size
 		// groups lead with their smallest build; see `derive_size_groups`.)

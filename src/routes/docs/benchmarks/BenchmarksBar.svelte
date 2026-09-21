@@ -21,9 +21,8 @@
 		value: FormattedUnit;
 		ratio_text: string;
 		ratio_color: string | undefined;
-		// optional extra context: a column of its own between value and ratio (gzipped
-		// size in the binary-size groups), or, on a coverage-only row, the accept rate
-		// shown beside `not timed`; omitted when absent
+		// optional extra context shown between value and ratio (gzipped size in the
+		// binary-size groups); omitted when absent
 		annotation?: string | undefined;
 		// a grayed-out, inert placeholder (a tool that doesn't run in this group) —
 		// no bar, no value, no ratio, just the label held in its shared slot
@@ -59,36 +58,26 @@
 	the bar itself only repeats the measurement visually, so it is hidden. Hover is
 	handled by the group, which reads `data-baseline-key` off whichever row the
 	pointer is over — see `BenchmarksBaselineGroup` -->
-<div
-	class="bar-row"
-	class:has-annotation={annotation != null && !coverage_only}
-	class:disabled
-	class:anchor
-	role="row"
-	data-baseline-key={baseline_key}
->
+<div class="bar-row" class:disabled class:anchor role="row" data-baseline-key={baseline_key}>
 	<span class="bar-label" role="rowheader">{display_label}</span>
-	{#if coverage_only}
-		<!-- no bar to draw, so the cell takes the track's room for its accept rate -->
-		<span class="bar-value coverage" role="cell">
-			not timed{annotation ? ` (${annotation})` : ''}
-		</span>
-	{:else}
-		<div class="bar-track" role="cell" aria-hidden="true">
-			{#if !disabled}
-				<div
-					class="bar-fill"
-					style:width="{bar_fraction * 100}%"
-					style:background={category_color(category)}
-				></div>
-			{/if}
-		</div>
-		<span class="bar-value" role="cell">
-			{#if disabled}n/a{:else}{value.value} {value.unit}{/if}
-		</span>
-		{#if annotation != null}
-			<small class="bar-annotation" role="cell">{annotation}</small>
+	<div class="bar-track" role="cell" aria-hidden="true">
+		{#if !disabled}
+			<div
+				class="bar-fill"
+				style:width="{bar_fraction * 100}%"
+				style:background={category_color(category)}
+			></div>
 		{/if}
+	</div>
+	<span class="bar-value" role="cell">
+		{#if disabled}
+			{coverage_only ? 'not timed' : 'n/a'}
+		{:else}
+			{value.value} {value.unit}
+		{/if}
+	</span>
+	{#if annotation != null}
+		<small class="bar-annotation" role="cell">{annotation}</small>
 	{/if}
 	<span class="bar-ratio" role="cell" style:color={ratio_color}>
 		{#if !disabled}{ratio_text}{/if}
@@ -96,18 +85,17 @@
 </div>
 
 <style>
+	/* a row borrows its columns from the group's grid (`BenchmarksBaselineGroup`), so
+	 * every row's cells line up and size to the group's content */
 	.bar-row {
 		display: grid;
-		grid-template-columns: 18rem 1fr 7.4rem 4.4rem;
+		grid-template-columns: subgrid;
+		grid-column: 1 / -1;
 		align-items: center;
-		gap: var(--space_sm);
 		/* rows sit flush (no inter-row gap) with a little padding, so the anchor
 		 * highlight reads as one contiguous, full-height band per row */
 		padding-block: var(--space_xs);
 		padding-right: var(--space_xs);
-	}
-	.bar-row.has-annotation {
-		grid-template-columns: 18rem 1fr 7.4rem 6.4rem 4.4rem;
 	}
 	.bar-row.disabled {
 		opacity: 0.6;
@@ -119,15 +107,18 @@
 		background-color: var(--fg_05);
 		box-shadow: inset var(--border_width_3) 0 0 var(--fg_50);
 	}
-	.bar-annotation {
+	.bar-label,
+	.bar-value,
+	.bar-annotation,
+	.bar-ratio {
 		text-align: right;
 		white-space: nowrap;
 	}
 	.bar-label {
-		text-align: right;
-		white-space: nowrap;
+		grid-column: label;
 	}
 	.bar-track {
+		grid-column: track;
 		height: 1.2rem;
 		border-radius: var(--border_radius_xs);
 		background: var(--fg_05);
@@ -139,14 +130,23 @@
 		transition: width 0.3s ease;
 	}
 	.bar-value {
-		text-align: right;
-		white-space: nowrap;
+		grid-column: value;
 	}
-	.bar-value.coverage {
-		grid-column: span 2;
+	.bar-annotation {
+		grid-column: annotation;
 	}
 	.bar-ratio {
+		grid-column: ratio;
 		font-weight: 700;
-		text-align: right;
+		font-variant-numeric: tabular-nums;
+	}
+	/* too narrow for a bar beside its label: the label takes a line of its own */
+	@container benchmarks-bars (max-width: 36rem) {
+		.bar-label {
+			grid-column: 1 / -1;
+			/* clear of the anchor's edge, which the right-aligned label never met */
+			padding-left: var(--space_xs);
+			text-align: left;
+		}
 	}
 </style>

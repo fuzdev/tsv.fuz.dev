@@ -53,12 +53,7 @@
 			// once, which is also what the ratios derive from via `raw`
 			value: format_ns(e.mean_ns),
 			raw: e.mean_ns,
-			// a coverage-only row's accept rate is its entire measurement, shown in place
-			// of the time it doesn't have
-			annotation:
-				e.coverage_only && e.files_processed != null && e.files_total != null
-					? `${format_count(e.files_processed)}/${format_count(e.files_total)} files`
-					: undefined,
+			annotation: undefined,
 			disabled: e.disabled ?? false,
 			coverage_only: e.coverage_only ?? false
 		}))
@@ -66,16 +61,12 @@
 </script>
 
 <div class="mb_xl5">
-	<p>
+	<h3>
 		{group.operation === 'format' ? 'Formatting' : 'Parsing'}
 		{count_label}
 		{format_language(group.language)} files
-	</p>
-	<BenchmarksBaselineGroup
-		{rows}
-		direction="speed"
-		label={format_group_label(group.operation, group.language)}
-	/>
+	</h3>
+	<BenchmarksBaselineGroup {rows} label={format_group_label(group.operation, group.language)} />
 	{#if omitted}
 		<p>
 			<small>

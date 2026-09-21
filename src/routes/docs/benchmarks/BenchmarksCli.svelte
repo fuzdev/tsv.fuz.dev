@@ -1,11 +1,6 @@
 <script lang="ts">
 	import { to_baseline_key } from './benchmark_baseline.ts';
-	import {
-		format_mib,
-		format_ms,
-		format_ratio_plain,
-		format_speedup
-	} from './benchmark_display.ts';
+	import { format_mib, format_ms, format_speedup } from './benchmark_display.ts';
 	import {
 		cli_default_anchor_label,
 		cli_ratio_between,
@@ -39,8 +34,9 @@
 		return label === undefined ? undefined : { scenario_key, label };
 	};
 
-	// Every ratio is `row / anchor` (>1 = the anchor is that many times faster /
-	// lighter), the same `cli_ratio_between` the page's prose quotes. The anchor is
+	// Every ratio is `anchor / row` (>1 = the row is that many times faster or lighter
+	// than the anchor; `format_speedup` prints a worse row negated, as the charts do),
+	// through the same `cli_ratio_between` the page's prose quotes. The anchor is
 	// the hovered row, else the scenario's default (`cli_default_anchor_label`: the
 	// dispatcher row facing other tools, native tsv in the tsv-only table).
 	// `undefined` on the anchor row itself and wherever a side wasn't measured. A
@@ -61,7 +57,7 @@
 			const ratio = (metric: CliMetric) =>
 				is_anchor
 					? undefined
-					: cli_ratio_between(scenario.results, result.label, anchor_label, metric);
+					: cli_ratio_between(scenario.results, anchor_label, result.label, metric);
 			return {
 				result,
 				is_anchor,
@@ -78,12 +74,8 @@
 		scenario.results.some((r) => r.label === CLI_TSV_NPM_LABEL && r.memory_mb != null);
 
 	// the anchor's own cells read as the unit they are; an unmeasured side stays a dash
-	const format_cell = (
-		row: Row,
-		ratio: number | undefined,
-		measured: boolean,
-		format: (ratio: number) => string = format_speedup
-	): string => (ratio != null ? format(ratio) : row.is_anchor && measured ? format(1) : '—');
+	const format_cell = (row: Row, ratio: number | undefined, measured: boolean): string =>
+		ratio != null ? format_speedup(ratio) : row.is_anchor && measured ? format_speedup(1) : '—';
 </script>
 
 {#each report.scenarios as scenario (scenario.key)}
@@ -126,12 +118,7 @@
 								</td>
 								<td>{format_mib(row.result.memory_mb)}</td>
 								<td class="speedup">
-									{format_cell(
-										row,
-										row.memory_ratio,
-										row.result.memory_mb != null,
-										format_ratio_plain
-									)}
+									{format_cell(row, row.memory_ratio, row.result.memory_mb != null)}
 								</td>
 							</tr>
 						{/each}
@@ -189,12 +176,20 @@
 	.table-scroll {
 		overflow-x: auto;
 	}
+	/* fixed columns, so re-baselining on hover changes the ratios' text and nothing
+	   else; the floor keeps a narrow screen scrolling rather than squeezing */
+	table {
+		table-layout: fixed;
+		min-width: 40rem;
+	}
 	th,
 	td {
 		text-align: right;
+		font-variant-numeric: tabular-nums;
 		white-space: nowrap;
 	}
 	.formatter {
+		width: 30%;
 		text-align: left;
 	}
 	.speedup {

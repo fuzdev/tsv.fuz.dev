@@ -179,7 +179,7 @@ Key files in `src/routes/docs/benchmarks/`:
 - `benchmark_sizes.ts` — the binary-size domain: category and capability grouping, and the synthesized combined builds
 - `benchmark_cross_runtime.ts` — the combined cross-runtime report: its types, derivations, and display helpers
 - `benchmark_display.ts` — value formatters (times, sizes, ratios), row labels, and per-category colors shared across the page; sizes print in decimal units (1 KB = 1,000 B) as in tsv's own report, but rounded to whole KB below the MB tier, where the report keeps a decimal
-- `benchmark_baseline.ts` — the hover-to-rebaseline domain: the shared row shape, the delegated hover read, and the per-direction (`speed`/`size`) ratio, format, and color scales
+- `benchmark_baseline.ts` — the hover-to-rebaseline domain: the shared row shape, the delegated hover read, and the ratio and its color scale. Every ratio on the page prints through `benchmark_display.ts`'s `format_speedup`: a multiple when better than the reference, the reciprocal negated when worse
 - `formatter_benchmark_data.ts` — the report's Zod schemas and types, plus `parse_formatter_benchmarks`, which validates the harness's `results.json` and keeps tsv's scenarios
 - `benchmarks_cli.ts` — shapes `benchmarks_formatters.json` for `BenchmarksCli.svelte` and owns the per-scenario prose; the numbers are all generated
 - `benchmarks.css` — the classes the page's components share, which Svelte's scoped `<style>` can't reach across. Imported by the benchmarks `+page.svelte` rather than the root stylesheet, so they ship with the docs chunk instead of every route

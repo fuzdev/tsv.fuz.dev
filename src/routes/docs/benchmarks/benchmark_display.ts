@@ -95,17 +95,19 @@ export const format_gzip_size = (gzip_bytes: number | null | undefined): string 
 	return `${value} ${unit} gz`;
 };
 
-/** Matches the bench report generator's ratio formatting so the site and report.md agree digit for digit. */
-export const format_speedup = (ratio: number): string =>
-	ratio >= 10 ? `${ratio.toFixed(1)}x` : `${ratio.toFixed(2)}x`;
-
 /**
- * Plain ratio formatting at one decimal for every magnitude (`2.3x`, `21.2x`) —
- * the CLI tables' peak-RSS column and the binary-size groups' ratios. Peak RSS
- * moves several percent run to run, so a second decimal would print noise as if
- * it were measured, and sizes never take the signed treatment speeds do.
+ * How many times better a row is than its reference, for every chart and table on
+ * the page: at or above the reference it reads as a plain multiple (`2.50x`), while
+ * a worse row shows the reciprocal negated (`0.15x` → `-6.67x`) so "how many times
+ * slower, or bigger" is directly legible instead of a fraction the reader has to
+ * invert. The minus is a convention for "times worse", not a literal negative rate.
+ * Two decimals under 10 and one from there, as the bench report's own ratios print.
  */
-export const format_ratio_plain = (ratio: number): string => `${ratio.toFixed(1)}x`;
+export const format_speedup = (ratio: number): string => {
+	const magnitude = ratio >= 1 ? ratio : 1 / ratio;
+	const digits = magnitude >= 10 ? 1 : 2;
+	return `${ratio < 1 ? '-' : ''}${magnitude.toFixed(digits)}x`;
+};
 
 /**
  * Loose ratio formatting for prose, which reads better with fewer digits than a

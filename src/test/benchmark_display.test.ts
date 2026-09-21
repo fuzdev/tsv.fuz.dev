@@ -8,9 +8,9 @@ import {
 	format_corpus_source_files,
 	format_count,
 	format_label,
-	format_ratio_plain,
 	format_percent,
 	format_share_approx,
+	format_speedup,
 	format_count_maybe,
 	format_group_label,
 	format_mib,
@@ -161,15 +161,19 @@ describe('format_share_approx', () => {
 	});
 });
 
-describe('format_ratio_plain', () => {
-	test('keeps one decimal at every magnitude', () => {
-		assert.strictEqual(format_ratio_plain(1), '1.0x');
-		assert.strictEqual(format_ratio_plain(6.5436), '6.5x');
-		assert.strictEqual(format_ratio_plain(21.2122), '21.2x');
-		assert.strictEqual(format_ratio_plain(0.2915), '0.3x');
+describe('format_speedup', () => {
+	test('at or above the reference reads as a plain multiple', () => {
+		assert.strictEqual(format_speedup(1), '1.00x');
+		assert.strictEqual(format_speedup(2.5), '2.50x');
+		assert.strictEqual(format_speedup(12.3), '12.3x'); // >= 10 drops to one decimal
+	});
+
+	test('a worse row negates the reciprocal so the factor is directly legible', () => {
+		assert.strictEqual(format_speedup(0.15), '-6.67x');
+		assert.strictEqual(format_speedup(0.05), '-20.0x'); // >= 10 magnitude → one decimal
+		assert.strictEqual(format_speedup(0.98), '-1.02x'); // near-parity sign flip
 	});
 });
-
 describe('format_count', () => {
 	test('groups thousands in the pinned locale', () => {
 		assert.strictEqual(format_count(44_220), '44,220');

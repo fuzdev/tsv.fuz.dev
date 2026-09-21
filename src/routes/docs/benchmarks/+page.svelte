@@ -458,8 +458,7 @@
 					<a href="https://github.com/baseballyama/rsvelte" rel="external">rsvelte-fmt</a>, the
 					second Rust-native Svelte formatter here, is grayed out in the Svelte group: it ran over
 					every Svelte file (its platform binary, invoked directly) but isn't timed, since it ships
-					no in-process API and a process per file would measure spawn rather than formatting. Its
-					row reports coverage only.
+					no in-process API and a process per file would measure spawn rather than formatting.
 					{#if cli_svelte_wall != null}
 						For multi-threaded CLI speed, see the
 						<a href="#{docs_slugify(CLI_SECTION_TITLE)}">CLI section</a>.

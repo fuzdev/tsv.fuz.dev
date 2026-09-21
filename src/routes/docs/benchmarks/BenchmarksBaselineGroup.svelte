@@ -2,22 +2,19 @@
 	import {
 		baseline_ratio_color,
 		compute_baseline_ratio,
-		format_baseline_ratio,
 		to_baseline_key,
-		type BaselineDirection,
 		type BaselineRow
 	} from './benchmark_baseline.ts';
+	import { format_speedup } from './benchmark_display.ts';
 	import BenchmarksBar from './BenchmarksBar.svelte';
 
 	const {
 		rows,
-		direction,
 		label
 	}: {
 		// ordered so the first enabled row is the default baseline (callers lead with
 		// the canonical reference for speed, the smallest build for size)
 		rows: Array<BaselineRow>;
-		direction: BaselineDirection;
 		// names the group to assistive tech, which reads the bars as a table
 		label: string;
 	} = $props();
@@ -45,7 +42,7 @@
 	non-essential pointer affordance over data that is fully visible regardless,
 	with the default anchor serving keyboard and no-pointer readers. -->
 <div
-	class="column"
+	class="bar-group"
 	role="table"
 	aria-label={label}
 	onpointerover={(event) => (hovered_key = to_baseline_key(event))}
@@ -54,7 +51,7 @@
 	{#each rows as row (row.key)}
 		{@const ratio =
 			!row.disabled && anchor_row && row.key !== anchor_key
-				? compute_baseline_ratio(direction, row.raw, anchor_row.raw)
+				? compute_baseline_ratio(row.raw, anchor_row.raw)
 				: undefined}
 		<BenchmarksBar
 			label={row.label}
@@ -64,10 +61,27 @@
 			annotation={row.annotation}
 			disabled={row.disabled}
 			coverage_only={row.coverage_only}
-			ratio_text={format_baseline_ratio(direction, ratio ?? 1)}
-			ratio_color={ratio != null ? baseline_ratio_color(direction, ratio) : 'var(--text_40)'}
+			ratio_text={format_speedup(ratio ?? 1)}
+			ratio_color={ratio != null ? baseline_ratio_color(ratio) : 'var(--text_40)'}
 			baseline_key={row.disabled ? undefined : row.key}
 			anchor={row.key === anchor_key}
 		/>
 	{/each}
 </div>
+
+<style>
+	/* the group is the grid and its rows are subgrids, so the columns size to the
+	 * group's content — no widths to keep in step with the labels and values. The
+	 * ratio column is the exception: its text changes on hover, so it is held at the
+	 * widest ratio `format_speedup` prints (`-123.4x`) and re-baselining shifts nothing */
+	.bar-group {
+		container: benchmarks-bars / inline-size;
+		display: grid;
+		grid-template-columns:
+			[label] max-content [track] minmax(0, 1fr) [value] max-content [annotation] max-content
+			[ratio] 8ch;
+		column-gap: var(--space_sm);
+		/* a div carries no flow margin, so the note under a group would sit flush against it */
+		margin-bottom: var(--space_md);
+	}
+</style>

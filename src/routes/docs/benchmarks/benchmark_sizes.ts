@@ -101,7 +101,7 @@ export interface SizeDisplayEntry extends BinarySize {
 export interface SizeCapabilityGroup {
 	capability: SizeCapability;
 	heading: string;
-	// sorted smallest-first, so the leading entry is the default ratio anchor (1.0x)
+	// sorted smallest-first, so the leading entry is the default ratio anchor (1.00x)
 	entries: Array<SizeDisplayEntry>;
 }
 
@@ -191,7 +191,7 @@ const synthesize_rsvelte_install = (sizes: Array<BinarySize>): BinarySize | unde
  * largest ENTRY, synthesized sums included — so the `+` rows below set the scale in
  * the groups that carry one, and every real build reads against an install footprint
  * rather than against another single artifact. The `vs` ratio anchors on the group's
- * single smallest build, so exactly one entry reads 1.0x and every other is a
+ * single smallest build, so exactly one entry reads 1.00x and every other is a
  * multiple of it — whichever tool that is. (It is not always tsv: yuku-parser's
  * parse-only builds undercut tsv's, which carry Svelte and CSS parsers besides, and
  * malva's CSS-only plugin undercuts tsv's three-language format-only wasm build.) A
@@ -214,7 +214,7 @@ export const derive_size_groups = (sizes: Array<BinarySize>): Array<SizeCapabili
 		const sorted = items.toSorted((a, b) => a.bytes - b.bytes);
 		const max = Math.max(0, ...items.map((s) => s.bytes));
 		// `sorted` is ascending, so the smallest build leads the group — its single
-		// default ratio anchor (1.0x), one baseline whether or not the group mixes wasm
+		// default ratio anchor (1.00x), one baseline whether or not the group mixes wasm
 		// and native. The shared component reads every ratio from that leading row.
 		const entries: Array<SizeDisplayEntry> = sorted.map((s) => ({
 			...s,

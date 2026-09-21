@@ -29,10 +29,10 @@
 
 {#each groups as group (group.language)}
 	<div class="mb_xl5">
-		<p class="mb_xs">
+		<h3>
 			Parsing {format_count(group.files_total)}
 			{format_language(group.language)} files
-		</p>
+		</h3>
 		<table class="benchmarks-table">
 			<thead>
 				<tr>

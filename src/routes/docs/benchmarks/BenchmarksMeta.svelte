@@ -108,7 +108,8 @@
 </div>
 
 <style>
-	/* an `h3` by rank, under the section's `h2`, that keeps the smaller `h4` scale */
+	/* labels for short lists of small print, not chart headings: an `h3` by rank
+	 * under the section's `h2`, at the scale the lists can carry */
 	h3 {
 		--font_size: var(--font_size_lg);
 		font-weight: 700;
