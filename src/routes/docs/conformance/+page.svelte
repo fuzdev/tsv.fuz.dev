@@ -68,7 +68,8 @@
 					PostCSS sitting above tsv is two grammars, not a gap. The CSS reference is Svelte's
 					<code>parseCss</code>, which tsv is a drop-in for and no validity oracle in either
 					direction; PostCSS keeps selectors and at-rule preludes as unparsed strings, so it accepts
-					preprocessor syntax and malformed rules.
+					preprocessor syntax, malformed rules, and modern CSS <code>parseCss</code> doesn't
+					implement yet.
 				</li>
 				<li>
 					One column per engine, not per binding. That is exact for tsv, whose native and wasm rows
