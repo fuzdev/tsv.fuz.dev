@@ -14,11 +14,7 @@ import { conformance_json } from '$routes/docs/conformance/conformance.ts';
 import { CONFORMANCE_SOURCE_LABELS } from '$routes/docs/conformance/conformance_data.ts';
 import { categorize_size } from '$routes/docs/benchmarks/benchmark_sizes.ts';
 
-// The report shape version the committed copies are pinned to — tsv's
-// `REPORT_SCHEMA_VERSION`, shared by the per-runtime and conformance reports. Exact
-// rather than a floor, so `npm run update-benchmarks` pulling a newer shape fails
-// here until `benchmark_data.ts` mirrors the new fields and this is re-pinned.
-const REPORT_VERSION = 16;
+import { REPORT_VERSION } from './benchmark_test_helpers.ts';
 
 // Shape gate for the committed benchmarks.json: the bench report format drifts,
 // and `benchmarks.ts` casts the JSON, so typechecking alone won't catch a renamed
@@ -27,7 +23,7 @@ const REPORT_VERSION = 16;
 describe('benchmarks.json shape', () => {
 	test('baseline version is current', () => {
 		// pinned exactly: a bump in tsv's `REPORT_SCHEMA_VERSION` must be a deliberate
-		// re-pin here, after `benchmark_data.ts` gains the new fields' version-notes
+		// re-pin of `REPORT_VERSION`, after `benchmark_data.ts` gains the new fields' version-notes
 		assert.strictEqual(benchmarks_json.version, REPORT_VERSION);
 	});
 
@@ -384,6 +380,20 @@ describe('corpus source tables over the committed reports', () => {
 		for (const [name, table] of tables) {
 			for (const row of table.rows) {
 				assert.notStrictEqual(row.label, row.path, `${name} ${row.path} has no label`);
+			}
+		}
+	});
+
+	test('every hand-stated label names a source its report carries', () => {
+		// a label for a source tsv dropped can never render
+		const labeled = [
+			['benchmarks', benchmarks_json, CORPUS_SOURCE_LABELS],
+			['conformance', conformance_json, CONFORMANCE_SOURCE_LABELS]
+		] as const;
+		for (const [name, report, labels] of labeled) {
+			const paths = new Set(report.corpus_sources.map((s) => s.path));
+			for (const path of Object.keys(labels)) {
+				assert.ok(paths.has(path), `${name}: "${path}" is labeled but no source carries it`);
 			}
 		}
 	});

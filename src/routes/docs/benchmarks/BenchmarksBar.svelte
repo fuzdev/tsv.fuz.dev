@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { ImplementationCategory } from './benchmark_data.ts';
-	import { category_color, format_label, type FormattedUnit } from './benchmark_display.ts';
+	import { category_color, format_row_label, type FormattedUnit } from './benchmark_display.ts';
 
 	const {
 		label,
@@ -41,16 +41,7 @@
 		anchor?: boolean;
 	} = $props();
 
-	// the parenthesized binding suffix (`(wasm)`/`(node napi)`) describes how the
-	// tool actually ran in this (Node) report - meaningless for biome's disabled
-	// placeholder, since it ships only a wasm build here and there's no ambiguity to
-	// lose. oxc-parser keeps its suffix even when disabled since it has two
-	// placeholder rows (napi and wasm) that would otherwise become indistinguishable.
-	const display_label = $derived(
-		disabled && category === 'biome'
-			? format_label(label).replace(/ \([^)]*\)$/, '')
-			: format_label(label)
-	);
+	const display_label = $derived(format_row_label(label, category, disabled));
 </script>
 
 <!-- the grid is a table to assistive tech (its parent is the `role="table"`):

@@ -109,7 +109,6 @@ describe('derive_conformance_matrices', () => {
 			{ path: TEST262, label: 'test262', url: 'https://github.com/tc39/test262' }
 		]);
 		assert.strictEqual(test262.files, 60);
-		assert.strictEqual(test262.share, 0.6);
 		// tsv selected test262, so its full cell is construction; tsc's is a result
 		assert.deepEqual(
 			test262.cells.map((c) => [c?.rejected, c?.selected]),
@@ -161,6 +160,27 @@ describe('derive_conformance_matrices', () => {
 		assert.deepEqual(
 			lone?.sources.map((s) => s.folded),
 			[false, false]
+		);
+	});
+
+	test('an engine that selected every source flags the aggregate too', () => {
+		const [matrix] = derive_conformance_matrices(
+			create_baseline({
+				entries: [
+					coverage('svelte/compiler', 'parse/svelte', 5, 5),
+					coverage('tsv-json', 'parse/svelte', 4, 5)
+				],
+				coverage_by_source: {
+					'parse/svelte': { '../a': { 'svelte/compiler': cell(5, 5), 'tsv-json': cell(4, 5) } }
+				}
+			})
+		);
+		assert.deepEqual(
+			matrix?.engines.map((e, i) => [e.name, matrix.aggregate[i]?.selected]),
+			[
+				['svelte/compiler', true],
+				['tsv', false]
+			]
 		);
 	});
 

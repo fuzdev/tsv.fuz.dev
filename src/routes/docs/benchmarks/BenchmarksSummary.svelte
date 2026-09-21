@@ -19,9 +19,9 @@
 	<thead>
 		<tr>
 			<th scope="col">build</th>
-			<th scope="col" class="color_h_50">Svelte</th>
-			<th scope="col" class="color_i_50">TypeScript</th>
-			<th scope="col" class="color_a_50">CSS</th>
+			<th scope="col">Svelte</th>
+			<th scope="col">TypeScript</th>
+			<th scope="col">CSS</th>
 		</tr>
 	</thead>
 	<tbody>

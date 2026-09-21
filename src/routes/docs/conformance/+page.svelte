@@ -51,7 +51,7 @@
 			<p>Notes:</p>
 			<ul>
 				<li>
-					<em>selected</em> marks the parser that chose a source, so reads 100% on it by
+					A greyed <code>100%</code> marks the parser that chose a source, so reads 100% on it by
 					construction: svelte/compiler on the Svelte set (the files it rejects are excluded, so the
 					others read as drop-in fidelity against it), <code>tsc</code>{tsc_label} on its compiler's
 					cases, and tsv on test262, so another parser's number there is its rate on tsv's slice,

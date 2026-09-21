@@ -3,6 +3,7 @@
 	// across — imported here so they ship with this route, not with every one
 	import './benchmarks.css';
 
+	import Details from '@fuzdev/fuz_ui/Details.svelte';
 	import TomeContent from '@fuzdev/fuz_ui/TomeContent.svelte';
 	import TomeLink from '@fuzdev/fuz_ui/TomeLink.svelte';
 	import TomeSection from '@fuzdev/fuz_ui/TomeSection.svelte';
@@ -167,7 +168,7 @@
 	// nondeterministic crash hits the harness's preflight, so its ratios can be
 	// absent while the scenario itself is present — the prose covers both cases.
 	const cli_svelte = cli_scenario_find(CLI_SVELTE_KEY);
-	const cli_svelte_wall = cli_speedup_vs_tsv(CLI_SVELTE_KEY, 'rsvelte-fmt', 'wall_ms');
+	const cli_svelte_timed = cli_speedup_vs_tsv(CLI_SVELTE_KEY, 'rsvelte-fmt', 'wall_ms') != null;
 	const cli_svelte_npm_wall = cli_npm_ratio(CLI_SVELTE_KEY, 'rsvelte-fmt');
 </script>
 
@@ -256,11 +257,11 @@
 				Svelte's own <code>parseCss</code> is ~{parse_css_compiler_vs_tsv} faster than tsv's JSON
 				wire and PostCSS ~{parse_css_postcss_vs_tsv}.
 			</li>
-			{#if cli_svelte_wall != null || cli_svelte?.aborted}
+			{#if cli_svelte_timed || cli_svelte?.aborted}
 				<li>
 					The fork's Svelte scenario benches tsv against rsvelte-fmt, another Rust Svelte-native
 					formatter, on a third-party <code>.svelte</code> corpus.
-					{#if cli_svelte_wall != null}
+					{#if cli_svelte_timed}
 						There tsv formats ~{cli_svelte_npm_wall} faster through its npm dispatcher, the footing
 						rsvelte-fmt's own Node launcher is timed on.
 					{:else}
@@ -318,7 +319,7 @@
 					second Rust-native Svelte formatter here, is grayed out in the Svelte group: it ran over
 					every Svelte file (its platform binary, invoked directly) but isn't timed, since it ships
 					no in-process API and a process per file would measure spawn rather than formatting.
-					{#if cli_svelte_wall != null}
+					{#if cli_svelte_timed}
 						For multi-threaded CLI speed with rsvelte included, see the
 						<a href="#{docs_slugify(CLI_SECTION_TITLE)}">CLI section</a>.
 					{:else if cli_svelte?.aborted}
@@ -445,7 +446,8 @@
 					offsets as a pair), so the span-only <code>no-locs</code> entries are the one
 					payload-matched pairing. Its wasm row runs an older release than its native row — the
 					newest whose wasi binding loads in the harness install — so the wasm-vs-wasm pairing
-					crosses oxc versions (both listed under Benchmarking details).
+					crosses oxc versions (both listed under
+					<a href="#{docs_slugify(DETAILS_SECTION_TITLE)}">{DETAILS_SECTION_TITLE}</a>).
 				</li>
 				<li>
 					When line/column is needed, the fast path is not tsv's default <code>loc</code>-bearing
@@ -505,15 +507,15 @@
 				<li>
 					The <code>(js bundle)</code> entries are the reference toolchain — Prettier with
 					prettier-plugin-svelte, and the parsers tsv replaces (Svelte's, plus acorn with
-					acorn-typescript) — and the only entries here that aren't a file a package ships. Neither
-					publishes a single artifact, and installed size counts every language Prettier supports in
-					two module formats, so each entry is instead a minified, tree-shaken bundle of the least
-					one job needs for tsv's three languages: what you would deploy to a browser, not what Node
-					loads (a plain <code>import 'prettier'</code> plus the plugin is several times larger,
-					since Prettier's package entry registers every language it supports). The full entry is
-					barely larger than the formatter because the formatter already contains the Svelte parser.
-					Minified JS compresses much better than wasm, so these read smaller by <code>gz</code>
-					than by raw bytes — and a size says nothing of the speed measured above.
+					acorn-typescript) — and aren't files a package ships. Neither publishes a single artifact,
+					and installed size counts every language Prettier supports in two module formats, so each
+					entry is instead a minified, tree-shaken bundle of the least one job needs for tsv's three
+					languages: what you would deploy to a browser, not what Node loads (a plain
+					<code>import 'prettier'</code> plus the plugin is several times larger, since Prettier's
+					package entry registers every language it supports). The full entry is barely larger than
+					the formatter because the formatter already contains the Svelte parser. Minified JS
+					compresses much better than wasm, so these read smaller by <code>gz</code> than by raw
+					bytes — and a size says nothing of the speed measured above.
 				</li>
 				<li>
 					Each group mixes wasm and native builds under one anchor, so a ratio can cross kinds —
@@ -651,32 +653,37 @@
 			<!-- eslint-disable-next-line svelte/no-navigation-without-resolve -->
 			<a href={corpus_snapshot_url}>
 				fuzdev/corpora{corpus_snapshot_commit ? `@${corpus_snapshot_commit}` : ''}
-			</a> snapshot so one clone reproduces it, from two sources: the author's libraries, apps, and
-			sites (the fuz.dev ecosystem plus personal SvelteKit apps and sites), and upstream framework
-			source (Svelte, SvelteKit, and the svelte.dev site). The CSS set also includes real-authored
-			CSS extracted from those components' <code>&lt;style&gt;</code> blocks, concatenated per
-			corpus collection — a harvest the harness regenerates from the snapshot rather than a file in
-			it{corpus_counts.harvested_css && corpus.css
-				? `, ${format_count(corpus_counts.harvested_css)} of the ${format_count(corpus.css)} CSS entries in the count above`
-				: ''} — since standalone CSS files are rare in this ecosystem; the same bytes appear in the
-			Svelte rows (rows are never summed). Test files count as real code and stay in; fixture files
-			(formatter test suites, and fixture subtrees inside the measured repos) are excluded —
-			deliberately tricky edge cases measure conformance, not typical throughput, and the
-			<TomeLink slug="conformance" /> page covers them.
+			</a> snapshot so one clone reproduces it. It draws on two sources: the author's libraries,
+			apps, and sites (the fuz.dev ecosystem plus personal SvelteKit apps and sites), and upstream
+			framework source (Svelte, SvelteKit, and the svelte.dev site). The snapshot's third-party
+			component libraries are left out: they would dominate the Svelte set.
 		</p>
 		<p>
-			Two caveats on that corpus. It is dominated by the author's own code plus Svelte's, the same
-			code tsv is developed and tested against and mostly tsv-formatted already, so every ratio here
-			is "on this corpus", not a universal figure; the CLI section's Svelte corpus shares only its
-			kit and svelte.dev trees with this one, and its third-party component libraries are
-			deliberately kept out of this view. And CSS is the weakest sample:
-			{format_count_maybe(corpus_counts.standalone_css)} standalone files plus the per-collection
-			<code>&lt;style&gt;</code> concatenations, which keep the one level of indent they carried
-			inside their tags — so every tool re-indents them, and much of the CSS here measures a full
-			re-indent rather than the already-formatted steady state.
+			The CSS set also includes real-authored CSS extracted from those components'
+			<code>&lt;style&gt;</code> blocks, concatenated per corpus collection, since standalone CSS
+			files are rare in this
+			ecosystem{corpus_counts.harvested_css && corpus.css
+				? ` — ${format_count(corpus_counts.harvested_css)} of the ${format_count(corpus.css)} CSS entries in the count above`
+				: ''}. The harness regenerates that harvest from the snapshot rather than reading a file in
+			it, and the same bytes appear in the Svelte rows (rows are never summed). Test files count as
+			real code and stay in; fixture files (formatter test suites, and fixture subtrees inside the
+			measured repos) are excluded — deliberately tricky edge cases measure conformance, not typical
+			throughput, and the <TomeLink slug="conformance" /> page covers them.
 		</p>
-		<p>Each source below links its upstream at the commit the snapshot vendored.</p>
-		<BenchmarksCorpus table={corpus_source_table} />
+		<p>
+			Two caveats. The corpus is dominated by the author's own code plus Svelte's, the same code tsv
+			is developed and tested against and mostly tsv-formatted already, so every ratio here is "on
+			this corpus", not a universal figure; the CLI section's Svelte corpus adds those third-party
+			libraries, and shares only its kit and svelte.dev trees with this one. And CSS is the weakest
+			sample: {format_count_maybe(corpus_counts.standalone_css)} standalone files plus the
+			per-collection <code>&lt;style&gt;</code> concatenations, which keep the one level of indent
+			they carried inside their tags — so every tool re-indents them, and much of the CSS here
+			measures a full re-indent rather than the already-formatted steady state.
+		</p>
+		<Details eager summary="The {format_count(corpus_source_table.rows.length)} sources">
+			<p>Each source links its upstream at the commit the snapshot vendored.</p>
+			<BenchmarksCorpus table={corpus_source_table} />
+		</Details>
 	</TomeSection>
 
 	<TomeSection>

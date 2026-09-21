@@ -115,7 +115,7 @@ const SOURCE_TS_REPO = 'benches/js/.cache/ts_repo_files.json';
 
 /**
  * Reader-facing names for the report's corpus source paths. A path missing here
- * renders raw, and the shape test fails on it, so a source tsv adds can't reach
+ * renders raw in the matrix, and the shape test fails on it, so a source tsv adds can't reach
  * the page as a cache path unnoticed.
  */
 export const CONFORMANCE_SOURCE_LABELS: Record<string, string> = {
@@ -175,8 +175,6 @@ export interface ConformanceSourceRow {
 	// the sources every engine accepts in full, folded into one trailing row
 	folded: boolean;
 	files: number;
-	// `files` as a fraction of the group's corpus
-	share: number;
 	// aligned to the matrix's `engines`; `undefined` where the report lacks the cell
 	cells: Array<ConformanceCell | undefined>;
 }
@@ -186,7 +184,7 @@ export interface ConformanceMatrix {
 	files_total: number;
 	// ordered as `derive_conformance_groups` orders its rows
 	engines: Array<ConformanceEngine>;
-	// largest source first, the folded row last; empty when the report predates
+	// largest source first, the folded row last; empty when the report lacks
 	// `coverage_by_source`
 	sources: Array<ConformanceSourceRow>;
 	// the whole group per engine, aligned to `engines`
@@ -211,27 +209,20 @@ const is_foldable = (row: ConformanceSourceRow): boolean =>
 	row.cells.some((cell) => cell !== undefined) &&
 	row.cells.every((cell) => cell === undefined || (!cell.selected && cell.rejected === 0));
 
-const fold_conformance_rows = (
-	rows: Array<ConformanceSourceRow>,
-	files_total: number
-): ConformanceSourceRow => {
-	const files = rows.reduce((sum, row) => sum + row.files, 0);
-	return {
-		origins: rows.flatMap((row) => row.origins),
-		folded: true,
-		files,
-		share: files_total > 0 ? files / files_total : 0,
-		cells: (rows[0]?.cells ?? []).map((_, i) => {
-			const cells = rows.map((row) => row.cells[i]);
-			if (!cells.every((cell) => cell !== undefined)) return undefined;
-			return to_conformance_cell(
-				cells.reduce((sum, cell) => sum + cell.processed, 0),
-				cells.reduce((sum, cell) => sum + cell.total, 0),
-				false
-			);
-		})
-	};
-};
+const fold_conformance_rows = (rows: Array<ConformanceSourceRow>): ConformanceSourceRow => ({
+	origins: rows.flatMap((row) => row.origins),
+	folded: true,
+	files: rows.reduce((sum, row) => sum + row.files, 0),
+	cells: (rows[0]?.cells ?? []).map((_, i) => {
+		const cells = rows.map((row) => row.cells[i]);
+		if (!cells.every((cell) => cell !== undefined)) return undefined;
+		return to_conformance_cell(
+			cells.reduce((sum, cell) => sum + cell.processed, 0),
+			cells.reduce((sum, cell) => sum + cell.total, 0),
+			false
+		);
+	})
+});
 
 /**
  * Derives one coverage matrix per language from a conformance report: a row per
@@ -270,7 +261,6 @@ export const derive_conformance_matrices = (
 					],
 					folded: false,
 					files,
-					share: group.files_total > 0 ? files / group.files_total : 0,
 					cells: engines.map((engine) => {
 						const cell = by_engine[engine.name];
 						return (
@@ -288,15 +278,16 @@ export const derive_conformance_matrices = (
 			(a, b) =>
 				b.files - a.files || (a.origins[0]?.path ?? '').localeCompare(b.origins[0]?.path ?? '')
 		);
-		if (foldable.length > 1) sources.push(fold_conformance_rows(foldable, group.files_total));
+		if (foldable.length > 1) sources.push(fold_conformance_rows(foldable));
 
 		return {
 			language: group.language,
 			files_total: group.files_total,
 			engines,
 			sources,
+			// an engine that selected every source selected the group
 			aggregate: group.rows.map((row) =>
-				to_conformance_cell(row.files_processed, row.files_total, false)
+				to_conformance_cell(row.files_processed, row.files_total, row.name === selectors?.['*'])
 			)
 		};
 	});

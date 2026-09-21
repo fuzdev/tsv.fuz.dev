@@ -4,13 +4,18 @@ import {
 	cli_comparison_results,
 	cli_default_anchor_label,
 	cli_label_is_tsv,
+	cli_memory_ratio_range,
 	cli_ratio_between,
+	cli_settle_seconds,
+	cli_tsv_npm_memory_mb,
+	cli_tsv_npm_overhead_ms_range,
 	CLI_TSV_LABEL,
 	CLI_TSV_NPM_LABEL,
 	CLI_TSV_WASM_LABEL,
 	to_abort_note,
 	to_unshimmed_note,
-	type CliFormatterResult
+	type CliFormatterResult,
+	type CliScenario
 } from '$routes/docs/benchmarks/benchmarks_cli.ts';
 import type { FormatterScenario } from '$routes/docs/benchmarks/formatter_benchmark_data.ts';
 
@@ -156,6 +161,85 @@ describe('cli_default_anchor_label', () => {
 			CLI_TSV_LABEL
 		);
 		assert.isUndefined(cli_default_anchor_label({ results: [], tsv_only: false }));
+	});
+});
+
+describe('cli claims spanning scenarios', () => {
+	const result = (
+		label: string,
+		wall_ms: number,
+		memory_mb: number | null
+	): CliFormatterResult => ({ label, wall_ms, cpu_ms: wall_ms, memory_mb });
+	const scenario = (key: string, overrides: Partial<CliScenario> = {}): CliScenario => ({
+		key,
+		heading: key,
+		description: '',
+		tsv_only: false,
+		target: '',
+		corpus: '',
+		results: [],
+		warmup_runs: 3,
+		benchmark_runs: 20,
+		...overrides
+	});
+	const facing = scenario('facing', {
+		results: [
+			result(CLI_TSV_LABEL, 20, 10),
+			result(CLI_TSV_NPM_LABEL, 50, 40),
+			result('oxfmt', 60, 100),
+			result('biome', 100, null)
+		]
+	});
+	const delivery = scenario('delivery', {
+		tsv_only: true,
+		results: [
+			result(CLI_TSV_LABEL, 10, 10),
+			result(CLI_TSV_NPM_LABEL, 45, 60),
+			result(CLI_TSV_WASM_LABEL, 90, 80)
+		]
+	});
+
+	test('the settle is quoted only when every scenario agrees on a nonzero one', () => {
+		const settled = (settle_seconds?: number) => scenario('s', { settle_seconds });
+		assert.strictEqual(cli_settle_seconds([settled(5), settled(5)]), 5);
+		assert.isUndefined(cli_settle_seconds([settled(5), settled(3)]));
+		assert.isUndefined(cli_settle_seconds([settled(5), settled()]));
+		assert.isUndefined(cli_settle_seconds([settled(0)]));
+		assert.isUndefined(cli_settle_seconds([]));
+	});
+
+	test("the dispatcher's peak memory skips the tsv-only scenarios", () => {
+		assert.strictEqual(cli_tsv_npm_memory_mb([facing, delivery]), 40);
+		assert.isUndefined(cli_tsv_npm_memory_mb([delivery]));
+		assert.isUndefined(
+			cli_tsv_npm_memory_mb([scenario('s', { results: [result(CLI_TSV_NPM_LABEL, 50, null)] })])
+		);
+	});
+
+	test('the dispatcher overhead spans every scenario that timed both rows', () => {
+		assert.deepEqual(cli_tsv_npm_overhead_ms_range([facing, delivery]), { min: 30, max: 35 });
+		assert.isUndefined(
+			cli_tsv_npm_overhead_ms_range([scenario('s', { results: [result(CLI_TSV_LABEL, 20, 10)] })])
+		);
+	});
+
+	test('an unnamed tool without a memory figure is skipped, a named one voids the range', () => {
+		// biome measured no memory, so only oxfmt's 100 / 10 remains
+		assert.deepEqual(cli_memory_ratio_range({}, [facing, delivery]), { min: 10, max: 10 });
+		assert.isUndefined(cli_memory_ratio_range({ labels: ['oxfmt', 'biome'] }, [facing]));
+		assert.isUndefined(cli_memory_ratio_range({ labels: ['oxfmt', 'renamed'] }, [facing]));
+	});
+
+	test('a scenario without the baseline row voids the range rather than narrowing it', () => {
+		const no_baseline = scenario('s', { results: [result('oxfmt', 60, 100)] });
+		assert.isUndefined(cli_memory_ratio_range({}, [facing, no_baseline]));
+	});
+
+	test('a tsv-only scenario is spanned only by name', () => {
+		assert.deepEqual(cli_memory_ratio_range({ scenario_key: 'delivery' }, [facing, delivery]), {
+			min: 6,
+			max: 8
+		});
 	});
 });
 

@@ -3,7 +3,7 @@
    than the root stylesheet so they ship with this route instead of every one. */
 
 /* a warning aside: the red tint over fuz_css's base aside styling, used by the
-   page's asides and the cross-runtime tables' */
+   page's asides and the cross-runtime section's */
 .benchmarks-warning {
 	border-left-color: var(--color_c_50);
 }

@@ -5,6 +5,14 @@ import type {
 	FormatterTiming
 } from '$routes/docs/benchmarks/formatter_benchmark_data.ts';
 
+/**
+ * The report shape version the committed copies are pinned to — tsv's
+ * `REPORT_SCHEMA_VERSION`, shared by the per-runtime and conformance reports. Exact
+ * rather than a floor, so `npm run update-benchmarks` pulling a newer shape fails
+ * the shape tests until `benchmark_data.ts` mirrors the new fields and this is re-pinned.
+ */
+export const REPORT_VERSION = 18;
+
 /** A stable, timed `BaselineEntry`, which each test overrides the fields it reads. */
 export const create_baseline_entry = (overrides: Partial<BaselineEntry> = {}): BaselineEntry => ({
 	name: 'x',
@@ -27,6 +35,7 @@ export const create_baseline_entry = (overrides: Partial<BaselineEntry> = {}): B
 	outlier_ratio: 0,
 	warmup_iterations: 3,
 	min_iterations: 8,
+	settled_heap_bytes: 1,
 	files_iterated_digest: null,
 	files_processed: null,
 	files_total: null,
@@ -41,7 +50,7 @@ export const create_baseline_entry = (overrides: Partial<BaselineEntry> = {}): B
  * whole input it reads rather than inheriting the committed report's.
  */
 export const create_baseline = (overrides: Partial<BenchmarkBaseline> = {}): BenchmarkBaseline => ({
-	version: 17,
+	version: REPORT_VERSION,
 	runtime: 'node',
 	timestamp: '2026-01-01T00:00:00.000Z',
 	git_commit: 'abc1234',

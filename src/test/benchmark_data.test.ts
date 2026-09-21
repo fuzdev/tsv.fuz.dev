@@ -170,6 +170,20 @@ describe('derive_unstable_entries', () => {
 			['drift', 'raw', 'cv']
 		);
 	});
+
+	test('a raw cv its sample size excuses does not rank the row', () => {
+		// `excused` is flagged by its drift alone, so its large-sample raw cv says nothing
+		const derived = derive_unstable_entries(
+			baseline([
+				entry({ name: 'excused', drift: 0.11, cv_raw: 0.9, raw_sample_size: 100 }),
+				entry({ name: 'cv', cv: 0.12 })
+			])
+		);
+		assert.deepStrictEqual(
+			derived.map((e) => e.name),
+			['cv', 'excused']
+		);
+	});
 });
 
 describe('derive_benchmark_groups omissions', () => {

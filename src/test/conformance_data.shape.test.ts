@@ -7,8 +7,7 @@ import {
 	derive_conformance_matrices
 } from '$routes/docs/conformance/conformance_data.ts';
 
-// tsv's `REPORT_SCHEMA_VERSION`, pinned exactly as in `benchmark_data.shape.test.ts`.
-const REPORT_VERSION = 16;
+import { REPORT_VERSION } from './benchmark_test_helpers.ts';
 
 // Shape gate for the committed conformance report `conformance.json`
 // (tsv's `report.conformance.node.json` — the parse-coverage surface over the

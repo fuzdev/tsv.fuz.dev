@@ -4,7 +4,6 @@ import { benchmarks_json } from '$routes/docs/benchmarks/benchmarks.ts';
 import {
 	categorize_size_capability,
 	derive_size_groups,
-	JS_BUNDLE_SUFFIX,
 	OXC_FULL_LABEL,
 	OXFMT_WASM_LABEL,
 	RSVELTE_INSTALL_LABEL,
@@ -31,9 +30,6 @@ describe('benchmarks.json binary sizes', () => {
 		// `max` and rescale every bar in it.
 		const labels = new Set(benchmarks_json.binary_sizes.map((s) => s.label));
 		for (const label of Object.keys(SIZE_CAPABILITY_BY_LABEL)) {
-			// the canonical bundles arrived with report `version` 17 — a report written
-			// before it carries none, which is an older report rather than a rename
-			if (label.endsWith(JS_BUNDLE_SUFFIX) && benchmarks_json.version < 17) continue;
 			assert.ok(
 				labels.has(label),
 				`"${label}" is hand-mapped to a capability but no longer names a build — ` +
@@ -158,6 +154,27 @@ describe('benchmarks.json binary sizes', () => {
 				bytes(capability, other),
 				`${capability}: ${tsv} vs ${other}`
 			);
+		}
+	});
+
+	test('the size notes on the js bundles hold: full barely over formatter, and gz flatters them', () => {
+		const sizes = benchmarks_json.binary_sizes;
+		const bundles = sizes.filter((s) => s.kind === 'js');
+		const named = (capability: string) =>
+			bundles.find((s) => SIZE_CAPABILITY_BY_LABEL[s.label] === capability);
+		const full = named('full');
+		const formatter = named('formatter');
+		assert(full && formatter, 'the full and formatter bundles are missing');
+		// "barely larger": the formatter already contains the Svelte parser
+		assert.isAbove(full.bytes, formatter.bytes);
+		assert.isBelow(full.bytes, formatter.bytes * 1.01);
+		// "minified JS compresses much better than wasm"
+		const gz_share = (s: (typeof sizes)[number]) => (s.gzip_bytes ?? NaN) / s.bytes;
+		const wasm = sizes.filter((s) => s.kind === 'wasm' && s.gzip_bytes != null);
+		assert.isNotEmpty(wasm);
+		const best_wasm = Math.min(...wasm.map(gz_share));
+		for (const bundle of bundles) {
+			assert.isBelow(gz_share(bundle), best_wasm, bundle.label);
 		}
 	});
 

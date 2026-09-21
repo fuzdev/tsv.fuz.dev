@@ -104,7 +104,8 @@ export const format_speedup = (ratio: number): string => {
  * assert every ratio the page quotes actually resolves.
  */
 export const format_ratio_approx = (ratio: number | undefined): string =>
-	ratio === undefined ? '—' : ratio >= 10 ? `${Math.round(ratio)}x` : `${ratio.toFixed(1)}x`;
+	// the tier is read off the rounded figure, so 9.97 reads `10x` rather than `10.0x`
+	ratio === undefined ? '—' : ratio >= 9.95 ? `${Math.round(ratio)}x` : `${ratio.toFixed(1)}x`;
 
 /**
  * Formats a coverage fraction as a percentage with two decimals (`99.85%`),
@@ -278,6 +279,21 @@ export const format_label = (name: string): string => {
 		}
 	}
 	return name.replaceAll('-', ' ');
+};
+
+/**
+ * A bar row's label. Biome's disabled placeholder drops the parenthesized binding
+ * suffix, which says how a tool ran and biome ships one build, so there is nothing
+ * to tell apart; oxc-parser keeps it, since its two placeholder rows (napi and
+ * wasm) would otherwise read the same.
+ */
+export const format_row_label = (
+	name: string,
+	category: ImplementationCategory,
+	disabled: boolean
+): string => {
+	const label = format_label(name);
+	return disabled && category === 'biome' ? label.replace(/ \([^)]*\)$/, '') : label;
 };
 
 /** Returns a CSS background color variable for a category. */

@@ -17,10 +17,22 @@ import {
 	format_ns,
 	format_ratio_approx,
 	format_ratio_range,
+	format_row_label,
 	format_runtime_display,
 	format_unstable_readings,
 	format_version_label
 } from '$routes/docs/benchmarks/benchmark_display.ts';
+
+describe('format_row_label', () => {
+	test("only biome's disabled placeholder drops its binding suffix", () => {
+		assert.strictEqual(format_row_label('biome-wasm', 'biome', true), 'biome');
+		assert.strictEqual(format_row_label('biome-wasm', 'biome', false), 'biome (wasm)');
+		assert.strictEqual(
+			format_row_label('oxc-parser-wasm', 'oxc', true),
+			format_label('oxc-parser-wasm')
+		);
+	});
+});
 
 describe('format_label', () => {
 	test('overrides name the runtime and binding', () => {
@@ -101,6 +113,9 @@ describe('prose ratio formatting', () => {
 	test('approximate formatting drops digits as the ratio grows', () => {
 		assert.strictEqual(format_ratio_approx(1.66), '1.7x');
 		assert.strictEqual(format_ratio_approx(26.241), '26x');
+		// a ratio that rounds to 10 reads as one, not `10.0x`
+		assert.strictEqual(format_ratio_approx(9.97), '10x');
+		assert.strictEqual(format_ratio_approx(9.94), '9.9x');
 		assert.strictEqual(format_ratio_approx(undefined), '—');
 	});
 

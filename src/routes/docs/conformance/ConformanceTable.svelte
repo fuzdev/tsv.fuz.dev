@@ -15,18 +15,19 @@
 </script>
 
 <!-- a percentage this close to 100% compresses the gap, so the rejected count rides
-	beside it; a cell whose engine selected the source shows no number at all -->
+	beside it; a cell whose engine selected the source is full by construction, so it
+	reads a greyed `100%` without the decimals a result carries -->
 {#snippet coverage_cell(cell: ConformanceCell | undefined)}
 	<td class="coverage-num">
 		{#if !cell}
 			—
 		{:else if cell.selected}
-			<span class="text_40">selected</span>
+			<span class="text_40">100%<span class="visually-hidden">by construction</span></span>
 		{:else}
 			{format_coverage_percent(cell.coverage_fraction)}
-			<small class="text_40">
-				{#if cell.rejected > 0}−{format_count(cell.rejected)}{/if}
-			</small>
+			{#if cell.rejected > 0}
+				<small class="text_40">−{format_count(cell.rejected)}</small>
+			{/if}
 		{/if}
 	</td>
 {/snippet}
@@ -42,7 +43,7 @@
 				<thead>
 					<tr>
 						<th scope="col">source</th>
-						<th scope="col" colspan="2">files</th>
+						<th scope="colgroup" colspan="2">files</th>
 						{#each matrix.engines as engine (engine.name)}
 							<th scope="col" class="coverage-num">
 								{engine.name}
@@ -96,10 +97,19 @@
 {/each}
 
 <style>
-	/* left-aligned like the text cells they sit among (`selected`, the source names),
-	   where the cross-runtime tables' `.benchmarks-num` aligns pure numbers right */
+	/* left-aligned like the source names they sit among, where the cross-runtime
+	   tables' `.benchmarks-num` aligns pure numbers right */
 	.coverage-num {
 		white-space: nowrap;
 		font-variant-numeric: tabular-nums;
+	}
+	/* read out, not shown: the greyed `100%` says it by sight alone */
+	.visually-hidden {
+		position: absolute;
+		width: 1px;
+		height: 1px;
+		overflow: hidden;
+		clip-path: inset(50%);
+		white-space: nowrap;
 	}
 </style>

@@ -251,6 +251,9 @@ export interface BaselineEntry {
 	outlier_ratio: number | null;
 	warmup_iterations: number | null;
 	min_iterations: number | null;
+	// The JS heap the row's warmup began from, which shows whether two runs of a row
+	// started from the same place; not rendered. `null` on an untimed row.
+	settled_heap_bytes: number | null;
 	files_iterated_digest: string | null;
 	// Per-implementation preflight coverage: files this impl processed / the
 	// language's total discovered files.
@@ -451,6 +454,18 @@ export const compare_group_order = (
 	(OPERATION_ORDER[a.operation] ?? 9) - (OPERATION_ORDER[b.operation] ?? 9) ||
 	(LANGUAGE_ORDER[a.language] ?? 9) - (LANGUAGE_ORDER[b.language] ?? 9);
 
+/** The fixed slots ahead of tsv's own rows — see `speed_entry_rank`. */
+const CROSS_TOOL_RANK: Partial<Record<ImplementationCategory, number>> = {
+	canonical: 0,
+	biome: 1,
+	dprint: 2,
+	oxc: 3,
+	postcss: 4,
+	rsvelte: 5,
+	swc: 6,
+	yuku: 7
+};
+
 /**
  * Fixed slot for a format/parse row, applied in place of a size-ordered sort so the
  * rows read in a stable, meaningful sequence across every group: the canonical
@@ -467,18 +482,6 @@ const speed_entry_rank = (entry: BenchmarkDisplayEntry): number => {
 	if (entry.name.endsWith('-no-locations')) return 8; // tsv json, span-only wire
 	if (entry.name.endsWith('-json')) return 9; // tsv json, loc-carrying wire
 	return 10; // tsv's engine rows: `tsv`/`tsv-wasm` (format), `-internal` (parse, no JS materialization)
-};
-
-/** The fixed slots ahead of tsv's own rows — see `speed_entry_rank`. */
-const CROSS_TOOL_RANK: Partial<Record<ImplementationCategory, number>> = {
-	canonical: 0,
-	biome: 1,
-	dprint: 2,
-	oxc: 3,
-	postcss: 4,
-	rsvelte: 5,
-	swc: 6,
-	yuku: 7
 };
 
 /**
@@ -653,35 +656,41 @@ const RAW_CV_SAMPLE_CEILING = 30;
  * headline ratio on the page should pass. A coverage-only row (null timing) is not
  * unstable, it is untimed.
  */
-export const is_entry_unstable = (entry: BaselineEntry): boolean => {
+export const is_entry_unstable = (entry: BaselineEntry): boolean =>
+	to_unstable_readings(entry).length > 0;
+
+// the readings past their threshold — empty for a stable or an untimed row
+const to_unstable_readings = (entry: BaselineEntry): Array<number> => {
 	// untimed is `mean_ns`, not `cv` — a timed row missing its cleaned cv still
 	// carries a raw cv and a drift to check
-	if (entry.mean_ns == null) return false;
-	if (entry.cv != null && entry.cv >= UNSTABLE_CV_THRESHOLD) return true;
+	if (entry.mean_ns == null) return [];
+	const readings: Array<number> = [];
+	if (entry.cv != null && entry.cv >= UNSTABLE_CV_THRESHOLD) readings.push(entry.cv);
 	if (
 		entry.cv_raw != null &&
 		entry.cv_raw >= UNSTABLE_CV_THRESHOLD &&
 		entry.raw_sample_size != null &&
 		entry.raw_sample_size < RAW_CV_SAMPLE_CEILING
 	) {
-		return true;
+		readings.push(entry.cv_raw);
 	}
-	if (entry.drift != null && Math.abs(entry.drift) >= UNSTABLE_DRIFT_THRESHOLD) return true;
-	return false;
+	if (entry.drift != null && Math.abs(entry.drift) >= UNSTABLE_DRIFT_THRESHOLD) {
+		readings.push(Math.abs(entry.drift));
+	}
+	return readings;
 };
 
 /**
  * The timed rows of a per-runtime report whose measurement was not stable, worst
- * first — the page's disclosure beside the numbers built from that report.
+ * first by the readings that flagged them — the page's disclosure beside the
+ * numbers built from that report.
  */
 export const derive_unstable_entries = (baseline: BenchmarkBaseline): Array<BaselineEntry> =>
 	baseline.entries
-		.filter(is_entry_unstable)
-		.sort(
-			(a, b) =>
-				Math.max(b.cv ?? 0, b.cv_raw ?? 0, Math.abs(b.drift ?? 0)) -
-				Math.max(a.cv ?? 0, a.cv_raw ?? 0, Math.abs(a.drift ?? 0))
-		);
+		.map((entry) => ({ entry, worst: Math.max(...to_unstable_readings(entry)) }))
+		.filter(({ worst }) => worst > 0)
+		.sort((a, b) => b.worst - a.worst)
+		.map(({ entry }) => entry);
 
 // Corpus source table
 

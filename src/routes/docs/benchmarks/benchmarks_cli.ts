@@ -281,11 +281,14 @@ export const cli_node_startup_ms = (): number => benchmarks_cli.node_startup.mea
  * The idle the harness takes before each formatter's warmups, in seconds — what
  * the prose quotes beside the fixed run order.
  *
+ * @param scenarios - the scenarios to read, the rendered ones by default
  * @returns the settle, or `undefined` when no rendered scenario records one, a
  * run turned it off, or the scenarios disagree (the per-table notes still say each)
  */
-export const cli_settle_seconds = (): number | undefined => {
-	const settles = new Set(benchmarks_cli.scenarios.map((s) => s.settle_seconds));
+export const cli_settle_seconds = (
+	scenarios: Array<CliScenario> = benchmarks_cli.scenarios
+): number | undefined => {
+	const settles = new Set(scenarios.map((s) => s.settle_seconds));
 	const [settle] = settles;
 	return settles.size === 1 && settle ? settle : undefined;
 };
@@ -340,10 +343,13 @@ export const cli_speedup_vs_tsv_npm = (
  * The dispatcher row's highest peak RSS across the scenarios that face other
  * tools, in megabytes — the Node launcher's footprint rather than tsv's own.
  *
+ * @param scenarios - the scenarios to read, the rendered ones by default
  * @returns the figure, or `undefined` when no such scenario measured one
  */
-export const cli_tsv_npm_memory_mb = (): number | undefined => {
-	const peaks = benchmarks_cli.scenarios
+export const cli_tsv_npm_memory_mb = (
+	scenarios: Array<CliScenario> = benchmarks_cli.scenarios
+): number | undefined => {
+	const peaks = scenarios
 		.filter((s) => !s.tsv_only)
 		.flatMap((s) => s.results.find((r) => r.label === CLI_TSV_NPM_LABEL)?.memory_mb ?? []);
 	return peaks.length ? Math.max(...peaks) : undefined;
@@ -354,10 +360,13 @@ export const cli_tsv_npm_memory_mb = (): number | undefined => {
  * milliseconds, spanned across every scenario that times both rows — Node
  * starting up to launch the binary, which the page calls a fixed cost.
  *
+ * @param scenarios - the scenarios to read, the rendered ones by default
  * @returns the low and high difference, or `undefined` when no scenario timed both rows
  */
-export const cli_tsv_npm_overhead_ms_range = (): { min: number; max: number } | undefined => {
-	const overheads = benchmarks_cli.scenarios.flatMap((s) => {
+export const cli_tsv_npm_overhead_ms_range = (
+	scenarios: Array<CliScenario> = benchmarks_cli.scenarios
+): { min: number; max: number } | undefined => {
+	const overheads = scenarios.flatMap((s) => {
 		const npm = s.results.find((r) => r.label === CLI_TSV_NPM_LABEL);
 		const tsv = s.results.find((r) => r.label === CLI_TSV_LABEL);
 		return npm && tsv ? [npm.wall_ms - tsv.wall_ms] : [];
@@ -446,18 +455,18 @@ export const cli_comparison_results = (
  * `baseline_label` takes the ratios against the dispatcher row instead of the
  * bare binary.
  *
+ * @param scenarios - the scenarios to read, the rendered ones by default
  * @returns the low and high ratio, or `undefined` when nothing was measured, or
  * when a named tool or the baseline row is missing from a spanned scenario
  */
 export const cli_memory_ratio_range = (
-	options: { scenario_key?: string; labels?: Array<string>; baseline_label?: string } = {}
+	options: { scenario_key?: string; labels?: Array<string>; baseline_label?: string } = {},
+	scenarios: Array<CliScenario> = benchmarks_cli.scenarios
 ): { min: number; max: number } | undefined => {
 	const { scenario_key, labels, baseline_label = CLI_TSV_LABEL } = options;
-	const scenarios = benchmarks_cli.scenarios.filter((s) =>
-		scenario_key ? s.key === scenario_key : !s.tsv_only
-	);
+	const spanned = scenarios.filter((s) => (scenario_key ? s.key === scenario_key : !s.tsv_only));
 	const ratios: Array<number> = [];
-	for (const scenario of scenarios) {
+	for (const scenario of spanned) {
 		const compared = cli_comparison_results(scenario).filter(
 			(r) => !labels || labels.includes(r.label)
 		);
