@@ -500,17 +500,18 @@ const compare_speed_entries = (a: BenchmarkDisplayEntry, b: BenchmarkDisplayEntr
 };
 
 /**
- * A grayed-out, inert copy of a measured entry (or a bare template) for a group the
- * tool doesn't run in — no bar, no coverage, never an anchor.
+ * A grayed-out, inert row for a group the tool doesn't run in — no bar, no
+ * coverage, never an anchor. Built from the name and category alone, so nothing a
+ * template row measured (a TypeScript mean ~100x any real CSS row, a
+ * `coverage_only` flag) can ride into the group it is mirrored into.
  */
-const to_placeholder = (entry: BenchmarkDisplayEntry): BenchmarkDisplayEntry => ({
-	...entry,
-	bar_fraction: 0,
-	// zeroed with the rest: the oxc placeholders are copied from the TypeScript parse
-	// group, so keeping the source row's timing would carry a TypeScript mean into
-	// the CSS and Svelte groups — a number ~100x any real row there, reaching
-	// `BaselineRow.raw` one `disabled` guard away from being rendered
+const to_placeholder = (
+	entry: Pick<BenchmarkDisplayEntry, 'name' | 'category'>
+): BenchmarkDisplayEntry => ({
+	name: entry.name,
+	category: entry.category,
 	mean_ns: 0,
+	bar_fraction: 0,
 	files_processed: null,
 	files_total: null,
 	disabled: true
@@ -597,16 +598,7 @@ export const derive_benchmark_groups = (baseline: BenchmarkBaseline): Array<Benc
 			(e) => e.category === 'biome'
 		)
 			? []
-			: [
-					to_placeholder({
-						name: 'biome-wasm',
-						mean_ns: 0,
-						bar_fraction: 0,
-						category: 'biome',
-						files_processed: null,
-						files_total: null
-					})
-				];
+			: [to_placeholder({ name: 'biome-wasm', category: 'biome' })];
 		const needs_oxc =
 			group.language !== 'typescript' && !group.entries.some((e) => e.category === 'oxc');
 		const oxc_placeholders = needs_oxc ? oxc_templates.map(to_placeholder) : [];
@@ -937,6 +929,80 @@ export const derive_corpus_repos = (
 	return [...by_url.values()];
 };
 
+// Prose counts
+
+/** The corpus file counts the prose quotes — see `derive_corpus_counts`. */
+export interface CorpusCounts {
+	/** Every file across the languages (the report carries per-language counts, not bytes). */
+	files: number;
+	/**
+	 * The harvested `<style>` concatenations inside `files`: the sources with no
+	 * upstream repo are the harness's own caches, and their CSS entries are bytes the
+	 * Svelte rows already carry. `0` when the report doesn't distinguish them.
+	 */
+	harvested_css: number;
+	/** The CSS files that are files — `undefined` unless the report distinguishes the harvest. */
+	standalone_css: number | undefined;
+}
+
+export const derive_corpus_counts = (baseline: BenchmarkBaseline): CorpusCounts => {
+	const files = Object.values(baseline.corpus).reduce((sum, n) => sum + n, 0);
+	const harvested_css = (baseline.corpus_sources ?? [])
+		.filter((source) => !source.repo)
+		.reduce((sum, source) => sum + (source.by_language?.css ?? 0), 0);
+	const css = baseline.corpus.css;
+	return {
+		files,
+		harvested_css,
+		standalone_css: harvested_css && css ? css - harvested_css : undefined
+	};
+};
+
+/**
+ * How many timed sweeps stand behind each row — see `derive_sweep_stats`. Every
+ * field is `undefined` when no entry carries it, so a report without them can't
+ * print `Infinity` mid-sentence.
+ */
+export interface SweepStats {
+	/** The bench's lowest per-row sweep floor. */
+	floor: number | undefined;
+	/**
+	 * The reference rows' floor — theirs is separate, since every default ratio
+	 * divides by one. Falls back to `floor` when no reference row carries one.
+	 */
+	canonical_floor: number | undefined;
+	/** The span of cleaned timing counts the report kept per row. */
+	sample_size_min: number | undefined;
+	sample_size_max: number | undefined;
+}
+
+export const derive_sweep_stats = (baseline: BenchmarkBaseline): SweepStats => {
+	const min_of = (values: Array<number>): number | undefined =>
+		values.length ? Math.min(...values) : undefined;
+	const floors = baseline.entries.flatMap((e) => e.min_iterations ?? []);
+	const canonical_floors = baseline.entries.flatMap((e) =>
+		categorize_name(e.name) === 'canonical' ? (e.min_iterations ?? []) : []
+	);
+	const sample_sizes = baseline.entries.flatMap((e) => e.sample_size ?? []);
+	const floor = min_of(floors);
+	return {
+		floor,
+		canonical_floor: min_of(canonical_floors) ?? floor,
+		sample_size_min: min_of(sample_sizes),
+		sample_size_max: sample_sizes.length ? Math.max(...sample_sizes) : undefined
+	};
+};
+
+/**
+ * The disabled rows of one category mirrored into a group the tool doesn't run in
+ * (see `derive_benchmark_groups`) — counted rather than stated in the prose, since
+ * the mirror carries every template the source group has.
+ */
+export const count_placeholder_entries = (
+	group: BenchmarkGroup | undefined,
+	category: ImplementationCategory
+): number => group?.entries.filter((e) => e.disabled && e.category === category).length ?? 0;
+
 // Prose ratios
 
 /**
@@ -958,4 +1024,21 @@ export const benchmark_speedup = (
 	const b = find(faster)?.mean_ns;
 	if (!a || !b) return undefined;
 	return a / b;
+};
+
+/**
+ * The share of `whole`'s time it spends beyond what `part` takes, within one group
+ * — what a row costs over a sibling that stops earlier (the JSON hand-off's share
+ * of a parse row, against the internal row that builds the same AST and stops).
+ *
+ * @returns the fraction, or `undefined` when either entry is absent from the report
+ */
+export const benchmark_time_share_beyond = (
+	baseline: BenchmarkBaseline,
+	group: string,
+	whole: string,
+	part: string
+): number | undefined => {
+	const ratio = benchmark_speedup(baseline, group, whole, part);
+	return ratio === undefined ? undefined : 1 - 1 / ratio;
 };

@@ -8,6 +8,23 @@
 	border-left-color: var(--color_c_50);
 }
 
+/* a full-width data table whose first column names each row: the row headers
+   are `<th scope="row">` for assistive tech but read as the body text they sit in */
+.benchmarks-table {
+	width: 100%;
+}
+.benchmarks-table tbody th {
+	font-weight: inherit;
+	text-align: left;
+}
+
+/* small print: the notes under the CLI tables, the run metadata, and the
+   cross-runtime versions */
+.benchmarks-note {
+	font-size: var(--font_size_sm);
+	opacity: 0.7;
+}
+
 /* a numeric table cell, used by the conformance and cross-runtime tables */
 .benchmarks-num {
 	text-align: right;

@@ -113,11 +113,11 @@ The JSON formats match the types in `benchmark_data.ts`.
 The end-to-end CLI comparison against Prettier, Biome, and Oxfmt comes from a
 separate harness, a fork of Oxc's `bench-formatter` that adds tsv
 (../oxc-bench-formatter). Beside the console dump in its README it writes
-`results.json`: hyperfine's own export at full precision, the memory pass, the
-preflight rows, the versions and machine the README lists, `node_startup`, a bare
+`results.json`: hyperfine's own export (rounded to the microsecond), the memory
+pass, the preflight rows, the versions and machine the README lists, `node_startup`, a bare
 `node -e ""` timed on the same machine — the launch floor every npm-bin row pays,
 kept beside `machine` rather than as a row — each scenario's `corpus`, the
-revision of the corpus its numbers came from, rendered under its table, and, per
+revision of the corpus its numbers came from, rendered above its table, and, per
 settling scenario, `settle_seconds`, the idle before each formatter's warmups, which
 the tables' run-count notes and the run-order note quote when present. To update:
 
@@ -161,7 +161,7 @@ skipped, the committed JSON stands, and `gro gen --check` passes on any machine
 or CI that has only this repo (CI never checks out the harness, so it always
 takes this path; no `--no-gen` needed). A report that **is** present but doesn't
 validate — a renamed or unknown key, a scenario with neither timings nor an
-abort, no tsv row anywhere — fails the task loudly, naming the path that failed,
+abort, no tsv row anywhere — fails the task loudly, naming the report's path,
 rather than publishing stale or scenario-stripped numbers. A drift that still
 validates but renames a scenario is caught on the site side instead: every
 key in `benchmarks_cli.ts`'s `SCENARIO_COPY` must resolve to generated data, and
@@ -176,15 +176,15 @@ Key files in `src/routes/docs/benchmarks/`:
 - `benchmark_data.ts` — TypeScript types matching the per-runtime JSON format, plus the format/parse, conformance, stability, and corpus derivations
 - `benchmark_sizes.ts` — the binary-size domain: category and capability grouping, and the synthesized combined builds
 - `benchmark_cross_runtime.ts` — the combined cross-runtime report: its types, derivations, and display helpers
-- `benchmark_display.ts` — value formatters (times, sizes, ratios), row labels, and per-category colors shared across the page; sizes print in decimal units (1 KB = 1,000 B) as in tsv's own report, but rounded to whole KB below the MB tier, where the report keeps a decimal
-- `benchmark_baseline.ts` — the hover-to-rebaseline ratios: `BaselineRow`, `BaselineDirection`, and the per-direction ratio, format (`format_speedup_signed` for speed, `benchmark_display.ts`'s `format_ratio_plain` for size), and color scales
+- `benchmark_display.ts` — value formatters (times, sizes, ratios, the CLI tables' `format_ms`/`format_mib`), row labels, and per-category colors shared across the page; sizes print in decimal units (1 KB = 1,000 B) as in tsv's own report, but rounded to whole KB below the MB tier, where the report keeps a decimal
+- `benchmark_baseline.ts` — the hover-to-rebaseline ratios: `BaselineRow`, `BaselineDirection`, `to_baseline_key` (the delegated hover read `BenchmarksBaselineGroup.svelte` and `BenchmarksCli.svelte` share), and the per-direction ratio, format (`format_speedup_signed` for speed, `benchmark_display.ts`'s `format_ratio_plain` for size), and color scales
 - `formatter_benchmark_data.ts` — the report's Zod schemas and types, plus `parse_formatter_benchmarks`, which validates the harness's `results.json` and keeps tsv's scenarios
 - `benchmarks_cli.ts` — shapes `benchmarks_formatters.json` for `BenchmarksCli.svelte` and owns the per-scenario prose; the numbers are all generated
-- `benchmarks.css` — the two classes the page's components share (`benchmarks-warning`, `benchmarks-num`), which Svelte's scoped `<style>` can't reach across. Imported by the benchmarks `+page.svelte` rather than the root stylesheet, so they ship with the docs chunk instead of every route
+- `benchmarks.css` — the classes the page's components share (`benchmarks-warning`, `benchmarks-num`, `benchmarks-table`, `benchmarks-note`), which Svelte's scoped `<style>` can't reach across. Imported by the benchmarks `+page.svelte` rather than the root stylesheet, so they ship with the docs chunk instead of every route
 - `benchmarks_prose.ts` — `IN_PROCESS_PAIRS`, the in-process pairings the page's copy names, keyed by the name the page gives each ratio. The page reads it by key and `benchmark_data.prose.test.ts` iterates its values, so a pairing added to the copy is gated by construction
 - `benchmarks.ts`, `benchmarks_cross_runtime.ts`, `benchmarks_conformance.ts`, `benchmarks_formatters.ts` — re-export the JSON with types
 - `BenchmarksBar.svelte`, `BenchmarksGroup.svelte`, etc. — visualization components
-- `BenchmarksBaselineGroup.svelte` — shared interactive column behind the format, parse, and binary-size groups: hovering a row re-baselines that group's ratios (each of the three groups per section is independent), restoring the default anchor (the canonical reference — Prettier for format, the JS baseline for parse — and the smallest build for size) when the pointer leaves the group. The group owns one delegated `pointerover` and reads `data-baseline-key` off the row under the pointer, rather than each of the page's 74 rows carrying its own handlers; a disabled row publishes no key, so it can never become the anchor. There is no focus path — re-baselining is a pointer affordance over data that is fully visible regardless. `benchmark_baseline.ts`'s `compute_baseline_ratio`/`format_baseline_ratio`/`baseline_ratio_color` carry the per-`BaselineDirection` (`speed`/`size`) formulas it and the derivations share
+- `BenchmarksBaselineGroup.svelte` — shared interactive column behind the format, parse, and binary-size groups: hovering a row re-baselines that group's ratios (each of the three groups per section is independent), restoring the default anchor (the canonical reference — Prettier for format, the JS baseline for parse — and the smallest build for size) when the pointer leaves the group. The group owns one delegated `pointerover` and reads `data-baseline-key` off the row under the pointer, rather than each of the page's 74 rows carrying its own handlers; a disabled row publishes no key, so it can never become the anchor. The current anchor row carries an accent edge (`BenchmarksBar.svelte`'s `anchor`), as the CLI tables mark theirs. There is no focus path — re-baselining is a pointer affordance over data that is fully visible regardless. `benchmark_baseline.ts`'s `compute_baseline_ratio`/`format_baseline_ratio`/`baseline_ratio_color` carry the per-`BaselineDirection` (`speed`/`size`) formulas it and the derivations share
 
 ## Architecture
 
@@ -193,7 +193,7 @@ Key files in `src/routes/docs/benchmarks/`:
 - `docs/tomes.ts` defines the doc sections: introduction, playground, benchmarks
 - Benchmark data lives in `src/routes/docs/benchmarks/` as four JSON reports — three copied from tsv, one generated from the sibling CLI harness (see [Benchmarks](#benchmarks))
 - The report types and derivations split across sibling modules: `benchmark_data.ts` (the per-runtime and conformance reports), `benchmark_sizes.ts` (binary sizes, read by `BenchmarksSizes.svelte`), `benchmark_cross_runtime.ts` (the combined report, read by `BenchmarksCrossRuntime.svelte`), `benchmark_display.ts` (formatters, labels, colors), and `benchmark_baseline.ts` (the rebaseline ratios, read by `BenchmarksBaselineGroup.svelte`). The dependency runs one way — `benchmark_data.ts` imports none of the others, `benchmark_display.ts` imports only its types, and the rest build on those two
-- The benchmarks page quotes no hand-written ratios — its prose computes them from the same reports the charts render, via `benchmark_data.ts`'s `benchmark_speedup`, `benchmark_display.ts`'s `format_ratio_approx`/`format_ratio_range`/`format_share_approx`, and `benchmarks_cli.ts`'s `cli_speedup_vs_tsv_npm`/`cli_speedup_vs_tsv`/`cli_memory_ratio_range` (plus `cli_tsv_npm_memory_mb`, `cli_tsv_npm_overhead_ms_range`, and `cli_tsv_npm_overhead_share` for the dispatcher's own cost, and `cli_scenario_find` for the Svelte scenario's abort state). The in-process pairings live in `benchmarks_prose.ts`, which the page and the prose test both read, so a test gates that every pair the copy names still resolves and still runs in the direction the sentence reads
+- The benchmarks page quotes no hand-written ratios — its prose computes them from the same reports the charts render, via `benchmark_data.ts`'s `benchmark_speedup`, `benchmark_display.ts`'s `format_ratio_approx`/`format_ratio_range`/`format_share_approx`, and `benchmarks_cli.ts`'s `cli_speedup_vs_tsv_npm`/`cli_speedup_vs_tsv`/`cli_memory_ratio_range` (plus `cli_tsv_npm_memory_mb`, `cli_tsv_npm_overhead_ms_range`, and `cli_tsv_npm_overhead_share` for the dispatcher's own cost, `cli_node_startup_ms` and `cli_settle_seconds` for the harness's launch floor and idle, and `cli_scenario_find` for the Svelte scenario's abort state). The counts it quotes — corpus files, sweep floors, mirrored placeholder slots — come from `benchmark_data.ts`'s `derive_corpus_counts`, `derive_sweep_stats`, and `count_placeholder_entries`, so the page's script holds no untested reductions. The in-process pairings live in `benchmarks_prose.ts`, which the page and the prose test both read, so a test gates that every pair the copy names still resolves and still runs in the direction the sentence reads
 - Tests and routes import route modules through the `$routes` alias (`svelte.config.js`), not a `#routes/*` subpath import — this repo has no `package.json` `imports` map
 - `library.ts` builds component metadata at runtime from the `virtual:svelte-docinfo` module (provided by the `svelte-docinfo` Vite plugin); the docs index passes it to `DocsContent`
 - The playground (`/docs/playground`) loads `@fuzdev/tsv-wasm` via a browser-only dynamic `import()` inside `Playground.svelte`, so the WASM code-splits into its own chunk fetched only on that route, keeping `/docs` and the prerendered pages WASM-free. `@fuzdev/tsv-wasm` is in `vite.config.ts` `optimizeDeps.exclude` (like `@fuzdev/blake3-wasm`)

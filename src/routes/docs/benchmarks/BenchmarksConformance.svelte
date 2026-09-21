@@ -12,9 +12,9 @@
 	The data is already here: the report carries `coverage_by_source`
 	(`group → source → impl → {processed, total}`) from `version` 8 on — the
 	machine-readable half of the per-source tables in tsv's own markdown report,
-	which splits exactly this way and for exactly this reason. It needs a
-	`derive_*` in `benchmark_data.ts` plus a nested table or a per-source
-	breakdown under each group.
+	which splits exactly this way and for exactly this reason. `benchmark_data.ts`'s
+	`derive_conformance_slice` already reads it for the page's by-slice prose; what's
+	missing here is a nested table or a per-source breakdown under each group.
 -->
 <script lang="ts">
 	import { format_coverage_percent, type ConformanceGroup } from './benchmark_data.ts';
@@ -33,10 +33,10 @@
 			Parsing {format_count(group.files_total)}
 			{format_language(group.language)} files
 		</p>
-		<table>
+		<table class="benchmarks-table">
 			<thead>
 				<tr>
-					<th scope="col"></th>
+					<th scope="col">parser</th>
 					<th scope="col" class="benchmarks-num">files accepted</th>
 					<th scope="col" class="benchmarks-num">coverage</th>
 				</tr>
@@ -44,11 +44,11 @@
 			<tbody>
 				{#each group.rows as row (row.name)}
 					<tr>
-						<td>
+						<th scope="row">
 							{row.name}{#if row.note}
 								<small class="text_40">({row.note})</small>
 							{/if}
-						</td>
+						</th>
 						<td class="benchmarks-num">
 							{format_count(row.files_processed)} /
 							{format_count(row.files_total)}
@@ -63,15 +63,15 @@
 
 <style>
 	table {
-		width: 100%;
 		max-width: 40rem;
 	}
-	th {
+	thead th {
 		font-weight: 400;
 		font-size: var(--font_size_sm);
 		color: var(--text_40);
 		padding-block: var(--space_xs);
 	}
+	tbody th,
 	td {
 		padding-block: var(--space_xs);
 	}

@@ -11,6 +11,11 @@ import {
 	format_ratio_plain,
 	format_percent,
 	format_share_approx,
+	format_count_maybe,
+	format_group_label,
+	format_mib,
+	format_ms,
+	format_ms_range,
 	format_ns,
 	format_ratio_approx,
 	format_ratio_range,
@@ -43,6 +48,13 @@ describe('format_ns', () => {
 		assert.deepEqual(format_ns(1_000_000), { value: '1.0', unit: 'ms' });
 	});
 
+	test('a decimal step inside the µs tier never prints a digit more than it means to', () => {
+		assert.deepEqual(format_ns(9_994), { value: '9.99', unit: 'µs' });
+		assert.deepEqual(format_ns(9_995), { value: '10.0', unit: 'µs' });
+		assert.deepEqual(format_ns(99_949), { value: '99.9', unit: 'µs' });
+		assert.deepEqual(format_ns(99_950), { value: '100', unit: 'µs' });
+	});
+
 	test('the ms tier keeps one decimal under 10 ms and never prints 10.0', () => {
 		// a 3.9 ms row against an 11.3 ms anchor must not print as `4` and `11`
 		assert.deepEqual(format_ns(3_900_000), { value: '3.9', unit: 'ms' });
@@ -52,7 +64,41 @@ describe('format_ns', () => {
 	});
 });
 
+describe('CLI value formatting', () => {
+	test('a duration is whole ms under a second, and never prints 1000 ms', () => {
+		assert.strictEqual(format_ms(18.814), '19 ms');
+		assert.strictEqual(format_ms(999.4), '999 ms');
+		assert.strictEqual(format_ms(999.5), '1.0 s');
+		assert.strictEqual(format_ms(1605.9), '1.6 s');
+	});
+
+	test('a span of ms collapses when both ends round alike', () => {
+		assert.strictEqual(format_ms_range({ min: 30.3, max: 31.3 }), '30–31 ms');
+		assert.strictEqual(format_ms_range({ min: 30.3, max: 30.4 }), '30 ms');
+		assert.strictEqual(format_ms_range(undefined), '—');
+	});
+
+	test('memory is whole MiB, a dash when unmeasured', () => {
+		assert.strictEqual(format_mib(49.6), '50 MiB');
+		assert.strictEqual(format_mib(null), '—');
+		assert.strictEqual(format_mib(undefined), '—');
+	});
+});
+
+describe('format_group_label', () => {
+	test('names the operation and the language as the headings print them', () => {
+		assert.strictEqual(format_group_label('format', 'typescript'), 'Format TypeScript');
+		assert.strictEqual(format_group_label('parse', 'css'), 'Parse CSS');
+	});
+});
+
 describe('prose ratio formatting', () => {
+	test('a missing figure is a dash rather than a throw mid-sentence', () => {
+		assert.strictEqual(format_ratio_range(undefined), '—');
+		assert.strictEqual(format_count_maybe(undefined), '—');
+		assert.strictEqual(format_count_maybe(1106), '1,106');
+	});
+
 	test('approximate formatting drops digits as the ratio grows', () => {
 		assert.strictEqual(format_ratio_approx(1.66), '1.7x');
 		assert.strictEqual(format_ratio_approx(26.241), '26x');
@@ -60,15 +106,15 @@ describe('prose ratio formatting', () => {
 	});
 
 	test('a range is floored at both ends so the claim never overstates either bound', () => {
-		assert.strictEqual(format_ratio_range(3.001, 9.89), '3.0–9.8x');
-		assert.strictEqual(format_ratio_range(2.95, 4.62), '2.9–4.6x');
+		assert.strictEqual(format_ratio_range({ min: 3.001, max: 9.89 }), '3.0–9.8x');
+		assert.strictEqual(format_ratio_range({ min: 2.95, max: 4.62 }), '2.9–4.6x');
 		// from 10 the decimal goes, as `format_ratio_approx` drops it
-		assert.strictEqual(format_ratio_range(6.54, 21.21), '6.5–21x');
+		assert.strictEqual(format_ratio_range({ min: 6.54, max: 21.21 }), '6.5–21x');
 	});
 
 	test('a range whose ends floor to the same figure collapses to one', () => {
-		assert.strictEqual(format_ratio_range(2.91, 2.99), '2.9x');
-		assert.strictEqual(format_ratio_range(12.1, 12.9), '12x');
+		assert.strictEqual(format_ratio_range({ min: 2.91, max: 2.99 }), '2.9x');
+		assert.strictEqual(format_ratio_range({ min: 12.1, max: 12.9 }), '12x');
 	});
 });
 

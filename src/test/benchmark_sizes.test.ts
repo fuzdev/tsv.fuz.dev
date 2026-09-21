@@ -4,6 +4,7 @@ import {
 	categorize_size_capability,
 	derive_size_groups,
 	OXC_FULL_LABEL,
+	RSVELTE_INSTALL_LABEL,
 	OXFMT_WASM_LABEL
 } from '$routes/docs/benchmarks/benchmark_sizes.ts';
 import type { BinarySize } from '$routes/docs/benchmarks/benchmark_data.ts';
@@ -89,5 +90,19 @@ describe('derive_size_groups', () => {
 	test('synthesized sums need both halves', () => {
 		const groups = derive_size_groups([size('oxc-parser (napi)', 5)]);
 		assert.isFalse(groups.some((g) => g.entries.some((e) => e.label === OXC_FULL_LABEL)));
+	});
+
+	test('the rsvelte-fmt install sums its binary with the oxfmt it needs over a directory', () => {
+		const install = (sizes: Array<BinarySize>) =>
+			derive_size_groups(sizes)
+				.flatMap((g) => g.entries)
+				.find((e) => e.label === RSVELTE_INSTALL_LABEL);
+		const both = install([
+			{ ...size('rsvelte-fmt (binary)', 5), gzip_bytes: 2 },
+			{ ...size('oxfmt (napi)', 7), gzip_bytes: 3 }
+		]);
+		assert.strictEqual(both?.bytes, 12);
+		assert.strictEqual(both?.gzip_bytes, 5);
+		assert.isUndefined(install([size('rsvelte-fmt (binary)', 5)]));
 	});
 });

@@ -38,8 +38,8 @@ export interface CliFormatterResult {
 	 * Total CPU time across all threads, in ms — hyperfine's `User` plus `System`,
 	 * the parallelism-neutral view. System time is counted because it is real work
 	 * the command demanded (file I/O, thread spawn, page faults) and an uneven share
-	 * of it per tool: a third of tsv's CPU on the TypeScript repo, nearly half of rsvelte-fmt's on
-	 * the Svelte corpus.
+	 * of it per tool: nearly a third of tsv's CPU on the TypeScript repo, nearly half of
+	 * rsvelte-fmt's on the Svelte corpus.
 	 */
 	cpu_ms: number;
 	/** Peak resident set size (RSS), in megabytes; `null` when the harness measured no memory. */
@@ -330,7 +330,7 @@ export const cli_speedup_vs_tsv = (
 	metric: CliMetric
 ): number | undefined => {
 	const results = cli_scenario_find(scenario_key)?.results;
-	return results && cli_ratio_vs_tsv(results, label, metric);
+	return results && cli_ratio_between(results, label, CLI_TSV_LABEL, metric);
 };
 
 /**
@@ -418,18 +418,6 @@ export const cli_ratio_between = (
 	if (baseline == null || other == null || !baseline) return undefined;
 	return other / baseline;
 };
-
-/**
- * `label`'s measurement over native tsv's, by one metric, within a scenario's
- * rows — the ratio behind both the tables and `cli_speedup_vs_tsv`.
- *
- * @returns the ratio, or `undefined` when either row or either side's measurement is absent
- */
-export const cli_ratio_vs_tsv = (
-	results: Array<CliFormatterResult>,
-	label: string,
-	metric: CliMetric
-): number | undefined => cli_ratio_between(results, label, CLI_TSV_LABEL, metric);
 
 /**
  * The row a scenario's table takes its ratios against until a reader hovers

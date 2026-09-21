@@ -6,6 +6,10 @@ import type { CorpusSource, ImplementationCategory } from './benchmark_data.ts';
 /** A count with thousands separators (`44,220`), pinned to one locale so prerendered and hydrated output agree. */
 export const format_count = (n: number): string => n.toLocaleString('en-US');
 
+/** `format_count` for prose over a figure the report may lack: `—` rather than a throw mid-sentence. */
+export const format_count_maybe = (n: number | undefined): string =>
+	n === undefined ? '—' : format_count(n);
+
 export interface FormattedUnit {
 	value: string;
 	unit: string;
@@ -13,10 +17,11 @@ export interface FormattedUnit {
 
 export const format_ns = (ns: number): FormattedUnit => {
 	if (ns < 1_000) return { value: `${Math.round(ns)}`, unit: 'ns' };
-	// the µs tier ends where its rounding would print `1000`, not at 1 ms exactly
+	// the µs tier ends where its rounding would print `1000`, not at 1 ms exactly,
+	// and each decimal step inside it where its rounding would print a digit more
 	if (ns < 999_500)
 		return {
-			value: (ns / 1_000).toFixed(ns < 10_000 ? 2 : ns < 100_000 ? 1 : 0),
+			value: (ns / 1_000).toFixed(ns < 9_995 ? 2 : ns < 99_950 ? 1 : 0),
 			unit: 'µs'
 		};
 	// one decimal under 10 ms, so the short CSS rows print values that still
@@ -39,6 +44,29 @@ export const format_bytes = (bytes: number): FormattedUnit => {
 	if (bytes < 999_500) return { value: (bytes / 1_000).toFixed(0), unit: 'KB' };
 	return { value: (bytes / 1_000_000).toFixed(1), unit: 'MB' };
 };
+
+/**
+ * A CLI run's duration, as the harness reports it in milliseconds: whole `ms`
+ * under a second, one decimal of `s` from there (`62 ms`, `1.6 s`). The `ms` tier
+ * ends where its rounding would print `1000`, as `format_ns`'s tiers do.
+ */
+export const format_ms = (ms: number): string =>
+	ms < 999.5 ? `${Math.round(ms)} ms` : `${(ms / 1000).toFixed(1)} s`;
+
+/**
+ * A rounded millisecond span for prose (`30–31 ms`), collapsing to one figure when
+ * both ends round alike; `—` for a missing one, as `format_ratio_approx`.
+ */
+export const format_ms_range = (range: { min: number; max: number } | undefined): string => {
+	if (!range) return '—';
+	const low = Math.round(range.min);
+	const high = Math.round(range.max);
+	return low === high ? `${low} ms` : `${low}–${high} ms`;
+};
+
+/** Peak memory in whole MiB (`50 MiB`); `—` when the harness measured none. */
+export const format_mib = (mib: number | null | undefined): string =>
+	mib == null ? '—' : `${Math.round(mib)} MiB`;
 
 /**
  * Formats a corpus source's file count as a per-language breakdown
@@ -116,11 +144,12 @@ export const format_percent = (part: number, whole: number): string => {
  * — to one decimal under 10, to a whole number from 10 — so a "less memory" claim
  * never overstates either bound while keeping the precision `format_ratio_approx`
  * gives a single ratio. Two ends that floor to the same figure collapse to it
- * (`2.9x`, never `2.9–2.9x`).
+ * (`2.9x`, never `2.9–2.9x`). `—` for a missing range, as `format_ratio_approx`.
  */
-export const format_ratio_range = (min: number, max: number): string => {
-	const low = floor_ratio(min);
-	const high = floor_ratio(max);
+export const format_ratio_range = (range: { min: number; max: number } | undefined): string => {
+	if (!range) return '—';
+	const low = floor_ratio(range.min);
+	const high = floor_ratio(range.max);
 	return low === high ? `${low}x` : `${low}–${high}x`;
 };
 
@@ -190,6 +219,10 @@ const LANGUAGE_LABELS: Record<string, string> = {
 
 /** A report language key for display (`typescript` → `TypeScript`), verbatim when unknown. */
 export const format_language = (language: string): string => LANGUAGE_LABELS[language] ?? language;
+
+/** A group's name as its headings and table labels print it (`Format TypeScript`). */
+export const format_group_label = (operation: string, language: string): string =>
+	`${operation === 'format' ? 'Format' : 'Parse'} ${format_language(language)}`;
 
 /**
  * Display names for the report's version keys whose underscore form isn't just

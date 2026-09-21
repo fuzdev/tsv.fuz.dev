@@ -118,7 +118,7 @@ const SIZE_CAPABILITY_ORDER: ReadonlyArray<{
 export const OXFMT_NATIVE_LABEL = 'oxfmt (napi)';
 
 /** The measured oxc-parser native addon — the label the tsv harness emits. */
-export const OXC_PARSER_NATIVE_LABEL = 'oxc-parser (napi)';
+const OXC_PARSER_NATIVE_LABEL = 'oxc-parser (napi)';
 
 /** Display label for the synthesized combined oxc full-toolchain build. */
 export const OXC_FULL_LABEL = 'oxc-parser + oxfmt (napi)';

@@ -13,7 +13,7 @@
 		type CrossRuntimeReport
 	} from './benchmark_cross_runtime.ts';
 	import { format_unstable_readings } from './benchmark_data.ts';
-	import { category_color, format_language, format_speedup } from './benchmark_display.ts';
+	import { category_color, format_group_label, format_speedup } from './benchmark_display.ts';
 
 	const {
 		report
@@ -51,9 +51,6 @@
 		is_impl_unavailable(report, runtime, name)
 			? `${name} failed to load under ${runtime}, so it contributes no row there`
 			: `${runtime}'s report carries no ${name} row — not measured there`;
-
-	const group_label = (operation: string, language: string): string =>
-		`${operation === 'format' ? 'Format' : 'Parse'} ${format_language(language)}`;
 
 	// the per-runtime timed counts in column order, for a row whose runtimes
 	// timed different file sets (see `CrossRuntimeDisplayRow.files_iterated_mismatch`)
@@ -103,7 +100,7 @@
 	</aside>
 {/if}
 {#if runtime_versions.length}
-	<ul class="unstyled versions">
+	<ul class="unstyled versions benchmarks-note">
 		{#each runtime_versions as { runtime, version } (runtime)}
 			<li><code>{runtime}</code> {version}</li>
 		{/each}
@@ -111,11 +108,11 @@
 {/if}
 {#each groups as group (group.group)}
 	<div class="mb_xl4">
-		<h4 class="mt_0 mb_sm">{group_label(group.operation, group.language)}</h4>
-		<table>
+		<h3 class="mt_0 mb_sm">{format_group_label(group.operation, group.language)}</h3>
+		<table class="benchmarks-table">
 			<thead>
 				<tr>
-					<th scope="col"></th>
+					<th scope="col">implementation</th>
 					{#each runtimes as runtime (runtime)}
 						<th scope="col" class="benchmarks-num">{runtime}</th>
 					{/each}
@@ -127,7 +124,7 @@
 			<tbody>
 				{#each group.rows as row (row.name)}
 					<tr>
-						<td>
+						<th scope="row">
 							<i class="swatch" aria-hidden="true" style:background={category_color(row.category)}
 							></i>
 							{format_cross_runtime_label(row.name)}
@@ -141,7 +138,7 @@
 									⚠ files {files_mismatch_label(row.files_iterated_mismatch)}
 								</small>
 							{/if}
-						</td>
+						</th>
 						{#each runtimes as runtime (runtime)}
 							{@const ops = row.ops_per_second[runtime]}
 							{@const cell_unstable = is_unstable(group.group + '/' + row.name, runtime)}
@@ -198,6 +195,11 @@
 </p>
 
 <style>
+	/* an `h3` by rank, under the section's `h2`, that keeps the smaller `h4` scale */
+	h3 {
+		--font_size: var(--font_size_lg);
+		font-weight: 700;
+	}
 	/* the per-runtime load failures inside the disclosure aside */
 	.unavailable {
 		margin-block: var(--space_xs);
@@ -209,11 +211,6 @@
 		column-gap: var(--space_lg);
 		row-gap: var(--space_xs);
 		margin-bottom: var(--space_xl3);
-		font-size: var(--font_size_sm);
-		opacity: 0.7;
-	}
-	table {
-		width: 100%;
 	}
 	.ratio {
 		font-weight: 700;
@@ -223,7 +220,7 @@
 		font-weight: 400;
 		opacity: 0.7;
 	}
-	td .swatch {
+	th .swatch {
 		display: inline-block;
 		width: 1.2rem;
 		height: 1.2rem;

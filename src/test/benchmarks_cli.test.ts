@@ -8,7 +8,6 @@ import {
 	cli_label_is_tsv,
 	cli_memory_ratio_range,
 	cli_ratio_between,
-	cli_ratio_vs_tsv,
 	cli_settle_seconds,
 	CLI_DELIVERY_KEY,
 	CLI_SCENARIO_KEYS,
@@ -316,7 +315,7 @@ describe('cli ratios over a scenario with two tsv rows', () => {
 	});
 
 	test('ratios anchor on whichever tsv row is named', () => {
-		assert.strictEqual(cli_ratio_vs_tsv(results, 'oxfmt', 'wall_ms'), 3);
+		assert.strictEqual(cli_ratio_between(results, 'oxfmt', CLI_TSV_LABEL, 'wall_ms'), 3);
 		assert.strictEqual(cli_ratio_between(results, 'oxfmt', CLI_TSV_NPM_LABEL, 'wall_ms'), 1.2);
 		assert.strictEqual(cli_ratio_between(results, 'oxfmt', CLI_TSV_NPM_LABEL, 'memory_mb'), 2.5);
 	});

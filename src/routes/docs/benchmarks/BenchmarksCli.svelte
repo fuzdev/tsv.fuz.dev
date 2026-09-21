@@ -1,5 +1,11 @@
 <script lang="ts">
-	import { format_ratio_plain, format_speedup } from './benchmark_display.ts';
+	import { to_baseline_key } from './benchmark_baseline.ts';
+	import {
+		format_mib,
+		format_ms,
+		format_ratio_plain,
+		format_speedup
+	} from './benchmark_display.ts';
 	import {
 		cli_default_anchor_label,
 		cli_label_is_tsv,
@@ -26,24 +32,13 @@
 			.join(', ')
 	);
 
-	const format_time = (ms: number): string =>
-		ms < 1000 ? `${Math.round(ms)} ms` : `${(ms / 1000).toFixed(1)} s`;
-
 	// the row the pointer is over re-baselines its own table, as the format, parse,
-	// and size groups do; only one row is ever hovered, so one slot serves every table
-	let hovered: { key: string; label: string } | undefined = $state(undefined);
-
-	// Read off the row under the pointer rather than handled per row, as
-	// `BenchmarksBaselineGroup` does it: one pair of listeners per table instead of
-	// two per row, and `pointerover` brings pen and touch along, where a tap
-	// re-baselines the row it lands on and the lift restores the default.
-	const to_hovered = (
-		event: PointerEvent,
-		key: string
-	): { key: string; label: string } | undefined => {
-		const row = (event.target as Element | null)?.closest<HTMLElement>('[data-baseline-label]');
-		const label = row?.dataset.baselineLabel;
-		return label === undefined ? undefined : { key, label };
+	// and size groups do (`to_baseline_key`); only one row is ever hovered, so one
+	// slot serves every table
+	let hovered: { scenario_key: string; label: string } | undefined = $state(undefined);
+	const to_hovered = (event: PointerEvent, scenario_key: string): typeof hovered => {
+		const label = to_baseline_key(event);
+		return label === undefined ? undefined : { scenario_key, label };
 	};
 
 	// Every ratio is `row / anchor` (>1 = the anchor is that many times faster /
@@ -63,7 +58,7 @@
 		memory_ratio: number | undefined;
 	}
 	const to_anchor_label = (scenario: CliScenario): string | undefined =>
-		hovered?.key === scenario.key ? hovered.label : cli_default_anchor_label(scenario);
+		hovered?.scenario_key === scenario.key ? hovered.label : cli_default_anchor_label(scenario);
 	const to_rows = (scenario: CliScenario, anchor_label: string | undefined): Array<Row> => {
 		if (anchor_label === undefined) return [];
 		return scenario.results.map((result) => {
@@ -105,14 +100,14 @@
 	<div class="mb_xl2">
 		<h3>{scenario.heading}: {scenario.target}</h3>
 		<p>{scenario.description}</p>
-		<p class="note">Corpus: {scenario.corpus}</p>
+		<p class="benchmarks-note">Corpus: {scenario.corpus}</p>
 		{#if rows.length > 0}
-			<p class="note">
+			<p class="benchmarks-note">
 				Ratios are each row over <strong>{anchor_label}</strong>, so above 1 is slower, or heavier,
 				than it — hover a row to re-baseline on it.
 			</p>
 			<div class="table-scroll">
-				<table>
+				<table class="benchmarks-table">
 					<thead>
 						<tr>
 							<th scope="col" class="formatter">formatter</th>
@@ -137,19 +132,17 @@
 								class:tsv={row.is_tsv}
 								class:tsv-distribution={row.is_tsv_distribution}
 								class:anchor={row.is_anchor}
-								data-baseline-label={row.result.label}
+								data-baseline-key={row.result.label}
 							>
-								<td class="formatter">{row.result.label}</td>
-								<td>{format_time(row.result.wall_ms)}</td>
+								<th scope="row" class="formatter">{row.result.label}</th>
+								<td>{format_ms(row.result.wall_ms)}</td>
 								<td class="speedup">
 									{format_cell(row, row.wall_ratio, true)}
 								</td>
 								<td class="speedup">
 									{format_cell(row, row.cpu_ratio, true)}
 								</td>
-								<td>
-									{row.result.memory_mb == null ? '—' : `${Math.round(row.result.memory_mb)} MiB`}
-								</td>
+								<td>{format_mib(row.result.memory_mb)}</td>
 								<td class="speedup">
 									{format_cell(
 										row,
@@ -164,7 +157,7 @@
 				</table>
 			</div>
 			{#if scenario.benchmark_runs > 0}
-				<p class="note">
+				<p class="benchmarks-note">
 					Each time is the mean of {scenario.benchmark_runs} runs, after {scenario.warmup_runs}
 					untimed warmup
 					runs{scenario.settle_seconds
@@ -174,14 +167,14 @@
 				</p>
 			{/if}
 			{#if has_dispatcher_memory(scenario)}
-				<p class="note">
+				<p class="benchmarks-note">
 					The peak RSS of <strong>{CLI_TSV_NPM_LABEL}</strong> is its Node launcher's, not the
 					binary's.
 				</p>
 			{/if}
 		{/if}
 		{#if scenario.unshimmed}
-			<p class="note">{scenario.unshimmed}</p>
+			<p class="benchmarks-note">{scenario.unshimmed}</p>
 		{/if}
 		{#if scenario.aborted}
 			<!-- an abort after timing keeps its table, so the sentence about withheld
@@ -197,7 +190,7 @@
 	</div>
 {/each}
 
-<p class="note">
+<p class="benchmarks-note">
 	Measured on {report.machine} — {versions}. Wall-clock ratios scale with core count; "vs baseline
 	(CPU work)" is the parallelism-neutral view.
 </p>
@@ -206,9 +199,6 @@
 	/* wide table scrolls in its own container so the page body never scrolls sideways */
 	.table-scroll {
 		overflow-x: auto;
-	}
-	table {
-		width: 100%;
 	}
 	th,
 	td {
@@ -239,11 +229,5 @@
 	}
 	tr.anchor .speedup {
 		opacity: 0.5;
-	}
-	/* the small print under each table — the corpus, the ratio legend, the run
-	   counts, and the machine and versions footer */
-	.note {
-		font-size: var(--font_size_sm);
-		opacity: 0.7;
 	}
 </style>

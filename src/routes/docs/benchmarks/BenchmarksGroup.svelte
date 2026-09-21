@@ -1,7 +1,13 @@
 <script lang="ts">
 	import type { BaselineRow } from './benchmark_baseline.ts';
 	import type { BenchmarkGroup } from './benchmark_data.ts';
-	import { format_count, format_language, format_ns, format_percent } from './benchmark_display.ts';
+	import {
+		format_count,
+		format_group_label,
+		format_language,
+		format_ns,
+		format_percent
+	} from './benchmark_display.ts';
 	import BenchmarksBaselineGroup from './BenchmarksBaselineGroup.svelte';
 
 	const {
@@ -75,7 +81,7 @@
 	<BenchmarksBaselineGroup
 		{rows}
 		direction="speed"
-		label="{group.operation === 'format' ? 'Format' : 'Parse'} {format_language(group.language)}"
+		label={format_group_label(group.operation, group.language)}
 	/>
 	{#if omitted}
 		<p class="text_40">

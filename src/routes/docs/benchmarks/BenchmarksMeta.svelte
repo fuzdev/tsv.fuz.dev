@@ -36,9 +36,9 @@
 	const commit_url = $derived(`${site.repo_url}/commit/${baseline.git_commit}`);
 </script>
 
-<div class="meta">
+<div class="meta benchmarks-note">
 	<div>
-		<h4 class="mt_0 mb_sm">corpus stats</h4>
+		<h3 class="mt_0 mb_sm">corpus stats</h3>
 		<ul class="unstyled">
 			{#each Object.entries(baseline.corpus) as [lang, count] (lang)}
 				<li>{lang}: {format_count(count)} file{count !== 1 ? 's' : ''}</li>
@@ -46,7 +46,7 @@
 		</ul>
 	</div>
 	<div>
-		<h4 class="mt_0 mb_sm">versions</h4>
+		<h3 class="mt_0 mb_sm">versions</h3>
 		<ul class="unstyled">
 			{#each versions as [key, version] (key)}
 				<li>{format_version_label(key)} {version}</li>
@@ -54,7 +54,7 @@
 		</ul>
 	</div>
 	<div>
-		<h4 class="mt_0 mb_sm">run</h4>
+		<h3 class="mt_0 mb_sm">run</h3>
 		<ul class="unstyled">
 			<li>{formatted_date}</li>
 			{#if baseline.runtime}
@@ -71,7 +71,7 @@
 	</div>
 	{#if baseline.machine}
 		<div>
-			<h4 class="mt_0 mb_sm">environment</h4>
+			<h3 class="mt_0 mb_sm">environment</h3>
 			<ul class="unstyled">
 				<li>{baseline.machine.cpu_model}</li>
 				<li>{baseline.machine.os}/{baseline.machine.arch}</li>
@@ -85,7 +85,7 @@
 	{/if}
 	{#if corpus_repos.length}
 		<div class="corpus-repos">
-			<h4 class="mt_0 mb_sm">corpus repos</h4>
+			<h3 class="mt_0 mb_sm">corpus repos</h3>
 			{#if baseline.corpus_snapshot}
 				<p class="mt_0 mb_sm">
 					snapshot
@@ -108,12 +108,15 @@
 </div>
 
 <style>
+	/* an `h3` by rank, under the section's `h2`, that keeps the smaller `h4` scale */
+	h3 {
+		--font_size: var(--font_size_lg);
+		font-weight: 700;
+	}
 	.meta {
 		display: flex;
 		gap: var(--space_xl);
 		flex-wrap: wrap;
-		font-size: var(--font_size_sm);
-		opacity: 0.7;
 	}
 	/* the repos list spans its own row below the compact stat columns and wraps horizontally */
 	.corpus-repos {

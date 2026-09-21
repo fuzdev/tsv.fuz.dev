@@ -51,6 +51,13 @@ const assert_reads_faster = (ratio: number, label: string): void => {
 	assert.notStrictEqual(format_ratio_approx(ratio), '1.0x', `${label} renders as ~1.0x`);
 };
 
+/** The report's format groups, asserted non-empty so a loop over them can't pass on nothing. */
+const format_groups = () => {
+	const groups = derive_benchmark_groups(benchmarks_json).filter((g) => g.operation === 'format');
+	assert.isNotEmpty(groups);
+	return groups;
+};
+
 describe('prose ratios resolve', () => {
 	// The copy says "X faster than" for the pairs tsv leads and "slower than" / "Y is
 	// faster than tsv" for the ones it trails (yuku on TypeScript, the JS parsers on
@@ -71,8 +78,7 @@ describe('prose ratios resolve', () => {
 		// it quotes: dprint and malva are timed too. Like for like is native-vs-native
 		// and wasm-vs-wasm, and the JS rows face native tsv; gating tsv-wasm, tsv's
 		// slower build, against every non-tsv row is the stronger check and holds
-		for (const group of derive_benchmark_groups(benchmarks_json)) {
-			if (group.operation !== 'format') continue;
+		for (const group of format_groups()) {
 			// a disabled row is a mirrored placeholder or coverage-only, timed at 0
 			const timed = group.entries.filter((e) => !e.disabled && e.mean_ns > 0);
 			const tsv_wasm = timed.find((e) => e.name === 'tsv-wasm');
@@ -89,7 +95,9 @@ describe('prose ratios resolve', () => {
 		// "where a group runs short of the corpus total, a note under its chart gives
 		// the files ... left out" — the note renders from `omissions`, so the sentence
 		// holds exactly when every shortfall is an omission the report carries
-		for (const group of derive_benchmark_groups(benchmarks_json)) {
+		const groups = derive_benchmark_groups(benchmarks_json);
+		assert.isNotEmpty(groups);
+		for (const group of groups) {
 			const key = `${group.operation}/${group.language}`;
 			const total = benchmarks_json.corpus[group.language];
 			assert.isDefined(total, group.language);
@@ -124,8 +132,7 @@ describe('prose ratios resolve', () => {
 		// `BenchmarksSummary` hard-codes "faster than Prettier" while a group's
 		// canonical entry is whichever canonical-category row sorts first, so a format
 		// group that grew another canonical row would silently re-baseline the table
-		for (const group of derive_benchmark_groups(benchmarks_json)) {
-			if (group.operation !== 'format') continue;
+		for (const group of format_groups()) {
 			assert.strictEqual(group.canonical_entry?.name, 'prettier', group.language);
 		}
 	});

@@ -2,8 +2,13 @@ import { assert, describe, test } from 'vitest';
 
 import { benchmarks_json } from '$routes/docs/benchmarks/benchmarks.ts';
 import {
+	benchmark_time_share_beyond,
+	count_placeholder_entries,
 	derive_benchmark_groups,
+	derive_conformance_groups,
+	derive_corpus_counts,
 	derive_corpus_repos,
+	derive_sweep_stats,
 	derive_unstable_entries,
 	format_coverage_percent,
 	format_unstable_readings,
@@ -212,6 +217,156 @@ describe('derive_benchmark_groups dprint placeholder', () => {
 
 	test('a report with no dprint row invents none', () => {
 		assert.isEmpty(svelte_dprint(['prettier']));
+	});
+});
+
+describe('to_placeholder via derive_benchmark_groups', () => {
+	test('a mirrored row carries nothing its template measured', () => {
+		const groups = derive_benchmark_groups({
+			...benchmarks_json,
+			entries: [
+				entry({ name: 'svelte/compiler', group: 'parse/css' }),
+				entry({ name: 'oxc-parser', group: 'parse/typescript', mean_ns: 9_000, files_processed: 7 })
+			]
+		});
+		const css = groups.find((g) => g.language === 'css');
+		const mirrored = css?.entries.find((e) => e.name === 'oxc-parser');
+		assert.deepEqual(mirrored, {
+			name: 'oxc-parser',
+			category: 'oxc',
+			mean_ns: 0,
+			bar_fraction: 0,
+			files_processed: null,
+			files_total: null,
+			disabled: true
+		});
+		assert.strictEqual(count_placeholder_entries(css, 'oxc'), 1);
+		assert.strictEqual(count_placeholder_entries(css, 'dprint'), 0);
+		assert.strictEqual(count_placeholder_entries(undefined, 'oxc'), 0);
+	});
+});
+
+describe('derive_corpus_counts', () => {
+	const baseline = (corpus_sources: BenchmarkBaseline['corpus_sources']): BenchmarkBaseline => ({
+		...benchmarks_json,
+		corpus: { svelte: 10, typescript: 20, css: 5 },
+		corpus_sources
+	});
+
+	test('the harvest is the CSS of the sources with no upstream repo', () => {
+		const counts = derive_corpus_counts(
+			baseline([
+				{
+					path: 'a',
+					files: 12,
+					repo: { slug: 'fuzdev/a', commit: 'abc' },
+					by_language: { css: 2 }
+				},
+				{ path: '.cache/svelte_styles', files: 3, by_language: { css: 3 } }
+			] as BenchmarkBaseline['corpus_sources'])
+		);
+		assert.deepEqual(counts, { files: 35, harvested_css: 3, standalone_css: 2 });
+	});
+
+	test('a report that does not distinguish the harvest quotes no standalone count', () => {
+		assert.deepEqual(derive_corpus_counts(baseline(undefined)), {
+			files: 35,
+			harvested_css: 0,
+			standalone_css: undefined
+		});
+	});
+});
+
+describe('derive_sweep_stats', () => {
+	test('the reference rows get a floor of their own', () => {
+		const stats = derive_sweep_stats({
+			...benchmarks_json,
+			entries: [
+				entry({ name: 'prettier', min_iterations: 16, sample_size: 16 }),
+				entry({ name: 'tsv', min_iterations: 8, sample_size: 900 }),
+				entry({ name: 'biome-wasm', min_iterations: 8, sample_size: 6 })
+			]
+		});
+		assert.deepEqual(stats, {
+			floor: 8,
+			canonical_floor: 16,
+			sample_size_min: 6,
+			sample_size_max: 900
+		});
+	});
+
+	test('a report without the fields reads as undefined, never Infinity', () => {
+		const stats = derive_sweep_stats({
+			...benchmarks_json,
+			entries: [entry({ sample_size: null })]
+		});
+		assert.deepEqual(stats, {
+			floor: undefined,
+			canonical_floor: undefined,
+			sample_size_min: undefined,
+			sample_size_max: undefined
+		});
+	});
+});
+
+describe('benchmark_time_share_beyond', () => {
+	const baseline: BenchmarkBaseline = {
+		...benchmarks_json,
+		entries: [
+			entry({ name: 'tsv-json', group: 'parse/css', mean_ns: 100 }),
+			entry({ name: 'tsv-internal', group: 'parse/css', mean_ns: 20 })
+		]
+	};
+
+	test('is what the whole row spends beyond the part', () => {
+		assert.closeTo(
+			benchmark_time_share_beyond(baseline, 'parse/css', 'tsv-json', 'tsv-internal')!,
+			0.8,
+			1e-9
+		);
+	});
+
+	test('a missing row has no share', () => {
+		assert.isUndefined(benchmark_time_share_beyond(baseline, 'parse/css', 'tsv-json', 'nope'));
+	});
+});
+
+describe('derive_conformance_groups', () => {
+	const coverage = (name: string, group: string, processed: number | null, total: number | null) =>
+		entry({ name, group, files_processed: processed, files_total: total });
+
+	test('rows sort by coverage, under the engine name, with their note', () => {
+		const [group, ...rest] = derive_conformance_groups({
+			...benchmarks_json,
+			entries: [
+				coverage('tsv-json', 'parse/typescript', 90, 100),
+				coverage('tsc', 'parse/typescript', 95, 100),
+				// a second binding of an engine, a format row, and a row without counts all drop
+				coverage('tsv-wasm-json', 'parse/typescript', 90, 100),
+				coverage('prettier', 'format/typescript', 100, 100),
+				coverage('oxc-parser', 'parse/typescript', null, null)
+			]
+		});
+		assert.isEmpty(rest);
+		assert(group, 'typescript conformance group missing');
+		assert.strictEqual(group.language, 'typescript');
+		assert.strictEqual(group.files_total, 100);
+		assert.deepEqual(
+			group.rows.map((r) => [r.name, r.coverage_fraction]),
+			[
+				['tsc', 0.95],
+				['tsv', 0.9]
+			]
+		);
+		assert.isDefined(group.rows[0]?.note);
+	});
+
+	test('an empty corpus is zero coverage, not NaN', () => {
+		const [group] = derive_conformance_groups({
+			...benchmarks_json,
+			entries: [coverage('tsv-json', 'parse/css', 0, 0)]
+		});
+		assert.strictEqual(group?.rows[0]?.coverage_fraction, 0);
 	});
 });
 

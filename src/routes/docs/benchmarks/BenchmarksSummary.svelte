@@ -15,10 +15,10 @@
 	<a href="https://github.com/prettier/prettier/graphs/contributors">contributors</a>.
 	Single-threaded on the benchmarked corpus, tsv is this much faster than Prettier:
 </p>
-<table>
+<table class="benchmarks-table">
 	<thead>
 		<tr>
-			<th scope="col"></th>
+			<th scope="col">build</th>
 			<th scope="col" class="color_h_50">Svelte</th>
 			<th scope="col" class="color_i_50">TypeScript</th>
 			<th scope="col" class="color_a_50">CSS</th>
@@ -26,10 +26,14 @@
 	</thead>
 	<tbody>
 		{#each rows as row (row.variant)}
-			{@const cells = [row.format_svelte, row.format_typescript, row.format_css]}
+			{@const cells = [
+				['svelte', row.format_svelte],
+				['typescript', row.format_typescript],
+				['css', row.format_css]
+			] as const}
 			<tr>
-				<td class="variant">{row.variant}</td>
-				{#each cells as value, i (i)}
+				<th scope="row" class="variant">{row.variant}</th>
+				{#each cells as [language, value] (language)}
 					<td class="speedup">{value != null ? format_speedup(value) : '—'}</td>
 				{/each}
 			</tr>
@@ -38,15 +42,11 @@
 </table>
 
 <style>
-	table {
-		width: 100%;
-	}
 	th,
 	td {
 		padding-block: var(--space_xs);
 	}
-	.variant {
-		text-align: left;
+	th.variant {
 		font-weight: 600;
 	}
 	.speedup {

@@ -35,7 +35,13 @@ export const gen: Gen = {
 			return null;
 		}
 
-		const benchmarks = parse_formatter_benchmarks(JSON.parse(results));
+		let benchmarks;
+		try {
+			benchmarks = parse_formatter_benchmarks(JSON.parse(results));
+		} catch (error) {
+			// name the report: gro names this module, not the file that failed to validate
+			throw new Error(`invalid formatter benchmarks report at ${RESULTS_PATH}`, { cause: error });
+		}
 		log.info(`read ${benchmarks.scenarios.length} tsv scenario(s) from ${RESULTS_PATH}`);
 		// indented here: gro's gen formats no JSON (tsv has no JSON formatter yet), so
 		// the output is committed exactly as returned, tab-indented like the copied reports

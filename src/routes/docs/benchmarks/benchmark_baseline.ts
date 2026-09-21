@@ -68,6 +68,20 @@ export const baseline_ratio_color = (direction: BaselineDirection, ratio: number
 	direction === 'speed' ? speedup_color(ratio) : size_ratio_color(ratio);
 
 /**
+ * The row under the pointer's baseline key, read off its `data-baseline-key` — how
+ * a group or table re-baselines from one delegated `pointerover` rather than a
+ * handler per row. Pointer rather than mouse events: `pointerover` bubbles to the
+ * container as `mouseenter` wouldn't, and it brings pen and touch along, where a
+ * tap re-baselines the row it lands on and the lift restores the default.
+ *
+ * @returns the key, or `undefined` over anything that publishes none (the gaps
+ * between rows, a disabled placeholder), which restores the default anchor
+ */
+export const to_baseline_key = (event: Event): string | undefined =>
+	(event.target as Element | null)?.closest<HTMLElement>('[data-baseline-key]')?.dataset
+		.baselineKey;
+
+/**
  * A normalized row for `BenchmarksBaselineGroup` — the shared hover-to-rebaseline
  * column behind the format, parse, and binary-size groups. `raw` is the number the
  * ratio derives from (sweep mean ns for speed, bytes for size); `value` is the

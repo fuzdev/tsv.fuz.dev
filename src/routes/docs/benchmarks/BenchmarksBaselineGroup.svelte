@@ -3,6 +3,7 @@
 		baseline_ratio_color,
 		compute_baseline_ratio,
 		format_baseline_ratio,
+		to_baseline_key,
 		type BaselineDirection,
 		type BaselineRow
 	} from './benchmark_baseline.ts';
@@ -32,15 +33,9 @@
 
 	// Hover is handled here rather than per row: the anchor is the GROUP's state, so
 	// the group is where the pointer belongs, and one delegated listener serves a
-	// group where 74 rows across the page would each have carried their own. A
-	// disabled row publishes no key, so it can never become the anchor.
-	// Pointer rather than mouse events: `pointerover` bubbles to here as `mouseenter`
-	// wouldn't, and it brings pen and touch along, where a tap re-baselines the row
-	// it lands on and the lift restores the default.
-	const to_hovered_key = (event: PointerEvent): string | undefined => {
-		const row = (event.target as Element | null)?.closest<HTMLElement>('[data-baseline-key]');
-		return row?.dataset.baselineKey;
-	};
+	// group where 74 rows across the page would each have carried their own
+	// (`to_baseline_key`). A disabled row publishes no key, so it can never become
+	// the anchor.
 </script>
 
 <!-- A table to assistive tech, since the bar rows are a grid of spans rather than
@@ -53,7 +48,7 @@
 	class="column"
 	role="table"
 	aria-label={label}
-	onpointerover={(event) => (hovered_key = to_hovered_key(event))}
+	onpointerover={(event) => (hovered_key = to_baseline_key(event))}
 	onpointerleave={() => (hovered_key = undefined)}
 >
 	{#each rows as row (row.key)}
@@ -72,6 +67,7 @@
 			ratio_text={format_baseline_ratio(direction, ratio ?? 1)}
 			ratio_color={ratio != null ? baseline_ratio_color(direction, ratio) : 'var(--text_40)'}
 			baseline_key={row.disabled ? undefined : row.key}
+			anchor={row.key === anchor_key}
 		/>
 	{/each}
 </div>

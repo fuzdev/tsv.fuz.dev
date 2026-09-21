@@ -12,7 +12,8 @@
 		annotation,
 		disabled = false,
 		coverage_only = false,
-		baseline_key
+		baseline_key,
+		anchor = false
 	}: {
 		label: string;
 		bar_fraction: number;
@@ -36,6 +37,8 @@
 		// this row to adopt it as the ratio anchor. Omitted on inert placeholders,
 		// which publish no key and so can never become the anchor.
 		baseline_key?: string | undefined;
+		// the row every ratio in the group is currently taken against
+		anchor?: boolean;
 	} = $props();
 
 	// the parenthesized binding suffix (`(wasm)`/`(node napi)`) describes how the
@@ -60,6 +63,7 @@
 	class="bar-row"
 	class:has-annotation={annotation != null}
 	class:disabled
+	class:anchor
 	role="row"
 	data-baseline-key={baseline_key}
 >
@@ -109,6 +113,11 @@
 	 * highlight marks which row every ratio in the group is now measured against */
 	.bar-row:not(.disabled):hover {
 		background-color: var(--fg_10);
+	}
+	/* the row every ratio in the group is currently taken against, marked as the CLI
+	 * tables mark theirs */
+	.bar-row.anchor {
+		box-shadow: inset var(--border_width_3) 0 0 var(--color_a_50);
 	}
 	.bar-annotation {
 		font-size: var(--font_size_xs);
