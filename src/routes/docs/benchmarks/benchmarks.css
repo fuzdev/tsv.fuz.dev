@@ -12,6 +12,9 @@
    are `<th scope="row">` for assistive tech but read as the body text they sit in */
 .benchmarks-table {
 	width: 100%;
+	/* the same gap the bar groups leave before a note under them — set here because a
+	   table that is its wrapper's last child gets no flow margin */
+	margin-bottom: var(--space_md);
 }
 .benchmarks-table :is(th, td) {
 	padding-block: var(--space_xs);
