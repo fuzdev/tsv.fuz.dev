@@ -2,7 +2,7 @@
 
 > website for tsv, precise language tools for TypeScript/JS, CSS, and Svelte in Rust
 
-tsv.fuz.dev is the public website for the tsv tool — landing page, benchmarks, docs, and an interactive playground. Built with SvelteKit + fuz stack, statically deployed.
+tsv.fuz.dev is the public website for the tsv tool — landing page, benchmarks, parse conformance, docs, and an interactive playground. Built with SvelteKit + fuz stack, statically deployed.
 
 For coding conventions, see Skill(fuz-stack).
 
@@ -34,7 +34,7 @@ IMPORTANT for AI agents: Do NOT run `gro dev` - the developer will manage the de
 
 Note: `@fuzdev/tsv-wasm` is loaded only on `/docs/playground` via a browser-only dynamic `import()`, so the ~1MB-gzipped WASM (~2.5MB decoded) never weighs down `/docs` or the prerendered pages.
 
-Note: several devDependencies — `@webref/css` (CSS spec data), `zimmerframe` (AST traversal), `@sveltejs/acorn-typescript`, `zod`, and `@fuzdev/blake3-wasm` — are *optional peer dependencies* of `@fuzdev/fuz_css`'s `vite_plugin_fuz_css`, declared here so its build-time CSS generation resolves them (e.g. `css_literal.ts` imports `@webref/css`, `css_class_extractor.ts` walks ASTs with `zimmerframe`). Of those only `zod` is imported by this app's own source — `formatter_benchmark_data.ts`'s schemas, read at gen and test time and as erased types by the page, so it never reaches the client bundle — so don't mistake the rest for dead deps. Likewise `esm-env`, `@types/estree`, and `@types/node` are optional peers of `@fuzdev/fuz_util`, `@fuzdev/mdz`, and `@fuzdev/fuz_ui`, and `tslib` backs `tsconfig.json`'s `importHelpers` — none is imported here directly either.
+Note: several devDependencies — `@webref/css` (CSS spec data), `zimmerframe` (AST traversal), `@sveltejs/acorn-typescript`, `zod`, and `@fuzdev/blake3-wasm` — are *optional peer dependencies* of `@fuzdev/fuz_css`'s `vite_plugin_fuz_css`, declared here so its build-time CSS generation resolves them (e.g. `css_literal.ts` imports `@webref/css`, `css_class_extractor.ts` walks ASTs with `zimmerframe`). Of those only `zod` is imported by this app's own source — `formatter_benchmark_data.ts`'s schemas, read at gen and test time and as erased types by the page, so it never reaches the client bundle — so don't mistake the rest for dead deps. Likewise `esm-env`, `@types/estree`, and `@types/node` are peers of `@fuzdev/fuz_util` (the latter two optional), and `esm-env` and `@types/estree` optional peers of `@fuzdev/mdz` and `esm-env` of `@fuzdev/fuz_ui`, and `tslib` backs `tsconfig.json`'s `importHelpers` — none is imported here directly either.
 
 Note: `vite` is deliberately held at 7.x (with `@sveltejs/vite-plugin-svelte` 6.x) — vite 8 + plugin-svelte 7 was buggy with this app or SvelteKit's integration. Don't upgrade to vite 8 without deliberately re-verifying the site works.
 
@@ -44,7 +44,8 @@ tsv.fuz.dev is the public face of the tsv tool:
 
 - Landing page (home) with links to benchmarks and docs
 - Benchmarks page with bar charts and summary tables
-- Docs section (introduction, playground, benchmarks)
+- Docs section (introduction, playground, benchmarks, conformance)
+- Conformance page with parse-coverage tables over deliberately hard corpora
 - Interactive playground (`/docs/playground`) — edit a deliberately-unformatted Svelte example in a syntax-highlighted editor (fuz_code's `CodeTextarea`); the formatted output updates live alongside it and the parsed AST follows on a short idle; runs `@fuzdev/tsv-wasm` as lazily-loaded WASM
 - Theme controls via fuz_ui's `ThemeRoot` in the root layout (no separate about/settings page)
 - Shows install instructions led by the native `@fuzdev/tsv` (prebuilt N-API addon for Node/Bun, ships the `tsv` CLI), then `@fuzdev/tsv-wasm` (universal, same `tsv` CLI) and the format/parse subsets
@@ -67,136 +68,114 @@ src/
 │   └── docs/
 │       ├── +layout.svelte    # Docs layout (Docs wrapper; sets library_context)
 │       ├── +page.svelte      # Docs index (DocsContent)
-│       ├── tomes.ts          # Docs structure (introduction, playground, benchmarks)
+│       ├── tomes.ts          # Docs structure (introduction, playground, benchmarks, conformance)
 │       ├── introduction/     # Introduction page (install + usage)
 │       ├── playground/       # Interactive playground (Playground.svelte + playground_example.ts; lazy @fuzdev/tsv-wasm)
-│       └── benchmarks/       # Benchmarks page: the four JSON reports, the benchmark_*.ts / benchmarks_*.ts modules, the .gen.json.ts for the CLI harness, and the Benchmarks*.svelte visualizations (see Benchmarks below)
+│       ├── conformance/      # Parse-conformance page: its report (conformance.json + conformance.ts), conformance_data.ts, ConformanceTable.svelte; builds on the benchmarks modules
+│       └── benchmarks/       # Benchmarks page: the three JSON reports, the benchmark_*.ts / benchmarks_*.ts modules, the .gen.json.ts for the CLI harness, and the Benchmarks*.svelte visualizations (see Benchmarks below)
 └── test/
     ├── benchmark_data.test.ts       # unit tests for the per-runtime derivations (groups, stability, corpus, sweeps)
-    ├── benchmark_data.shape.test.ts # shape gates over the committed per-runtime and conformance reports
-    ├── benchmark_data.prose.test.ts # gates every ratio and direction claim the page's prose quotes
-    ├── benchmark_conformance.test.ts # unit tests for the conformance grouping and coverage formatting
+    ├── benchmark_data.shape.test.ts # shape gates over the committed per-runtime report
+    ├── benchmark_data.prose.test.ts # gates the ratio, direction, and count claims the benchmarks page's prose quotes
+    ├── conformance_data.test.ts     # unit tests for the conformance grouping
+    ├── conformance_data.shape.test.ts # shape gates over the committed conformance report
+    ├── conformance_data.prose.test.ts # gates the claims the conformance page's prose quotes
     ├── benchmark_sizes.test.ts      # unit tests for the binary-size capability grouping
     ├── benchmark_sizes.shape.test.ts # shape gates over the committed report's binary sizes, and the tldr's like-for-like size claim
     ├── benchmark_cross_runtime.test.ts # unit tests for the combined-report derivations
     ├── benchmark_cross_runtime.shape.test.ts # shape gates over the committed combined report
     ├── benchmark_display.test.ts    # unit tests for the value formatters and row labels
     ├── benchmark_baseline.test.ts   # unit tests for the hover-to-rebaseline ratio math
-    ├── benchmarks_cli.test.ts       # the CLI-harness data as the page consumes it
+    ├── benchmarks_cli.test.ts       # unit tests for the CLI report shaping and claim helpers
+    ├── benchmarks_cli.shape.test.ts # shape gates over the CLI-harness data as the page consumes it
+    ├── benchmark_test_helpers.ts    # fixture factories the benchmark tests share
     └── formatter_benchmark_data.test.ts # the harness report's validation
 ```
 
 ## Benchmarks
 
-Benchmark data comes from `tsv`. Full workflow to update:
+Four JSON reports, three copied verbatim from `tsv` and one generated from the
+sibling CLI harness. Three live in `src/routes/docs/benchmarks/`; the conformance
+report lives with its page in `src/routes/docs/conformance/`, which shares the
+per-runtime report types and the display helpers.
+
+| committed file | source |
+| --- | --- |
+| `benchmarks.json` | tsv's `benches/js/results/report.node.json` (per-runtime Node report) |
+| `benchmarks_cross_runtime.json` | tsv's composed `report.json` |
+| `../conformance/conformance.json` | tsv's `report.conformance.node.json` (parse coverage) |
+| `benchmarks_formatters.json` | `gro gen`, from ../oxc-bench-formatter's `results.json` |
+
+### Refreshing
 
 ```bash
-# 1. In ~/dev/tsv — run benchmarks across deno/node/bun (builds artifacts automatically)
+# tsv reports: in ~/dev/tsv (runs deno/node/bun, builds artifacts), then here
 deno task bench
-
-# 2. In ~/dev/tsv.fuz.dev — copy the latest results
 npm run update-benchmarks
-```
 
-Step 1 writes the per-runtime `benches/js/results/report.<runtime>.{json,md}`
-siblings, the composed cross-runtime `report.{json,md}`, and the conformance
-coverage report `report.conformance.node.json` (committed to tsv).
-Step 2 copies three of them — `report.node.json` → `benchmarks.json`, the
-composed `report.json` → `benchmarks_cross_runtime.json`, and
-`report.conformance.node.json` → `benchmarks_conformance.json` — verbatim;
-tsv already writes them tab-indented, and Gro's formatter leaves JSON untouched,
-so the committed copies are byte-identical to tsv's reports and the tests
-gate their shape. Note the script's source paths are hardcoded to
-`../tsv` — if the reports were generated in a different worktree, copy them
-into `~/dev/tsv` (or copy manually) first.
-The JSON formats match the types in `benchmark_data.ts`.
-
-The end-to-end CLI comparison against Prettier, Biome, and Oxfmt comes from a
-separate harness, a fork of Oxc's `bench-formatter` that adds tsv
-(../oxc-bench-formatter). Beside the console dump in its README it writes
-`results.json`: hyperfine's own export (rounded to the microsecond), the memory
-pass, the preflight rows, the versions and machine the README lists, `node_startup`, a bare
-`node -e ""` timed on the same machine — the launch floor every npm-bin row pays,
-kept beside `machine` rather than as a row — each scenario's `corpus`, the
-revision of the corpus its numbers came from, rendered under its table, and, per
-settling scenario, `settle_seconds`, the idle before each formatter's warmups, which
-the tables' run-count notes and the run-order note quote when present. To update:
-
-```bash
-# 1. In ~/dev/oxc-bench-formatter — re-run, rewriting its README and results.json (times the npm-installed @fuzdev/tsv its lockfile pins)
+# CLI harness: in ~/dev/oxc-bench-formatter (rewrites its README and results.json,
+# timing the npm-installed @fuzdev/tsv its lockfile pins), then here
 pnpm run update-readme
-
-# 2. In ~/dev/tsv.fuz.dev — validate results.json into the committed report
 gro gen
 ```
 
-`benchmarks_formatters.gen.json.ts` validates that report against
-`formatter_benchmark_data.ts`'s Zod schemas and writes
-`benchmarks_formatters.json`, keeping only the scenarios tsv participates in
-(it has no JSX/TSX parser, so the harness runs it on the JSX-free corpora
-only). That includes the harness's Svelte scenario, which benches tsv against
-rsvelte-fmt (`@rsvelte/fmt`), and its tsv-only delivery scenario (the native
-binary vs `@fuzdev/tsv`'s Node dispatcher vs `@fuzdev/tsv-wasm`, flagged
-`tsv_only` so "every other tool" claims skip it). The dispatcher row
-(`tsv-npm`) also runs beside native tsv in every scenario that faces another
-tool, since Prettier, Biome, Oxfmt, and rsvelte-fmt are all timed through Node
-bins the bare binary skips: it is a second tsv row there, never a competitor
-(`cli_comparison_results` keeps it out of the "every other tool" ranges). Each
-table's ratio columns start out against it (`cli_default_anchor_label`; native
-tsv in the tsv-only delivery table) and re-baseline on whichever row is hovered,
-as the format, parse, and size groups do. The page's headline
-CLI claims lead with the like-for-like dispatcher ratios
-(`cli_speedup_vs_tsv_npm`, `cli_memory_ratio_range`'s `baseline_label`) and give
-the bare-binary ones second; the copy has no fallback for a report without the
-row, and the prose test requires those ratios to resolve. The harness runs tsv's
-Node-launched rows through a bin shim derived from pnpm's own, so they pay the
-launch cost every other row pays; when it can't, it records the row as
-`unshimmed` and the table shows a note under it. A scenario renders on the
-page only once it has an entry in `SCENARIO_COPY` (`benchmarks_cli.ts`), and
-prose claims about the Svelte head-to-head are conditional on its data being
-present, so the site stays correct when the harness publishes that scenario
-aborted.
+`update-benchmarks` is three `cp`s hardcoded to `../tsv` — if the reports were
+generated in a different worktree, copy them into `~/dev/tsv` (or copy manually)
+first. tsv writes them tab-indented and Gro's formatter leaves JSON untouched, so
+the copies stay byte-identical and the `*.shape.test.ts` files gate their shape.
+Those tests pin each report's `version` exactly, so the types in
+`benchmark_data.ts` and `benchmark_cross_runtime.ts` describe the current report
+only — re-pin and update the types together on a bump.
 
-A **missing** sibling checkout is the one tolerated case — generation is
-skipped, the committed JSON stands, and `gro gen --check` passes on any machine
-or CI that has only this repo (CI never checks out the harness, so it always
-takes this path; no `--no-gen` needed). A report that **is** present but doesn't
-validate — a renamed or unknown key, a scenario with neither timings nor an
-abort, no tsv row anywhere — fails the task loudly, naming the report's path,
-rather than publishing stale or scenario-stripped numbers. A drift that still
-validates but renames a scenario is caught on the site side instead: every
-key in `benchmarks_cli.ts`'s `SCENARIO_COPY` must resolve to generated data, and
-a test asserts it.
+`benchmarks_formatters.gen.json.ts` validates the harness's `results.json`
+against `formatter_benchmark_data.ts`'s Zod schemas and keeps only the scenarios
+tsv participates in (it has no JSX/TSX parser). A **missing** sibling checkout is
+the one tolerated case — generation is skipped and the committed JSON stands, so
+`gro gen --check` passes on CI, which never checks out the harness. A report
+that **is** present but doesn't validate fails the task loudly, naming its path.
+A drift that still validates but renames a scenario is caught on the site side:
+every key in `benchmarks_cli.ts`'s `SCENARIO_COPY` must resolve to generated
+data, and a test asserts it.
 
-Key files in `src/routes/docs/benchmarks/`:
+### The CLI comparison
 
-- `benchmarks.json` — per-runtime Node report (copied from tsv)
-- `benchmarks_cross_runtime.json` — composed cross-runtime report (copied from tsv)
-- `benchmarks_conformance.json` — conformance parse-coverage report (copied from tsv)
-- `benchmarks_formatters.json` — formatter CLI comparison, generated from the sibling harness's `results.json`
-- `benchmark_data.ts` — TypeScript types matching the per-runtime JSON format, plus the format/parse, stability, and corpus derivations
-- `benchmark_conformance.ts` — the parse-conformance domain: the coverage tables and the per-source slices the prose reads
-- `benchmark_sizes.ts` — the binary-size domain: category and capability grouping, and the synthesized combined builds
-- `benchmark_cross_runtime.ts` — the combined cross-runtime report: its types, derivations, and display helpers
-- `benchmark_display.ts` — value formatters (times, sizes, ratios), row labels, and per-category colors shared across the page; sizes print in decimal units (1 KB = 1,000 B) as in tsv's own report, but rounded to whole KB below the MB tier, where the report keeps a decimal
-- `benchmark_baseline.ts` — the hover-to-rebaseline domain: the shared row shape, the delegated hover read, and the ratio and its color scale. Every ratio on the page prints through `benchmark_display.ts`'s `format_speedup`: a multiple when better than the reference, the reciprocal negated when worse
-- `formatter_benchmark_data.ts` — the report's Zod schemas and types, plus `parse_formatter_benchmarks`, which validates the harness's `results.json` and keeps tsv's scenarios
-- `benchmarks_cli.ts` — shapes `benchmarks_formatters.json` for `BenchmarksCli.svelte` and owns the per-scenario prose; the numbers are all generated
-- `benchmarks.css` — the classes the page's components share, which Svelte's scoped `<style>` can't reach across. Imported by the benchmarks `+page.svelte` rather than the root stylesheet, so they ship with the docs chunk instead of every route
-- `benchmarks_prose.ts` — `IN_PROCESS_PAIRS`, the in-process pairings the page's copy names, keyed by the name the page gives each ratio. The page reads it by key and `benchmark_data.prose.test.ts` iterates its values, so a pairing added to the copy is gated by construction
-- `benchmarks.ts`, `benchmarks_cross_runtime.ts`, `benchmarks_conformance.ts`, `benchmarks_formatters.ts` — re-export the JSON with types
-- `BenchmarksBar.svelte`, `BenchmarksGroup.svelte`, etc. — visualization components
-- `BenchmarksBaselineGroup.svelte` — shared interactive column behind the format, parse, and binary-size groups: hovering a row re-baselines that group's ratios (each group is independent), restoring the default anchor (the canonical reference for speed, the smallest build for size) when the pointer leaves. One delegated `pointerover` per group reads the key off the row under the pointer; a disabled row publishes none, so it can never become the anchor. The CLI tables re-baseline the same way, and both mark the current anchor row alike. There is no focus path — re-baselining is a pointer affordance over data that is fully visible regardless
+The harness is a fork of Oxc's `bench-formatter` that adds tsv, benching it
+against Prettier, Biome, Oxfmt, and (on Svelte) rsvelte-fmt, all timed through
+their npm bins. tsv gets two rows wherever it faces another tool: `tsv-npm`, the
+`@fuzdev/tsv` Node dispatcher — the like-for-like row, never a competitor — and
+the bare `tsv` binary. The page's headline CLI claims lead with the dispatcher
+ratios and have no fallback for a report without that row; the prose test
+requires them to resolve. A tsv-only delivery scenario (binary vs dispatcher vs
+`@fuzdev/tsv-wasm`) is flagged `tsv_only` so "every other tool" claims skip it.
+A scenario renders only once it has a `SCENARIO_COPY` entry, and prose about the
+Svelte head-to-head is conditional on its data, since the harness publishes that
+scenario aborted when rsvelte-fmt's preflight crashes. Field-level detail lives
+in the schema TSDoc in `formatter_benchmark_data.ts`.
+
+### Modules
+
+- `benchmark_data.ts` — per-runtime report types, plus the format/parse, stability, and corpus derivations; imports none of the others
+- `benchmark_display.ts` — value formatters, row labels, per-category colors; imports only `benchmark_data.ts`'s types
+- `benchmark_sizes.ts`, `benchmark_cross_runtime.ts` — one domain each, built on those two; the conformance page's `conformance_data.ts` does the same from its own directory
+- `benchmark_baseline.ts` + `BenchmarksBaselineGroup.svelte` — hover-to-rebaseline: hovering a row re-anchors that group's ratios, restoring the default anchor on leave; pointer-only by design, and a disabled row never anchors. `BenchmarksCli.svelte`'s tables behave the same way
+- `formatter_benchmark_data.ts` — the harness report's Zod schemas and `parse_formatter_benchmarks`
+- `benchmarks_cli.ts` — shapes the CLI report for `BenchmarksCli.svelte` and owns the per-scenario prose and the `cli_*` claim helpers
+- `benchmarks_prose.ts` — `IN_PROCESS_PAIRS`, the in-process pairings the copy names; the page reads it by key and the prose test iterates it, so a pairing added to the copy is gated by construction
+- `benchmarks.ts`, `benchmarks_cross_runtime.ts`, `benchmarks_formatters.ts` (and the conformance page's `conformance.ts`) — re-export the JSON with types
+- `BenchmarksCliSection.svelte` — the CLI section's prose and its claims; the other `Benchmarks*.svelte` are visualizations
+- `benchmarks.css` — classes the components share, imported by the benchmarks and conformance `+page.svelte`s rather than the root stylesheet so they ship with those routes only
+
+The page quotes no hand-written ratios or counts: its prose computes them from
+the same reports the charts render, through tested helpers in the TS modules, so
+the components' scripts hold no untested reductions.
 
 ## Architecture
 
 - Static SvelteKit app (`adapter-static`), deploys to GitHub Pages
 - Uses fuz_ui tome system for docs navigation
-- `docs/tomes.ts` defines the doc sections: introduction, playground, benchmarks
-- Benchmark data lives in `src/routes/docs/benchmarks/` as four JSON reports — three copied from tsv, one generated from the sibling CLI harness (see [Benchmarks](#benchmarks))
-- The report types and derivations split across sibling modules by domain (see the key files above). The dependency runs one way — `benchmark_data.ts` imports none of the others, `benchmark_display.ts` imports only its types, and the rest build on those two
-- The benchmarks page quotes no hand-written ratios or counts — its prose computes them from the same reports the charts render, through tested helpers in the TS modules (`benchmark_data.ts` for the in-process ratios and counts, `benchmarks_cli.ts`'s `cli_*` for the CLI claims, `benchmark_display.ts` for the prose formatting), so the page's script holds no untested reductions. The headline CLI claims lead with the like-for-like dispatcher ratios. The in-process pairings live in `benchmarks_prose.ts`, which the page and the prose test both read, so a test gates that every pair the copy names still resolves and still runs in the direction the sentence reads
-- Tests and routes import route modules through the `$routes` alias (`svelte.config.js`), not a `#routes/*` subpath import — this repo has no `package.json` `imports` map
+- `docs/tomes.ts` defines the doc sections: introduction, playground, benchmarks, conformance
+- Benchmark data, modules, and the refresh workflow: see [Benchmarks](#benchmarks)
+- Tests import route modules through the `$routes` alias (`svelte.config.js`), not a `#routes/*` subpath import — this repo has no `package.json` `imports` map; routes import each other relatively
 - `library.ts` builds component metadata at runtime from the `virtual:svelte-docinfo` module (provided by the `svelte-docinfo` Vite plugin); the docs index passes it to `DocsContent`
 - The playground (`/docs/playground`) loads `@fuzdev/tsv-wasm` via a browser-only dynamic `import()` inside `Playground.svelte`, so the WASM code-splits into its own chunk fetched only on that route, keeping `/docs` and the prerendered pages WASM-free. `@fuzdev/tsv-wasm` is in `vite.config.ts` `optimizeDeps.exclude` (like `@fuzdev/blake3-wasm`)
 - The playground's formatted pane recomputes on every keystroke (formatting is ~1 ms even on a 9 KB component) while the AST pane trails a ~150 ms idle: the AST is parsed, serialized, and syntax-highlighted — around half a megabyte of it for that same component — and rebuilding that DOM per keystroke is what a large paste feels. The top-level error is the live pane's; the AST pane renders its own, since its debounced source can still be the broken text the editor has moved past
@@ -212,7 +191,7 @@ Deploys to `https://tsv.fuz.dev/` via `gro deploy` (builds and pushes to deploy 
 - Svelte 5 with runes API
 - tsv with tabs, 100 char width
 - Node >= 24.14
-- Private package (not published to npm)
+- Not published to npm
 
 ## Related projects
 

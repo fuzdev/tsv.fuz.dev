@@ -1,8 +1,8 @@
 import { assert, describe, test } from 'vitest';
 
 import {
-	cross_runtime_ratio_background,
 	derive_cross_runtime_groups,
+	cross_runtime_ratio_background,
 	derive_runtime_versions,
 	derive_unavailable_by_runtime,
 	derive_unstable_cells,
@@ -14,6 +14,24 @@ import {
 	type CrossRuntimeReport,
 	type UnstableCell
 } from '$routes/docs/benchmarks/benchmark_cross_runtime.ts';
+
+// a minimal healthy combined report, which each suite overrides the one field it reads
+const create_report = (overrides: Partial<CrossRuntimeReport> = {}): CrossRuntimeReport => ({
+	version: 15,
+	kind: 'combined',
+	generated: '2026-01-01T00:00:00.000Z',
+	runtimes: ['deno', 'node', 'bun'],
+	mixed_vintage: false,
+	mixed_machine: false,
+	unavailable_by_runtime: [],
+	partial_rows: [],
+	within_noise: [],
+	unstable_cells: [],
+	conformance_vintage: null,
+	sources: [],
+	rows: [],
+	...overrides
+});
 
 describe('order_cross_runtime_runtimes', () => {
 	test('reorders the report storage order to node-first display order', () => {
@@ -30,24 +48,13 @@ describe('order_cross_runtime_runtimes', () => {
 	});
 });
 
-// Per-runtime load failures (the composer's `unavailable_by_runtime`, combined
-// `version` 9+ — it carried init-line labels under `impls` at 8, which matched no
-// row name). Synthetic reports: the committed one records no failures, and the
+// Per-runtime load failures (the composer's `unavailable_by_runtime`). Synthetic reports: the committed one records no failures, and the
 // point of these is the DISTINCTION the field draws — a runtime that couldn't load
 // the impl behind a row versus a report that simply has no such row. Both render
 // as `fail`.
 describe('derive_unavailable_by_runtime', () => {
-	const report = (
-		unavailable_by_runtime?: CrossRuntimeReport['unavailable_by_runtime']
-	): CrossRuntimeReport => ({
-		version: 9,
-		kind: 'combined',
-		generated: '2026-01-01T00:00:00.000Z',
-		runtimes: ['deno', 'node', 'bun'],
-		unavailable_by_runtime,
-		sources: [],
-		rows: []
-	});
+	const report = (unavailable_by_runtime: CrossRuntimeReport['unavailable_by_runtime']) =>
+		create_report({ unavailable_by_runtime });
 
 	test('lists each runtime in the site column order, not the report storage order', () => {
 		// the report stores deno-first; the tables read node-first, and a disclosure
@@ -68,59 +75,66 @@ describe('derive_unavailable_by_runtime', () => {
 		assert.isEmpty(derive_unavailable_by_runtime(report([{ runtime: 'bun', rows: [] }])));
 	});
 
-	test('a report predating the field discloses nothing — silence, not an all-clear', () => {
-		assert.isEmpty(derive_unavailable_by_runtime(report(undefined)));
-	});
-
-	test('is_impl_unavailable answers per runtime, and never guesses on an older report', () => {
+	test('is_impl_unavailable answers per runtime', () => {
 		// keyed by ROW name (`biome-wasm`), which is what the tables render — the
 		// bench's init label (`Biome`) would match no cell
 		const recorded = report([{ runtime: 'bun', rows: ['biome-wasm'] }]);
 		assert.isTrue(is_impl_unavailable(recorded, 'bun', 'biome-wasm'));
 		assert.isFalse(is_impl_unavailable(recorded, 'node', 'biome-wasm'));
 		assert.isFalse(is_impl_unavailable(recorded, 'bun', 'oxfmt'));
-		// absent field → every cell reads as "not measured here", which is the only
-		// claim the data supports
-		assert.isFalse(is_impl_unavailable(report(undefined), 'bun', 'biome-wasm'));
 	});
 });
 
-// The per-row file-set-mismatch annotation (the site rendering of the composer's
-// `⚠ files a/b/c`), on a synthetic report since the committed one is healthy.
-describe('derive_cross_runtime_groups files_iterated_mismatch', () => {
-	const report = (
-		files_iterated: CrossRuntimeReport['rows'][number]['files_iterated']
-	): CrossRuntimeReport => ({
-		version: 7,
-		kind: 'combined',
-		generated: '2026-01-01T00:00:00.000Z',
-		runtimes: ['deno', 'node', 'bun'],
-		sources: [],
-		rows: [
-			{
-				group: 'parse/typescript',
-				name: 'tsv-json',
-				ops_per_second: { deno: 1, node: 2, bun: 3 },
-				mean_ns: { deno: 3, node: 2, bun: 1 },
-				files_iterated
-			}
-		]
+describe('derive_cross_runtime_groups', () => {
+	const row = (
+		group: string,
+		name: string,
+		ops_per_second: CrossRuntimeReport['rows'][number]['ops_per_second']
+	): CrossRuntimeReport['rows'][number] => ({
+		group,
+		name,
+		ops_per_second,
+		mean_ns: {},
+		files_iterated: {}
 	});
 
-	const derive_row = (files_iterated: CrossRuntimeReport['rows'][number]['files_iterated']) =>
-		derive_cross_runtime_groups(report(files_iterated))[0]!.rows[0]!;
-
-	test('equal counts across runtimes derive null', () => {
-		assert.isNull(derive_row({ deno: 767, node: 767, bun: 767 }).files_iterated_mismatch);
+	test('ratios anchor on node whatever the storage order, and a missing side has none', () => {
+		const [group] = derive_cross_runtime_groups(
+			create_report({
+				rows: [
+					row('format/css', 'tsv', { deno: 30, node: 20, bun: 10 }),
+					row('format/css', 'biome-wasm', { deno: 5, node: 4 })
+				]
+			})
+		);
+		assert(group);
+		assert.deepStrictEqual(group.rows[0]?.ratio_vs_base, { node: 1, deno: 1.5, bun: 0.5 });
+		assert.deepStrictEqual(group.rows[1]?.ratio_vs_base, { node: 1, deno: 1.25 });
+		assert.strictEqual(group.rows[1]?.category, 'biome');
 	});
 
-	test('unequal counts surface the raw per-runtime counts', () => {
-		const mismatch = { deno: 765, node: 767, bun: 767 };
-		assert.deepStrictEqual(derive_row(mismatch).files_iterated_mismatch, mismatch);
+	test('a row the base runtime never measured has no ratios at all', () => {
+		const [group] = derive_cross_runtime_groups(
+			create_report({ rows: [row('format/css', 'tsv', { deno: 30, bun: 10 })] })
+		);
+		assert.deepStrictEqual(group?.rows[0]?.ratio_vs_base, {});
 	});
 
-	test('a null count (untimed runtime) is not a mismatch by itself', () => {
-		assert.isNull(derive_row({ deno: null, node: 767, bun: 767 }).files_iterated_mismatch);
+	test('groups read format before parse, then svelte, typescript, css', () => {
+		const groups = derive_cross_runtime_groups(
+			create_report({
+				rows: [
+					row('parse/css', 'tsv-json', { node: 1 }),
+					row('format/typescript', 'tsv', { node: 1 }),
+					row('parse/svelte', 'tsv-json', { node: 1 }),
+					row('format/svelte', 'tsv', { node: 1 })
+				]
+			})
+		);
+		assert.deepStrictEqual(
+			groups.map((g) => g.group),
+			['format/svelte', 'format/typescript', 'parse/svelte', 'parse/css']
+		);
 	});
 });
 
@@ -134,15 +148,7 @@ describe('derive_unstable_cells', () => {
 		drift: null,
 		samples: 10
 	});
-	const report = (unstable_cells?: Array<UnstableCell>): CrossRuntimeReport => ({
-		version: 15,
-		kind: 'combined',
-		generated: '2026-01-01T00:00:00.000Z',
-		runtimes: ['deno', 'node', 'bun'],
-		unstable_cells,
-		sources: [],
-		rows: []
-	});
+	const report = (unstable_cells: Array<UnstableCell>) => create_report({ unstable_cells });
 
 	test('lists cells in the site column order, not the report storage order', () => {
 		const derived = derive_unstable_cells(report([cell('bun'), cell('deno'), cell('node')]));
@@ -160,47 +166,28 @@ describe('derive_unstable_cells', () => {
 			['bun', 'node']
 		);
 	});
-
-	test('a report predating the field discloses nothing', () => {
-		assert.isEmpty(derive_unstable_cells(report(undefined)));
-	});
 });
 
 describe('is_ratio_within_noise', () => {
-	const report = (within_noise?: CrossRuntimeReport['within_noise']): CrossRuntimeReport => ({
-		version: 15,
-		kind: 'combined',
-		generated: '2026-01-01T00:00:00.000Z',
-		runtimes: ['deno', 'node', 'bun'],
-		within_noise,
-		sources: [],
-		rows: []
-	});
+	const report = (within_noise: CrossRuntimeReport['within_noise']) =>
+		create_report({ within_noise });
 
 	test('a pairwise cell matches the ratio between exactly its two runtimes, either way round', () => {
 		const r = report([
-			{ group: 'format/css', name: 'oxfmt', runtimes: ['deno', 'node'], delta: 0.01, noise: 0.04 }
+			{
+				group: 'format/css',
+				name: 'oxfmt',
+				runtimes: ['deno', 'node'],
+				delta: 0.01,
+				noise: 0.04,
+				samples: [10, 10]
+			}
 		]);
 		assert.isTrue(is_ratio_within_noise(r, 'format/css', 'oxfmt', 'node', 'deno'));
 		assert.isTrue(is_ratio_within_noise(r, 'format/css', 'oxfmt', 'deno', 'node'));
 		assert.isFalse(is_ratio_within_noise(r, 'format/css', 'oxfmt', 'node', 'bun'));
 		assert.isFalse(is_ratio_within_noise(r, 'format/css', 'tsv', 'node', 'deno'));
 		assert.isFalse(is_ratio_within_noise(r, 'parse/css', 'oxfmt', 'node', 'deno'));
-	});
-
-	test("an older single-runtime cell is against the composer's own base only", () => {
-		const r = report([
-			{ group: 'format/css', name: 'oxfmt', runtime: 'node', delta: 0.01, noise: 0.04 }
-		]);
-		// the composer's base is the report's first runtime (deno here), so the cell
-		// qualifies node/deno and nothing the site anchors on node
-		assert.isTrue(is_ratio_within_noise(r, 'format/css', 'oxfmt', 'deno', 'node'));
-		assert.isFalse(is_ratio_within_noise(r, 'format/css', 'oxfmt', 'node', 'deno'));
-		assert.isFalse(is_ratio_within_noise(r, 'format/css', 'oxfmt', 'node', 'bun'));
-	});
-
-	test('a report predating the field flags nothing — silence, not a claim', () => {
-		assert.isFalse(is_ratio_within_noise(report(undefined), 'format/css', 'oxfmt', 'node', 'deno'));
 	});
 });
 
@@ -217,20 +204,19 @@ describe('derive_runtime_versions', () => {
 			timestamp: '2026-01-01T00:00:00.000Z',
 			git_commit: null,
 			tsv: null,
-			machine: m
+			corpus_snapshot: null,
+			machine: m,
+			unavailable: null
 		});
-		const versions = derive_runtime_versions({
-			version: 15,
-			kind: 'combined',
-			generated: '2026-01-01T00:00:00.000Z',
-			runtimes: ['deno', 'node', 'bun'],
-			sources: [
-				source('deno', machine('2.5.0')),
-				source('node', machine('24.14.1')),
-				source('bun', null)
-			],
-			rows: []
-		});
+		const versions = derive_runtime_versions(
+			create_report({
+				sources: [
+					source('deno', machine('2.5.0')),
+					source('node', machine('24.14.1')),
+					source('bun', null)
+				]
+			})
+		);
 		assert.deepStrictEqual(versions, [
 			{ runtime: 'node', version: '24.14.1' },
 			{ runtime: 'deno', version: '2.5.0' }

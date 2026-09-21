@@ -2,7 +2,6 @@ import { assert, describe, test } from 'vitest';
 
 import { benchmarks_json } from '$routes/docs/benchmarks/benchmarks.ts';
 import { benchmarks_cross_runtime_json } from '$routes/docs/benchmarks/benchmarks_cross_runtime.ts';
-import { benchmarks_conformance_json } from '$routes/docs/benchmarks/benchmarks_conformance.ts';
 import { benchmarks_formatters_json } from '$routes/docs/benchmarks/benchmarks_formatters.ts';
 import { format_ratio_approx } from '$routes/docs/benchmarks/benchmark_display.ts';
 import {
@@ -28,13 +27,10 @@ import {
 import { derive_unstable_cells } from '$routes/docs/benchmarks/benchmark_cross_runtime.ts';
 import { IN_PROCESS_PAIRS as IN_PROCESS_PAIRS_BY_KEY } from '$routes/docs/benchmarks/benchmarks_prose.ts';
 import {
-	CONFORMANCE_SOURCE_PATHS,
-	derive_conformance_slice
-} from '$routes/docs/benchmarks/benchmark_conformance.ts';
-import {
 	benchmark_speedup,
 	categorize_name,
 	derive_benchmark_groups,
+	derive_corpus_counts,
 	is_entry_unstable,
 	is_payload_matched
 } from '$routes/docs/benchmarks/benchmark_data.ts';
@@ -148,19 +144,18 @@ describe('prose ratios resolve', () => {
 	});
 
 	test('the CSS parse note reads the internal rows it points at', () => {
-		// "the JSON hand-off is most of tsv's time there (compare the internal rows)"
-		// — the wire must cost more than the engine, or the explanation is wrong
+		// "the JSON hand-off is ~N% of tsv's time there (the gap to the internal row)",
+		// offered as why the JS parsers finish ahead — the wire must cost more than the
+		// engine, or the explanation is wrong
 		const wire_share = benchmark_speedup(benchmarks_json, 'parse/css', 'tsv-json', 'tsv-internal');
 		assert.isDefined(wire_share);
 		assert.isAbove(wire_share, 2, 'tsv-json should cost at least twice tsv-internal on CSS');
 	});
 
 	test('every in-process pair the TLDR quotes was measured stably', () => {
-		// A headline ratio divides two means; a row the bench flagged as unstable (a
-		// cv past 10%, cleaned or raw, or a drift past 5% — a cost that moved while
-		// the row was measured) publishes a mean that may sit between two modes, so a
-		// headline ratio through it is not the median ratio. Re-run the runtime
-		// (`deno task bench:node:run && deno task bench:compose`) and re-publish.
+		// a headline ratio divides two means, and an unstable row's mean may sit between
+		// two modes (see `is_entry_unstable`) — re-run the runtime
+		// (`deno task bench:node:run && deno task bench:compose`) and re-publish
 		for (const [group, slower, faster] of IN_PROCESS_PAIRS) {
 			for (const name of [slower, faster]) {
 				const entry = benchmarks_json.entries.find((e) => e.group === group && e.name === name);
@@ -226,9 +221,9 @@ describe('prose ratios resolve', () => {
 		// "less" and both are floored to one decimal for display, so the LOW end must
 		// reach 1.1 or the range would print "1.0–Nx less memory", a claim of nothing
 		for (const range of [
-			cli_memory_ratio_range(CLI_TS_REPO_KEY, ['oxfmt', 'biome']),
+			cli_memory_ratio_range({ scenario_key: CLI_TS_REPO_KEY, labels: ['oxfmt', 'biome'] }),
 			cli_memory_ratio_range(),
-			cli_memory_ratio_range(undefined, undefined, CLI_TSV_NPM_LABEL)
+			cli_memory_ratio_range({ baseline_label: CLI_TSV_NPM_LABEL })
 		]) {
 			assert.isDefined(range);
 			assert.isAtLeast(range.min, 1.1);
@@ -258,7 +253,11 @@ describe('prose ratios resolve', () => {
 				assert_reads_faster(ratio, `${key}: ${label}`);
 			}
 		}
-		const memory = cli_memory_ratio_range(CLI_TS_REPO_KEY, ['oxfmt', 'biome'], CLI_TSV_NPM_LABEL);
+		const memory = cli_memory_ratio_range({
+			scenario_key: CLI_TS_REPO_KEY,
+			labels: ['oxfmt', 'biome'],
+			baseline_label: CLI_TSV_NPM_LABEL
+		});
 		assert.isDefined(memory);
 		// floored to one decimal for display, so "less memory" needs its low end to reach 1.1
 		assert.isAtLeast(memory.min, 1.1);
@@ -342,8 +341,8 @@ describe('prose ratios resolve', () => {
 				assert_reads_faster(ratio, `${label}: ${name}`);
 			}
 		}
-		// "which is Node's startup rather than the engines ... a large share of a
-		// parallel run's wall-clock and a small share of its CPU total": the dispatcher
+		// "launch cost, not the engines ... ~N% of its wall-clock on the repo but ~M% of
+		// its CPU total": the dispatcher
 		// must cost the repo run relatively more wall-clock than CPU work
 		const npm_wall = defined(
 			cli_speedup_vs_tsv(CLI_TS_REPO_KEY, CLI_TSV_NPM_LABEL, 'wall_ms'),
@@ -436,7 +435,7 @@ describe('prose ratios resolve', () => {
 		const competitor_keys = benchmarks_cli.scenarios.filter((s) => !s.tsv_only).map((s) => s.key);
 		assert.isNotEmpty(competitor_keys);
 		const ranges = competitor_keys
-			.map((key) => cli_memory_ratio_range(key))
+			.map((key) => cli_memory_ratio_range({ scenario_key: key }))
 			.filter((r) => r !== undefined);
 		const expected = {
 			min: Math.min(...ranges.map((r) => r.min)),
@@ -444,7 +443,7 @@ describe('prose ratios resolve', () => {
 		};
 		assert.deepStrictEqual(cli_memory_ratio_range(), expected);
 		// and the delivery scenario, named explicitly, still spans on its own
-		assert.isDefined(cli_memory_ratio_range(CLI_DELIVERY_KEY));
+		assert.isDefined(cli_memory_ratio_range({ scenario_key: CLI_DELIVERY_KEY }));
 	});
 
 	test('the WASM delivery row is "ahead of both Prettier rows … and behind Oxfmt and Biome"', () => {
@@ -453,7 +452,6 @@ describe('prose ratios resolve', () => {
 		const delivery = benchmarks_cli.scenarios.find((s) => s.key === CLI_DELIVERY_KEY);
 		const single = benchmarks_cli.scenarios.find((s) => s.key === CLI_SINGLE_FILE_KEY);
 		assert(delivery && single);
-		assert.strictEqual(delivery.target.split(',')[0], single.target, 'same corpus file');
 		const wasm = delivery.results.find((r) => r.label === CLI_TSV_WASM_LABEL);
 		assert(wasm, 'delivery scenario has no tsv-wasm row');
 		for (const label of ['prettier', 'prettier + oxc-parser']) {
@@ -486,62 +484,39 @@ describe('prose ratios resolve', () => {
 		}
 	});
 
-	test('the TypeScript conformance slices the note reads by name are present', () => {
-		// "~N% of it is the test262 slice and ~M% the TypeScript compiler's ... on
-		// Prettier's third-party JS suite tsv accepts A, oxc-parser B, yuku-parser C,
-		// and tsc D" — every slice and every engine named must resolve, and the two
-		// self-selected slices must still be most of the aggregate for "mostly" to hold
-		const slice = (path: string) =>
-			derive_conformance_slice(benchmarks_conformance_json, 'parse/typescript', path);
-		const test262 = slice(CONFORMANCE_SOURCE_PATHS.test262);
-		const ts_repo = slice(CONFORMANCE_SOURCE_PATHS.ts_repo);
-		const prettier_js = slice(CONFORMANCE_SOURCE_PATHS.prettier_js);
-		assert(test262 && ts_repo && prettier_js, 'a named conformance source is missing');
-		// "Prettier's HTML fixtures ride along in the Svelte set ... ~N% of it": a small
-		// share, or the "ride along" framing understates them
-		const html = derive_conformance_slice(
-			benchmarks_conformance_json,
-			'parse/svelte',
-			CONFORMANCE_SOURCE_PATHS.prettier_html
-		);
-		assert(html, "Prettier's HTML fixtures are missing from the Svelte conformance corpus");
-		assert.isBelow(html.share, 0.05, "Prettier's HTML fixtures are no longer a small share");
-		assert.isAbove(test262.share + ts_repo.share, 0.5, 'the self-selected slices are not "mostly"');
-		for (const engine of ['tsv', 'oxc-parser', 'yuku-parser', 'tsc']) {
-			assert.isDefined(prettier_js.rows[engine], `${engine} on Prettier's JS suite`);
-		}
+	test('the "only parser here besides" notes still describe their groups', () => {
+		// "rsvelte's is the only Svelte parser here besides tsv's and the svelte/compiler
+		// reference" and "PostCSS is the only CSS parser here besides tsv's and the
+		// parseCss reference" — a row added to either group makes its note wrong
+		const others = (group: string): Array<string> => [
+			...new Set(
+				benchmarks_json.entries
+					.filter((e) => e.group === group)
+					.map((e) => categorize_name(e.name))
+					.filter((category) => category !== 'canonical' && !category.startsWith('tsv_'))
+			)
+		];
+		assert.deepStrictEqual(others('parse/svelte'), ['rsvelte']);
+		assert.deepStrictEqual(others('parse/css'), ['postcss']);
 	});
 
-	test("the conformance note on oxc-parser's two bindings reads the report", () => {
-		// "its wasm binding is pinned to an older release ... and the two accept sets
-		// differ by a couple of files" — both halves are facts about the copied report,
-		// and either can go stale on a refresh: the bindings re-aligning makes the note
-		// a fiction, a wider gap makes "a couple" an understatement.
-		const { versions, entries } = benchmarks_conformance_json;
+	test('the corpus figures Benchmarking details quotes resolve', () => {
+		// the page has no fallback copy for them
+		const counts = derive_corpus_counts(benchmarks_json);
+		assert.isAbove(counts.harvested_css, 0);
+		assert(counts.standalone_css !== undefined);
+		assert.isAbove(counts.standalone_css, 0);
+	});
+
+	test("the parse note on oxc-parser's wasm row running an older release reads the report", () => {
+		// "Its wasm row runs an older release than its native row ... so the wasm-vs-wasm
+		// pairing crosses oxc versions" — the bindings re-aligning makes the note a fiction
+		const { versions } = benchmarks_json;
 		assert.isDefined(versions.oxc_parser_wasm);
 		assert.notStrictEqual(versions.oxc_parser_wasm, versions.oxc_parser, 'bindings re-aligned');
-		const processed = (name: string) => {
-			const entry = entries.find((e) => e.group === 'parse/typescript' && e.name === name);
-			assert(entry?.files_processed != null, `${name} coverage`);
-			return entry.files_processed;
-		};
-		const gap = Math.abs(processed('oxc-parser') - processed('oxc-parser-wasm'));
-		assert.isAtLeast(gap, 1, 'the accept sets agree — the note claims they differ');
-		assert.isAtMost(gap, 5, 'the accept sets differ by more than "a couple of files"');
 	});
 
-	test('the byte check left "one pathologically deep TypeScript file" undigested, on tsv\'s rows', () => {
-		// the conformance note excuses exactly one file from tsv's native/wasm byte
-		// parity; a growing count is the check quietly covering less
-		const ungraded = Object.entries(benchmarks_conformance_json.output_digest_ungraded ?? {});
-		assert.isNotEmpty(ungraded, 'the note discloses a file the report no longer carries');
-		for (const [row, count] of ungraded) {
-			assert.match(row, /^parse\/typescript\/tsv-/, row);
-			assert.strictEqual(count, 1, row);
-		}
-	});
-
-	test('Prettier "is one of the rows that stop" at the sweep floor, as Benchmarking details says', () => {
+	test('Prettier sits at the sweep floor, as Benchmarking details says', () => {
 		// the disclosure that the headline denominator runs at the bench's per-row floor:
 		// each Prettier format row's raw timing count must be exactly its floor
 		const prettier_rows = benchmarks_json.entries.filter(

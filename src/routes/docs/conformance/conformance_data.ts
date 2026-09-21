@@ -1,4 +1,4 @@
-// The parse-conformance domain: the coverage tables `BenchmarksConformance.svelte`
+// The parse-conformance domain: the coverage tables `ConformanceTable.svelte`
 // renders and the per-source slices the page's prose reads, derived from the
 // conformance report (the per-runtime report shape, `corpus_kind: 'conformance'`).
 
@@ -7,7 +7,7 @@ import {
 	parse_group_key,
 	type BenchmarkBaseline,
 	type SourceCoverageCell
-} from './benchmark_data.ts';
+} from '../benchmarks/benchmark_data.ts';
 
 export interface ConformanceRow {
 	name: string;
@@ -167,15 +167,3 @@ export const derive_conformance_slice = (
 	}
 	return { share: total / group_total, total, rows };
 };
-
-/**
- * Formats a coverage fraction as a percentage with two decimals (`99.85%`),
- * FLOORED rather than rounded — rounding would render e.g. 44219/44220 as
- * `100.00%` next to a visibly non-total count. Only exact totality reads 100%
- * (matching the harness's own `coverage_pct` convention in tsv's report.ts).
- */
-export const format_coverage_percent = (fraction: number): string =>
-	// the epsilon is for the already-divided fraction: scaling it back up reintroduces
-	// representation error BELOW the floor, which reads an exact hundredth one low
-	// (`0.57` floors to `56.99%`). Far above that error, far below a real hundredth.
-	`${(Math.floor(fraction * 10_000 + 1e-9) / 100).toFixed(2)}%`;

@@ -1,7 +1,12 @@
 // Display helpers shared across the benchmarks page: value formatters for
 // times, sizes, and ratios, the row labels, and the per-category colors.
 
-import type { CorpusSource, ImplementationCategory } from './benchmark_data.ts';
+import type {
+	BenchmarkBaseline,
+	CorpusSource,
+	GroupOmissions,
+	ImplementationCategory
+} from './benchmark_data.ts';
 
 /** A count with thousands separators (`44,220`), pinned to one locale so prerendered and hydrated output agree. */
 export const format_count = (n: number): string => n.toLocaleString('en-US');
@@ -119,6 +124,33 @@ export const format_ratio_approx = (ratio: number | undefined): string =>
 	ratio === undefined ? '—' : ratio >= 10 ? `${Math.round(ratio)}x` : `${ratio.toFixed(1)}x`;
 
 /**
+ * Formats a coverage fraction as a percentage with two decimals (`99.85%`),
+ * FLOORED rather than rounded — rounding would render e.g. 44219/44220 as
+ * `100.00%` next to a visibly non-total count. Only exact totality reads 100%
+ * (matching the harness's own `coverage_pct` convention in tsv's report.ts).
+ */
+export const format_coverage_percent = (fraction: number): string =>
+	// the epsilon is for the already-divided fraction: scaling it back up reintroduces
+	// representation error BELOW the floor, which reads an exact hundredth one low
+	// (`0.57` floors to `56.99%`). Far above that error, far below a real hundredth.
+	`${(Math.floor(fraction * 10_000 + 1e-9) / 100).toFixed(2)}%`;
+
+/** `cv 47.8%, raw cv 52.0%, drift +38.0%` — the readings behind an unstable row, absent ones omitted. */
+export const format_unstable_readings = (entry: {
+	cv: number | null;
+	cv_raw?: number | null;
+	drift?: number | null;
+}): string => {
+	const parts: Array<string> = [];
+	if (entry.cv != null) parts.push(`cv ${(entry.cv * 100).toFixed(1)}%`);
+	if (entry.cv_raw != null) parts.push(`raw cv ${(entry.cv_raw * 100).toFixed(1)}%`);
+	if (entry.drift != null) {
+		parts.push(`drift ${entry.drift >= 0 ? '+' : ''}${(entry.drift * 100).toFixed(1)}%`);
+	}
+	return parts.join(', ');
+};
+
+/**
  * A fraction as a whole-number percentage for prose (`38%`), always paired with
  * a `~` in the copy; `—` for a missing one, as `format_ratio_approx`.
  */
@@ -178,13 +210,8 @@ const HYPHENATED_NAMES = [
  * builds load the N-API addon under Node, so they read `(node napi)` to
  * distinguish them from the same rows under Deno, which loads the C-FFI library
  * instead (see the cross-runtime table); the third-party wasm builds are marked
- * `(wasm)`. Mirrors
- * the parenthesized suffixes the binary-size section's labels already carry.
- * tsv's own wasm entries keep their `tsv-wasm` package-name prefix through
- * `HYPHENATED_NAMES`, so they aren't listed here. The size labels aren't keys
- * either: the parenthesized ones fall through the generic formatting unchanged and
- * the hyphenated wasm packages keep their hyphens the same way.
- * The cross-runtime table neutralizes the `(node napi)` suffix per row (its
+ * `(wasm)`, mirroring the suffixes the binary-size labels already carry. The
+ * cross-runtime table neutralizes the `(node napi)` suffix per row (its
  * columns span runtimes) via `format_cross_runtime_label`.
  */
 const LABEL_OVERRIDES: Record<string, string> = {
@@ -308,4 +335,33 @@ export const category_color = (category: ImplementationCategory): string => {
 		case 'postcss':
 			return 'var(--color_b_50)'; // dprint's hue, lighter
 	}
+};
+
+/**
+ * The runtime a per-runtime report was measured under and its major version, for
+ * prose: `Node v24`.
+ */
+export const format_runtime_display = (
+	baseline: Pick<BenchmarkBaseline, 'runtime' | 'machine'>
+): string => {
+	const name = baseline.runtime.charAt(0).toUpperCase() + baseline.runtime.slice(1);
+	return `${name} v${baseline.machine.runtime_version.split('.')[0]}`;
+};
+
+/**
+ * The note under a timed group whose intersection left files out. Bytes beside the
+ * count, since one large file is a bigger share of the work than its count suggests.
+ * `by_tool` counts are per row and `omitted_files` is their union, so two rows failing
+ * one file sum past it — the copy says "by row" and flags the overlap when there can be one.
+ */
+export const format_group_omissions = (omissions: GroupOmissions): string => {
+	const is_one = omissions.omitted_files === 1;
+	const tools = omissions.by_tool.map((t) => `${t.name} ${format_count(t.files)}`).join(', ');
+	return `${format_count(omissions.omitted_files)} of ${format_count(omissions.files_total)} ${
+		is_one ? 'file' : 'files'
+	} (${format_percent(omissions.omitted_bytes, omissions.bytes_total)} of this group's bytes) left out of every row's timed set, because a row here fails ${
+		is_one ? 'it' : 'them'
+	} in this harness — files failed, by row${
+		omissions.by_tool.length > 1 ? ' (rows can overlap)' : ''
+	}: ${tools}`;
 };

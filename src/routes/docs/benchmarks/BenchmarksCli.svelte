@@ -97,11 +97,8 @@
 							<th scope="col">RSS ratio</th>
 						</tr>
 					</thead>
-					<!-- hover only re-baselines the table's ratios — a visual aid over data that is
-						fully visible regardless, with the default anchor serving keyboard and
-						no-pointer readers — so the rows carry no focus path (as
-						`BenchmarksBaselineGroup`). `pointerleave` here restores the default anchor
-						when the pointer leaves the table entirely. -->
+					<!-- hover re-baselines this table's ratios only, and `pointerleave` restores the
+						default anchor; no focus path, as `BenchmarksBaselineGroup` -->
 					<tbody
 						onpointerover={(event) => (hovered = to_hovered(event, scenario.key))}
 						onpointerleave={() => (hovered = undefined)}
@@ -145,29 +142,20 @@
 				</small>
 			</p>
 		{:else}
-			<p><small>Corpus: {scenario.corpus}</small></p>
+			<p><small>Corpus: {scenario.corpus}.</small></p>
 		{/if}
 		{#if scenario.unshimmed}
 			<p><small>{scenario.unshimmed}</small></p>
 		{/if}
 		{#if scenario.aborted}
-			<!-- an abort after timing keeps its table, so the sentence about withheld
-				numbers belongs only under a scenario that has none -->
-			<p>
-				{scenario.aborted}
-				{#if rows.length === 0}
-					The harness aborts a scenario rather than publish numbers its formatters didn't earn on
-					the same work, and this page shows the abort rather than dropping it.
-				{/if}
-			</p>
+			<p>{scenario.aborted}</p>
 		{/if}
 	</div>
 {/each}
 
 <p>
 	<small>
-		Measured on {report.machine} — {versions}. Wall-clock ratios scale with core count; "CPU ratio"
-		is the parallelism-neutral view.
+		Measured on {report.machine} — {versions}.
 	</small>
 </p>
 

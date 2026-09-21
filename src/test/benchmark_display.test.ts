@@ -1,26 +1,26 @@
 import { assert, describe, test } from 'vitest';
 
-import { benchmarks_json } from '$routes/docs/benchmarks/benchmarks.ts';
-import { benchmarks_conformance_json } from '$routes/docs/benchmarks/benchmarks_conformance.ts';
-
 import {
 	format_bytes,
 	format_corpus_source_files,
 	format_count,
+	format_coverage_percent,
 	format_label,
 	format_percent,
 	format_share_approx,
 	format_speedup,
 	format_count_maybe,
 	format_group_label,
+	format_group_omissions,
 	format_mib,
 	format_ms,
 	format_ms_range,
 	format_ns,
 	format_ratio_approx,
 	format_ratio_range,
-	format_version_label,
-	VERSION_LABELS
+	format_runtime_display,
+	format_unstable_readings,
+	format_version_label
 } from '$routes/docs/benchmarks/benchmark_display.ts';
 
 describe('format_label', () => {
@@ -214,16 +214,73 @@ describe('format_version_label', () => {
 	});
 });
 
-describe('VERSION_LABELS', () => {
-	test('every named key is one the report actually carries', () => {
-		// a key the report dropped is a label that can never render, and one whose
-		// bare name would otherwise have been shown hyphenated and wrong
-		const keys = new Set([
-			...Object.keys(benchmarks_json.versions),
-			...Object.keys(benchmarks_conformance_json.versions)
-		]);
-		for (const key of Object.keys(VERSION_LABELS)) {
-			assert.ok(keys.has(key), `"${key}" is named but no report carries it`);
-		}
+describe('format_coverage_percent', () => {
+	test('floors — only exact totality reads 100%', () => {
+		// 44219/44220 rounds to 100.00% but must not display as it: floor, so a
+		// visibly non-total count never sits beside a "100.00%" label.
+		assert.strictEqual(format_coverage_percent(44_219 / 44_220), '99.99%');
+		assert.strictEqual(format_coverage_percent(1), '100.00%');
+		assert.strictEqual(format_coverage_percent(0.998549), '99.85%');
+		assert.strictEqual(format_coverage_percent(0), '0.00%');
+	});
+});
+
+describe('format_unstable_readings', () => {
+	test('names each reading, signs drift, and omits absent ones', () => {
+		assert.strictEqual(
+			format_unstable_readings({ cv: 0.478, cv_raw: 0.52, drift: 0.38 }),
+			'cv 47.8%, raw cv 52.0%, drift +38.0%'
+		);
+		assert.strictEqual(
+			format_unstable_readings({ cv: 0.1, drift: -0.05 }),
+			'cv 10.0%, drift -5.0%'
+		);
+		assert.strictEqual(format_unstable_readings({ cv: null, cv_raw: null, drift: null }), '');
+	});
+});
+
+describe('format_runtime_display', () => {
+	test('names the runtime with its major version', () => {
+		const machine = { cpu_model: 'cpu', os: 'linux', arch: 'x64', runtime_version: '24.14.1' };
+		assert.strictEqual(format_runtime_display({ runtime: 'node', machine }), 'Node v24');
+		assert.strictEqual(
+			format_runtime_display({
+				runtime: 'deno',
+				machine: { ...machine, runtime_version: '2.5.0' }
+			}),
+			'Deno v2'
+		);
+	});
+});
+
+describe('format_group_omissions', () => {
+	const omissions = {
+		group: 'format/svelte',
+		files_total: 951,
+		bytes_total: 1000,
+		omitted_files: 2,
+		omitted_bytes: 112,
+		by_tool: [
+			{ name: 'biome-wasm', files: 2, bytes: 112, categories: {} },
+			{ name: 'oxfmt', files: 1, bytes: 50, categories: {} }
+		]
+	};
+
+	test('several files by several rows flags the overlap', () => {
+		assert.strictEqual(
+			format_group_omissions(omissions),
+			"2 of 951 files (11.2% of this group's bytes) left out of every row's timed set, because a row here fails them in this harness — files failed, by row (rows can overlap): biome-wasm 2, oxfmt 1"
+		);
+	});
+
+	test('one file by one row reads singular, with no overlap flag', () => {
+		assert.strictEqual(
+			format_group_omissions({
+				...omissions,
+				omitted_files: 1,
+				by_tool: [{ name: 'oxfmt', files: 1, bytes: 112, categories: {} }]
+			}),
+			"1 of 951 file (11.2% of this group's bytes) left out of every row's timed set, because a row here fails it in this harness — files failed, by row: oxfmt 1"
+		);
 	});
 });

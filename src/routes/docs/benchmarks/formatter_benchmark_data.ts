@@ -141,7 +141,7 @@ export const FormatterBenchmarks = z.strictObject({
 	}),
 	/**
 	 * Formatter name to version string, e.g. `prettier` to `3.9.1`, plus `node` —
-	 * not a formatter, but what five of the rows launch before theirs runs.
+	 * not a formatter, but what every row except the bare `tsv` binary launches first.
 	 */
 	versions: z.record(z.string(), z.string().min(1)),
 	scenarios: z.array(FormatterScenario)

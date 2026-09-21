@@ -31,10 +31,7 @@ describe('categorize_size_capability', () => {
 	});
 
 	test('the two dprint plugins share a bucket', () => {
-		// `dprint (wasm)` and `malva (wasm)` are the same kind of artifact — plugins
-		// over the one @dprint/formatter host, neither exposing a parser — so they
-		// must never be filed apart. Only `malva` reads as a formatter by name, so
-		// the keyword heuristic alone would file `dprint` under "parse + format".
+		// only `malva` reads as a formatter by name — see `SIZE_CAPABILITY_BY_LABEL`
 		assert.strictEqual(
 			categorize_size_capability('dprint (wasm)'),
 			categorize_size_capability('malva (wasm)')

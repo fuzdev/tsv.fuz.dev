@@ -4,52 +4,19 @@ import { benchmarks_formatters_json } from '$routes/docs/benchmarks/benchmarks_f
 import {
 	parse_formatter_benchmarks,
 	type FormatterBenchmarks,
-	type FormatterPreflight,
-	type FormatterScenario,
-	type FormatterTiming
+	type FormatterScenario
 } from '$routes/docs/benchmarks/formatter_benchmark_data.ts';
 
-// A trimmed stand-in for the bench harness's `results.json` — one scenario tsv
-// runs in, one it sits out — built from factories so each test states only what
-// it changes.
-const timing = (name: string, mean_ms: number): FormatterTiming => ({
-	name,
-	mean_ms,
-	stddev_ms: 0.5,
-	user_ms: mean_ms * 2,
-	system_ms: mean_ms,
-	min_ms: mean_ms - 1,
-	max_ms: mean_ms + 1
-});
+import {
+	create_formatter_preflight,
+	create_formatter_scenario,
+	create_formatter_timing
+} from './benchmark_test_helpers.ts';
 
-const preflight = (
-	name: string,
-	overrides: Partial<FormatterPreflight> = {}
-): FormatterPreflight => ({
-	name,
-	rejected: 0,
-	unavailable: false,
-	crashed: false,
-	...overrides
-});
-
-const scenario = (overrides: Partial<FormatterScenario> = {}): FormatterScenario => ({
-	id: 'large-single-file',
-	name: 'Large Single File',
-	target: 'TypeScript compiler parser.ts (~540KB)',
-	corpus: '539588 bytes, sha256:dcddb577aa14',
-	warmup_runs: 3,
-	benchmark_runs: 20,
-	preflight: [preflight('oxfmt'), preflight('tsv')],
-	timings: [timing('oxfmt', 60), timing('tsv', 20)],
-	fastest: 'tsv',
-	speedups: [{ name: 'oxfmt', ratio: 3, ratio_stddev: 0.1 }],
-	memory: [
-		{ name: 'oxfmt', mean_mb: 100, min_mb: 99, max_mb: 101, ratio: 10, ratio_stddev: 0.5 },
-		{ name: 'tsv', mean_mb: 10, min_mb: 9, max_mb: 11 }
-	],
-	...overrides
-});
+// one scenario tsv runs in, one it sits out
+const timing = create_formatter_timing;
+const preflight = create_formatter_preflight;
+const scenario = create_formatter_scenario;
 
 // an upstream scenario: JSX in the corpus, so no tsv row and no preflight
 const jsx_scenario = (overrides: Partial<FormatterScenario> = {}): FormatterScenario =>

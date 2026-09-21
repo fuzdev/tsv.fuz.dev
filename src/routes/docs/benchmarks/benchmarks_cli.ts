@@ -12,14 +12,6 @@
 // it against rsvelte-fmt (`@rsvelte/fmt`), another Rust Svelte-native formatter,
 // and the delivery scenario benches tsv against itself — the native binary, the
 // same binary through `@fuzdev/tsv`'s Node dispatcher, and `@fuzdev/tsv-wasm`.
-// The dispatcher row also runs beside native tsv in every scenario that faces
-// another tool: Prettier, Biome, Oxfmt, and rsvelte-fmt are all timed through
-// their npm bins, which start Node first, so it is tsv on the same footing — a
-// second tsv row, not a competitor, and the one the page's headline ratios quote.
-// tsv is non-configurable, so in every scenario it appears in, the formatters it
-// is compared against are pinned to its fixed style — width 100, tabs, single
-// quotes, no trailing commas — and before timing anything the harness asserts that
-// every formatter reporting a file count reports the same one.
 //
 // The numbers come from `benchmarks_formatters.json`, generated from that
 // harness's `results.json` by `benchmarks_formatters.gen.json.ts`; only the prose below
@@ -37,9 +29,8 @@ export interface CliFormatterResult {
 	/**
 	 * Total CPU time across all threads, in ms — hyperfine's `User` plus `System`,
 	 * the parallelism-neutral view. System time is counted because it is real work
-	 * the command demanded (file I/O, thread spawn, page faults) and an uneven share
-	 * of it per tool: nearly a third of tsv's CPU on the TypeScript repo, nearly half of
-	 * rsvelte-fmt's on the Svelte corpus.
+	 * the command demanded (file I/O, thread spawn, page faults), and its share
+	 * differs sharply per tool.
 	 */
 	cpu_ms: number;
 	/** Peak resident set size (RSS), in megabytes; `null` when the harness measured no memory. */
@@ -49,15 +40,24 @@ export interface CliFormatterResult {
 /** A measured `CliFormatterResult` column — what a ratio can be taken over. */
 export type CliMetric = keyof Omit<CliFormatterResult, 'label'>;
 
-export interface CliScenario {
-	key: string;
+/** The authored half of a scenario — what `SCENARIO_COPY` holds; the rest is generated. */
+export interface CliScenarioCopy {
 	heading: string;
+	/** One-line description of what makes the comparison fair. */
+	description: string;
+	/**
+	 * Every row is a tsv distribution, so the scenario compares tsv with itself and
+	 * says nothing about other tools — claims spanning "every other tool" skip it.
+	 */
+	tsv_only: boolean;
+}
+
+export interface CliScenario extends CliScenarioCopy {
+	key: string;
 	/** The harness's own one-line corpus label, rendered beside the heading. */
 	target: string;
 	/** Which revision of the corpus the numbers came from, as the harness records it. */
 	corpus: string;
-	/** One-line description of what makes the comparison fair. */
-	description: string;
 	/**
 	 * Results ascending by wall-clock time. The component computes each ratio
 	 * against its table's anchor row — the dispatcher row facing other tools, native
@@ -78,11 +78,6 @@ export interface CliScenario {
 	 * report doesn't record one; `0` is a run that turned it off.
 	 */
 	settle_seconds?: number;
-	/**
-	 * Every row is a tsv distribution, so the scenario compares tsv with itself and
-	 * says nothing about other tools — claims spanning "every other tool" skip it.
-	 */
-	tsv_only: boolean;
 	/**
 	 * Why the harness stopped early, when it did. Before timing, `results` is
 	 * empty and the sentence names the formatter its preflight faulted; after
@@ -165,20 +160,7 @@ export const cli_label_is_tsv = (label: string): boolean =>
  * delivery comparison closes), not the order the harness runs them in. A
  * scenario missing from here is dropped rather than rendered unexplained.
  */
-const SCENARIO_COPY: Record<
-	string,
-	Omit<
-		CliScenario,
-		| 'key'
-		| 'target'
-		| 'corpus'
-		| 'results'
-		| 'warmup_runs'
-		| 'benchmark_runs'
-		| 'aborted'
-		| 'unshimmed'
-	>
-> = {
+const SCENARIO_COPY: Record<string, CliScenarioCopy> = {
 	[CLI_TS_REPO_KEY]: {
 		heading: 'TypeScript repo',
 		description:
@@ -194,7 +176,7 @@ const SCENARIO_COPY: Record<
 	[CLI_SVELTE_KEY]: {
 		heading: 'Svelte corpus',
 		description:
-			'Two Rust Svelte-native formatters head-to-head on a third-party .svelte corpus, rsvelte-fmt configured to tsv’s fixed style so both do comparable line-break work. Over a directory rsvelte-fmt also starts the oxfmt it hands the files it doesn’t format itself (Markdown, YAML, …) to — its Node launcher resolves it, the binary spawns it — which finds no files here; that is how it ships, so it stays, and the spawn sits inside rsvelte-fmt’s time, not isolated. Its on-disk style cache and oxfmt daemon serve only the delegated-CSS path the harness doesn’t take (a run on the default path writes no cache), and the harness pins both off regardless. rsvelte-fmt 0.7.x aborts nondeterministically on this corpus when its check-mode output has stdout and stderr merged onto one pipe — how the harness’s preflight runs it, and how a CI invocation piping both through tee would. With the streams separated, or under hyperfine, it is clean, and the timed write runs have never hit it; the aborts are the preflight’s. The harness keeps the merged pipe rather than dodge the bug, and never retries: a run is published as it ended, complete or aborted, and about two in three attempts abort, so a timed table here is an attempt the crash didn’t hit.',
+			'Two Rust Svelte-native formatters head-to-head on a third-party .svelte corpus, rsvelte-fmt configured to tsv’s fixed style so both do comparable line-break work. Its time includes the oxfmt it spawns for the files it doesn’t format itself — none here, but that is how it ships — and the harness pins its style cache and oxfmt daemon off. rsvelte-fmt 0.7.x aborts nondeterministically on this corpus when its check-mode output has stdout and stderr merged onto one pipe — how the harness’s preflight runs it, and how a CI invocation piping both through tee would. The harness keeps the merged pipe rather than dodge the bug, and never retries: a run is published as it ended, complete or aborted, and about two in three attempts abort.',
 		tsv_only: false
 	},
 	[CLI_DELIVERY_KEY]: {
@@ -317,6 +299,16 @@ export const cli_settle_seconds = (): number | undefined => {
 export const cli_scenario_find = (scenario_key: string): CliScenario | undefined =>
 	benchmarks_cli.scenarios.find((s) => s.key === scenario_key);
 
+const cli_speedup_vs = (
+	scenario_key: string,
+	label: string,
+	baseline_label: string,
+	metric: CliMetric
+): number | undefined => {
+	const results = cli_scenario_find(scenario_key)?.results;
+	return results && cli_ratio_between(results, label, baseline_label, metric);
+};
+
 /**
  * How many times faster or lighter tsv is than `label` in one CLI scenario, by
  * the given metric — the ratios the page's prose quotes.
@@ -328,10 +320,7 @@ export const cli_speedup_vs_tsv = (
 	scenario_key: string,
 	label: string,
 	metric: CliMetric
-): number | undefined => {
-	const results = cli_scenario_find(scenario_key)?.results;
-	return results && cli_ratio_between(results, label, CLI_TSV_LABEL, metric);
-};
+): number | undefined => cli_speedup_vs(scenario_key, label, CLI_TSV_LABEL, metric);
 
 /**
  * How many times faster or lighter tsv through its npm dispatcher is than `label`
@@ -345,10 +334,7 @@ export const cli_speedup_vs_tsv_npm = (
 	scenario_key: string,
 	label: string,
 	metric: CliMetric
-): number | undefined => {
-	const results = cli_scenario_find(scenario_key)?.results;
-	return results && cli_ratio_between(results, label, CLI_TSV_NPM_LABEL, metric);
-};
+): number | undefined => cli_speedup_vs(scenario_key, label, CLI_TSV_NPM_LABEL, metric);
 
 /**
  * The dispatcher row's highest peak RSS across the scenarios that face other
@@ -464,10 +450,9 @@ export const cli_comparison_results = (
  * when a named tool or the baseline row is missing from a spanned scenario
  */
 export const cli_memory_ratio_range = (
-	scenario_key?: string,
-	labels?: Array<string>,
-	baseline_label: string = CLI_TSV_LABEL
+	options: { scenario_key?: string; labels?: Array<string>; baseline_label?: string } = {}
 ): { min: number; max: number } | undefined => {
+	const { scenario_key, labels, baseline_label = CLI_TSV_LABEL } = options;
 	const scenarios = benchmarks_cli.scenarios.filter((s) =>
 		scenario_key ? s.key === scenario_key : !s.tsv_only
 	);

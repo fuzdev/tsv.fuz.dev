@@ -4,7 +4,7 @@
 // stability, and corpus derivations the page builds on them.
 //
 // Sibling modules own what reads these: `benchmark_sizes.ts` the binary-size
-// tables, `benchmark_conformance.ts` the parse-coverage tables,
+// tables, the conformance page's `conformance_data.ts` the parse-coverage tables,
 // `benchmark_cross_runtime.ts` the combined report, `benchmark_display.ts` the value
 // formatters, labels, and category colors, and `benchmark_baseline.ts` the
 // hover-to-rebaseline ratios. This module imports none of them.
@@ -12,74 +12,68 @@
 export interface BenchmarkBaseline {
 	version: number;
 	// The runtime that produced this report (`node` for the flagship view).
-	// Present from report `version` 5 on.
-	runtime?: string;
+	runtime: string;
 	timestamp: string;
 	git_commit: string;
 	corpus: Record<string, number>;
 	versions: BaselineVersions;
 	binary_sizes: Array<BinarySize>;
 	entries: Array<BaselineEntry>;
-	// Counts of silenced third-party stderr noise, keyed by message pattern.
-	// Present from baseline `version` 4 on; not rendered, kept for parity.
-	suppressed_noise?: Record<string, number>;
+	// Counts of silenced third-party stderr noise, keyed by message pattern. Not
+	// rendered, kept for parity.
+	suppressed_noise: Record<string, number>;
 	// Same-engine native/wasm pairs whose pre-flight accept sets or output bytes
 	// disagreed — `[]` when healthy. A non-empty list is a binding-boundary bug in
 	// the producing bench (see tsv's `check_variant_parity`), caught at review time
-	// in the copied report's diff; not rendered, kept for parity. Absent on
-	// older reports — treat as optional.
-	variant_parity?: Array<VariantParityFinding>;
+	// in the copied report's diff; not rendered, kept for parity.
+	variant_parity: Array<VariantParityFinding>;
 	// Which corpus/surface produced the report: `perf` (real-world corpus,
 	// format + parse) or `conformance` (the deliberately-hard fixture suites,
-	// disjoint from the perf corpus, parse only). Present from `version` 6 on.
-	corpus_kind?: 'perf' | 'conformance';
+	// disjoint from the perf corpus, parse only).
+	corpus_kind: 'perf' | 'conformance';
 	// Per-entry corpus composition (path + loaded file count) — discloses which
-	// sources were present on the machine that produced the report. Present
-	// from `version` 6 on.
-	corpus_sources?: Array<CorpusSource>;
+	// sources were present on the machine that produced the report.
+	corpus_sources: Array<CorpusSource>;
 	// The real-code snapshot every `real`/`framework` source was read from — the
 	// `fuzdev/corpora` checkout at its commit (`subpath` empty), one roll-up commit
-	// for the whole real-code corpus. Present from `version` 14 on; absent on
-	// conformance-only reports (no real code).
+	// for the whole real-code corpus. Absent on conformance-only reports (no real code).
 	corpus_snapshot?: CorpusRepoRef;
 	// The machine that produced the report — CPU model, OS/arch, runtime version.
 	// The throughput numbers are machine-relative, so this is the environment the
-	// meta panel discloses. Present from `version` 7 on (absent on older reports).
-	machine?: Machine;
+	// meta panel discloses.
+	machine: Machine;
 	// Per-corpus-source coverage — `group → source → impl → {processed, total}`,
 	// the machine-readable half of the per-source tables in tsv's own markdown
 	// report. Conformance reports only (the perf surface is 100% by construction).
-	// Present from `version` 8 on; not rendered — this page shows each group's
+	// Not rendered as a table — this page shows each group's
 	// aggregate, which blends corpora answering different questions, so these rows
 	// are the sharper view if it ever grows one.
 	coverage_by_source?: Record<string, Record<string, Record<string, SourceCoverageCell>>>;
 	// Artifacts the size table reached for and didn't find. That table's
 	// COMPOSITION varies by the producing machine — a row exists only for a built
 	// artifact — so this is what tells a missing row apart from an artifact that
-	// stopped being produced. Present from `version` 11 on; not rendered, kept for
-	// parity.
-	binary_sizes_absent?: Array<string>;
+	// stopped being produced. Not rendered, kept for parity.
+	binary_sizes_absent: Array<string>;
 	// Implementations that failed to initialize on the producing machine, as
 	// `{impl, reason, rows}`. An impl that doesn't load contributes NO row, so
 	// without this a tool that broke upstream is indistinguishable from one that was
 	// never measured (`[]` in every committed report, which the shape tests pin for the
-	// perf report). Present from `version` 10 on, `rows` from `version` 12; not rendered
-	// here, kept for parity.
-	unavailable?: Array<UnavailableImpl>;
+	// perf report). Not rendered here, kept for parity.
+	unavailable: Array<UnavailableImpl>;
 	// Files a byte-graded row ACCEPTED whose output the producing bench's
 	// byte-parity check could not digest, as `{"<group>/<row>": count}` — `{}` when
 	// every accepted output was gradeable, which is the healthy state. The one known
 	// cause is a pathologically deep AST overflowing V8's recursive `JSON.stringify`.
 	// Unlike every other field here it records a measurement the run could NOT make,
-	// so a growing count means that check is quietly covering less. Present from
-	// `version` 13 on; not rendered, kept for parity.
-	output_digest_ungraded?: Record<string, number>;
+	// so a growing count means that check is quietly covering less. Not rendered,
+	// kept for parity.
+	output_digest_ungraded: Record<string, number>;
 	// Per timed group, the files and BYTES its intersection left out and the rows
 	// that left them. A file any timed row fails leaves EVERY row's timed set, so one
 	// tool's omit moves every number in the group — and a file count understates it
 	// (a harvested per-collection stylesheet is one file). A group nothing failed is
 	// listed with zeroes. Perf surface, intersection mode, timed runs only — absent on
-	// a `BENCH_MODE=union` run; present from `version` 16 on.
+	// a `BENCH_MODE=union` run and on the conformance surface.
 	omissions?: Array<GroupOmissions>;
 }
 
@@ -113,8 +107,8 @@ export interface ToolOmissions {
 export type PayloadTier = 'drop_in' | 'span_only' | 'own_shape' | 'none';
 
 // Whether a ratio between two parse rows compares the same PRODUCT: their tiers are
-// equal and neither is `own_shape`. `null` when either row carries no tier — an
-// older report, or a format row, where the question does not arise.
+// equal and neither is `own_shape`. `null` when either row carries no tier — a
+// format row, where the question does not arise.
 export const is_payload_matched = (
 	a: Pick<BaselineEntry, 'payload'>,
 	b: Pick<BaselineEntry, 'payload'>
@@ -137,16 +131,13 @@ export interface SourceCoverageCell {
 export interface UnavailableImpl {
 	impl: string;
 	reason: string;
-	// The row names this failure removed from the tables. Absent on `version` 11
-	// and older reports.
-	rows?: Array<string>;
+	// The row names this failure removed from the tables.
+	rows: Array<string>;
 }
 
 // A same-engine pair that disagreed — one engine behind two bindings
 // (native/wasm), or one binding under two options. Mirrors the bench's
-// `VariantParityFinding` (see `BenchmarkBaseline.variant_parity`); the
-// neutral keys arrived with report `version` 9, which is also when the check
-// started pairing options (older reports spell them `native`/`wasm`).
+// `VariantParityFinding` (see `BenchmarkBaseline.variant_parity`).
 export interface VariantParityFinding {
 	group: string;
 	impl: string;
@@ -158,10 +149,9 @@ export interface VariantParityFinding {
 	// files BOTH accepted whose outputs differ byte-for-byte, and up to three of
 	// their paths. Only tsv's own native/wasm pair is graded on bytes, and a
 	// non-zero count fails the producing bench outright, so these are absent
-	// here in practice — kept for parity with the report shape. Absent on
-	// reports older than the byte check; treat as optional.
-	output_mismatch?: number;
-	output_mismatch_examples?: Array<string>;
+	// here in practice — kept for parity with the report shape.
+	output_mismatch: number;
+	output_mismatch_examples: Array<string>;
 }
 
 // The hardware/runtime a report was measured on. Excludes hostname (the reports
@@ -242,37 +232,35 @@ export interface BaselineEntry {
 	cv: number | null;
 	ops_per_second: number | null;
 	sample_size: number | null;
-	// Stability read from the RAW timings (report `version` 15 on): the cv before
+	// Stability read from the RAW timings: the cv before
 	// outlier removal and the second-half-over-first-half `drift`, which see a cost
 	// that moved WHILE the row was measured — the cleaned `cv` above cannot, since
 	// the bench's outlier cleaner deletes or blends a second mode rather than
 	// reporting it. With them: the timing count before cleaning, the share removed,
-	// the protocol the row ran under, and a hash of the timed path set. Absent on
-	// older reports.
-	cv_raw?: number | null;
-	drift?: number | null;
-	raw_sample_size?: number | null;
-	outlier_ratio?: number | null;
-	warmup_iterations?: number | null;
-	min_iterations?: number | null;
-	files_iterated_digest?: string | null;
+	// the protocol the row ran under, and a hash of the timed path set. `null` on an
+	// untimed row.
+	cv_raw: number | null;
+	drift: number | null;
+	raw_sample_size: number | null;
+	outlier_ratio: number | null;
+	warmup_iterations: number | null;
+	min_iterations: number | null;
+	files_iterated_digest: string | null;
 	// Per-implementation preflight coverage: files this impl processed / the
-	// language's total discovered files. Present from baseline `version` 3 on;
-	// absent (or `null`) in older baselines.
-	files_processed?: number | null;
-	files_total?: number | null;
+	// language's total discovered files.
+	files_processed: number | null;
+	files_total: number | null;
 	// Files this impl was actually timed on (the per-group intersection in
-	// default mode). Present from baseline `version` 4 on.
-	files_iterated?: number | null;
+	// default mode); `null` on an untimed row.
+	files_iterated: number | null;
 	// What a parse row hands JS — the canonical parser's own AST shape (`drop_in`),
 	// a `start`/`end`-only tree (`span_only`), the tool's own dialect or reduction
 	// (`own_shape`), or nothing materialized (`none`). Most of a parse row's time is
 	// building that product, so a ratio between two rows integrates it
-	// (`is_payload_matched`). `null` on format rows; present from `version` 16 on.
-	payload?: PayloadTier | null;
-	// Present from report `version` 5 on (matches the report's top-level);
-	// not rendered, kept for parity.
-	runtime?: string;
+	// (`is_payload_matched`). `null` on format rows.
+	payload: PayloadTier | null;
+	// Matches the report's top-level `runtime`; not rendered, kept for parity.
+	runtime: string;
 }
 
 export interface BaselineVersions {
@@ -352,10 +340,10 @@ export interface BenchmarkGroup {
 	entries: Array<BenchmarkDisplayEntry>;
 	canonical_entry: BenchmarkDisplayEntry | undefined;
 	// files the timed benchmark actually iterated (the per-group intersection);
-	// null on older baselines (< version 4) that don't carry `files_iterated`
+	// null when no row in the group was timed
 	files_iterated: number | null;
 	// what the intersection left out, when it left anything out; null when nothing
-	// was omitted or the report predates `omissions` (< version 16)
+	// was omitted or the report carries no `omissions`
 	omissions: GroupOmissions | null;
 }
 
@@ -528,27 +516,23 @@ export const derive_benchmark_groups = (baseline: BenchmarkBaseline): Array<Benc
 		// anchor; the shared component reads that default off the first row and
 		// recomputes every ratio, re-baselining onto whichever row is hovered. (Size
 		// groups lead with their smallest build; see `derive_size_groups`.)
-		// `?? 0` coerces a null timing so the display entry's `mean_ns` stays a
-		// number. On a perf report the nulls are exactly the COVERAGE-ONLY rows —
-		// a tool measured for what it accepts but never timed (see
-		// `BenchmarkDisplayEntry.coverage_only`) — and a 0 there is inert: those
-		// rows render without a bar, value, or ratio, so the coerced number is
-		// never displayed or divided by. It does keep them out of `slowest`, which
-		// is what we want — a row with no timing must not set the bar scale.
+		// An untimed row (see `BenchmarkDisplayEntry.coverage_only`) coerces to 0, so it
+		// can't set the bar scale; it renders inert, so the 0 is never shown or divided by.
 		const slowest = Math.max(...entries.map((e) => e.mean_ns ?? 0));
 
 		const display_entries: Array<BenchmarkDisplayEntry> = entries.map((e) => {
 			// `mean_ns` is the timing the bars and ratios are built from, so its
 			// absence — not the tool's identity — is what marks a row untimed. That
 			// keeps this independent of which tools happen to be coverage-only.
-			const untimed = e.mean_ns == null;
+			const mean_ns = e.mean_ns;
+			const untimed = mean_ns == null;
 			return {
 				name: e.name,
-				mean_ns: e.mean_ns ?? 0,
-				bar_fraction: untimed || slowest <= 0 ? 0 : (e.mean_ns ?? 0) / slowest,
+				mean_ns: mean_ns ?? 0,
+				bar_fraction: mean_ns == null || slowest <= 0 ? 0 : mean_ns / slowest,
 				category: categorize_name(e.name),
-				files_processed: e.files_processed ?? null,
-				files_total: e.files_total ?? null,
+				files_processed: e.files_processed,
+				files_total: e.files_total,
 				...(untimed ? { disabled: true, coverage_only: true } : null)
 			};
 		});
@@ -594,14 +578,13 @@ export const derive_benchmark_groups = (baseline: BenchmarkBaseline): Array<Benc
 		if (group.operation !== 'parse') continue;
 		// guarded like the others, so a report that grows a real biome parse row
 		// can't produce a second `biome-wasm` entry (the rows are keyed by name)
-		const biome_placeholders: Array<BenchmarkDisplayEntry> = group.entries.some(
-			(e) => e.category === 'biome'
-		)
-			? []
-			: [to_placeholder({ name: 'biome-wasm', category: 'biome' })];
-		const needs_oxc = group.language === 'css' && !group.entries.some((e) => e.category === 'oxc');
-		const oxc_placeholders = needs_oxc ? oxc_templates.map(to_placeholder) : [];
-		group.entries.push(...biome_placeholders, ...oxc_placeholders);
+		const has = (category: ImplementationCategory) =>
+			group.entries.some((e) => e.category === category);
+		if (!has('biome'))
+			group.entries.push(to_placeholder({ name: 'biome-wasm', category: 'biome' }));
+		if (group.language === 'css' && !has('oxc')) {
+			group.entries.push(...oxc_templates.map(to_placeholder));
+		}
 		group.entries.sort(compare_speed_entries);
 	}
 
@@ -692,21 +675,6 @@ export const derive_unstable_entries = (baseline: BenchmarkBaseline): Array<Base
 				Math.max(a.cv ?? 0, a.cv_raw ?? 0, Math.abs(a.drift ?? 0))
 		);
 
-/** `cv 47.8%, raw cv 52.0%, drift +38.0%` — the readings behind an unstable row, absent ones omitted. */
-export const format_unstable_readings = (entry: {
-	cv: number | null;
-	cv_raw?: number | null;
-	drift?: number | null;
-}): string => {
-	const parts: Array<string> = [];
-	if (entry.cv != null) parts.push(`cv ${(entry.cv * 100).toFixed(1)}%`);
-	if (entry.cv_raw != null) parts.push(`raw cv ${(entry.cv_raw * 100).toFixed(1)}%`);
-	if (entry.drift != null) {
-		parts.push(`drift ${entry.drift >= 0 ? '+' : ''}${(entry.drift * 100).toFixed(1)}%`);
-	}
-	return parts.join(', ');
-};
-
 // Corpus source repos
 
 export interface CorpusRepo {
@@ -726,11 +694,9 @@ export interface CorpusRepo {
  * so the list still names the projects, not the snapshot repo (which
  * `corpus_snapshot` names once).
  */
-export const derive_corpus_repos = (
-	sources: Array<CorpusSource> | undefined
-): Array<CorpusRepo> => {
+export const derive_corpus_repos = (sources: Array<CorpusSource>): Array<CorpusRepo> => {
 	const by_url: Map<string, CorpusRepo> = new Map();
-	for (const source of sources ?? []) {
+	for (const source of sources) {
 		const repo = source.repo;
 		if (!repo || by_url.has(repo.url)) continue;
 		by_url.set(repo.url, { url: repo.url, label: repo.slug });
@@ -756,7 +722,7 @@ export interface CorpusCounts {
 
 export const derive_corpus_counts = (baseline: BenchmarkBaseline): CorpusCounts => {
 	const files = Object.values(baseline.corpus).reduce((sum, n) => sum + n, 0);
-	const harvested_css = (baseline.corpus_sources ?? [])
+	const harvested_css = baseline.corpus_sources
 		.filter((source) => !source.repo)
 		.reduce((sum, source) => sum + (source.by_language?.css ?? 0), 0);
 	const css = baseline.corpus.css;

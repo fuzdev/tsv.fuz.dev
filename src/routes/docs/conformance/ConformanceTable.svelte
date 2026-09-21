@@ -12,13 +12,17 @@
 	The data is already here: the report carries `coverage_by_source`
 	(`group → source → impl → {processed, total}`) from `version` 8 on — the
 	machine-readable half of the per-source tables in tsv's own markdown report,
-	which splits exactly this way and for exactly this reason. `benchmark_data.ts`'s
+	which splits exactly this way and for exactly this reason. `conformance_data.ts`'s
 	`derive_conformance_slice` already reads it for the page's by-slice prose; what's
 	missing here is a nested table or a per-source breakdown under each group.
 -->
 <script lang="ts">
-	import { format_coverage_percent, type ConformanceGroup } from './benchmark_conformance.ts';
-	import { format_count, format_language } from './benchmark_display.ts';
+	import type { ConformanceGroup } from './conformance_data.ts';
+	import {
+		format_count,
+		format_coverage_percent,
+		format_language
+	} from '../benchmarks/benchmark_display.ts';
 
 	const {
 		groups

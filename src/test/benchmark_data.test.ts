@@ -1,6 +1,5 @@
 import { assert, describe, test } from 'vitest';
 
-import { benchmarks_json } from '$routes/docs/benchmarks/benchmarks.ts';
 import {
 	benchmark_time_share_beyond,
 	derive_benchmark_groups,
@@ -8,7 +7,6 @@ import {
 	derive_corpus_repos,
 	derive_sweep_stats,
 	derive_unstable_entries,
-	format_unstable_readings,
 	is_entry_unstable,
 	is_payload_matched,
 	parse_group_key,
@@ -16,23 +14,9 @@ import {
 	type BenchmarkBaseline
 } from '$routes/docs/benchmarks/benchmark_data.ts';
 
-describe('derive_corpus_repos', () => {
-	test('maps the committed corpus sources to deduped org/name repo links', () => {
-		const repos = derive_corpus_repos(benchmarks_json.corpus_sources);
-		assert.isNotEmpty(repos);
-		// one entry per URL — no repo appears twice even though svelte.dev contributes
-		// several source subpaths
-		const urls = repos.map((r) => r.url);
-		assert.strictEqual(new Set(urls).size, urls.length, 'urls are distinct');
-		const svelte_dev = repos.filter((r) => r.url === 'https://github.com/sveltejs/svelte.dev');
-		assert.strictEqual(svelte_dev.length, 1, 'svelte.dev collapses to one entry');
-		// each label is the linkified `org/name`, derived from (and ending) its URL
-		for (const repo of repos) {
-			assert.match(repo.label, /^[^/]+\/[^/]+$/, repo.url);
-			assert.isTrue(repo.url.endsWith(repo.label), `${repo.url} ends with ${repo.label}`);
-		}
-	});
+import { create_baseline, create_baseline_entry } from './benchmark_test_helpers.ts';
 
+describe('derive_corpus_repos', () => {
 	test('collapses shared repos and drops sources with no detected repo', () => {
 		const ref = (slug: string, subpath: string) => ({
 			url: `https://github.com/${slug}`,
@@ -66,32 +50,9 @@ describe('derive_corpus_repos', () => {
 			}
 		]);
 	});
-
-	test('handles a missing corpus_sources field', () => {
-		assert.deepStrictEqual(derive_corpus_repos(undefined), []);
-	});
 });
 
-const entry = (overrides: Partial<BaselineEntry>): BaselineEntry => ({
-	name: 'x',
-	group: 'format/css',
-	mean_ns: 1,
-	p50_ns: 1,
-	p75_ns: 1,
-	p90_ns: 1,
-	p95_ns: 1,
-	p99_ns: 1,
-	min_ns: 1,
-	max_ns: 1,
-	std_dev_ns: 0,
-	cv: 0.01,
-	ops_per_second: 1,
-	sample_size: 100,
-	cv_raw: 0.01,
-	drift: 0,
-	raw_sample_size: 100,
-	...overrides
-});
+const entry = create_baseline_entry;
 
 describe('is_entry_unstable', () => {
 	test('a clean row is stable', () => {
@@ -146,29 +107,15 @@ describe('derive_unstable_entries', () => {
 	});
 });
 
-describe('format_unstable_readings', () => {
-	test('names each reading, signs drift, and omits absent ones', () => {
-		assert.strictEqual(
-			format_unstable_readings({ cv: 0.478, cv_raw: 0.52, drift: 0.38 }),
-			'cv 47.8%, raw cv 52.0%, drift +38.0%'
-		);
-		assert.strictEqual(
-			format_unstable_readings({ cv: 0.1, drift: -0.05 }),
-			'cv 10.0%, drift -5.0%'
-		);
-		assert.strictEqual(format_unstable_readings({ cv: null, cv_raw: null, drift: null }), '');
-	});
-});
-
 describe('derive_benchmark_groups omissions', () => {
-	const baseline = (omissions: BenchmarkBaseline['omissions']): BenchmarkBaseline => ({
-		...benchmarks_json,
-		entries: [
-			entry({ name: 'prettier', group: 'format/css' }),
-			entry({ name: 'biome-wasm', group: 'format/css' })
-		],
-		omissions
-	});
+	const baseline = (omissions: BenchmarkBaseline['omissions']): BenchmarkBaseline =>
+		create_baseline({
+			entries: [
+				entry({ name: 'prettier', group: 'format/css' }),
+				entry({ name: 'biome-wasm', group: 'format/css' })
+			],
+			omissions
+		});
 	const css_omissions = {
 		group: 'format/css',
 		files_total: 55,
@@ -193,17 +140,18 @@ describe('derive_benchmark_groups omissions', () => {
 });
 
 describe('derive_benchmark_groups placeholders state a scope gap only', () => {
-	const groups = derive_benchmark_groups({
-		...benchmarks_json,
-		entries: [
-			entry({ name: 'prettier', group: 'format/svelte' }),
-			entry({ name: 'dprint-wasm', group: 'format/typescript' }),
-			entry({ name: 'svelte/compiler', group: 'parse/svelte' }),
-			entry({ name: 'svelte/compiler', group: 'parse/css' }),
-			entry({ name: 'oxc-parser', group: 'parse/typescript' }),
-			entry({ name: 'yuku-parser', group: 'parse/typescript' })
-		]
-	});
+	const groups = derive_benchmark_groups(
+		create_baseline({
+			entries: [
+				entry({ name: 'prettier', group: 'format/svelte' }),
+				entry({ name: 'dprint-wasm', group: 'format/typescript' }),
+				entry({ name: 'svelte/compiler', group: 'parse/svelte' }),
+				entry({ name: 'svelte/compiler', group: 'parse/css' }),
+				entry({ name: 'oxc-parser', group: 'parse/typescript' }),
+				entry({ name: 'yuku-parser', group: 'parse/typescript' })
+			]
+		})
+	);
 	const disabled = (operation: string, language: string) =>
 		groups
 			.find((g) => g.operation === operation && g.language === language)
@@ -226,13 +174,19 @@ describe('derive_benchmark_groups placeholders state a scope gap only', () => {
 
 describe('to_placeholder via derive_benchmark_groups', () => {
 	test('a mirrored row carries nothing its template measured', () => {
-		const groups = derive_benchmark_groups({
-			...benchmarks_json,
-			entries: [
-				entry({ name: 'svelte/compiler', group: 'parse/css' }),
-				entry({ name: 'oxc-parser', group: 'parse/typescript', mean_ns: 9_000, files_processed: 7 })
-			]
-		});
+		const groups = derive_benchmark_groups(
+			create_baseline({
+				entries: [
+					entry({ name: 'svelte/compiler', group: 'parse/css' }),
+					entry({
+						name: 'oxc-parser',
+						group: 'parse/typescript',
+						mean_ns: 9_000,
+						files_processed: 7
+					})
+				]
+			})
+		);
 		const css = groups.find((g) => g.language === 'css');
 		const mirrored = css?.entries.find((e) => e.name === 'oxc-parser');
 		assert.deepEqual(mirrored, {
@@ -248,11 +202,11 @@ describe('to_placeholder via derive_benchmark_groups', () => {
 });
 
 describe('derive_corpus_counts', () => {
-	const baseline = (corpus_sources: BenchmarkBaseline['corpus_sources']): BenchmarkBaseline => ({
-		...benchmarks_json,
-		corpus: { svelte: 10, typescript: 20, css: 5 },
-		corpus_sources
-	});
+	const baseline = (corpus_sources: BenchmarkBaseline['corpus_sources']): BenchmarkBaseline =>
+		create_baseline({
+			corpus: { svelte: 10, typescript: 20, css: 5 },
+			corpus_sources
+		});
 
 	test('the harvest is the CSS of the sources with no upstream repo', () => {
 		const counts = derive_corpus_counts(
@@ -270,7 +224,7 @@ describe('derive_corpus_counts', () => {
 	});
 
 	test('a report that does not distinguish the harvest quotes no standalone count', () => {
-		assert.deepEqual(derive_corpus_counts(baseline(undefined)), {
+		assert.deepEqual(derive_corpus_counts(baseline([])), {
 			files: 35,
 			harvested_css: 0,
 			standalone_css: undefined
@@ -280,14 +234,15 @@ describe('derive_corpus_counts', () => {
 
 describe('derive_sweep_stats', () => {
 	test('the reference rows get a floor of their own', () => {
-		const stats = derive_sweep_stats({
-			...benchmarks_json,
-			entries: [
-				entry({ name: 'prettier', min_iterations: 16, sample_size: 16 }),
-				entry({ name: 'tsv', min_iterations: 8, sample_size: 900 }),
-				entry({ name: 'biome-wasm', min_iterations: 8, sample_size: 6 })
-			]
-		});
+		const stats = derive_sweep_stats(
+			create_baseline({
+				entries: [
+					entry({ name: 'prettier', min_iterations: 16, sample_size: 16 }),
+					entry({ name: 'tsv', min_iterations: 8, sample_size: 900 }),
+					entry({ name: 'biome-wasm', min_iterations: 8, sample_size: 6 })
+				]
+			})
+		);
 		assert.deepEqual(stats, {
 			floor: 8,
 			canonical_floor: 16,
@@ -296,11 +251,12 @@ describe('derive_sweep_stats', () => {
 		});
 	});
 
-	test('a report without the fields reads as undefined, never Infinity', () => {
-		const stats = derive_sweep_stats({
-			...benchmarks_json,
-			entries: [entry({ sample_size: null })]
-		});
+	test('a report with only untimed rows reads as undefined, never Infinity', () => {
+		const stats = derive_sweep_stats(
+			create_baseline({
+				entries: [entry({ sample_size: null, min_iterations: null })]
+			})
+		);
 		assert.deepEqual(stats, {
 			floor: undefined,
 			canonical_floor: undefined,
@@ -311,13 +267,12 @@ describe('derive_sweep_stats', () => {
 });
 
 describe('benchmark_time_share_beyond', () => {
-	const baseline: BenchmarkBaseline = {
-		...benchmarks_json,
+	const baseline: BenchmarkBaseline = create_baseline({
 		entries: [
 			entry({ name: 'tsv-json', group: 'parse/css', mean_ns: 100 }),
 			entry({ name: 'tsv-internal', group: 'parse/css', mean_ns: 20 })
 		]
-	};
+	});
 
 	test('is what the whole row spends beyond the part', () => {
 		assert.closeTo(
@@ -342,7 +297,6 @@ describe('is_payload_matched', () => {
 
 	test('a row with no tier makes the question unanswerable, not false', () => {
 		assert.isNull(is_payload_matched({ payload: null }, { payload: 'drop_in' }));
-		assert.isNull(is_payload_matched({}, { payload: 'drop_in' }));
 	});
 });
 

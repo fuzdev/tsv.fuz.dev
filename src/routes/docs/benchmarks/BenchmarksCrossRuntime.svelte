@@ -12,8 +12,12 @@
 		type BenchmarkRuntime,
 		type CrossRuntimeReport
 	} from './benchmark_cross_runtime.ts';
-	import { format_unstable_readings } from './benchmark_data.ts';
-	import { category_color, format_group_label, format_speedup } from './benchmark_display.ts';
+	import {
+		category_color,
+		format_group_label,
+		format_speedup,
+		format_unstable_readings
+	} from './benchmark_display.ts';
 
 	const {
 		report
@@ -51,20 +55,8 @@
 		is_impl_unavailable(report, runtime, name)
 			? `${name} failed to load under ${runtime}, so it contributes no row there`
 			: `${runtime}'s report carries no ${name} row — not measured there`;
-
-	// the per-runtime timed counts in column order, for a row whose runtimes
-	// timed different file sets (see `CrossRuntimeDisplayRow.files_iterated_mismatch`)
-	const files_mismatch_label = (
-		mismatch: Partial<Record<BenchmarkRuntime, number | null>>
-	): string => runtimes.map((runtime) => mismatch[runtime] ?? '—').join('/');
 </script>
 
-{#if report.mixed_vintage}
-	<aside class="benchmarks-warning">
-		⚠ The per-runtime reports backing these tables come from different commits/versions, so the
-		ratios are unreliable until every runtime is re-run.
-	</aside>
-{/if}
 {#if report.mixed_machine}
 	<aside class="benchmarks-warning">
 		⚠ The per-runtime reports backing these tables were produced on different hardware, so the
@@ -74,7 +66,7 @@
 {#if unavailable.length}
 	<aside class="benchmarks-warning">
 		⚠ Some implementations don't load on every runtime:
-		<ul class="unavailable">
+		<ul class="warning-list">
 			{#each unavailable as { runtime, rows } (runtime)}
 				<li><code>{runtime}</code> — {rows.join(', ')}</li>
 			{/each}
@@ -86,7 +78,7 @@
 {#if unstable.length}
 	<aside class="benchmarks-warning">
 		⚠ Some measurements were not stable, so every ratio through them is unreliable:
-		<ul class="unavailable">
+		<ul class="warning-list">
 			{#each unstable as cell (cell.group + '/' + cell.name + '/' + cell.runtime)}
 				<li>
 					<code>{cell.runtime}</code> — {cell.group}/{cell.name}
@@ -129,16 +121,6 @@
 								<i class="swatch" aria-hidden="true" style:background={category_color(row.category)}
 								></i>
 								{format_cross_runtime_label(row.name)}
-								{#if row.files_iterated_mismatch}
-									<small
-										class="files-mismatch"
-										title="the runtimes timed different file sets ({runtimes.join(
-											'/'
-										)}) — each runtime times the files every implementation in the group accepted under it, so part of this row's ratio is file-set composition, not runtime"
-									>
-										⚠ files {files_mismatch_label(row.files_iterated_mismatch)}
-									</small>
-								{/if}
 							</th>
 							{#each runtimes as runtime (runtime)}
 								{@const ops = row.ops_per_second[runtime]}
@@ -186,11 +168,8 @@
 	smaller than the two measurements' combined noise, which the report flags itself — read it as
 	parity, not a runtime effect. A <code>fail</code> is a row that runtime contributed no number for
 	— an implementation it can't load (listed above when the report records it), or one its report
-	doesn't carry. A row marked <code>⚠ files</code> was timed on a different file set per runtime
-	(each runtime times the files every implementation in the group accepted under it, so one tool's
-	rejection shrinks the set for all), so part of its ratio is corpus composition rather than
-	runtime. tsv's <code>native</code> rows load each runtime's idiomatic binding of the same engine —
-	the N-API addon under <code>node</code> and <code>bun</code>, the C-FFI library under
+	doesn't carry. tsv's <code>native</code> rows load each runtime's idiomatic binding of the same
+	engine — the N-API addon under <code>node</code> and <code>bun</code>, the C-FFI library under
 	<code>deno</code> — so their <code>deno</code> column is a first-class FFI-vs-N-API comparison,
 	not a re-run of the same binding. The other tools' <code>native</code> rows are their npm N-API
 	addons under all three runtimes.
@@ -204,8 +183,8 @@
 	tbody th {
 		white-space: nowrap;
 	}
-	/* the per-runtime load failures inside the disclosure aside */
-	.unavailable {
+	/* the lists inside the disclosure asides */
+	.warning-list {
 		margin-block: var(--space_xs);
 	}
 	/* the runtime versions the columns were measured under — a compact horizontal row */
@@ -230,10 +209,5 @@
 		height: 1.2rem;
 		border-radius: var(--border_radius_xs);
 		vertical-align: middle;
-	}
-	/* same warning tint as the asides above the tables */
-	.files-mismatch {
-		margin-left: var(--space_xs);
-		color: var(--color_c_50);
 	}
 </style>

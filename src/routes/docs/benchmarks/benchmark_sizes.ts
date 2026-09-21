@@ -52,11 +52,8 @@ export type SizeCapability = 'full' | 'formatter' | 'parser';
  *   svelte2tsx, HMR diffing and a resolver — so `parser` is the least-wrong
  *   heading rather than a claim of scope match. The notes beside the table say so.
  *
- * `biome` is deliberately NOT here, though its js-api exposes no parser either: the
- * bucket sizes what an ARTIFACT ships, and Biome's wasm build really is the whole
- * toolchain (parser, formatter, linter) whether or not this page calls all of it.
- * A dprint plugin is a formatter that happens to parse internally — the opposite
- * shape, and the reason it can't ride the same fallback.
+ * `biome` is deliberately not here: the bucket sizes what an artifact ships, and
+ * Biome's wasm build really is the whole toolchain.
  */
 export const SIZE_CAPABILITY_BY_LABEL: Record<string, SizeCapability> = {
 	'dprint (wasm)': 'formatter',
@@ -101,7 +98,7 @@ export interface SizeDisplayEntry extends BinarySize {
 export interface SizeCapabilityGroup {
 	capability: SizeCapability;
 	heading: string;
-	// sorted smallest-first, so the leading entry is the default ratio anchor (1.00x)
+	// sorted smallest-first, so the first enabled entry is the default ratio anchor (1.00x)
 	entries: Array<SizeDisplayEntry>;
 }
 
@@ -213,9 +210,9 @@ export const derive_size_groups = (sizes: Array<BinarySize>): Array<SizeCapabili
 		if (items.length === 0) continue;
 		const sorted = items.toSorted((a, b) => a.bytes - b.bytes);
 		const max = Math.max(0, ...items.map((s) => s.bytes));
-		// `sorted` is ascending, so the smallest build leads the group — its single
-		// default ratio anchor (1.00x), one baseline whether or not the group mixes wasm
-		// and native. The shared component reads every ratio from that leading row.
+		// `sorted` is ascending, so the smallest build is the group's single default
+		// ratio anchor (1.00x), one baseline whether or not the group mixes wasm and
+		// native. The shared component anchors on the first enabled row.
 		const entries: Array<SizeDisplayEntry> = sorted.map((s) => ({
 			...s,
 			bar_fraction: max > 0 ? s.bytes / max : 0,

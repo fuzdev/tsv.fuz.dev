@@ -57,32 +57,22 @@
 		<h3 class="mt_0 mb_sm">run</h3>
 		<ul class="unstyled">
 			<li>{formatted_date}</li>
-			{#if baseline.runtime}
-				<li>runtime: {baseline.runtime}</li>
-			{/if}
-			{#if baseline.versions.tsv}
-				<li>tsv {baseline.versions.tsv}</li>
-			{/if}
+			<li>runtime: {baseline.runtime}</li>
+			<li>tsv {baseline.versions.tsv}</li>
 			<li>
 				<!-- eslint-disable-next-line svelte/no-navigation-without-resolve -->
 				<a href={commit_url}>{baseline.git_commit}</a>
 			</li>
 		</ul>
 	</div>
-	{#if baseline.machine}
-		<div>
-			<h3 class="mt_0 mb_sm">environment</h3>
-			<ul class="unstyled">
-				<li>{baseline.machine.cpu_model}</li>
-				<li>{baseline.machine.os}/{baseline.machine.arch}</li>
-				{#if baseline.runtime}
-					<li>{baseline.runtime} {baseline.machine.runtime_version}</li>
-				{:else}
-					<li>{baseline.machine.runtime_version}</li>
-				{/if}
-			</ul>
-		</div>
-	{/if}
+	<div>
+		<h3 class="mt_0 mb_sm">environment</h3>
+		<ul class="unstyled">
+			<li>{baseline.machine.cpu_model}</li>
+			<li>{baseline.machine.os}/{baseline.machine.arch}</li>
+			<li>{baseline.runtime} {baseline.machine.runtime_version}</li>
+		</ul>
+	</div>
 	{#if corpus_repos.length}
 		<div class="corpus-repos">
 			<h3 class="mt_0 mb_sm">corpus repos</h3>

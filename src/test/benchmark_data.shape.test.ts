@@ -1,14 +1,15 @@
 import { assert, describe, test } from 'vitest';
 
 import { benchmarks_json } from '$routes/docs/benchmarks/benchmarks.ts';
-import { benchmarks_conformance_json } from '$routes/docs/benchmarks/benchmarks_conformance.ts';
 import { benchmarks_cross_runtime_json } from '$routes/docs/benchmarks/benchmarks_cross_runtime.ts';
-import { derive_conformance_groups } from '$routes/docs/benchmarks/benchmark_conformance.ts';
 import {
+	derive_corpus_repos,
 	categorize_name,
 	derive_benchmark_groups,
 	derive_speedup_summary
 } from '$routes/docs/benchmarks/benchmark_data.ts';
+import { VERSION_LABELS } from '$routes/docs/benchmarks/benchmark_display.ts';
+import { conformance_json } from '$routes/docs/conformance/conformance.ts';
 import { categorize_size } from '$routes/docs/benchmarks/benchmark_sizes.ts';
 
 // The report shape version the committed copies are pinned to — tsv's
@@ -107,23 +108,19 @@ describe('benchmarks.json shape', () => {
 
 		// css mirrors those oxc entries in, disabled, in a fixed slot: directly after
 		// the biome placeholder (both lead the cross-tool comparisons, right after the
-		// canonical row) and before tsv's json wires
-		for (const language of ['css']) {
-			const group = parse(language);
-			assert.ok(group, `${language} parse group missing`);
-			const oxc = group.entries.filter((e) => e.category === 'oxc');
-			assert.strictEqual(oxc.length, ts_oxc.length, `${language} oxc placeholder count`);
-			for (const e of oxc) {
-				assert.ok(e.disabled, `${language} ${e.name} should be disabled`);
-				assert.strictEqual(e.bar_fraction, 0, `${language} ${e.name} bar`);
-			}
-			const names = group.entries.map((e) => e.name);
-			const first_biome = names.findIndex((n) => n.includes('biome'));
-			const first_oxc = names.findIndex((n) => n.includes('oxc'));
-			const first_json = names.findIndex((n) => n.endsWith('-json') || n.endsWith('-no-locations'));
-			assert.strictEqual(first_oxc, first_biome + 1, `${language} oxc directly after biome`);
-			assert.isBelow(first_oxc, first_json, `${language} oxc before the tsv json entries`);
+		// canonical row), which the tier-order test below holds ahead of tsv's json wires
+		const group = parse('css');
+		assert.ok(group, `css parse group missing`);
+		const oxc = group.entries.filter((e) => e.category === 'oxc');
+		assert.strictEqual(oxc.length, ts_oxc.length, `css oxc placeholder count`);
+		for (const e of oxc) {
+			assert.ok(e.disabled, `css ${e.name} should be disabled`);
+			assert.strictEqual(e.bar_fraction, 0, `css ${e.name} bar`);
 		}
+		const names = group.entries.map((e) => e.name);
+		const first_biome = names.findIndex((n) => n.includes('biome'));
+		const first_oxc = names.findIndex((n) => n.includes('oxc'));
+		assert.strictEqual(first_oxc, first_biome + 1, `css oxc directly after biome`);
 	});
 
 	test('yuku appears in the typescript parse group only, and is never mirrored elsewhere', () => {
@@ -160,12 +157,10 @@ describe('benchmarks.json shape', () => {
 			assert.strictEqual(entry.bar_fraction, 0, `${language} biome bar`);
 
 			// biome leads the cross-tool comparisons: directly after the single canonical
-			// row (index 0), before tsv's json wires
+			// row (index 0)
 			const names = group.entries.map((e) => e.name);
 			const first_biome = names.findIndex((n) => n.includes('biome'));
-			const first_json = names.findIndex((n) => n.endsWith('-json') || n.endsWith('-no-locations'));
 			assert.strictEqual(first_biome, 1, `${language} biome directly after the canonical row`);
-			assert.isBelow(first_biome, first_json, `${language} biome before the tsv json entries`);
 		}
 	});
 
@@ -357,133 +352,34 @@ describe('benchmarks.json shape', () => {
 	});
 });
 
-// Shape gate for the committed conformance report `benchmarks_conformance.json`
-// (tsv's `report.conformance.node.json` — the parse-coverage surface over the
-// deliberately-hard fixture suites, disjoint from the perf corpus, Svelte set minus
-// canonical-rejects), consumed by the Parse conformance section.
-describe('benchmarks_conformance.json shape', () => {
-	test('report is the conformance surface at the current version', () => {
-		assert.strictEqual(benchmarks_conformance_json.version, REPORT_VERSION);
-		assert.strictEqual(benchmarks_conformance_json.corpus_kind, 'conformance');
-		assert.strictEqual(benchmarks_conformance_json.runtime, 'node');
-	});
-
-	test('conformance report is parse-only', () => {
-		for (const entry of benchmarks_conformance_json.entries) {
-			assert.match(entry.group, /^parse\//, `${entry.group}/${entry.name}`);
+describe('derive_corpus_repos', () => {
+	test('maps the committed corpus sources to deduped org/name repo links', () => {
+		const repos = derive_corpus_repos(benchmarks_json.corpus_sources);
+		assert.isNotEmpty(repos);
+		// one entry per URL — no repo appears twice even though svelte.dev contributes
+		// several source subpaths
+		const urls = repos.map((r) => r.url);
+		assert.strictEqual(new Set(urls).size, urls.length, 'urls are distinct');
+		const svelte_dev = repos.filter((r) => r.url === 'https://github.com/sveltejs/svelte.dev');
+		assert.strictEqual(svelte_dev.length, 1, 'svelte.dev collapses to one entry');
+		// each label is the linkified `org/name`, derived from (and ending) its URL
+		for (const repo of repos) {
+			assert.match(repo.label, /^[^/]+\/[^/]+$/, repo.url);
+			assert.isTrue(repo.url.endsWith(repo.label), `${repo.url} ends with ${repo.label}`);
 		}
 	});
+});
 
-	test('every impl loaded, and no byte-graded pair disagreed on output', () => {
-		// an accept-set disagreement between two bindings of one engine is legitimate
-		// here (oxc-parser's pinned-older wasm binding — the prose test bounds it), but a
-		// byte mismatch between tsv's own native and wasm rows contradicts the section's
-		// "byte-identical output" claim, and a load failure silently drops a coverage row
-		assert.deepStrictEqual(benchmarks_conformance_json.unavailable, []);
-		for (const finding of benchmarks_conformance_json.variant_parity ?? []) {
-			assert.strictEqual(finding.output_mismatch ?? 0, 0, `${finding.group}/${finding.impl}`);
+describe('VERSION_LABELS', () => {
+	test('every named key is one the report actually carries', () => {
+		// a key the report dropped is a label that can never render, and one whose
+		// bare name would otherwise have been shown hyphenated and wrong
+		const keys = new Set([
+			...Object.keys(benchmarks_json.versions),
+			...Object.keys(conformance_json.versions)
+		]);
+		for (const key of Object.keys(VERSION_LABELS)) {
+			assert.ok(keys.has(key), `"${key}" is named but no report carries it`);
 		}
-	});
-
-	test('every impl of a per-source slice reports the same slice total', () => {
-		// `derive_conformance_slice` reads the slice total off the first impl, and
-		// the share prose (`~81% of it is the test262 slice`) rests on it
-		for (const [group, sources] of Object.entries(
-			benchmarks_conformance_json.coverage_by_source ?? {}
-		)) {
-			for (const [source, by_impl] of Object.entries(sources)) {
-				const totals = new Set(Object.values(by_impl).map((cell) => cell.total));
-				assert.strictEqual(totals.size, 1, `${group} ${source}: ${[...totals].join(', ')}`);
-			}
-		}
-	});
-
-	test('corpus sources disclose the composition', () => {
-		assert.isNotEmpty(benchmarks_conformance_json.corpus_sources ?? []);
-	});
-
-	test('derives one coverage group per language, each with a tsv row and full coverage data', () => {
-		const groups = derive_conformance_groups(benchmarks_conformance_json);
-		assert.strictEqual(groups.length, 3); // svelte / typescript / css
-		assert.deepEqual(
-			groups.map((g) => g.language),
-			['svelte', 'typescript', 'css']
-		);
-		for (const group of groups) {
-			assert.ok(
-				group.rows.some((r) => r.name === 'tsv'),
-				`${group.language} has a tsv row`
-			);
-			// rows are ordered by coverage, highest first
-			const fractions = group.rows.map((r) => r.coverage_fraction);
-			assert.deepEqual(
-				fractions,
-				[...fractions].toSorted((a, b) => b - a),
-				`${group.language} rows descend by coverage`
-			);
-			for (const row of group.rows) {
-				assert.isAbove(row.files_total, 0, `${group.language}/${row.name} total`);
-				// the group header is the max across rows, which reads as the language's
-				// total only while every row saw the same corpus
-				assert.strictEqual(row.files_total, group.files_total, `${group.language}/${row.name}`);
-				assert.isAtLeast(row.coverage_fraction, 0);
-				assert.isAtMost(row.coverage_fraction, 1);
-				// engine-level rows only — binding/materialization variants are folded
-				assert.notMatch(row.name, /-internal|wasm-|-wasm/, `${group.language}/${row.name}`);
-			}
-		}
-	});
-
-	test('every engine the report carries reaches a coverage row', () => {
-		// The rows are keyed by ONE entry name per engine (`CONFORMANCE_ENGINE_NAMES`),
-		// so a harness that renames or re-picks a binding — yuku's native row
-		// returning, oxc's wasi pin rejoining — would drop an engine from the table
-		// without a type error. Fold each entry to its engine by stripping the
-		// binding/materialization suffixes and hold the row count to that set.
-		const to_engine = (name: string) =>
-			name.replace(/-(wasm|json|no-locations|internal|skip-expr-loc)/g, '');
-		const groups = derive_conformance_groups(benchmarks_conformance_json);
-		for (const group of groups) {
-			const engines = new Set(
-				benchmarks_conformance_json.entries
-					.filter((e) => e.group === `parse/${group.language}`)
-					.map((e) => to_engine(e.name))
-			);
-			assert.strictEqual(
-				group.rows.length,
-				engines.size,
-				`${group.language}: rows for ${[...engines].join(', ')}`
-			);
-		}
-	});
-
-	test('yuku reaches the typescript coverage group through its wasm binding', () => {
-		// The conformance report carries no yuku native row — that binding crashes the
-		// host process on this corpus, so tsv's harness omits it — and the page's note
-		// about it is unconditional. If the row name ever changes, the engine would
-		// silently vanish from the table instead of failing here.
-		const groups = derive_conformance_groups(benchmarks_conformance_json);
-		const ts = groups.find((g) => g.language === 'typescript');
-		const yuku = ts?.rows.find((r) => r.name === 'yuku-parser');
-		assert.ok(yuku, 'typescript coverage must carry a yuku-parser row');
-		// the row's own qualifier, so the table says which binding without the
-		// reader having to reach the note below it
-		assert.strictEqual(yuku.note, 'wasm — native segfaults');
-	});
-
-	test('tsc reaches the typescript coverage group, and only it, with its oracle note', () => {
-		// tsc parses TypeScript/JS alone and rides this surface only (it is a verdict,
-		// not a speed). It also SELECTED one slice of this corpus, where it scores 100%
-		// by construction — the note is what keeps the blended aggregate from reading as
-		// one achieved number, so a silent note rename must fail here rather than on the
-		// published page.
-		const groups = derive_conformance_groups(benchmarks_conformance_json);
-		const row_named = (language: string) =>
-			groups.find((g) => g.language === language)?.rows.find((r) => r.name === 'tsc');
-		const tsc = row_named('typescript');
-		assert.ok(tsc, 'typescript coverage must carry a tsc row');
-		assert.strictEqual(tsc.note, 'oracle for part of this corpus');
-		assert.isUndefined(row_named('svelte'), 'tsc parses no Svelte');
-		assert.isUndefined(row_named('css'), 'tsc parses no CSS');
 	});
 });

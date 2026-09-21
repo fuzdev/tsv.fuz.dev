@@ -28,56 +28,51 @@ export interface CrossRuntimeReport {
 	generated: string;
 	runtimes: Array<BenchmarkRuntime>;
 	// The sibling reports came from different commits/versions — ratios are
-	// unreliable until every runtime is re-run. Present from combined
-	// `version` 6 on.
-	mixed_vintage?: boolean;
+	// unreliable until every runtime is re-run. The shape tests forbid a committed
+	// report from setting it, so it isn't rendered.
+	mixed_vintage: boolean;
 	// The sibling reports were produced on different hardware — ratios are not
-	// comparable. Present from combined `version` 7 on.
-	mixed_machine?: boolean;
+	// comparable.
+	mixed_machine: boolean;
 	// Which ROWS lost their implementation to a load failure on which runtime,
-	// folded from the siblings' own `unavailable` lists. Present from combined
-	// `version` 8 on (as `impls`, carrying the bench's init-line labels, which
-	// matched no row name and so never joined; `rows` from `version` 9); `[]` when
-	// every sibling loaded everything, and absent on older reports — which is "not
-	// recorded", not a claim that nothing was missing.
+	// folded from the siblings' own `unavailable` lists; `[]` when every sibling
+	// loaded everything.
 	//
 	// This is what tells the table's two kinds of gap apart. A row with no number
 	// for a runtime renders the same either way, but it means one of: that runtime
 	// couldn't load the impl behind it (recorded here), or that sibling's report
 	// simply has no such row — an older run predating it, which mixed vintages make
 	// likely, and which `partial_rows` below names outright.
-	unavailable_by_runtime?: Array<RuntimeUnavailable>;
+	unavailable_by_runtime: Array<RuntimeUnavailable>;
 	// The other kind of gap: rows one sibling MEASURED that another doesn't carry at
 	// all, with no load failure recorded on that side to explain it — a stale
 	// sibling rather than a machine shortfall. `[]` when every row is present
 	// everywhere it should be. A runtime whose sibling predates `unavailable`
 	// contributes nothing (with nothing recorded, an absent row can't be told from
-	// an unloadable impl). Present from combined `version` 10 on; not rendered, kept
-	// for parity.
-	partial_rows?: Array<PartialRow>;
+	// an unloadable impl). Not rendered, kept for parity.
+	partial_rows: Array<PartialRow>;
 	// Per-runtime deltas smaller than the combined measurement noise (cv) of the two
 	// means they divide — the cells that are NOT runtime effects, despite this
 	// report's subject being exactly those deltas. `[]` when every delta exceeds its
 	// noise. Unlike every other field here it qualifies a number the report already
-	// prints rather than adding one. Present from combined `version` 11 on; rendered
-	// as a `≈` on the ratio cell (see `is_ratio_within_noise`).
-	within_noise?: Array<WithinNoiseCell>;
+	// prints rather than adding one. Rendered as a `≈` on the ratio cell (see
+	// `is_ratio_within_noise`).
+	within_noise: Array<WithinNoiseCell>;
 	// Per-runtime measurements that were NOT stable — a cleaned cv past 10%, a raw cv
 	// past 10% on a row with fewer than 30 raw timings, or a |drift| past 5% —
 	// collected ahead of `within_noise`'s sample gate, so a
 	// row measured on five timings that disagree is named rather than silenced.
 	// Every ratio through such a cell is unreadable. `[]` when every measurement was
-	// stable. Present from combined `version` 15 on; rendered as a banner over the
-	// cross-runtime tables and a `⚠` on the cell.
-	unstable_cells?: Array<UnstableCell>;
+	// stable. Rendered as a banner over the cross-runtime tables and a `⚠` on the cell.
+	unstable_cells: Array<UnstableCell>;
 	// The conformance report's vintage beside the perf siblings'. The composer does
 	// not fold `report.conformance.node.json` (a coverage report, not a timing
 	// sibling), but this site publishes it from the same directory, and
 	// `mixed_vintage` above cannot see it — `stale` is that flag's perf/conformance
 	// analog: the conformance commit differs from some perf sibling's. `null` when
-	// the composer found no conformance report. Present from combined `version` 13
-	// on; rendered as the parse-conformance section's banner.
-	conformance_vintage?: ConformanceVintage | null;
+	// the composer found no conformance report. The shape tests forbid a committed
+	// report from being stale, so it isn't rendered.
+	conformance_vintage: ConformanceVintage | null;
 	sources: Array<{
 		runtime: BenchmarkRuntime;
 		timestamp: string;
@@ -85,14 +80,13 @@ export interface CrossRuntimeReport {
 		tsv: string | null;
 		// The `fuzdev/corpora` commit that sibling's real-code corpus was read from —
 		// a third axis of `mixed_vintage`, since the bench reads whatever snapshot is
-		// checked out. Present from combined `version` 14 on; `null` when the sibling
-		// predates its own `corpus_snapshot` field.
-		corpus_snapshot?: string | null;
-		// The producing box's machine block; present from combined `version` 7 on.
-		machine?: Machine | null;
+		// checked out. `null` when the sibling predates its own `corpus_snapshot` field.
+		corpus_snapshot: string | null;
+		// The producing box's machine block.
+		machine: Machine | null;
 		// That sibling's own load failures, with reasons; `null` when the sibling
 		// predates the field. `unavailable_by_runtime` above is the folded view.
-		unavailable?: Array<UnavailableImpl> | null;
+		unavailable: Array<UnavailableImpl> | null;
 	}>;
 	rows: Array<CrossRuntimeRow>;
 }
@@ -135,18 +129,13 @@ export interface WithinNoiseCell {
 	name: string;
 	// The two runtimes the cell divides, in the composer's canonical order — always
 	// exactly two, typed as an array rather than a pair because the report arrives
-	// as a JSON import, whose arrays never infer as tuples. Combined `version` 15
-	// classifies every PAIR of runtimes; before it, a single `runtime` named the
-	// non-base side against the ratio base — both optional so a report of either
-	// vintage types, and neither is rendered.
-	runtimes?: Array<BenchmarkRuntime>;
-	runtime?: BenchmarkRuntime;
+	// as a JSON import, whose arrays never infer as tuples. Not rendered.
+	runtimes: Array<BenchmarkRuntime>;
 	delta: number;
 	noise: number;
 	// The two cleaned timing counts the noise band was taken over, in `runtimes`
-	// order (an array, not a pair, for the same JSON-import reason). Present from
-	// combined `version` 12 on; not rendered.
-	samples?: Array<number>;
+	// order (an array, not a pair, for the same JSON-import reason). Not rendered.
+	samples: Array<number>;
 }
 
 /**
@@ -171,12 +160,6 @@ export interface CrossRuntimeDisplayRow {
 	ops_per_second: Partial<Record<BenchmarkRuntime, number>>;
 	// ratio of each runtime vs the base (first present) runtime; `> 1` = faster
 	ratio_vs_base: Partial<Record<BenchmarkRuntime, number>>;
-	// The per-runtime timed file counts, set ONLY when they disagree — each
-	// runtime times the files its own impls passed preflight on, so unequal
-	// counts mean part of this row's ratio is file-set composition, not runtime
-	// (the composer's `⚠ files a/b/c` annotation in tsv's report.md). `null`
-	// when every present runtime timed the same count — the healthy, common case.
-	files_iterated_mismatch: Partial<Record<BenchmarkRuntime, number | null>> | null;
 }
 
 export interface CrossRuntimeGroup {
@@ -209,7 +192,7 @@ export interface RuntimeVersion {
 /**
  * The per-runtime version strings from a cross-runtime report, in the site's
  * display order (node first). Drops any runtime whose source carries no machine
- * block (reports predating combined `version` 7). The cross-runtime section
+ * block. The cross-runtime section
  * renders these so the three-runtime tables disclose which node/deno/bun version
  * each column was measured under; the environment panel above stays scoped to the
  * flagship Node baseline. The shared hardware identity (CPU/OS/arch) isn't
@@ -247,15 +230,11 @@ export const derive_cross_runtime_groups = (
 				ratio_vs_base[runtime] = ops / base_ops;
 			}
 		}
-		const iterated_counts = runtimes
-			.map((runtime) => row.files_iterated[runtime])
-			.filter((n): n is number => n != null);
 		return {
 			name: row.name,
 			category: categorize_name(row.name),
 			ops_per_second: row.ops_per_second,
-			ratio_vs_base,
-			files_iterated_mismatch: new Set(iterated_counts).size > 1 ? row.files_iterated : null
+			ratio_vs_base
 		};
 	};
 
@@ -265,27 +244,23 @@ export const derive_cross_runtime_groups = (
 };
 
 /**
- * The combined report's unstable cells, in the site's runtime column order — empty on
- * a report predating the field, where absence is silence rather than an all-clear.
+ * The combined report's unstable cells, in the site's runtime column order.
  */
 export const derive_unstable_cells = (report: CrossRuntimeReport): Array<UnstableCell> => {
 	const order = order_cross_runtime_runtimes(report.runtimes);
-	return [...(report.unstable_cells ?? [])].sort(
+	return [...report.unstable_cells].sort(
 		(a, b) => order.indexOf(a.runtime) - order.indexOf(b.runtime)
 	);
 };
 
 /**
  * The rows each runtime couldn't measure, in the site's column order, for the
- * disclosure above the tables. Empty when nothing was recorded — including on a
- * report predating the field, where absence is silence rather than an all-clear.
+ * disclosure above the tables. Empty when nothing was recorded.
  */
 export const derive_unavailable_by_runtime = (
 	report: CrossRuntimeReport
 ): Array<RuntimeUnavailable> => {
-	const by_runtime = new Map(
-		(report.unavailable_by_runtime ?? []).map((entry) => [entry.runtime, entry])
-	);
+	const by_runtime = new Map(report.unavailable_by_runtime.map((entry) => [entry.runtime, entry]));
 	return order_cross_runtime_runtimes(report.runtimes)
 		.map((runtime) => by_runtime.get(runtime))
 		.filter((entry): entry is RuntimeUnavailable => entry != null && entry.rows.length > 0);
@@ -294,10 +269,8 @@ export const derive_unavailable_by_runtime = (
 /**
  * Is the ratio of `runtime` over `base` for one row inside the two measurements'
  * combined noise — a delta the report itself says is not a runtime effect? Reads
- * the composer's pairwise `within_noise` (combined `version` 15 on, where each
- * cell names both runtimes); an older report's single-runtime cells are taken as
- * against the ratio base only when `base` is the report's first runtime, the
- * composer's own base. Absence is silence, not a claim the delta is real.
+ * the composer's pairwise `within_noise`, where each cell names both runtimes.
+ * Absence is silence, not a claim the delta is real.
  */
 export const is_ratio_within_noise = (
 	report: CrossRuntimeReport,
@@ -306,11 +279,13 @@ export const is_ratio_within_noise = (
 	base: BenchmarkRuntime,
 	runtime: BenchmarkRuntime
 ): boolean =>
-	(report.within_noise ?? []).some((cell) => {
-		if (cell.group !== group || cell.name !== name) return false;
-		if (cell.runtimes) return cell.runtimes.includes(base) && cell.runtimes.includes(runtime);
-		return cell.runtime === runtime && report.runtimes[0] === base;
-	});
+	report.within_noise.some(
+		(cell) =>
+			cell.group === group &&
+			cell.name === name &&
+			cell.runtimes.includes(base) &&
+			cell.runtimes.includes(runtime)
+	);
 
 /**
  * Did `runtime` record `name` as a load failure? The table renders an absent
@@ -322,7 +297,7 @@ export const is_impl_unavailable = (
 	runtime: BenchmarkRuntime,
 	name: string
 ): boolean =>
-	(report.unavailable_by_runtime ?? []).some(
+	report.unavailable_by_runtime.some(
 		(entry) => entry.runtime === runtime && entry.rows.includes(name)
 	);
 
