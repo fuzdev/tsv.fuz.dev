@@ -214,6 +214,6 @@
 		box-shadow: inset var(--border_width_3) 0 0 var(--fg_50);
 	}
 	tr.anchor .speedup {
-		opacity: 0.5;
+		color: var(--text_40);
 	}
 </style>

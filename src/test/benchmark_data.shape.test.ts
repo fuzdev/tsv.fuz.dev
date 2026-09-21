@@ -3,10 +3,10 @@ import { assert, describe, test } from 'vitest';
 import { benchmarks_json } from '$routes/docs/benchmarks/benchmarks.ts';
 import { benchmarks_conformance_json } from '$routes/docs/benchmarks/benchmarks_conformance.ts';
 import { benchmarks_cross_runtime_json } from '$routes/docs/benchmarks/benchmarks_cross_runtime.ts';
+import { derive_conformance_groups } from '$routes/docs/benchmarks/benchmark_conformance.ts';
 import {
 	categorize_name,
 	derive_benchmark_groups,
-	derive_conformance_groups,
 	derive_speedup_summary
 } from '$routes/docs/benchmarks/benchmark_data.ts';
 import { categorize_size } from '$routes/docs/benchmarks/benchmark_sizes.ts';

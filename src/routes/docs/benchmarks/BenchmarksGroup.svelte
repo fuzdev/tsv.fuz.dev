@@ -84,7 +84,7 @@
 		label={format_group_label(group.operation, group.language)}
 	/>
 	{#if omitted}
-		<p class="text_40">
+		<p class="benchmarks-note">
 			{omitted.files} of {omitted.files_total} {omitted.is_one ? 'file' : 'files'}
 			({omitted.bytes_percent} of this group's bytes) left out of every row's timed set, because a
 			row here fails {omitted.is_one ? 'it' : 'them'} in this harness — files failed, by

@@ -3,14 +3,11 @@ import { assert, describe, test } from 'vitest';
 import { benchmarks_json } from '$routes/docs/benchmarks/benchmarks.ts';
 import {
 	benchmark_time_share_beyond,
-	count_placeholder_entries,
 	derive_benchmark_groups,
-	derive_conformance_groups,
 	derive_corpus_counts,
 	derive_corpus_repos,
 	derive_sweep_stats,
 	derive_unstable_entries,
-	format_coverage_percent,
 	format_unstable_readings,
 	is_entry_unstable,
 	is_payload_matched,
@@ -247,9 +244,6 @@ describe('to_placeholder via derive_benchmark_groups', () => {
 			files_total: null,
 			disabled: true
 		});
-		assert.strictEqual(count_placeholder_entries(css, 'oxc'), 1);
-		assert.strictEqual(count_placeholder_entries(css, 'dprint'), 0);
-		assert.strictEqual(count_placeholder_entries(undefined, 'oxc'), 0);
 	});
 });
 
@@ -338,45 +332,6 @@ describe('benchmark_time_share_beyond', () => {
 	});
 });
 
-describe('derive_conformance_groups', () => {
-	const coverage = (name: string, group: string, processed: number | null, total: number | null) =>
-		entry({ name, group, files_processed: processed, files_total: total });
-
-	test('rows sort by coverage, under the engine name, with their note', () => {
-		const [group, ...rest] = derive_conformance_groups({
-			...benchmarks_json,
-			entries: [
-				coverage('tsv-json', 'parse/typescript', 90, 100),
-				coverage('tsc', 'parse/typescript', 95, 100),
-				// a second binding of an engine, a format row, and a row without counts all drop
-				coverage('tsv-wasm-json', 'parse/typescript', 90, 100),
-				coverage('prettier', 'format/typescript', 100, 100),
-				coverage('oxc-parser', 'parse/typescript', null, null)
-			]
-		});
-		assert.isEmpty(rest);
-		assert(group, 'typescript conformance group missing');
-		assert.strictEqual(group.language, 'typescript');
-		assert.strictEqual(group.files_total, 100);
-		assert.deepEqual(
-			group.rows.map((r) => [r.name, r.coverage_fraction]),
-			[
-				['tsc', 0.95],
-				['tsv', 0.9]
-			]
-		);
-		assert.isDefined(group.rows[0]?.note);
-	});
-
-	test('an empty corpus is zero coverage, not NaN', () => {
-		const [group] = derive_conformance_groups({
-			...benchmarks_json,
-			entries: [coverage('tsv-json', 'parse/css', 0, 0)]
-		});
-		assert.strictEqual(group?.rows[0]?.coverage_fraction, 0);
-	});
-});
-
 describe('is_payload_matched', () => {
 	test('equal tiers match, except own_shape — two dialects are two products', () => {
 		assert.isTrue(is_payload_matched({ payload: 'drop_in' }, { payload: 'drop_in' }));
@@ -388,17 +343,6 @@ describe('is_payload_matched', () => {
 	test('a row with no tier makes the question unanswerable, not false', () => {
 		assert.isNull(is_payload_matched({ payload: null }, { payload: 'drop_in' }));
 		assert.isNull(is_payload_matched({}, { payload: 'drop_in' }));
-	});
-});
-
-describe('format_coverage_percent', () => {
-	test('floors — only exact totality reads 100%', () => {
-		// 44219/44220 rounds to 100.00% but must not display as it: floor, so a
-		// visibly non-total count never sits beside a "100.00%" label.
-		assert.strictEqual(format_coverage_percent(44_219 / 44_220), '99.99%');
-		assert.strictEqual(format_coverage_percent(1), '100.00%');
-		assert.strictEqual(format_coverage_percent(0.998549), '99.85%');
-		assert.strictEqual(format_coverage_percent(0), '0.00%');
 	});
 });
 

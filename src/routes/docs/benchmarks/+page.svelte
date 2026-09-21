@@ -32,13 +32,14 @@
 		type CliMetric
 	} from './benchmarks_cli.ts';
 	import {
+		CONFORMANCE_SOURCE_PATHS,
+		derive_conformance_groups,
+		derive_conformance_slice
+	} from './benchmark_conformance.ts';
+	import {
 		benchmark_speedup,
 		benchmark_time_share_beyond,
-		CONFORMANCE_SOURCE_PATHS,
-		count_placeholder_entries,
 		derive_benchmark_groups,
-		derive_conformance_groups,
-		derive_conformance_slice,
 		derive_corpus_counts,
 		derive_sweep_stats,
 		derive_speedup_summary,
@@ -127,15 +128,6 @@
 	const unstable_entries = derive_unstable_entries(benchmarks_json);
 	const format_groups = groups.filter((g) => g.operation === 'format');
 	const parse_groups = groups.filter((g) => g.operation === 'parse');
-	// The disabled oxc rows mirrored into the css parse group. Counted
-	// rather than stated: the mirror carries every oxc template the TypeScript group
-	// has, which is two bindings today and needn't stay two.
-	const oxc_slot_count = count_placeholder_entries(
-		parse_groups.find((g) => g.language === 'css'),
-		'oxc'
-	);
-	const oxc_slots =
-		oxc_slot_count === 1 ? 'a grayed-out slot' : `${oxc_slot_count} grayed-out slots`;
 	// How many timed sweeps stand behind each row: the bench's per-row floor, and the
 	// span of cleaned counts it actually kept — the slow rows stop near the floor, so
 	// a quiet cv there rests on a handful of timings.
@@ -665,13 +657,12 @@
 				</li>
 				<li>
 					oxc-parser, yuku-parser, and swc parse TypeScript and JS only (and JSX, not measured here)
-					— no CSS, no Svelte, no formatter — so they're timed in the TypeScript parse group alone
-					(oxc-parser holds {oxc_slots} in the CSS group). oxc-parser's AST has no line/column
-					option (only a <code>range</code> flag repeating the offsets as a pair), so the span-only
-					<code>no-locs</code> entries are the one payload-matched pairing. Its wasm row runs an
-					older release than its native row — the newest whose wasi binding loads in the harness
-					install — so the wasm-vs-wasm pairing crosses oxc versions (both listed under Benchmarking
-					details).
+					— no CSS, no Svelte, no formatter — so they're timed in the TypeScript parse group alone.
+					oxc-parser's AST has no line/column option (only a <code>range</code> flag repeating the
+					offsets as a pair), so the span-only <code>no-locs</code> entries are the one
+					payload-matched pairing. Its wasm row runs an older release than its native row — the
+					newest whose wasi binding loads in the harness install — so the wasm-vs-wasm pairing
+					crosses oxc versions (both listed under Benchmarking details).
 				</li>
 				<li>
 					When line/column is needed, the fast path is not tsv's default <code>loc</code>-bearing

@@ -17,7 +17,7 @@
 	missing here is a nested table or a per-source breakdown under each group.
 -->
 <script lang="ts">
-	import { format_coverage_percent, type ConformanceGroup } from './benchmark_data.ts';
+	import { format_coverage_percent, type ConformanceGroup } from './benchmark_conformance.ts';
 	import { format_count, format_language } from './benchmark_display.ts';
 
 	const {

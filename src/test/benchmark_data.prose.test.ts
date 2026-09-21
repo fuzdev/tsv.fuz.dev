@@ -28,11 +28,13 @@ import {
 import { derive_unstable_cells } from '$routes/docs/benchmarks/benchmark_cross_runtime.ts';
 import { IN_PROCESS_PAIRS as IN_PROCESS_PAIRS_BY_KEY } from '$routes/docs/benchmarks/benchmarks_prose.ts';
 import {
+	CONFORMANCE_SOURCE_PATHS,
+	derive_conformance_slice
+} from '$routes/docs/benchmarks/benchmark_conformance.ts';
+import {
 	benchmark_speedup,
 	categorize_name,
-	CONFORMANCE_SOURCE_PATHS,
 	derive_benchmark_groups,
-	derive_conformance_slice,
 	is_entry_unstable,
 	is_payload_matched
 } from '$routes/docs/benchmarks/benchmark_data.ts';
