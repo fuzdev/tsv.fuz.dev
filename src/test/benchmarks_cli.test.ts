@@ -52,7 +52,7 @@ describe('to_abort_note', () => {
 					]
 				})
 			),
-			'Not timed: rsvelte-fmt crashed partway through its parse check; tsv via npm dispatcher could not run; biome rejected 3 files.'
+			'Not timed: rsvelte-fmt crashed partway through its parse check; tsv via Node dispatcher could not run; biome rejected 3 files.'
 		);
 	});
 
@@ -247,7 +247,7 @@ describe('to_unshimmed_note', () => {
 	test('names the rows by their display labels', () => {
 		assert.strictEqual(
 			to_unshimmed_note(['tsv-npm', 'tsv-wasm']),
-			'tsv via npm dispatcher and tsv-wasm ran as a bare Node script, skipping the few milliseconds of pnpm bin shim the other tools’ rows go through.'
+			'tsv via Node dispatcher and tsv-wasm ran as a bare Node script, skipping the few milliseconds of pnpm bin shim the other tools’ rows go through.'
 		);
 	});
 });

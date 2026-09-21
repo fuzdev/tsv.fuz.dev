@@ -14,13 +14,11 @@
 	import { benchmarks_json } from './benchmarks.ts';
 	import { benchmarks_cross_runtime_json } from './benchmarks_cross_runtime.ts';
 	import {
-		cli_memory_ratio_range,
 		cli_scenario_find,
 		cli_speedup_vs_tsv,
 		cli_speedup_vs_tsv_npm,
 		CLI_TS_REPO_KEY,
-		CLI_SVELTE_KEY,
-		CLI_TSV_NPM_LABEL
+		CLI_SVELTE_KEY
 	} from './benchmarks_cli.ts';
 	import {
 		benchmark_speedup,
@@ -39,7 +37,6 @@
 		format_count,
 		format_count_maybe,
 		format_ratio_approx,
-		format_ratio_range,
 		format_runtime_display,
 		format_share_approx,
 		format_unstable_readings
@@ -144,7 +141,7 @@
 	const rsvelte_svelte_target = benchmarks_json.versions.rsvelte_parse_svelte_target;
 
 	// The end-to-end CLI claims the TLDR quotes, from the formatter-comparison report;
-	// the CLI section computes its own. tsv through its npm dispatcher against the other
+	// the CLI section computes its own. tsv through its Node dispatcher against the other
 	// tools' npm bins is the like-for-like footing the claims lead with; the bare-binary
 	// ratios follow as what the binary does without a Node launcher in front.
 	const cli_npm_ratio = (scenario: string, label: string) =>
@@ -157,13 +154,6 @@
 	const cli_ts_wall_vs_biome = format_ratio_approx(
 		cli_speedup_vs_tsv(CLI_TS_REPO_KEY, 'biome', 'wall_ms')
 	);
-	// scoped to the two tools the TLDR sentence names, so the range it quotes
-	// is measured over exactly them (the full-span figure lives in the CLI section)
-	const cli_npm_ts_memory = cli_memory_ratio_range({
-		scenario_key: CLI_TS_REPO_KEY,
-		labels: ['oxfmt', 'biome'],
-		baseline_label: CLI_TSV_NPM_LABEL
-	});
 	// The Svelte head-to-head is published aborted whenever rsvelte-fmt's
 	// nondeterministic crash hits the harness's preflight, so its ratios can be
 	// absent while the scenario itself is present — the prose covers both cases.
@@ -202,9 +192,8 @@
 			language breadth. On Svelte, "faster" means beating the Prettier pipeline Oxfmt delegates to
 			and Biome's experimental HTML path — neither ships a dedicated Svelte formatter. On parsing
 			TypeScript/JS, the one language tsv and oxc-parser share, a span-only AST matched to Oxc's
-			lands in JS ahead of it — most of that margin is likely the lighter wire, though nothing here
-			splits the Rust side from the hand-off; tsv's default AST, which carries the line/column
-			locations Oxc omits, lands behind.
+			lands in JS ahead of it; tsv's default AST, which carries the line/column locations Oxc omits,
+			lands behind.
 		</p>
 		<p>
 			Except in the CLI section, every timing here is in-process and one file at a time: each tool
@@ -230,17 +219,15 @@
 				faster than Biome, same pairings.
 			</li>
 			<li>
-				A
+				End to end as a CLI, in a
 				<a href="https://github.com/ryanatkn/oxc-bench-formatter" rel="external">
 					fork of Oxc's <code>bench-formatter</code>
-				</a>
-				has end-to-end CLI benchmarks. On the JSX-free subset of a real TypeScript repo, with every
-				tool launched through its npm package's Node bin, tsv formats ~{cli_npm_ts_vs_oxfmt} faster
-				than Oxfmt and ~{cli_npm_ts_vs_biome} faster than Biome in wall-clock, using
-				{format_ratio_range(cli_npm_ts_memory)} less memory than either. As the bare native binary,
-				without Node in front, it's ~{cli_ts_wall_vs_oxfmt} and ~{cli_ts_wall_vs_biome} faster.
-				Wall-clock ratios bake in each tool's multi-file parallelism — see
-				<a href="#{docs_slugify(CLI_SECTION_TITLE)}">the CLI section</a>'s notes.
+				</a>: on the JSX-free subset of a real TypeScript repo, with every tool launched through its
+				npm package's Node bin, tsv formats ~{cli_npm_ts_vs_oxfmt} faster than Oxfmt and
+				~{cli_npm_ts_vs_biome} faster than Biome in wall-clock, using less memory than either. As
+				the bare native binary, without Node in front, it's ~{cli_ts_wall_vs_oxfmt} and
+				~{cli_ts_wall_vs_biome} faster. Wall-clock ratios bake in each tool's multi-file parallelism
+				— see <a href="#{docs_slugify(CLI_SECTION_TITLE)}">the CLI section</a>'s notes.
 			</li>
 			<li>
 				Parsing TypeScript into JS with a span-only payload matched to Oxc's, tsv lands
@@ -262,7 +249,7 @@
 					The fork's Svelte scenario benches tsv against rsvelte-fmt, another Rust Svelte-native
 					formatter, on a third-party <code>.svelte</code> corpus.
 					{#if cli_svelte_timed}
-						There tsv formats ~{cli_svelte_npm_wall} faster through its npm dispatcher, the footing
+						There tsv formats ~{cli_svelte_npm_wall} faster through its Node dispatcher, the footing
 						rsvelte-fmt's own Node launcher is timed on.
 					{:else}
 						It currently publishes no numbers — the harness aborted it rather than time it; see
@@ -331,13 +318,11 @@
 				<li>
 					Every formatter is pinned to tsv's fixed style (width 100, tabs, single quotes, no
 					trailing commas) in its own option dialect, so each row does comparable layout work; the
-					harness checks that each pin landed on every timed formatter tsv faces by formatting a
-					probe and reading it back (where a pin matches the tool's default — Biome's tabs, Oxfmt's
-					width — that probe proves nothing); dprint and malva also fail on a config diagnostic.
-					Nothing grades output against an oracle: the bench checks that output is non-empty, that
-					tsv's native and wasm builds agree byte for byte, and that a tool's refusal is seen as
-					one, so a tool emitting wrong output quickly would still read as fast. tsv's own output is
-					checked against Prettier's in
+					harness checks that each pin landed, which proves nothing where a pin matches the tool's
+					default (Biome's tabs, Oxfmt's width). Nothing grades output against an oracle: the bench
+					checks that output is non-empty, that tsv's native and wasm builds agree byte for byte,
+					and that a tool's refusal is seen as one, so a tool emitting wrong output quickly would
+					still read as fast. tsv's own output is checked against Prettier's in
 					<a href="https://github.com/fuzdev/tsv">its repo's gates</a>, separately from timing.
 				</li>
 				<li>
@@ -358,17 +343,14 @@
 					to a Prettier it bundles, with a bundled copy of
 					<a href="https://github.com/sveltejs/prettier-plugin-svelte">prettier-plugin-svelte</a> —
 					the embedded <code>&lt;script&gt;</code> still goes through its native engine, the
-					<code>&lt;style&gt;</code> through that Prettier's CSS printer, and the plugin needs the
-					project's own <code>svelte</code> package at runtime, which the bench provides.
+					<code>&lt;style&gt;</code> through that Prettier's CSS printer.
 				</li>
 				<li>
 					Biome has no dedicated Svelte formatter: its Svelte row runs with
 					<code>html.experimentalFullSupportEnabled</code>, the experimental HTML-superset pipeline
 					that lets it format <code>.svelte</code> at all; without the flag it returns empty output.
-					Embedded script and style are formatted too (per a one-off check in tsv's harness, not a
-					probe it re-runs), so the work is comparable. Its wasm workspace never releases memory, so
-					the harness rebuilds the instance as it grows — outside every timer, though the row pays
-					each fresh instance's cold first sweep, a few percent by the harness's own probe.
+					Embedded script and style are formatted too, so the work is comparable. Its row also pays
+					a cold first sweep each time the harness rebuilds its wasm instance, a few percent.
 				</li>
 				<li>
 					There's no native Biome entry: <code>@biomejs/js-api</code>, its in-process API, backs
@@ -382,8 +364,7 @@
 					rejects CSS and Svelte, and no dprint markup plugin is wired in, so it has no Svelte row
 					and its CSS slot goes to <a href="https://github.com/g-plane/malva">malva</a>, a
 					third-party CSS plugin for the same host. This times the engine, not the
-					<code>deno fmt</code> CLI: a subprocess per file would measure process startup, not
-					formatting.
+					<code>deno fmt</code> CLI.
 				</li>
 			</ul>
 		</aside>
@@ -402,11 +383,7 @@
 			TypeScript corpus. The <code>tsv-json-no-locations</code> /
 			<code>tsv-wasm-json-no-locations</code> entries (<code>no-locs</code> in the charts) drop it
 			for a span-only wire of oxc's kind, so they are the payload-matched comparison with
-			oxc-parser, though the shapes still differ in detail. Line/column stays derivable from the
-			offsets plus source (see the notes below). No row splits the Rust side from the hand-off;
-			tsv's harness docs record, unpublished, the two whole Rust sides at about parity and tsv's
-			<code>loc</code>-stripped wire as the smaller — which would leave most of tsv's margin to the
-			lighter wire, which <code>JSON.parse</code>s faster. The tsv-internal and tsv-wasm-internal
+			oxc-parser, though the shapes still differ in detail. The tsv-internal and tsv-wasm-internal
 			entries build tsv's in-Rust AST and stop — no serialization, nothing materialized in JS — so
 			they show raw engine speed, and their gap to the JSON rows is what serializing and handing off
 			costs tsv, not a cross-tool comparison.
@@ -434,19 +411,16 @@
 					most noise.
 				</li>
 				<li>
-					Biome is grayed out across all three parse groups:
-					<a href="https://www.npmjs.com/package/@biomejs/js-api"><code>@biomejs/js-api</code></a>
-					exposes formatting and linting only, so the AST it parses internally never crosses the JS
-					boundary and can't be measured.
+					Biome is grayed out across all three parse groups: its in-process API exposes formatting
+					and linting only, so the AST it parses never reaches JS to be measured.
 				</li>
 				<li>
 					oxc-parser, yuku-parser, and swc parse TypeScript and JS only (and JSX, not measured here)
 					— no CSS, no Svelte, no formatter — so they're timed in the TypeScript parse group alone.
-					oxc-parser's AST has no line/column option (only a <code>range</code> flag repeating the
-					offsets as a pair), so the span-only <code>no-locs</code> entries are the one
-					payload-matched pairing. Its wasm row runs an older release than its native row — the
-					newest whose wasi binding loads in the harness install — so the wasm-vs-wasm pairing
-					crosses oxc versions (both listed under
+					oxc-parser's AST has no line/column option, so the span-only <code>no-locs</code> entries
+					are the one payload-matched pairing. Its wasm row runs an older release than its native
+					row — the newest whose wasi binding loads in the harness install — so the wasm-vs-wasm
+					pairing crosses oxc versions (both listed under
 					<a href="#{docs_slugify(DETAILS_SECTION_TITLE)}">{DETAILS_SECTION_TITLE}</a>).
 				</li>
 				<li>
@@ -461,12 +435,11 @@
 				<li>
 					rsvelte's is the only Svelte parser here besides tsv's and the svelte/compiler reference,
 					and it matches tsv's default wire in mechanism and payload — a JSON string with per-node
-					<code>loc</code>, within a few percent of <code>tsv-json</code>'s bytes, which the caller
-					<code>JSON.parse</code>s — so <code>rsvelte-parse</code> compares against
-					<code>tsv-json</code>, not the <code>no-locs</code> entries. Its second entry passes
-					rsvelte's own <code>skipExpressionLoc</code>, which drops <code>loc</code> only on
-					embedded JS expressions and keeps the top-level offsets — a different trade than tsv's
-					span-only wire, hence the entry is named for the option.
+					<code>loc</code> that the caller <code>JSON.parse</code>s — so <code>rsvelte-parse</code>
+					compares against <code>tsv-json</code>, not the <code>no-locs</code> entries. Its second
+					entry passes rsvelte's own <code>skipExpressionLoc</code>, which drops <code>loc</code>
+					only on embedded JS expressions and keeps the top-level offsets — a different trade than
+					tsv's span-only wire.
 					{#if rsvelte_svelte_target && rsvelte_svelte_target !== svelte_version}
 						Its addon targets its own upstream Svelte, {rsvelte_svelte_target}, a release apart from
 						the {svelte_version} the svelte/compiler row runs (both are listed under Benchmarking
@@ -482,12 +455,11 @@
 					PostCSS is the only CSS parser here besides tsv's and the <code>parseCss</code> reference;
 					none of the Rust CSS tools considered offers a parse call —
 					<a href="https://lightningcss.dev/">Lightning CSS</a> ships <code>transform</code> and
-					<code>bundle</code> calls only, whose visitor callbacks can hand JS the whole stylesheet
-					but only as a side channel of a transform run, never as a parse product; Biome surfaces no
-					parser; malva is a formatter. PostCSS is also the parser behind Prettier's CSS printer, so
-					it's the parse-side counterpart of the Prettier format entry. It isn't payload-matched to
-					tsv: it keeps selectors and values as strings where <code>parseCss</code> and tsv build
-					ASTs, a much lighter tree.
+					<code>bundle</code> but no parse call, Biome surfaces no parser, and malva is a formatter.
+					PostCSS is also the parser behind Prettier's CSS printer, so it's the parse-side
+					counterpart of the Prettier format entry. It isn't payload-matched to tsv: it keeps
+					selectors and values as strings where <code>parseCss</code> and tsv build ASTs, a much
+					lighter tree.
 				</li>
 			</ul>
 		</aside>
@@ -510,12 +482,10 @@
 					acorn-typescript) — and aren't files a package ships. Neither publishes a single artifact,
 					and installed size counts every language Prettier supports in two module formats, so each
 					entry is instead a minified, tree-shaken bundle of the least one job needs for tsv's three
-					languages: what you would deploy to a browser, not what Node loads (a plain
-					<code>import 'prettier'</code> plus the plugin is several times larger, since Prettier's
-					package entry registers every language it supports). The full entry is barely larger than
-					the formatter because the formatter already contains the Svelte parser. Minified JS
-					compresses much better than wasm, so these read smaller by <code>gz</code> than by raw
-					bytes — and a size says nothing of the speed measured above.
+					languages: what you would deploy to a browser, not what Node loads. The full entry is
+					barely larger than the formatter because the formatter already contains the Svelte parser.
+					Minified JS compresses much better than wasm, so these read smaller by <code>gz</code>
+					than by raw bytes.
 				</li>
 				<li>
 					Each group mixes wasm and native builds under one anchor, so a ratio can cross kinds —
@@ -525,8 +495,7 @@
 					<a href="https://www.npmjs.com/package/@fuzdev/tsv"><code>@fuzdev/tsv</code></a>, a JS
 					dispatcher over prebuilt per-platform packages. The <code>(ffi)</code> entries are its
 					C-ABI build, which isn't published — what the engine costs in that configuration, not
-					something you can install; the cross-runtime section's Deno run loads it, and its
-					format-only and parse-only variants are built for this table alone and never timed.
+					something you can install; the cross-runtime section's Deno run loads it.
 				</li>
 				<li>
 					The Parser group is scope as much as engine. yuku-parser parses TypeScript and JS only,
@@ -537,9 +506,8 @@
 					them as what those addons ship, not as parser size.
 				</li>
 				<li>
-					Biome bundles a parser, formatter, and linter for many languages, but every other native
-					entry here is an in-process library (rsvelte-fmt's standalone binary aside), and Biome's
-					native engine ships to npm only as the CLI binary — so only its wasm build is included.
+					Biome bundles a parser, formatter, and linter for many languages; only its wasm build is
+					included, since its native engine ships as a CLI binary rather than a library.
 				</li>
 				<li>
 					The <code>{OXC_FULL_LABEL}</code> entry under Full toolchain sums oxc's separate parser
@@ -547,27 +515,20 @@
 					equivalent to tsv's single parse+format build.
 				</li>
 				<li>
-					That sum is a little unfair to oxc: oxfmt statically links its own copy of the oxc parser
-					(it must parse to format) without depending on the <code>oxc-parser</code> package or
-					exposing parsing, so the two independently compiled builds count the parser's code twice —
-					more than one build exposing both operations (like tsv's) needs — and the summed
-					<code>gz</code> annotation, two gzip streams rather than one, slightly overstates a
-					combined download. In the other direction, the <code>oxfmt</code> addon is more than a
-					formatter for tsv's three languages: it also carries oxc's JSON, TOML, GraphQL, and YAML
-					formatters, its import and <code>package.json</code> sorters, a language server, and the
-					<code>oxfmt</code> CLI itself, so part of its size is scope tsv doesn't have.
+					That sum is a little unfair to oxc: oxfmt statically links its own copy of the oxc parser,
+					so the two builds count the parser twice, and the summed <code>gz</code> is two gzip
+					streams rather than one. The other way, the <code>oxfmt</code> addon is more than a
+					formatter for tsv's three languages — it also formats JSON and YAML, sorts imports, and
+					carries a language server and the CLI itself.
 				</li>
 				<li>
-					And a little unfair to tsv the other way: every entry is one artifact file, so
-					<code>{OXFMT_NATIVE_LABEL}</code> is its <code>.node</code> alone and leaves out the JS in
-					the <code>oxfmt</code> package that loads it. That JS is nearly as large as the addon —
-					over half of it Prettier with its parsers and prettier-plugin-svelte for its Svelte path,
-					nearly all the rest the Tailwind class sorter and the config loader it pulls in.
-					<code>{RSVELTE_INSTALL_LABEL}</code> likewise omits <code>@rsvelte/fmt</code>'s launcher
-					package (a small script, though the Tailwind class sorter it depends on adds a few
-					megabytes). The same rule cuts tsv's way once: <code>tsv (napi)</code> is its
-					<code>.node</code> alone, and the platform package that ships it also carries the
-					<code>tsv</code> CLI binary, nearly as large again.
+					Every entry is one artifact file, which undercounts in both directions.
+					<code>{OXFMT_NATIVE_LABEL}</code> is its <code>.node</code> alone, leaving out the
+					package's JS that loads it — nearly as large again, over half of it a bundled Prettier,
+					the one behind its Svelte path — and <code>{RSVELTE_INSTALL_LABEL}</code> omits its
+					launcher package. <code>tsv (napi)</code> is likewise its <code>.node</code> alone, and
+					the platform package that ships it also carries the <code>tsv</code> CLI binary, nearly as
+					large again.
 				</li>
 				<li>
 					oxfmt ships no wasm build, so it's shown grayed-out under Formatter, holding its slot
@@ -578,9 +539,8 @@
 					carrying a CLI and oxc's JS/TS, CSS, and JSON formatters beside its Svelte engine, where
 					the tsv entries are bare libraries. <code>{RSVELTE_INSTALL_LABEL}</code> is what you
 					install to format a project, and the fairer comparison to tsv's single build: over a
-					directory the benched release exits non-zero without oxfmt, an optional peer dependency it
-					hands every file type it doesn't format itself; a single <code>.svelte</code> file needs
-					none.
+					directory it needs oxfmt, an optional peer dependency it hands every file type it doesn't
+					format itself.
 				</li>
 				<li>
 					<code>dprint (wasm)</code> and <code>malva (wasm)</code> are two plugins for the same
@@ -607,39 +567,34 @@
 			Within a group every tool is timed on the same file set — the intersection of what every timed
 			tool accepted, so a file one rejects drops out for everyone. The count above each chart is
 			that intersection; where a group runs short of the corpus total, a note under its chart gives
-			the files and the share of the group's bytes left out, and which rows failed them — some
-			because the harness's synthetic <code>file.ts</code> name hides a declaration file for what it
-			is, the rest limits of the tool's own — each excused by name in tsv's harness rather than
-			skipped silently. These are warm numbers: every row runs warmup sweeps before it is timed, so
-			caches and allocators are primed and a cold one-shot call pays more; and each native or wasm
-			call pays a string encode across the binding boundary, and a decode wherever it hands back
-			text or JSON, which the JS tools skip. Rows run in a fixed order, not interleaved or shuffled:
-			the canonical row, then tsv's rows, then the alternatives. A forced garbage collection before
-			each row (not each sweep) bounds what one row's garbage costs the next without removing order
-			as a variable. Unlike the CLI section's ordering, that residue and any thermal drift on a
-			machine that throttles run against the rows after tsv's — every alternative — so order bias
-			there counts for tsv, not against it. The canonical row is the exception: it runs before
-			tsv's, so the bias runs against tsv in every ratio that divides by one — the summary table,
-			and the parse comparisons against svelte/compiler, acorn-typescript, and
-			<code>parseCss</code>.
+			the files and the share of the group's bytes left out, and which rows failed them. These are
+			warm numbers: every row runs warmup sweeps before it is timed, so a cold one-shot call pays
+			more; and each native or wasm call pays a string encode across the binding boundary, and a
+			decode wherever it hands back text or JSON, which the JS tools skip.
 		</p>
 		<p>
-			Every row of a runtime runs in one process under one set of flags, so its native and wasm rows
-			share a heap and a configuration. Nothing pins the process to a core or holds the clock steady
-			— an unpinned run on a laptop CPU — so thermal drift is a live possibility, not a formality.
-			The <code>tsv-wasm</code> rows run the full parse+format artifact
-			<code>@fuzdev/tsv-wasm</code> ships, in the bench's Node-target bundle of it, which keeps the
-			internal parse entry points the published package's public API leaves out — not the smaller
-			format-only or parse-only packages. Sweep counts differ widely by row because each row gets a
-			time budget rather than a count: at least {format_count_maybe(sweeps.floor)}
-			sweeps{canonical_floor_note}, otherwise as many as fit a few seconds (after a warmup on the
-			same time budget, with a floor of three sweeps), so the multi-second rows stop near that
-			floor; after outlier cleaning, which can leave a row with fewer timings than the floor it ran,
-			the report keeps from {format_count_maybe(sweeps.sample_size_min)} to
+			Rows run in a fixed order, not interleaved or shuffled: the canonical row, then tsv's rows,
+			then the alternatives. A forced garbage collection before each row limits what one row leaves
+			for the next, but whatever remains, and any thermal drift, runs against the rows after tsv's —
+			every alternative — so order bias there counts for tsv, not against it. The canonical row is
+			the exception: it runs before tsv's, so the bias runs against tsv in every ratio that divides
+			by one — the summary table, and the parse comparisons against svelte/compiler,
+			acorn-typescript, and <code>parseCss</code>.
+		</p>
+		<p>
+			Nothing pins the process to a core or holds the clock steady — an unpinned run on a laptop CPU
+			— so thermal drift is a live possibility, not a formality. The <code>tsv-wasm</code> rows run
+			the full parse+format build, not the smaller format-only or parse-only ones.
+		</p>
+		<p>
+			Sweep counts differ widely by row because each row gets a time budget rather than a count: at
+			least {format_count_maybe(sweeps.floor)} sweeps{canonical_floor_note}, otherwise as many as
+			fit a few seconds, so the multi-second rows stop near that floor. After outlier cleaning the
+			report keeps from {format_count_maybe(sweeps.sample_size_min)} to
 			{format_count_maybe(sweeps.sample_size_max)} timings per row. A low cv over a handful of
-			sweeps is thinner evidence of quiet than the same cv over hundreds; the instability check
-			behind the headline ratios reads every row's raw cv and drift but proves less at the floor —
-			where Prettier, the denominator of every ratio in the summary table, sits.
+			sweeps is thinner evidence of quiet than the same cv over hundreds, so the instability check
+			behind the headline ratios proves less for the slow rows that stop there — Prettier among
+			them, the denominator of every ratio in the summary table.
 		</p>
 		<BenchmarksMeta baseline={benchmarks_json} />
 	</TomeSection>
@@ -694,12 +649,9 @@
 			addon, Deno its C-FFI library. They share code but cross a different binding boundary, so a
 			per-runtime delta on the same row is a runtime effect — the JS engine, the host's N-API
 			implementation, or the binding boundary — not a difference in tsv's algorithms. Nor is it
-			quite one binary: the same engine at the same optimization settings, but the two binding
-			crates link slightly different code around it, the N-API crate is the one that ships where the
-			C-ABI build is unpublished, and the N-API build keeps panic unwinding where the FFI one
-			aborts, which changes code generation and adds the unwind tables the binary-size table counts.
-			A delta the report finds inside the two measurements' combined noise is marked <code>≈</code>
-			in the tables and reads as parity, not an effect.
+			quite one binary: the same engine and settings, but the N-API build keeps panic unwinding
+			where the FFI one aborts. A delta the report finds inside the two measurements' combined noise
+			is marked <code>≈</code> in the tables and reads as parity, not an effect.
 		</p>
 		<aside>
 			<p>

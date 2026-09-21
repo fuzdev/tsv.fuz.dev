@@ -53,7 +53,7 @@ tsv.fuz.dev is the public face of the tsv tool:
 ### What tsv.fuz.dev does NOT include (yet)
 
 - Authentication or backend
-- Standalone native-binary downloads (the native path ships as the `@fuzdev/tsv` npm addon, not as a downloadable executable)
+- Standalone native-binary downloads (the introduction links tsv's GitHub Releases, which attach the CLI binaries, rather than hosting them)
 
 ## Routes
 

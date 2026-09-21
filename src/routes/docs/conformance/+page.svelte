@@ -72,12 +72,10 @@
 				</li>
 				<li>
 					One column per engine, not per binding. That is exact for tsv, whose native and wasm rows
-					the bench holds to byte-identical output (bar one pathologically deep TypeScript file the
-					check can't digest, which the report discloses). oxc-parser's wasm binding is pinned to an
-					older release (see the benchmarks' parse notes) and accepts a couple of files the native
-					one doesn't; the native column stands. yuku-parser's is its wasm binding: the native one
-					segfaults on some of test262's escaped-identifier tests, and wasm runs the same parser
-					with the fault contained.
+					the bench holds to byte-identical output (bar one file the report discloses). oxc-parser's
+					wasm binding is pinned to an older release (see the benchmarks' parse notes) and accepts a
+					couple of files the native one doesn't; the native column stands. yuku-parser's is its
+					wasm binding, since the native one crashes on some of test262's tests.
 				</li>
 				<li>
 					Accepting a file says nothing about producing the <em>right</em> AST — tsv's output is

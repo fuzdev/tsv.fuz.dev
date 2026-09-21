@@ -136,7 +136,7 @@ export const CLI_DELIVERY_KEY = 'tsv-delivery-paths';
  * `@fuzdev/tsv`'s Node bin. It runs in the delivery scenario and beside native
  * tsv wherever the harness benches it against the other tools' npm bins.
  */
-export const CLI_TSV_NPM_LABEL = 'tsv via npm dispatcher';
+export const CLI_TSV_NPM_LABEL = 'tsv via Node dispatcher';
 
 /** The delivery scenario's WASM row, as displayed. */
 export const CLI_TSV_WASM_LABEL = 'tsv-wasm';
@@ -176,13 +176,13 @@ const SCENARIO_COPY: Record<string, CliScenarioCopy> = {
 	[CLI_SVELTE_KEY]: {
 		heading: 'Svelte corpus',
 		description:
-			'Two Rust Svelte-native formatters head-to-head on a third-party .svelte corpus, rsvelte-fmt configured to tsv’s fixed style so both do comparable line-break work. Its time includes the oxfmt it spawns for the files it doesn’t format itself — none here, but that is how it ships — and the harness pins its style cache and oxfmt daemon off. rsvelte-fmt 0.7.x aborts nondeterministically on this corpus when its check-mode output has stdout and stderr merged onto one pipe — how the harness’s preflight runs it, and how a CI invocation piping both through tee would. The harness keeps the merged pipe rather than dodge the bug, and never retries: a run is published as it ended, complete or aborted, and about two in three attempts abort.',
+			'Two Rust Svelte-native formatters head-to-head on a third-party .svelte corpus, rsvelte-fmt configured to tsv’s fixed style so both do comparable line-break work. Its time includes the oxfmt it spawns for the files it doesn’t format itself — none here, but that is how it ships — and the harness pins its style cache and oxfmt daemon off. rsvelte-fmt 0.7.x aborts nondeterministically on this corpus under the harness’s preflight, a condition the harness keeps rather than works around, and it never retries: a run is published as it ended, complete or aborted.',
 		tsv_only: false
 	},
 	[CLI_DELIVERY_KEY]: {
 		heading: 'tsv delivery paths',
 		description:
-			'Every row is tsv, not another tool: the native binary, the same binary through @fuzdev/tsv’s Node dispatcher (how npx tsv runs it), and @fuzdev/tsv-wasm, the same CLI over a WASM engine, the fallback for platforms without a prebuilt binary. One file, so the gaps are launch and engine cost, not file parallelism (the WASM row’s CPU time exceeds its wall-clock because V8 compiles the module on background threads).',
+			'Every row is tsv, not another tool: the native binary, the same binary through @fuzdev/tsv’s Node dispatcher (how npx tsv runs it), and @fuzdev/tsv-wasm, the same CLI over a WASM engine, the package for platforms without a prebuilt binary. One file, so the gaps are launch and engine cost, not file parallelism (the WASM row’s CPU time exceeds its wall-clock, most likely V8 compiling the module on background threads).',
 		tsv_only: true
 	}
 };
@@ -326,7 +326,7 @@ export const cli_speedup_vs_tsv = (
 ): number | undefined => cli_speedup_vs(scenario_key, label, CLI_TSV_LABEL, metric);
 
 /**
- * How many times faster or lighter tsv through its npm dispatcher is than `label`
+ * How many times faster or lighter tsv through its Node dispatcher is than `label`
  * in one CLI scenario — the like-for-like ratio, since the other tools are timed
  * through their npm bins too.
  *
@@ -356,7 +356,7 @@ export const cli_tsv_npm_memory_mb = (
 };
 
 /**
- * What the npm dispatcher adds over the bare binary in wall-clock, in
+ * What the Node dispatcher adds over the bare binary in wall-clock, in
  * milliseconds, spanned across every scenario that times both rows — Node
  * starting up to launch the binary, which the page calls a fixed cost.
  *
@@ -373,26 +373,6 @@ export const cli_tsv_npm_overhead_ms_range = (
 	});
 	if (overheads.length === 0) return undefined;
 	return { min: Math.min(...overheads), max: Math.max(...overheads) };
-};
-
-/**
- * What the npm dispatcher adds over the bare binary as a share of the
- * dispatcher row's own run, in one scenario — Node's startup as a fraction of
- * wall-clock and of CPU work, which a parallel run pays very differently.
- *
- * @returns the wall and CPU fractions, or `undefined` when either row is absent
- */
-export const cli_tsv_npm_overhead_share = (
-	scenario_key: string
-): { wall: number; cpu: number } | undefined => {
-	const results = cli_scenario_find(scenario_key)?.results;
-	const npm = results?.find((r) => r.label === CLI_TSV_NPM_LABEL);
-	const tsv = results?.find((r) => r.label === CLI_TSV_LABEL);
-	if (!npm || !tsv || !npm.wall_ms || !npm.cpu_ms) return undefined;
-	return {
-		wall: (npm.wall_ms - tsv.wall_ms) / npm.wall_ms,
-		cpu: (npm.cpu_ms - tsv.cpu_ms) / npm.cpu_ms
-	};
 };
 
 /**

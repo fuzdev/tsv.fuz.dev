@@ -14,7 +14,6 @@ import {
 	cli_speedup_vs_tsv_npm,
 	cli_tsv_npm_memory_mb,
 	cli_tsv_npm_overhead_ms_range,
-	cli_tsv_npm_overhead_share,
 	cli_node_startup_ms,
 	CLI_DELIVERY_KEY,
 	CLI_SCENARIO_KEYS,
@@ -242,9 +241,9 @@ describe('prose ratios resolve', () => {
 	});
 
 	test('the like-for-like dispatcher claims read the way the numbers run', () => {
-		// The TLDR and the CLI note lead with tsv through its npm dispatcher against the
+		// The TLDR and the CLI note lead with tsv through its Node dispatcher against the
 		// other tools' npm bins: "~Nx faster than Oxfmt and ~Mx faster than Biome ...
-		// using A–Bx less memory than either". The copy has no bare-binary fallback, so
+		// using less memory than either". The copy has no bare-binary fallback, so
 		// every one must resolve or a sentence prints with a hole in it.
 		for (const key of [CLI_SINGLE_FILE_KEY, CLI_TS_REPO_KEY]) {
 			for (const label of ['oxfmt', 'biome']) {
@@ -259,8 +258,7 @@ describe('prose ratios resolve', () => {
 			baseline_label: CLI_TSV_NPM_LABEL
 		});
 		assert.isDefined(memory);
-		// floored to one decimal for display, so "less memory" needs its low end to reach 1.1
-		assert.isAtLeast(memory.min, 1.1);
+		assert.isAbove(memory.min, 1);
 		// "~Nx on the TypeScript repo": the dispatcher's own cost there, which the
 		// delivery note says shrinks against the one-file figure
 		const repo_cost = cli_speedup_vs_tsv(CLI_TS_REPO_KEY, CLI_TSV_NPM_LABEL, 'wall_ms');
@@ -361,18 +359,6 @@ describe('prose ratios resolve', () => {
 		}
 	});
 
-	test('the dispatcher overhead reads as a share of wall-clock far above its share of CPU', () => {
-		// "~N% of its wall-clock on the repo but ~M% of its CPU total": the note's point
-		// is the asymmetry, so the wall share must clearly exceed the CPU share, and
-		// both must be shares — inside (0, 1) — or the sentence prints nonsense
-		const share = cli_tsv_npm_overhead_share(CLI_TS_REPO_KEY);
-		assert.isDefined(share);
-		assert.isAbove(share.wall, 0);
-		assert.isBelow(share.wall, 1);
-		assert.isAbove(share.cpu, 0);
-		assert.isAbove(share.wall, share.cpu * 2, 'the wall-clock share is not clearly larger');
-	});
-
 	test('the Node launch floor sits inside the dispatcher overhead', () => {
 		// "a bare node -e '' takes ~N ms on this machine": Node's startup is one part
 		// of what the dispatcher row pays over the bare binary, so it must not exceed
@@ -383,6 +369,8 @@ describe('prose ratios resolve', () => {
 		assert.isDefined(overhead);
 		assert.isAbove(floor, 0);
 		assert.isBelow(floor, overhead.max);
+		// "most of it Node's own startup"
+		assert.isAbove(floor, overhead.max / 2);
 	});
 
 	test('the dispatcher overhead is the "fixed cost" the delivery note calls it', () => {
@@ -468,7 +456,7 @@ describe('prose ratios resolve', () => {
 	});
 
 	test('the run-order note holds: every scenario runs the dispatcher row, then bare tsv, last', () => {
-		// "Every scenario here puts the bare tsv binary last, with its npm dispatcher
+		// "Every scenario here puts the bare tsv binary last, with its Node dispatcher
 		// row just before it" — hyperfine reports commands in the order it ran them,
 		// and the generated timings keep that order. An aborted scenario has no timings
 		// to order, so its preflight rows, which the harness runs in the same order, stand in.
