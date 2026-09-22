@@ -612,9 +612,9 @@
 			this corpus", not a universal figure; the CLI section's Svelte corpus adds those third-party
 			libraries, and shares only its kit and svelte.dev trees with this one. And CSS is the weakest
 			sample: {format_count_maybe(corpus_counts.standalone_css)} standalone files plus the
-			per-collection <code>&lt;style&gt;</code> concatenations, which keep the one level of indent
-			they carried inside their tags — so every tool re-indents them, and much of the CSS here
-			measures a full re-indent rather than the already-formatted steady state.
+			per-collection <code>&lt;style&gt;</code> extractions from Svelte components, which keep the
+			one level of indent they carried inside their tags — so every tool re-indents them, and much
+			of the CSS here measures a full re-indent rather than the already-formatted steady state.
 		</p>
 		<Details eager summary="The {format_count(corpus_source_table.rows.length)} sources">
 			<p>Each source links its upstream at the commit the snapshot vendored.</p>
