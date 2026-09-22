@@ -53,7 +53,7 @@ reconstruct_locations(ast, 'const x = 1;');`;
 		</p>
 		<p>
 			Compared to Oxc, Biome, and SWC, tsv is a set of focused tools, not an extensible language
-			platform, so the focus is Web standards + Svelte and there's no support for JSX/SCSS/etc.
+			platform, so the focus is Web standards + TS + Svelte and there's no support for JSX/SCSS/etc.
 			tsv's extensibility story is currently limited to using its Rust crates as libraries (or
 			forking); bridging to JS or WASM plugins is an open question (leaning against).
 		</p>
@@ -92,7 +92,7 @@ reconstruct_locations(ast, 'const x = 1;');`;
 		</p>
 		<p>
 			These docs are a work in progress. There are more design details in the
-			<a href="https://github.com/fuzdev/tsv#readme">readme</a>.
+			<a href="https://github.com/fuzdev/tsv#about">readme</a>.
 		</p>
 		<TomeSection>
 			<TomeSectionHeader text="Install" />
