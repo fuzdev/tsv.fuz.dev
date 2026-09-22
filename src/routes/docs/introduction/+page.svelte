@@ -175,7 +175,8 @@ reconstruct_locations(ast, 'const x = 1;');`;
 			<p>
 				For efficiency, the parsers have a span-only mode that skips the per-node line/column,
 				making the AST ~46% smaller and faster to materialize. You can derive line and column later
-				without re-parsing. This is the default in oxc-parser.
+				without re-parsing. This is the default in oxc-parser; tsv currently matches Svelte's
+				behavior by default, but the API may change.
 			</p>
 			<Code lang="ts" content={no_locations_example} />
 			<p>
