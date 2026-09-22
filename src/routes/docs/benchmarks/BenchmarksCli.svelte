@@ -17,14 +17,6 @@
 		report: BenchmarksCliReport;
 	} = $props();
 
-	// listed as the harness reported them, so a formatter added or dropped upstream
-	// shows up here instead of silently rendering `undefined` for a fixed key
-	const versions = $derived(
-		Object.entries(report.versions)
-			.map(([name, version]) => `${name} ${version}`)
-			.join(', ')
-	);
-
 	// the row the pointer is over re-baselines its own table, as the format, parse,
 	// and size groups do (`to_baseline_key`); only one row is ever hovered, so one
 	// slot serves every table
@@ -151,12 +143,6 @@
 		{/if}
 	</div>
 {/each}
-
-<p>
-	<small>
-		Measured on {report.machine} — {versions}.
-	</small>
-</p>
 
 <style>
 	/* fixed columns, so re-baselining on hover changes the ratios' text and nothing

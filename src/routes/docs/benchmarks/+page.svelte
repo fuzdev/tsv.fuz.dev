@@ -14,6 +14,7 @@
 	import { benchmarks_json } from './benchmarks.ts';
 	import { benchmarks_cross_runtime_json } from './benchmarks_cross_runtime.ts';
 	import {
+		benchmarks_cli,
 		cli_scenario_find,
 		cli_ratio_vs_tsv,
 		cli_ratio_vs_tsv_npm,
@@ -103,6 +104,20 @@
 		sweeps.canonical_floor === sweeps.floor
 			? ''
 			: ` (${format_count_maybe(sweeps.canonical_floor)} for each group's reference row)`;
+	// The CLI harness records its own machine and tool versions; the shape test holds
+	// them to the ones listed below, so only what the harness alone records is quoted:
+	// when and from which revision it ran, the thread count its wall-clock scales
+	// with, and the tsv packages it installs.
+	const cli_date = new Date(benchmarks_cli.timestamp).toLocaleDateString('en-US', {
+		year: 'numeric',
+		month: 'long',
+		day: 'numeric',
+		// prerendered: pin the zone so the build box's doesn't pick the day
+		timeZone: 'UTC'
+	});
+	const cli_commit_url = `https://github.com/ryanatkn/oxc-bench-formatter/commit/${benchmarks_cli.git_commit}`;
+	const cli_tsv_binary = benchmarks_cli.tsv_binary;
+	const cli_tsv_wasm_version = benchmarks_cli.versions['tsv-wasm'];
 
 	// Every ratio the TLDR and the section notes quote, computed from the same
 	// reports the charts render so the prose can't drift from them. The pairings and
@@ -576,6 +591,22 @@
 			{format_count_maybe(sweeps.sample_size_max)} timings. A low cv over a handful of sweeps is
 			thinner evidence than the same cv over hundreds, so the instability check proves less for the
 			slow rows — Prettier among them, the denominator of every ratio in the summary table.
+		</p>
+		<p>
+			The <a href="#{docs_slugify(CLI_SECTION_TITLE)}">CLI section</a> ran on {cli_date}, from
+			<!-- eslint-disable-next-line svelte/no-navigation-without-resolve -->
+			<a href={cli_commit_url}>
+				its harness at {benchmarks_cli.git_commit}
+			</a>{benchmarks_cli.git_dirty ? ' with uncommitted changes' : ''}, on the same machine and
+			Node as these runs and with the same versions of the tools both time, all listed below —
+			across {benchmarks_cli.machine.threads} threads, which its multi-file wall-clock scales with.
+			{#if cli_tsv_binary.source === 'package'}
+				Its native tsv rows run the <code>{cli_tsv_binary.package}</code> binary,
+			{:else}
+				Its native tsv rows run a local
+				build{cli_tsv_binary.built ? ` from ${cli_tsv_binary.built}` : ''},
+			{/if}
+			and its WASM row runs <code>@fuzdev/tsv-wasm</code> {cli_tsv_wasm_version}.
 		</p>
 		<BenchmarksMeta baseline={benchmarks_json} />
 	</TomeSection>

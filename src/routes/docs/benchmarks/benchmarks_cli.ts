@@ -19,7 +19,7 @@
 // `gro gen` here.
 
 import { benchmarks_formatters_json } from './benchmarks_formatters.ts';
-import type { FormatterScenario } from './formatter_benchmark_data.ts';
+import type { FormatterBenchmarks, FormatterScenario } from './formatter_benchmark_data.ts';
 
 export interface CliFormatterResult {
 	/** Display label — the name a table's ratios are anchored by (see `cli_default_anchor_label`). */
@@ -94,14 +94,11 @@ export interface CliScenario extends CliScenarioCopy {
 	unshimmed?: string;
 }
 
-export interface BenchmarksCliReport {
-	machine: string;
-	/**
-	 * A bare `node -e ""` on the same machine, in milliseconds — the launch floor
-	 * every npm-bin row pays (see the report schema).
-	 */
-	node_startup: { mean_ms: number; stddev_ms: number; runs: number };
-	versions: Record<string, string>;
+/**
+ * The harness report as the page reads it: its run-level fields as the schema
+ * documents them, and the scenarios shaped for the tables.
+ */
+export interface BenchmarksCliReport extends Omit<FormatterBenchmarks, 'scenarios'> {
 	scenarios: Array<CliScenario>;
 }
 
@@ -263,9 +260,7 @@ const to_scenarios = (): Array<CliScenario> =>
 	});
 
 export const benchmarks_cli: BenchmarksCliReport = {
-	machine: benchmarks_formatters_json.machine,
-	node_startup: benchmarks_formatters_json.node_startup,
-	versions: benchmarks_formatters_json.versions,
+	...benchmarks_formatters_json,
 	scenarios: to_scenarios()
 };
 

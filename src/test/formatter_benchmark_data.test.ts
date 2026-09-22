@@ -34,9 +34,13 @@ const jsx_scenario = (overrides: Partial<FormatterScenario> = {}): FormatterScen
 	});
 
 const report = (overrides: Partial<FormatterBenchmarks> = {}): FormatterBenchmarks => ({
-	machine: 'Some CPU · 12 threads · linux x64',
+	timestamp: '2026-09-20T11:00:00.000Z',
+	git_commit: 'abc1234',
+	git_dirty: false,
+	machine: { cpu_model: 'Some CPU', threads: 12, os: 'linux', arch: 'x86_64' },
 	node_startup: { mean_ms: 19, stddev_ms: 0.7, runs: 20 },
-	versions: { prettier: '3.9.6', oxfmt: '0.68.0', tsv: '0.4.0 (@fuzdev/tsv-linux-x64-gnu)' },
+	versions: { prettier: '3.9.6', oxfmt: '0.68.0', tsv: '0.4.0' },
+	tsv_binary: { source: 'package', package: '@fuzdev/tsv-linux-x64-gnu' },
 	scenarios: [scenario(), jsx_scenario()],
 	...overrides
 });
@@ -51,10 +55,17 @@ describe('parse_formatter_benchmarks', () => {
 		assert.deepEqual(parsed.scenarios[0], scenario());
 	});
 
-	test('carries the machine and versions through', () => {
-		const parsed = parse_formatter_benchmarks(report());
-		assert.strictEqual(parsed.machine, 'Some CPU · 12 threads · linux x64');
-		assert.deepEqual(parsed.versions, report().versions);
+	test('carries the run-level fields through', () => {
+		const { scenarios: _, ...parsed } = parse_formatter_benchmarks(report());
+		const { scenarios: __, ...expected } = report();
+		assert.deepEqual(parsed, expected);
+	});
+
+	test('rejects a tsv binary with no source it knows', () => {
+		assert.throws(
+			() => parse_formatter_benchmarks({ ...report(), tsv_binary: { source: 'cargo' } }),
+			/tsv_binary/
+		);
 	});
 
 	test('carries the rows the harness could not give a bin shim', () => {

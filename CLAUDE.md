@@ -87,7 +87,7 @@ src/
     ├── benchmark_display.test.ts    # unit tests for the value formatters and row labels
     ├── benchmark_baseline.test.ts   # unit tests for the hover-to-rebaseline ratio math
     ├── benchmarks_cli.test.ts       # unit tests for the CLI report shaping and claim helpers
-    ├── benchmarks_cli.shape.test.ts # shape gates over the CLI-harness data as the page consumes it
+    ├── benchmarks_cli.shape.test.ts # shape gates over the CLI-harness data as the page consumes it, and its machine and versions against the in-process report's
     ├── benchmark_test_helpers.ts    # fixture factories the benchmark tests share
     └── formatter_benchmark_data.test.ts # the harness report's validation
 ```
@@ -136,6 +136,11 @@ that **is** present but doesn't validate fails the task loudly, naming its path.
 A drift that still validates but renames a scenario is caught on the site side:
 every key in `benchmarks_cli.ts`'s `SCENARIO_COPY` must resolve to generated
 data, and a test asserts it.
+
+The page states the machine and tool versions once, in the Benchmarking details
+section, from tsv's report. `benchmarks_cli.shape.test.ts` holds the harness's
+own `machine` and `versions` to it (CPU, OS/arch, Node, and every tool both
+time), so refresh the two on the same setup — a one-sided refresh fails there.
 
 ### The CLI comparison
 

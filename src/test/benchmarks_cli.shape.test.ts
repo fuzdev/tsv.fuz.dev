@@ -1,5 +1,6 @@
 import { assert, describe, test } from 'vitest';
 
+import { benchmarks_json } from '$routes/docs/benchmarks/benchmarks.ts';
 import { benchmarks_formatters_json } from '$routes/docs/benchmarks/benchmarks_formatters.ts';
 import {
 	benchmarks_cli,
@@ -210,5 +211,49 @@ describe('cli_default_anchor_label', () => {
 				scenario.key
 			);
 		}
+	});
+});
+
+// The CLI harness and tsv's in-process bench each record their own machine and
+// tool versions. The page states them once, in the Benchmarking details section,
+// from tsv's report — so the harness's must agree, and a refresh of one source
+// without the other fails here rather than publishing numbers from two setups.
+describe('the CLI report matches the in-process one', () => {
+	const REFRESH = 'refresh both reports on the same setup (see CLAUDE.md, Benchmarks)';
+
+	test('same machine', () => {
+		const { cpu_model, os, arch } = benchmarks_cli.machine;
+		const { runtime_version: _, ...in_process } = benchmarks_json.machine;
+		assert.deepEqual({ cpu_model, os, arch }, in_process, REFRESH);
+	});
+
+	test('same Node', () => {
+		assert.strictEqual(benchmarks_json.runtime, 'node');
+		assert.strictEqual(
+			benchmarks_cli.versions.node,
+			benchmarks_json.machine.runtime_version,
+			REFRESH
+		);
+	});
+
+	test('same versions of every tool both time', () => {
+		// the harness keys by npm-bin name, tsv's report by identifier
+		const in_process_versions = new Map(Object.entries(benchmarks_json.versions));
+		const shared = Object.entries(benchmarks_cli.versions).flatMap(([name, cli]) => {
+			const in_process = in_process_versions.get(name.replaceAll('-', '_'));
+			return in_process === undefined ? [] : [{ name, cli, in_process }];
+		});
+		// guards against a key rename leaving nothing to compare
+		assert.includeMembers(
+			shared.map((s) => s.name),
+			['tsv', 'prettier', 'biome', 'oxfmt', 'rsvelte-fmt']
+		);
+		for (const { name, cli, in_process } of shared) {
+			assert.strictEqual(cli, in_process, `${name}: ${REFRESH}`);
+		}
+	});
+
+	test('the harness-only facts the details section quotes resolve', () => {
+		assert.isDefined(benchmarks_cli.versions['tsv-wasm']);
 	});
 });

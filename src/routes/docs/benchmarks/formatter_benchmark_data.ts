@@ -123,11 +123,26 @@ export type FormatterScenario = z.infer<typeof FormatterScenario>;
  * other scenarios have no tsv row to compare against.
  */
 export const FormatterBenchmarks = z.strictObject({
+	/** When the run started. */
+	timestamp: z.iso.datetime(),
+	/** The harness revision that ran, abbreviated as `git rev-parse --short` prints it. */
+	git_commit: z.string().min(1),
+	/**
+	 * Whether the harness tree had uncommitted changes when the run started — its
+	 * numbers then came from code `git_commit` doesn't hold.
+	 */
+	git_dirty: z.boolean(),
 	/**
 	 * The machine the numbers came from. The ratios move with it — Biome, Oxfmt,
-	 * and tsv scale across cores while Prettier formats files one at a time.
+	 * and tsv scale across cores while Prettier formats files one at a time. `arch`
+	 * is `uname -m`'s naming (`x86_64`), as tsv's own reports write it.
 	 */
-	machine: z.string().min(1),
+	machine: z.strictObject({
+		cpu_model: z.string().min(1),
+		threads: z.number().int().positive(),
+		os: z.string().min(1),
+		arch: z.string().min(1)
+	}),
 	/**
 	 * A bare `node -e ""` timed under hyperfine on the same machine, with the PATH
 	 * the scenarios resolve `node` from: the launch floor every npm-bin row pays
@@ -144,6 +159,15 @@ export const FormatterBenchmarks = z.strictObject({
 	 * not a formatter, but what every row except the bare `tsv` binary launches first.
 	 */
 	versions: z.record(z.string(), z.string().min(1)),
+	/**
+	 * Where the native tsv rows' binary came from: the platform package
+	 * `@fuzdev/tsv` installs, or a local build through `TSV_BIN`, dated by its
+	 * mtime (`null` when it couldn't be read).
+	 */
+	tsv_binary: z.discriminatedUnion('source', [
+		z.strictObject({ source: z.literal('package'), package: z.string().min(1) }),
+		z.strictObject({ source: z.literal('TSV_BIN'), built: z.string().min(1).nullable() })
+	]),
 	scenarios: z.array(FormatterScenario)
 });
 export type FormatterBenchmarks = z.infer<typeof FormatterBenchmarks>;
@@ -171,7 +195,7 @@ export const parse_formatter_benchmarks = (results: unknown): FormatterBenchmark
 	if (!parsed.success) {
 		throw new Error(`formatter benchmarks: ${z.prettifyError(parsed.error)}`);
 	}
-	const { machine, node_startup, versions, scenarios: all_scenarios } = parsed.data;
+	const { scenarios: all_scenarios, ...report } = parsed.data;
 
 	for (const scenario of all_scenarios) {
 		// A scenario with no timings either aborted before hyperfine ran — it says so,
@@ -193,9 +217,9 @@ export const parse_formatter_benchmarks = (results: unknown): FormatterBenchmark
 		);
 	}
 
-	if (!versions.tsv) {
+	if (!report.versions.tsv) {
 		throw new Error('formatter benchmarks: no tsv version in the report');
 	}
 
-	return { machine, node_startup, versions, scenarios };
+	return { ...report, scenarios };
 };
