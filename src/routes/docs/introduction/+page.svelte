@@ -38,8 +38,8 @@ reconstruct_locations(ast, 'const x = 1;');`;
 	<section>
 		<Svg data={logo_tsv} size="var(--icon_size_xl2)" class="float:right ml_lg mb_lg" />
 		<p>
-			tsv is a toolchain for TypeScript/JS, CSS, and Svelte in Rust. It ships a formatter that
-			closely follows <a href="https://prettier.io/">Prettier</a> +
+			tsv is a toolchain for TypeScript/JS, CSS, and Svelte in Rust (and planned HTML/JSON). Today
+			it ships a formatter that closely follows <a href="https://prettier.io/">Prettier</a> +
 			<a href="https://github.com/sveltejs/prettier-plugin-svelte">prettier-plugin-svelte</a>, and a
 			drop-in for <a href="https://svelte.dev/">Svelte</a>'s parser +
 			<a href="https://github.com/acornjs/acorn">acorn</a> +
@@ -78,8 +78,7 @@ reconstruct_locations(ast, 'const x = 1;');`;
 			See the <TomeLink slug="benchmarks" /> for measurements. Compared to Oxc/oxfmt and Biome, tsv
 			is smaller and faster at parsing and formatting its supported languages, but lacks their
 			features, extensibility, and broad language support. One reason for tsv to exist is to help
-			find the performance bonuses left on the table in the Web ecosystem's increasingly-native
-			implementations.
+			find the performance bonuses left on the table in the Web's implementations.
 		</p>
 		<p>
 			tsv is near production-ready, with a long tail of rare bugs (and numerous fixes to bugs in
@@ -92,8 +91,8 @@ reconstruct_locations(ast, 'const x = 1;');`;
 			high-effort project that prioritizes quality.
 		</p>
 		<p>
-			These docs are a work in progress. For design details see the
-			<a href="https://github.com/fuzdev/tsv">readme</a>.
+			These docs are a work in progress. There are more design details in the
+			<a href="https://github.com/fuzdev/tsv#readme">readme</a>.
 		</p>
 		<TomeSection>
 			<TomeSectionHeader text="Install" />
