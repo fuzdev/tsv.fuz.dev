@@ -160,14 +160,21 @@ reconstruct_locations(ast, 'const x = 1;');`;
 			<p>
 				<code>format_typescript</code>, <code>format_css</code>, <code>parse_typescript</code>, and
 				<code>parse_css</code> work the same way, and the parsers return Svelte-compatible JSON ASTs
-				with bundled TS types. Every parser also takes an acorn-style options object —
-				<code>{'{locations: false}'}</code> for the span-only wire (below), plus TypeScript's
-				<code>{"{sourceType: 'script' | 'module'}"}</code> (default <code>'module'</code>), which
-				<code>format_typescript</code> takes too; formatting with no <code>sourceType</code> retries
-				as a script when the module parse fails, so a legacy sloppy script formats with no options.
+				with bundled TS types.
+			</p>
+			<p>
+				Every parser also takes an acorn-style options object —
+				<Code lang="ts" content={'{locations: false}'} inline /> for the span-only wire (documented
+				below), plus TypeScript's
+				<Code lang="ts" content={"{sourceType: 'script' | 'module'}"} inline /> (default
+				<Code lang="ts" content="'module'" inline />), which <code>format_typescript</code> takes
+				too; formatting with no <code>sourceType</code> retries as a script when the module parse
+				fails, so a legacy sloppy script formats with no options.
+			</p>
+			<p>
 				The native package needs no initialization; the WASM packages work zero-config in Node.js,
-				Bun, and Deno (sync auto-init), and browsers and bundlers call <code>await init()</code>
-				once first.
+				Bun, and Deno (sync auto-init), and browsers and bundlers call
+				<Code lang="ts" content="await init()" inline /> once first.
 			</p>
 		</TomeSection>
 		<TomeSection>
@@ -180,36 +187,39 @@ reconstruct_locations(ast, 'const x = 1;');`;
 			</p>
 			<Code lang="ts" content={no_locations_example} />
 			<p>
-				Passing <code>{'{locations: false}'}</code> is faster than the default, because there's
-				fewer bytes to emit and parse. Even when you need line/column, reconstructing in JS beats
-				the <code>loc</code>-bearing wire end-to-end by ~1.7x on TypeScript (~2.2x if you need
-				none), as measured in
+				Passing <Code lang="ts" content={'{locations: false}'} inline /> is faster than the default,
+				because there's fewer bytes to emit and parse. Even when you need line/column,
+				reconstructing in JS beats the <code>loc</code>-bearing wire end-to-end by ~1.7x on
+				TypeScript (~2.2x if you need none), as measured in
 				<a href="https://github.com/fuzdev/tsv/blob/main/benches/js/results/report.node.md">
 					tsv's bench report
 				</a>. tsv's default emits <code>loc</code> so that the bare call is a drop-in for Svelte's
-				parser. The <code>reconstruct_locations</code> helper is bundled in every package that
-				parses, native and WASM alike.
+				parser. The <code>reconstruct_locations</code> helper is available in every package that
+				parses.
 			</p>
 			<p>Details:</p>
 			<ul>
 				<li>
 					Span-only drops the per-node <code>loc</code> object (and <code>name_loc</code> on Svelte
-					nodes), mirroring acorn's <code>locations: false</code>. The rest is unchanged, so every
-					node keeps its <code>start</code>/<code>end</code> offsets.
+					nodes), mirroring acorn's <Code lang="ts" content={'{locations: false}'} inline />. The
+					rest is unchanged, so every node keeps its <code>start</code>/<code>end</code> offsets.
 				</li>
 				<li>
-					<code>reconstruct_locations(ast, source)</code> walks the tree and adds <code>loc</code>
-					back, mutating in place — exact for TypeScript, approximate for Svelte, where it throws on
-					the rare input it can't reconstruct rather than guess (parse those with <code>loc</code>).
+					<Code lang="ts" content="reconstruct_locations(ast, source)" inline /> walks the tree and
+					adds <code>loc</code> back, mutating in place — exact for TypeScript, approximate for
+					Svelte, where it throws on the rare input it can't reconstruct rather than guess (parse
+					those with <code>loc</code>).
 				</li>
 				<li>
-					For sparse lookups, <code>create_locator(source, opts?)</code> reuses one line table
-					across calls, so you pay for the positions you actually ask for; pass
-					<code>{"{language: 'svelte'}"}</code> for a <code>.svelte</code> document.
+					For sparse lookups, <Code lang="ts" content="create_locator(source, opts?)" inline />
+					reuses one line table across calls, so you pay for the positions you actually ask for;
+					pass <Code lang="ts" content={"{language: 'svelte'}"} inline /> for a <code>.svelte</code>
+					document.
 				</li>
 				<li>
-					CSS nodes carry no <code>loc</code> to begin with, so <code>{'{locations: false}'}</code>
-					is accepted as an inert no-op there.
+					CSS nodes carry no <code>loc</code> to begin with, so
+					<Code lang="ts" content={'{locations: false}'} inline /> is accepted as an inert no-op
+					there.
 				</li>
 			</ul>
 		</TomeSection>
