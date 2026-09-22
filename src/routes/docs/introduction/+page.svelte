@@ -119,10 +119,10 @@ reconstruct_locations(ast, 'const x = 1;');`;
 				content={'npm i -D @fuzdev/tsv\nnpx tsv format src\nnpx tsv parse src/foo.svelte'}
 			/>
 			<p>
-				The right binary installs automatically. Prebuilt for Linux (x64 gnu and musl, arm64 gnu),
-				macOS (arm64 and x64), and Windows x64 — anywhere else, use the WASM build below. The
-				<code>tsv</code> command is tsv's native CLI binary, shipped in the platform package
-				alongside the addon, with multi-file parallelism (<code>--jobs</code>).
+				Prebuilt binaries cover Linux (x64 gnu and musl, arm64 gnu), macOS (arm64 and x64), and
+				Windows x64 — anywhere else, use the WASM build below. The <code>tsv</code> command is tsv's
+				native CLI binary, shipped in the platform package alongside the addon, with multi-file
+				parallelism (<code>--jobs</code>).
 			</p>
 			<p>
 				The same CLI binaries are also attached to each
