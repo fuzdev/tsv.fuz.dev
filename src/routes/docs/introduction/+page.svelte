@@ -87,7 +87,7 @@ reconstruct_locations(ast, 'const x = 1;');`;
 			and <a href="https://github.com/fuzdev/tsv/discussions">discussions</a>.
 		</p>
 		<p>
-			AI disclosure: this codebase is mostly LLM-generated, and the usual caveats apply. It's a
+			AI disclosure: this codebase is mostly LLM-generated, and some caveats apply. It's a
 			high-effort project that prioritizes quality.
 		</p>
 		<p>
