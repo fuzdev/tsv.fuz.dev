@@ -41,9 +41,15 @@ reconstruct_locations(ast, 'const x = 1;');`;
 			tsv is a toolchain for TypeScript/JS, CSS, and Svelte in Rust. It ships a formatter that
 			closely follows <a href="https://prettier.io/">Prettier</a> +
 			<a href="https://github.com/sveltejs/prettier-plugin-svelte">prettier-plugin-svelte</a>, and a
-			drop-in replacement for <a href="https://svelte.dev/">Svelte</a>'s parser +
+			drop-in for <a href="https://svelte.dev/">Svelte</a>'s parser +
 			<a href="https://github.com/acornjs/acorn">acorn</a> +
 			<a href="https://github.com/sveltejs/acorn-typescript">acorn-typescript</a>.
+		</p>
+		<p>
+			tsv aims to simplify its covered domains and stay lean, and so it makes opinionated choices.
+			The formatter has a single non-configurable style, using Svelte's Prettier config. Among other
+			benefits this means tsv doesn't depend on a JS runtime, which it would need to resolve configs
+			like Prettier.
 		</p>
 		<p>
 			Compared to Oxc, Biome, and SWC, tsv is a set of focused tools, not an extensible language
@@ -53,30 +59,33 @@ reconstruct_locations(ast, 'const x = 1;');`;
 		</p>
 		<p>
 			Compared to <a href="https://github.com/baseballyama/rsvelte">rsvelte</a>, tsv has its own
-			TS/JS/CSS parsers instead of using Oxc, and rsvelte additionally has a compiler and
-			linter/typechecker integration (tsv has some in-progress work here, scope unknown, may never
-			ship).
+			TS/JS/CSS parsers instead of using Oxc, and rsvelte additionally has a Svelte compiler and
+			linter/typechecker integration (the full toolchain; tsv has some in-progress work here, scope
+			unknown and may never ship).
 		</p>
 		<p>tsv prioritizes, in order:</p>
 		<ol>
 			<li>correctness (spec conformance for HTML/CSS/JS, fidelity to Svelte and TypeScript)</li>
 			<li>speed</li>
 			<li>binary size and memory usage</li>
-			<li>extensibility (valued but deprioritized), modularity, and reusability</li>
+			<li>extensibility, modularity, reusability</li>
 		</ol>
 		<p>
-			See the <TomeLink slug="benchmarks" /> for measurements. Compared to Oxc and Biome, tsv is
-			smaller and faster at formatting its supported languages, and faster than Oxc at parsing
-			TypeScript on the same span-only AST payload (Biome exposes no parser to compare), but lacks
-			their features and broad language support. One reason for tsv to exist is to help find the
-			performance bonuses left on the table in the Web ecosystem's increasingly-native
+			Staying simple is an over-arching goal, and sometimes at odds with flexibility. Feedback is
+			welcome to help navigate these tradeoffs.
+		</p>
+		<p>
+			See the <TomeLink slug="benchmarks" /> for measurements. Compared to Oxc/oxfmt and Biome, tsv
+			is smaller and faster at parsing and formatting its supported languages, but lacks their
+			features, extensibility, and broad language support. One reason for tsv to exist is to help
+			find the performance bonuses left on the table in the Web ecosystem's increasingly-native
 			implementations.
 		</p>
 		<p>
 			tsv is near production-ready, with a long tail of rare bugs (and numerous fixes to bugs in
-			Prettier and prettier-plugin-svelte). Reports and feedback are appreciated. See the
-			<a href="https://github.com/fuzdev/tsv/issues">issues</a> and
-			<a href="https://github.com/fuzdev/tsv/discussions">discussions</a>.
+			acorn-typescript/Prettier/prettier-plugin-svelte), and APIs may still change. Reports and
+			feedback are appreciated. See the <a href="https://github.com/fuzdev/tsv/issues">issues</a>
+			and <a href="https://github.com/fuzdev/tsv/discussions">discussions</a>.
 		</p>
 		<p>
 			AI disclosure: this codebase is mostly LLM-generated, and the usual caveats apply. It's a
@@ -110,7 +119,7 @@ reconstruct_locations(ast, 'const x = 1;');`;
 				content={'npm i -D @fuzdev/tsv\nnpx tsv format src\nnpx tsv parse src/foo.svelte'}
 			/>
 			<p>
-				The right binary installs automatically. Prebuilt for Linux (x64, arm64, and x64 musl),
+				The right binary installs automatically. Prebuilt for Linux (x64 gnu and musl, arm64 gnu),
 				macOS (arm64 and x64), and Windows x64 — anywhere else, use the WASM build below. The
 				<code>tsv</code> command is tsv's native CLI binary, shipped in the platform package
 				alongside the addon, with multi-file parallelism (<code>--jobs</code>).
