@@ -79,7 +79,6 @@
 										<code>{origin.path}</code>
 									{/if}
 								{/each}
-								{#if source.folded}<small>(all accepted by every parser)</small>{/if}
 							</th>
 							<td class="coverage-num">{format_count(source.files)}</td>
 							<td class="coverage-num text_40">

@@ -40,16 +40,27 @@
 <TomeContent {tome}>
 	<section>
 		<p>
-			Where the <TomeLink slug="benchmarks" /> time real-world code, this page measures parse
-			<em>coverage</em>: how much of a much larger, deliberately hard corpus each parser accepts,
-			one row per corpus source, since a single percentage would blend sources that ask different
-			questions. What each source is, and how its files were chosen, is under
-			<a href="#{docs_slugify(CORPUS_SECTION_TITLE)}">Corpus</a>.
+			Where the <TomeLink slug="benchmarks" /> use real-world code to compare performance, this page
+			shows parser coverage using a deliberately hard
+			<a href="#{docs_slugify(CORPUS_SECTION_TITLE)}">corpus</a> to compare one aspect of
+			correctness:
 		</p>
 		<ConformanceTable matrices={conformance_matrices} />
-		<aside>
+		<aside class="mb_xl5">
 			<p>Notes:</p>
 			<ul>
+				<li>
+					Accepting a file says nothing about producing the <em>right</em> AST — tsv's output is
+					separately verified against the canonical parsers (svelte/compiler and its
+					<code>parseCss</code>, acorn-typescript) at corpus scale in
+					<a href="https://github.com/fuzdev/tsv">its repo's conformance gates</a>. Nor does
+					coverage reward rejecting what should be rejected: it counts acceptance only, so a
+					permissive parser scores well here. tsv defers most early errors — of test262's
+					should-reject parse tests it currently rejects fewer than half, tracked in
+					<a href="https://github.com/fuzdev/tsv/blob/main/docs/conformance_test262.md">
+						its test262 notes
+					</a>.
+				</li>
 				<li>
 					A greyed <code>100%</code> marks the parser that chose a source, so reads 100% on it by
 					construction: svelte/compiler on the Svelte set (the files it rejects are excluded, so the
@@ -77,18 +88,6 @@
 					couple of files the native one doesn't; the native column stands. yuku-parser's is its
 					wasm binding, since the native one crashes on some of test262's tests.
 				</li>
-				<li>
-					Accepting a file says nothing about producing the <em>right</em> AST — tsv's output is
-					separately verified against the canonical parsers (svelte/compiler and its
-					<code>parseCss</code>, acorn-typescript) at corpus scale in
-					<a href="https://github.com/fuzdev/tsv">its repo's conformance gates</a>. Nor does
-					coverage reward rejecting what should be rejected: it counts acceptance only, so a
-					permissive parser scores well here. tsv defers most early errors — of test262's
-					should-reject parse tests it currently rejects fewer than half, tracked in
-					<a href="https://github.com/fuzdev/tsv/blob/main/docs/conformance_test262.md">
-						its test262 notes
-					</a>.
-				</li>
 			</ul>
 		</aside>
 		<BenchmarksMeta baseline={conformance_json} />
@@ -98,10 +97,9 @@
 		<TomeSectionHeader text={CORPUS_SECTION_TITLE} />
 		<p>
 			{format_count(corpus_source_table.totals.files)} files from {corpus_source_table.rows.length}
-			sources, none of them the real-world code the <TomeLink slug="benchmarks" /> time: formatter
-			and compiler test suites, read from pinned checkouts, and three conformance suites the harness
-			harvests into caches. Every file is parsed as a module, except test262's, parsed at the goal
-			each test declares; <code>tsc</code> alone infers the goal itself.
+			sources, none of them the real-world code used in the <TomeLink slug="benchmarks" />: includes
+			formatter and compiler test suites, read from pinned checkouts, and three conformance suites
+			the harness harvests into caches.
 		</p>
 		<ul>
 			<li>
@@ -126,6 +124,10 @@
 				are dropped, and every parser runs in TypeScript mode, where the JSX left in Prettier's JS
 				fixtures is rejected. tsv rejects JSX by design where oxc-parser, yuku-parser, swc, and tsc
 				can parse it, so these tables say nothing about that gap.
+			</li>
+			<li>
+				Every TS/JS file is parsed as a module, except test262's, parsed at the goal each test
+				declares; <code>tsc</code> alone infers the goal itself.
 			</li>
 		</ul>
 		<p>
