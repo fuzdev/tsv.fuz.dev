@@ -11,16 +11,20 @@ import {
 // Gates the claims the conformance page's prose makes about the committed report,
 // as `benchmark_data.prose.test.ts` does for the benchmarks page.
 describe('conformance prose reads the report', () => {
-	test('the unfiltered sources are the ones no parser fully accepts', () => {
-		// "The other sources keep intentionally-invalid and out-of-scope inputs ... so read
-		// a row's parsers against each other, not against 100%" — named for wpt's CSS and
-		// Prettier's `.css` fixtures, where every parser must fall short for it to hold
+	test('the unfiltered CSS sources are the ones some parser falls short of', () => {
+		// "The CSS sources keep intentionally-invalid and out-of-scope inputs ... so read a
+		// row's parsers against each other, not against 100%" — named for wpt's CSS and
+		// Prettier's `.css` fixtures; the note is empty for a row every parser accepts in
+		// full (PostCSS, keeping selectors as strings, may well read 100% on the Prettier set)
 		const css = derive_conformance_matrices(conformance_json).find((m) => m.language === 'css');
 		for (const path of ['benches/js/.cache/wpt_css', '../prettier/tests/format/css']) {
 			const row = css?.sources.find((s) => s.origins[0]?.path === path);
 			assert(row, `css ${path} is missing`);
 			assert.isNotEmpty(row.cells, path);
-			for (const cell of row.cells) assert.isAbove(cell?.rejected ?? 0, 0, path);
+			assert.isTrue(
+				row.cells.some((cell) => (cell?.rejected ?? 0) > 0),
+				`${path}: every parser accepts it in full`
+			);
 		}
 	});
 
@@ -93,10 +97,14 @@ describe('conformance prose reads the report', () => {
 		}
 	});
 
-	test("Prettier's CSS fixtures carry the TypeScript/JS files the Corpus section explains", () => {
+	test("Prettier's CSS fixtures carry no TypeScript/JS files: the spec files are dropped", () => {
+		// "...and the spec files themselves, which Prettier never runs as fixtures" — the
+		// only JS the CSS suite holds is its `format.test.js` harness files, so the
+		// suite's TypeScript-language slice is the whole of what that claim removes
 		const table = derive_corpus_source_table(conformance_json, CONFORMANCE_SOURCE_LABELS);
 		const row = table.rows.find((r) => r.path === '../prettier/tests/format/css');
 		assert(row, 'the source is missing');
-		assert.isAbove(row.by_language[table.languages.indexOf('typescript')] ?? 0, 0);
+		assert.strictEqual(row.by_language[table.languages.indexOf('typescript')] ?? 0, 0);
+		assert.isAbove(row.by_language[table.languages.indexOf('css')] ?? 0, 0);
 	});
 });

@@ -69,10 +69,10 @@
 					<a href="#{docs_slugify(CORPUS_SECTION_TITLE)}">Corpus</a>).
 				</li>
 				<li>
-					The other sources keep intentionally-invalid and out-of-scope inputs (wpt's
+					The CSS sources keep intentionally-invalid and out-of-scope inputs (wpt's
 					deliberately-invalid CSS, preprocessor syntax in Prettier's <code>.css</code> fixtures),
-					so read a row's parsers against each other, not against 100%. The dimmed count beside a
-					percentage is the files rejected.
+					since no CSS parser here is a validity oracle, so read a row's parsers against each other,
+					not against 100%. The dimmed count beside a percentage is the files rejected.
 				</li>
 				<li>
 					PostCSS sitting above tsv is two grammars, not a gap. The CSS reference is Svelte's
@@ -119,6 +119,13 @@
 				The web-platform-tests CSS is extracted from its tests' <code>&lt;style&gt;</code> blocks.
 			</li>
 			<li>
+				Prettier's suites are what Prettier itself expects a parser of the language to accept: its
+				range and cursor marker files and front-matter fixtures are dropped, as are the Babel-only
+				proposals and deliberate error cases each directory's spec declares rejected by every
+				ECMAScript, TypeScript, or CSS parser it verifies against, and the spec files themselves,
+				which Prettier never runs as fixtures.
+			</li>
+			<li>
 				JSX is out by construction: Prettier's JSX suite and the compiler's <code>.tsx</code> cases
 				are dropped, and every parser runs in TypeScript mode, where the JSX left in Prettier's JS
 				fixtures is rejected. tsv rejects JSX by design where oxc-parser, yuku-parser, swc, and tsc
@@ -130,9 +137,8 @@
 			</li>
 		</ul>
 		<p>
-			Files count under the language their extension names, so the TypeScript/JS files in Prettier's
-			CSS fixtures are that suite's own <code>format.test.js</code> harness files. The harvested
-			suites link their upstream unpinned.
+			Files count under the language their extension names. The harvested suites link their upstream
+			unpinned.
 		</p>
 		<BenchmarksCorpus table={corpus_source_table} />
 	</TomeSection>
