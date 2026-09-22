@@ -15,8 +15,8 @@
 	import { benchmarks_cross_runtime_json } from './benchmarks_cross_runtime.ts';
 	import {
 		cli_scenario_find,
-		cli_speedup_vs_tsv,
-		cli_speedup_vs_tsv_npm,
+		cli_ratio_vs_tsv,
+		cli_ratio_vs_tsv_npm,
 		CLI_TS_REPO_KEY,
 		CLI_SVELTE_KEY
 	} from './benchmarks_cli.ts';
@@ -145,42 +145,41 @@
 	// tools' npm bins is the like-for-like footing the claims lead with; the bare-binary
 	// ratios follow as what the binary does without a Node launcher in front.
 	const cli_npm_ratio = (scenario: string, label: string) =>
-		format_ratio_approx(cli_speedup_vs_tsv_npm(scenario, label, 'wall_ms'));
+		format_ratio_approx(cli_ratio_vs_tsv_npm(scenario, label, 'wall_ms'));
 	const cli_npm_ts_vs_oxfmt = cli_npm_ratio(CLI_TS_REPO_KEY, 'oxfmt');
 	const cli_npm_ts_vs_biome = cli_npm_ratio(CLI_TS_REPO_KEY, 'biome');
 	const cli_ts_wall_vs_oxfmt = format_ratio_approx(
-		cli_speedup_vs_tsv(CLI_TS_REPO_KEY, 'oxfmt', 'wall_ms')
+		cli_ratio_vs_tsv(CLI_TS_REPO_KEY, 'oxfmt', 'wall_ms')
 	);
 	const cli_ts_wall_vs_biome = format_ratio_approx(
-		cli_speedup_vs_tsv(CLI_TS_REPO_KEY, 'biome', 'wall_ms')
+		cli_ratio_vs_tsv(CLI_TS_REPO_KEY, 'biome', 'wall_ms')
 	);
 	// The Svelte head-to-head is published aborted whenever rsvelte-fmt's
 	// nondeterministic crash hits the harness's preflight, so its ratios can be
 	// absent while the scenario itself is present — the prose covers both cases.
 	const cli_svelte = cli_scenario_find(CLI_SVELTE_KEY);
-	const cli_svelte_timed = cli_speedup_vs_tsv(CLI_SVELTE_KEY, 'rsvelte-fmt', 'wall_ms') != null;
+	const cli_svelte_timed = cli_ratio_vs_tsv(CLI_SVELTE_KEY, 'rsvelte-fmt', 'wall_ms') != null;
 	const cli_svelte_npm_wall = cli_npm_ratio(CLI_SVELTE_KEY, 'rsvelte-fmt');
 </script>
 
 <TomeContent {tome}>
 	<section>
 		<p>
-			tsv is a toolchain for TypeScript/JS, CSS, and Svelte in Rust; after correctness, its
-			priorities are performance and efficiency. This page measures it against
-			<a href="https://prettier.io/">Prettier</a>, which tsv closely follows, and against
-			<a href="https://oxc.rs/">Oxc</a> and <a href="https://biomejs.dev/">Biome</a>, similar tools
-			with more features and wider language support (tsv doesn't support JSX/TSX/SCSS/etc.). Also
-			compared: <a href="https://baseballyama.github.io/rsvelte/">rsvelte</a> (Svelte
-			parser/formatter), <a href="https://yuku.fyi/">Yuku</a> (TypeScript/JS parser),
-			<a href="https://swc.rs/">swc</a> (TypeScript/JS parser),
+			tsv is a toolchain with parsers and formatters for TypeScript/JS, CSS, and Svelte in Rust.
+			After correctness, tsv prioritizes performance and efficiency, and this page explores those
+			measurements. For parser correctness see the <TomeLink slug="conformance" /> page.
+		</p>
+		<p>
+			This data here compares tsv to <a href="https://prettier.io/">Prettier</a>, which tsv closely
+			follows, and to <a href="https://oxc.rs/">Oxc</a> and
+			<a href="https://biomejs.dev/">Biome</a>, which are similar tools with more features and wider
+			language support - tsv doesn't support JSX/TSX/SCSS/etc, and it supports only one canonical
+			formatting style. Also compared: <a href="https://baseballyama.github.io/rsvelte/">rsvelte</a>
+			(Svelte parser/formatter), <a href="https://yuku.fyi/">Yuku</a> (TypeScript/JS parser),
+			<a href="https://swc.rs/">SWC</a> (TypeScript/JS parser),
 			<a href="https://dprint.dev/plugins/typescript/">dprint-typescript</a> (TypeScript/JS
-			formatter), <a href="https://github.com/g-plane/malva">malva</a> (CSS formatter), and
-			<a href="https://postcss.org/">PostCSS</a> (CSS parser). What each parser accepts, as opposed
-			to how fast, is measured on the <TomeLink slug="conformance" /> page. The parse charts anchor
-			on the JS parsers tsv is a drop-in for: Svelte's compiler (its template parser and
-			<code>parseCss</code>) and
-			<a href="https://github.com/sveltejs/acorn-typescript">acorn-typescript</a>, the TypeScript
-			parser the Svelte compiler uses.
+			formatter), <a href="https://github.com/g-plane/malva">Malva</a> (CSS formatter), and
+			<a href="https://postcss.org/">PostCSS</a> (CSS parser).
 		</p>
 	</section>
 
@@ -197,9 +196,9 @@
 		</p>
 		<p>
 			Except in the CLI section, every timing here is in-process and one file at a time: each tool
-			parses or formats the corpus sequentially, isolating engine speed from multi-core parallelism.
-			The corpus is {format_count(corpus_counts.files)} files of real-world code, itemized under
-			<a href="#{docs_slugify(CORPUS_SECTION_TITLE)}">Corpus</a>. On that basis:
+			parses or formats the corpus sequentially, isolating base engine speed from multi-core
+			parallelism. The corpus is {format_count(corpus_counts.files)} files of real-world code,
+			itemized under <a href="#{docs_slugify(CORPUS_SECTION_TITLE)}">Corpus</a>. On that basis:
 		</p>
 		<ul>
 			<li>
@@ -216,7 +215,7 @@
 				faster than Biome, same pairings.
 			</li>
 			<li>
-				End to end as a CLI, in a
+				End to end as a CLI, measured in a
 				<a href="https://github.com/ryanatkn/oxc-bench-formatter" rel="external">
 					fork of Oxc's <code>bench-formatter</code>
 				</a>: on the JSX-free subset of a real TypeScript repo, with every tool launched through its
@@ -360,7 +359,7 @@
 					<a href="https://dprint.dev/plugins/typescript/">dprint-plugin-typescript</a>, the engine
 					<code>deno fmt</code> runs for TypeScript and JS, loaded in-process as its wasm plugin. It
 					rejects CSS and Svelte, and no dprint markup plugin is wired in, so it has no Svelte row
-					and its CSS slot goes to <a href="https://github.com/g-plane/malva">malva</a>, a
+					and its CSS slot goes to <a href="https://github.com/g-plane/malva">Malva</a>, a
 					third-party CSS plugin for the same host. This times the engine, not the
 					<code>deno fmt</code> CLI.
 				</li>
@@ -528,7 +527,7 @@
 					format itself.
 				</li>
 				<li>
-					<code>dprint (wasm)</code> and <code>malva (wasm)</code> expose no parser, so both sit
+					<code>dprint (wasm)</code> and <code>Malva (wasm)</code> expose no parser, so both sit
 					under Formatter beside tsv's format-only wasm build. That build does Svelte, TypeScript/JS
 					and CSS in one artifact, so each gap there is scope before it's engine.
 				</li>

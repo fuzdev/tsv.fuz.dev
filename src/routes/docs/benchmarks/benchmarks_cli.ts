@@ -106,7 +106,7 @@ export interface BenchmarksCliReport {
 }
 
 /**
- * The native tsv row: the bare binary, what `cli_speedup_vs_tsv` and the
+ * The native tsv row: the bare binary, what `cli_ratio_vs_tsv` and the
  * tsv-only delivery table take their ratios against.
  */
 export const CLI_TSV_LABEL = 'tsv';
@@ -302,7 +302,7 @@ export const cli_settle_seconds = (
 export const cli_scenario_find = (scenario_key: string): CliScenario | undefined =>
 	benchmarks_cli.scenarios.find((s) => s.key === scenario_key);
 
-const cli_speedup_vs = (
+const cli_ratio_vs = (
 	scenario_key: string,
 	label: string,
 	baseline_label: string,
@@ -313,31 +313,32 @@ const cli_speedup_vs = (
 };
 
 /**
- * How many times faster or lighter tsv is than `label` in one CLI scenario, by
- * the given metric — the ratios the page's prose quotes.
+ * `label`'s measurement over native tsv's in one CLI scenario, by the given
+ * metric — the ratios the page's prose quotes: how many times faster or lighter
+ * tsv is than another tool, or what a tsv distribution costs over the bare binary.
  *
  * @returns the ratio, or `undefined` when the scenario, the formatter, or either
  * side's measurement is absent
  */
-export const cli_speedup_vs_tsv = (
+export const cli_ratio_vs_tsv = (
 	scenario_key: string,
 	label: string,
 	metric: CliMetric
-): number | undefined => cli_speedup_vs(scenario_key, label, CLI_TSV_LABEL, metric);
+): number | undefined => cli_ratio_vs(scenario_key, label, CLI_TSV_LABEL, metric);
 
 /**
- * How many times faster or lighter tsv through its Node dispatcher is than `label`
- * in one CLI scenario — the like-for-like ratio, since the other tools are timed
- * through their npm bins too.
+ * `label`'s measurement over tsv's Node dispatcher row in one CLI scenario — how
+ * many times faster or lighter tsv is than `label` like for like, since the other
+ * tools are timed through their npm bins too.
  *
  * @returns the ratio, or `undefined` when the scenario, either row, or either
  * side's measurement is absent — an aborted scenario has none
  */
-export const cli_speedup_vs_tsv_npm = (
+export const cli_ratio_vs_tsv_npm = (
 	scenario_key: string,
 	label: string,
 	metric: CliMetric
-): number | undefined => cli_speedup_vs(scenario_key, label, CLI_TSV_NPM_LABEL, metric);
+): number | undefined => cli_ratio_vs(scenario_key, label, CLI_TSV_NPM_LABEL, metric);
 
 /**
  * The dispatcher row's highest peak RSS across the scenarios that face other

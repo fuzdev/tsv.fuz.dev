@@ -85,8 +85,7 @@
 		align-items: center;
 		/* rows sit flush (no inter-row gap) with a little padding, so the anchor
 		 * highlight reads as one contiguous, full-height band per row */
-		padding-block: var(--space_xs);
-		padding-right: var(--space_xs);
+		padding: var(--space_xs);
 	}
 	.bar-row.disabled {
 		opacity: 0.6;

@@ -10,8 +10,8 @@ import {
 	cli_label_is_tsv,
 	cli_memory_ratio_range,
 	cli_scenario_find,
-	cli_speedup_vs_tsv,
-	cli_speedup_vs_tsv_npm,
+	cli_ratio_vs_tsv,
+	cli_ratio_vs_tsv_npm,
 	cli_tsv_npm_memory_mb,
 	cli_tsv_npm_overhead_ms_range,
 	cli_node_startup_ms,
@@ -232,7 +232,7 @@ describe('prose ratios resolve', () => {
 			[CLI_TSV_WASM_LABEL, 'wall_ms'],
 			[CLI_TSV_WASM_LABEL, 'memory_mb']
 		] as const) {
-			const ratio = cli_speedup_vs_tsv(CLI_DELIVERY_KEY, label, metric);
+			const ratio = cli_ratio_vs_tsv(CLI_DELIVERY_KEY, label, metric);
 			assert.isDefined(ratio, `${CLI_DELIVERY_KEY}: ${label} ${metric}`);
 			// the copy reads "takes ~Nx as long" / "~Nx the memory", so each must exceed 1
 			assert_reads_faster(ratio, `${CLI_DELIVERY_KEY}: ${label} ${metric}`);
@@ -246,7 +246,7 @@ describe('prose ratios resolve', () => {
 		// every one must resolve or a sentence prints with a hole in it.
 		for (const key of [CLI_SINGLE_FILE_KEY, CLI_TS_REPO_KEY]) {
 			for (const label of ['oxfmt', 'biome']) {
-				const ratio = cli_speedup_vs_tsv_npm(key, label, 'wall_ms');
+				const ratio = cli_ratio_vs_tsv_npm(key, label, 'wall_ms');
 				assert.isDefined(ratio, `${key}: ${label}`);
 				assert_reads_faster(ratio, `${key}: ${label}`);
 			}
@@ -260,8 +260,8 @@ describe('prose ratios resolve', () => {
 		assert.isAbove(memory.min, 1);
 		// "~Nx on the TypeScript repo": the dispatcher's own cost there, which the
 		// delivery note says shrinks against the one-file figure
-		const repo_cost = cli_speedup_vs_tsv(CLI_TS_REPO_KEY, CLI_TSV_NPM_LABEL, 'wall_ms');
-		const file_cost = cli_speedup_vs_tsv(CLI_DELIVERY_KEY, CLI_TSV_NPM_LABEL, 'wall_ms');
+		const repo_cost = cli_ratio_vs_tsv(CLI_TS_REPO_KEY, CLI_TSV_NPM_LABEL, 'wall_ms');
+		const file_cost = cli_ratio_vs_tsv(CLI_DELIVERY_KEY, CLI_TSV_NPM_LABEL, 'wall_ms');
 		assert.isDefined(repo_cost);
 		assert.isDefined(file_cost);
 		assert_reads_faster(repo_cost, `${CLI_TS_REPO_KEY}: dispatcher cost`);
@@ -270,8 +270,8 @@ describe('prose ratios resolve', () => {
 		// aborted, but the copy quotes the dispatcher ratio wherever it quotes the
 		// bare-binary one, so the two must resolve together
 		for (const metric of ['wall_ms', 'memory_mb'] as const) {
-			const ratio = cli_speedup_vs_tsv_npm(CLI_SVELTE_KEY, 'rsvelte-fmt', metric);
-			const bare = cli_speedup_vs_tsv(CLI_SVELTE_KEY, 'rsvelte-fmt', metric);
+			const ratio = cli_ratio_vs_tsv_npm(CLI_SVELTE_KEY, 'rsvelte-fmt', metric);
+			const bare = cli_ratio_vs_tsv(CLI_SVELTE_KEY, 'rsvelte-fmt', metric);
 			assert.strictEqual(ratio !== undefined, bare !== undefined, `${CLI_SVELTE_KEY}: ${metric}`);
 			if (ratio !== undefined) assert_reads_faster(ratio, `${CLI_SVELTE_KEY}: ${metric}`);
 		}
@@ -314,9 +314,9 @@ describe('prose ratios resolve', () => {
 		};
 		for (const label of ['oxfmt', 'biome']) {
 			const npm = (metric: 'wall_ms' | 'cpu_ms') =>
-				defined(cli_speedup_vs_tsv_npm(CLI_TS_REPO_KEY, label, metric), `${label} ${metric}`);
+				defined(cli_ratio_vs_tsv_npm(CLI_TS_REPO_KEY, label, metric), `${label} ${metric}`);
 			const bare = (metric: 'wall_ms' | 'cpu_ms') =>
-				defined(cli_speedup_vs_tsv(CLI_TS_REPO_KEY, label, metric), `${label} ${metric}`);
+				defined(cli_ratio_vs_tsv(CLI_TS_REPO_KEY, label, metric), `${label} ${metric}`);
 			assert.isAbove(
 				npm('cpu_ms'),
 				npm('wall_ms'),

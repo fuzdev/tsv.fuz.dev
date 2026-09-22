@@ -129,9 +129,9 @@
 	{:else if error}
 		<p class="parse-error">{error}</p>
 	{:else}
-		<p>formatted</p>
+		<p>formatted:</p>
 		<Code lang="svelte" content={formatted?.value ?? ''} />
-		<p>AST</p>
+		<p>AST:</p>
 		{#if ast?.error}
 			<!-- the debounced source can still be the broken one the live pane has
 				already moved past, so this pane carries its own message -->

@@ -5,8 +5,8 @@
 	import {
 		benchmarks_cli,
 		cli_memory_ratio_range,
-		cli_speedup_vs_tsv,
-		cli_speedup_vs_tsv_npm,
+		cli_ratio_vs_tsv,
+		cli_ratio_vs_tsv_npm,
 		cli_tsv_npm_memory_mb,
 		cli_tsv_npm_overhead_ms_range,
 		cli_node_startup_ms,
@@ -38,9 +38,9 @@
 	// like-for-like rows, which the claims lead with; the bare-binary ratios follow
 	// as what the binary does without a Node launcher in front.
 	const npm_ratio = (scenario: string, label: string, metric: CliMetric = 'wall_ms') =>
-		format_ratio_approx(cli_speedup_vs_tsv_npm(scenario, label, metric));
+		format_ratio_approx(cli_ratio_vs_tsv_npm(scenario, label, metric));
 	const bare_ratio = (scenario: string, label: string, metric: CliMetric) =>
-		format_ratio_approx(cli_speedup_vs_tsv(scenario, label, metric));
+		format_ratio_approx(cli_ratio_vs_tsv(scenario, label, metric));
 	const npm_ts_vs_oxfmt = npm_ratio(CLI_TS_REPO_KEY, 'oxfmt');
 	const npm_ts_vs_biome = npm_ratio(CLI_TS_REPO_KEY, 'biome');
 	const npm_ts_cpu_vs_oxfmt = npm_ratio(CLI_TS_REPO_KEY, 'oxfmt', 'cpu_ms');
@@ -93,9 +93,7 @@
 		<a href="https://www.npmjs.com/package/@fuzdev/tsv"><code>@fuzdev/tsv</code></a>, what
 		<code>npx tsv</code> runs, launching the native binary as Biome's and rsvelte-fmt's bins do.
 		<code>tsv</code> runs the binary directly from the platform package, skipping Node: what the
-		binary costs on its own. Tables facing other tools start their ratios against the dispatcher
-		row; the last table is tsv against itself, anchored on the bare binary — what the Node
-		dispatcher and the WASM package each add.
+		binary costs on its own.
 	</p>
 	<BenchmarksCli report={benchmarks_cli} />
 	<aside>

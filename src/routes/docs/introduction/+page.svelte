@@ -113,16 +113,18 @@ reconstruct_locations(ast, 'const x = 1;');`;
 					<a href="https://open-vsx.org/extension/fuzdev/tsv-format">Open VSX</a>
 				</li>
 			</ul>
-			<p>On Node.js (22+) and Bun, tsv installs as a native addon with prebuilt binaries:</p>
+			<p>
+				tsv is published to npm as
+				<a href="https://www.npmjs.com/package/@fuzdev/tsv"><code>@fuzdev/tsv</code></a> with native
+				binaries:
+			</p>
 			<Code
 				lang="sh"
 				content={'npm i -D @fuzdev/tsv\nnpx tsv format src\nnpx tsv parse src/foo.svelte'}
 			/>
 			<p>
-				Prebuilt binaries cover Linux (x64 gnu and musl, arm64 gnu), macOS (arm64 and x64), and
-				Windows x64 — anywhere else, use the WASM build below. The <code>tsv</code> command is tsv's
-				native CLI binary, shipped in the platform package alongside the addon, with multi-file
-				parallelism (<code>--jobs</code>).
+				The native package covers Linux (x64 gnu and musl, arm64 gnu), macOS (arm64 and x64), and
+				Windows x64 — anywhere else, use the WASM build below.
 			</p>
 			<p>
 				The same CLI binaries are also attached to each
