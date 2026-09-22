@@ -84,7 +84,7 @@
 				<li>
 					oxc-parser's wasm binding is pinned to an older release (see the benchmarks' parse notes)
 					and accepts a couple of files the native one doesn't; the native column stands.
-					yuku-parser's is its wasm binding, since the native one crashes on some of test262's
+					yuku-parser's is its wasm binding, since the native one segfaults on some of test262's
 					tests.
 				</li>
 			</ul>
