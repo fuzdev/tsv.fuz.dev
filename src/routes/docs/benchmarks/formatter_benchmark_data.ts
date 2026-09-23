@@ -105,11 +105,11 @@ export const FormatterScenario = z.strictObject({
 	unshimmed: z.array(z.string().min(1)).min(1).optional(),
 	timings: z.array(FormatterTiming),
 	/**
-	 * The fastest timed formatter, and its margin over each other one; `''` when
+	 * The fastest timed formatter, and its margin over each other one; absent when
 	 * nothing was timed. Not the memory rows' anchor, which the harness fixes per
 	 * scenario and marks by leaving that row without a `ratio`.
 	 */
-	fastest: z.string(),
+	fastest: z.string().min(1).optional(),
 	speedups: z.array(FormatterSpeedup),
 	/** Empty without GNU time, and when an abort kept the memory pass from finishing. */
 	memory: z.array(FormatterMemory)
@@ -188,7 +188,8 @@ const scenario_has_tsv = (scenario: FormatterScenario): boolean =>
  * @param results - the parsed `results.json`
  * @returns the validated benchmarks, tsv's scenarios only
  * @throws if the report doesn't match `FormatterBenchmarks`, a scenario carries
- * neither timings nor an abort, no scenario timed tsv, or the versions list lacks tsv
+ * neither timings nor an abort or a `fastest` that disagrees with its timings, no
+ * scenario timed tsv, or the versions list lacks tsv
  */
 export const parse_formatter_benchmarks = (results: unknown): FormatterBenchmarks => {
 	const parsed = FormatterBenchmarks.safeParse(results);
@@ -202,6 +203,12 @@ export const parse_formatter_benchmarks = (results: unknown): FormatterBenchmark
 		// and its preflight rows name the cause — or recorded nothing it should have.
 		if (scenario.timings.length === 0 && scenario.aborted === undefined) {
 			throw new Error(`formatter benchmarks: scenario "${scenario.name}" has no timings`);
+		}
+		// `fastest` names a timed row, so it is present exactly when rows were timed
+		if ((scenario.fastest === undefined) !== (scenario.timings.length === 0)) {
+			throw new Error(
+				`formatter benchmarks: scenario "${scenario.name}" has ${scenario.timings.length} timings but fastest ${JSON.stringify(scenario.fastest)}`
+			);
 		}
 	}
 

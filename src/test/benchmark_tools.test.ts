@@ -20,6 +20,7 @@ const scenario = (key: string, labels: Array<string>, tsv_only = false): CliScen
 	tsv_only,
 	target: '',
 	corpus: '',
+	labels,
 	results: labels.map((label) => ({ label, wall_ms: 1, cpu_ms: 1, memory_mb: 1 })),
 	warmup_runs: 3,
 	benchmark_runs: 10

@@ -126,3 +126,19 @@ export const create_formatter_scenario = (
 	],
 	...overrides
 });
+
+/**
+ * A scenario that never reached timing — no timings, speedups, or memory, and no
+ * `fastest` key, as the harness records one.
+ */
+export const create_untimed_formatter_scenario = (
+	overrides: Partial<FormatterScenario> = {}
+): FormatterScenario => {
+	const { fastest: _, ...scenario } = create_formatter_scenario({
+		timings: [],
+		speedups: [],
+		memory: [],
+		...overrides
+	});
+	return scenario;
+};

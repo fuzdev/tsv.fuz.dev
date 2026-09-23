@@ -18,9 +18,9 @@ describe('the language-support matrix reads the reports', () => {
 
 	test('every report row a tool lists is in the report, and every CLI label in a scenario', () => {
 		const names = new Set(benchmarks_json.entries.map((e) => e.name));
-		const cli_labels = new Set(
-			benchmarks_cli.scenarios.flatMap((s) => s.results.map((r) => r.label))
-		);
+		// a scenario's roster rather than its timed rows: a scenario published
+		// aborted still names the tools it didn't time
+		const cli_labels = new Set(benchmarks_cli.scenarios.flatMap((s) => s.labels));
 		for (const tool of TOOL_SUPPORT) {
 			for (const name of Object.values(tool.rows).flat()) {
 				assert.ok(names.has(name), `${tool.name}: no report row ${name}`);

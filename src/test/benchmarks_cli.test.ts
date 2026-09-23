@@ -12,7 +12,9 @@ import {
 	CLI_TSV_NPM_LABEL,
 	CLI_TSV_WASM_LABEL,
 	to_abort_note,
+	to_cli_scenarios,
 	to_unshimmed_note,
+	CLI_SVELTE_KEY,
 	type CliFormatterResult,
 	type CliScenario
 } from '$routes/docs/benchmarks/benchmarks_cli.ts';
@@ -21,19 +23,16 @@ import type { FormatterScenario } from '$routes/docs/benchmarks/formatter_benchm
 import {
 	create_formatter_preflight,
 	create_formatter_scenario,
-	create_formatter_timing
+	create_formatter_timing,
+	create_untimed_formatter_scenario
 } from './benchmark_test_helpers.ts';
 
 describe('to_abort_note', () => {
 	// aborted before timing, until a test gives it rows
 	const scenario = (overrides: Partial<FormatterScenario>): FormatterScenario =>
-		create_formatter_scenario({
+		create_untimed_formatter_scenario({
 			preflight: [],
 			aborted: 'harness said so',
-			timings: [],
-			fastest: '',
-			speedups: [],
-			memory: [],
 			...overrides
 		});
 	const preflight = create_formatter_preflight;
@@ -72,6 +71,42 @@ describe('to_abort_note', () => {
 			),
 			'Timed, but no memory was published: harness said so.'
 		);
+	});
+});
+
+describe('to_cli_scenarios', () => {
+	test('a scenario aborted before timing keeps its roster and its abort, with no rows', () => {
+		// the harness publishes the Svelte head-to-head aborted if rsvelte-fmt
+		// crashes in preflight, the shape it has shipped in before
+		const aborted = create_untimed_formatter_scenario({
+			id: CLI_SVELTE_KEY,
+			preflight: [
+				create_formatter_preflight('rsvelte-fmt', { crashed: true }),
+				create_formatter_preflight('tsv-npm'),
+				create_formatter_preflight('tsv')
+			],
+			aborted: 'crashed: rsvelte-fmt'
+		});
+		const [svelte] = to_cli_scenarios({ scenarios: [aborted] });
+		assert.ok(svelte);
+		assert.deepEqual(svelte.labels, ['rsvelte-fmt', CLI_TSV_NPM_LABEL, CLI_TSV_LABEL]);
+		assert.isEmpty(svelte.results);
+		assert.strictEqual(
+			svelte.aborted,
+			'Not timed: rsvelte-fmt crashed partway through its preflight check.'
+		);
+		assert.isUndefined(cli_default_anchor_label(svelte));
+	});
+
+	test('a timed scenario lists each formatter once, and skips one without copy', () => {
+		const timed = create_formatter_scenario();
+		const uncopied = create_formatter_scenario({ id: 'no-copy-for-this' });
+		const scenarios = to_cli_scenarios({ scenarios: [uncopied, timed] });
+		assert.deepEqual(
+			scenarios.map((s) => s.key),
+			[timed.id]
+		);
+		assert.deepEqual(scenarios[0]!.labels, ['oxfmt', CLI_TSV_LABEL]);
 	});
 });
 
@@ -176,6 +211,7 @@ describe('cli claims spanning scenarios', () => {
 		tsv_only: false,
 		target: '',
 		corpus: '',
+		labels: overrides.results?.map((r) => r.label) ?? [],
 		results: [],
 		warmup_runs: 3,
 		benchmark_runs: 20,

@@ -164,12 +164,14 @@
 	const cli_ts_wall_vs_biome = format_ratio_approx(
 		cli_ratio_vs_tsv(CLI_TS_REPO_KEY, 'biome', 'wall_ms')
 	);
-	// The Svelte head-to-head is published aborted whenever rsvelte-fmt's
-	// nondeterministic crash hits the harness's preflight, so its ratios can be
-	// absent while the scenario itself is present — the prose covers both cases.
+	// The Svelte head-to-head is published aborted if rsvelte-fmt crashes in the
+	// harness, so its ratios can be absent while the scenario itself is present —
+	// the prose covers both cases, gated on the very ratio the sentence quotes so
+	// the two can't disagree.
 	const cli_svelte = cli_scenario_find(CLI_SVELTE_KEY);
-	const cli_svelte_timed = cli_ratio_vs_tsv(CLI_SVELTE_KEY, 'rsvelte-fmt', 'wall_ms') != null;
-	const cli_svelte_npm_wall = cli_npm_ratio(CLI_SVELTE_KEY, 'rsvelte-fmt');
+	const cli_svelte_npm_ratio = cli_ratio_vs_tsv_npm(CLI_SVELTE_KEY, 'rsvelte-fmt', 'wall_ms');
+	const cli_svelte_timed = cli_svelte_npm_ratio !== undefined;
+	const cli_svelte_npm_wall = format_ratio_approx(cli_svelte_npm_ratio);
 </script>
 
 <TomeContent {tome}>

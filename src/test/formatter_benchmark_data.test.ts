@@ -10,13 +10,15 @@ import {
 import {
 	create_formatter_preflight,
 	create_formatter_scenario,
-	create_formatter_timing
+	create_formatter_timing,
+	create_untimed_formatter_scenario
 } from './benchmark_test_helpers.ts';
 
 // one scenario tsv runs in, one it sits out
 const timing = create_formatter_timing;
 const preflight = create_formatter_preflight;
 const scenario = create_formatter_scenario;
+const untimed = create_untimed_formatter_scenario;
 
 // an upstream scenario: JSX in the corpus, so no tsv row and no preflight
 const jsx_scenario = (overrides: Partial<FormatterScenario> = {}): FormatterScenario =>
@@ -77,21 +79,18 @@ describe('parse_formatter_benchmarks', () => {
 	});
 
 	test('keeps a scenario the harness aborted before timing, with its reason and no numbers', () => {
-		const aborted = scenario({
+		const aborted = untimed({
 			id: 'svelte',
 			name: 'Svelte',
 			// the harness records the counts up front, so an abort keeps them
 			warmup_runs: 3,
 			benchmark_runs: 10,
 			preflight: [preflight('rsvelte-fmt', { crashed: true }), preflight('tsv')],
-			aborted: 'crashed: rsvelte-fmt',
-			timings: [],
-			fastest: '',
-			speedups: [],
-			memory: []
+			aborted: 'crashed: rsvelte-fmt'
 		});
 		const parsed = parse_formatter_benchmarks(report({ scenarios: [scenario(), aborted] }));
 		assert.deepEqual(parsed.scenarios[1], aborted);
+		assert.notProperty(parsed.scenarios[1], 'fastest');
 	});
 
 	test('keeps a scenario aborted in its memory pass, with its timings', () => {
@@ -102,10 +101,9 @@ describe('parse_formatter_benchmarks', () => {
 	});
 
 	test('drops an aborted scenario tsv was not in', () => {
-		const aborted = jsx_scenario({
+		const { fastest: _, ...aborted } = jsx_scenario({
 			aborted: 'a timed run failed — Hyperfine failed with code 1',
 			timings: [],
-			fastest: '',
 			speedups: []
 		});
 		const parsed = parse_formatter_benchmarks(report({ scenarios: [scenario(), aborted] }));
@@ -127,10 +125,29 @@ describe('parse_formatter_benchmarks', () => {
 	});
 
 	test('throws when a scenario carries neither timings nor an abort', () => {
-		const empty = scenario({ timings: [], fastest: '', speedups: [], memory: [] });
+		const empty = untimed();
 		assert.throws(
 			() => parse_formatter_benchmarks(report({ scenarios: [scenario(), empty] })),
 			/has no timings/
+		);
+	});
+
+	test('throws when `fastest` disagrees with whether anything was timed', () => {
+		const unnamed = { ...scenario(), fastest: undefined };
+		assert.throws(
+			() => parse_formatter_benchmarks(report({ scenarios: [unnamed] })),
+			/has 2 timings but fastest undefined/
+		);
+		const named = { ...untimed({ aborted: 'crashed: oxfmt' }), fastest: 'tsv' };
+		assert.throws(
+			() => parse_formatter_benchmarks(report({ scenarios: [scenario(), named] })),
+			/has 0 timings but fastest "tsv"/
+		);
+		// the schema, before that check: a named-but-empty row is no row
+		const blank = { ...untimed({ aborted: 'crashed: oxfmt' }), fastest: '' };
+		assert.throws(
+			() => parse_formatter_benchmarks(report({ scenarios: [scenario(), blank] })),
+			/fastest/
 		);
 	});
 

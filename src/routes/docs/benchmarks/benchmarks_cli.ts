@@ -64,6 +64,12 @@ export interface CliScenario extends CliScenarioCopy {
 	/** Which revision of the corpus the numbers came from, as the harness records it. */
 	corpus: string;
 	/**
+	 * Every formatter the scenario benched, as displayed, in the harness's order —
+	 * timed or only preflight-checked. An abort before timing empties `results`
+	 * but not this, so it's what says who the scenario is between.
+	 */
+	labels: Array<string>;
+	/**
 	 * Results ascending by wall-clock time. The component computes each ratio
 	 * against its table's anchor row — the dispatcher row facing other tools, native
 	 * tsv in the tsv-only table, or whichever row is hovered.
@@ -115,8 +121,8 @@ export const CLI_TSV_LABEL = 'tsv';
 
 /**
  * The tsv-vs-rsvelte-fmt Svelte scenario's id. The harness publishes it aborted
- * whenever rsvelte-fmt's nondeterministic crash hits its preflight, so prose
- * quoting its ratios must be conditional on them resolving.
+ * if rsvelte-fmt crashes, which it has done in preflight, so prose quoting its
+ * ratios must be conditional on them resolving.
  */
 export const CLI_SVELTE_KEY = 'svelte-tsv-vs-rsvelte-fmt';
 
@@ -180,7 +186,7 @@ const SCENARIO_COPY: Record<string, CliScenarioCopy> = {
 		description:
 			'Two Rust Svelte-native formatters head-to-head on a third-party .svelte corpus, rsvelte-fmt configured to tsv’s fixed style. Its time includes the Oxfmt it launches for non-.svelte files, which walks the corpus and finds none.',
 		abort_context:
-			'rsvelte-fmt’s crash on this corpus is nondeterministic, and the harness doesn’t retry.',
+			'rsvelte-fmt 0.7.x can abort when its output and stderr share a pipe, and the harness doesn’t retry.',
 		tsv_only: false
 	},
 	[CLI_DELIVERY_KEY]: {
@@ -200,10 +206,16 @@ const CLI_LABELS: Record<string, string> = {
 	'tsv-npm': CLI_TSV_NPM_LABEL
 };
 
+const to_label = (name: string): string => CLI_LABELS[name] ?? name;
+
+const to_labels = (scenario: FormatterScenario): Array<string> => [
+	...new Set([...scenario.preflight, ...scenario.timings].map((entry) => to_label(entry.name)))
+];
+
 const to_results = (scenario: FormatterScenario): Array<CliFormatterResult> =>
 	scenario.timings
 		.map((timing) => ({
-			label: CLI_LABELS[timing.name] ?? timing.name,
+			label: to_label(timing.name),
 			wall_ms: timing.mean_ms,
 			cpu_ms: timing.user_ms + timing.system_ms,
 			memory_mb: scenario.memory.find((m) => m.name === timing.name)?.mean_mb ?? null
@@ -227,7 +239,7 @@ export const CLI_SCENARIO_KEYS = Object.keys(SCENARIO_COPY);
 export const to_abort_note = (scenario: FormatterScenario): string => {
 	if (scenario.timings.length) return `Timed, but no memory was published: ${scenario.aborted}.`;
 	const faults = scenario.preflight.flatMap((entry) => {
-		const label = CLI_LABELS[entry.name] ?? entry.name;
+		const label = to_label(entry.name);
 		if (entry.crashed) return [`${label} crashed partway through its preflight check`];
 		if (entry.unavailable) return [`${label} could not run`];
 		if (entry.rejected > 0) return [`${label} rejected ${entry.rejected} files`];
@@ -241,11 +253,20 @@ export const to_abort_note = (scenario: FormatterScenario): string => {
  * bin shim the other rows pay for.
  */
 export const to_unshimmed_note = (names: Array<string>): string =>
-	`${names.map((name) => CLI_LABELS[name] ?? name).join(' and ')} ran as a bare Node script, skipping the few milliseconds of pnpm bin shim the other tools’ rows go through.`;
+	`${names.map(to_label).join(' and ')} ran as a bare Node script, skipping the few milliseconds of pnpm bin shim the other tools’ rows go through.`;
 
-const to_scenarios = (): Array<CliScenario> =>
+/**
+ * A report's scenarios shaped for the tables, in `SCENARIO_COPY`'s order — the
+ * ones it has copy for, timed or aborted.
+ *
+ * @param report - the validated formatter report
+ * @returns the scenarios the page renders
+ */
+export const to_cli_scenarios = (
+	report: Pick<FormatterBenchmarks, 'scenarios'>
+): Array<CliScenario> =>
 	Object.entries(SCENARIO_COPY).flatMap(([key, copy]) => {
-		const scenario = benchmarks_formatters_json.scenarios.find((s) => s.id === key);
+		const scenario = report.scenarios.find((s) => s.id === key);
 		return scenario
 			? [
 					{
@@ -253,6 +274,7 @@ const to_scenarios = (): Array<CliScenario> =>
 						...copy,
 						target: scenario.target,
 						corpus: scenario.corpus,
+						labels: to_labels(scenario),
 						results: to_results(scenario),
 						warmup_runs: scenario.warmup_runs,
 						benchmark_runs: scenario.benchmark_runs,
@@ -268,7 +290,7 @@ const to_scenarios = (): Array<CliScenario> =>
 
 export const benchmarks_cli: BenchmarksCliReport = {
 	...benchmarks_formatters_json,
-	scenarios: to_scenarios()
+	scenarios: to_cli_scenarios(benchmarks_formatters_json)
 };
 
 /**
