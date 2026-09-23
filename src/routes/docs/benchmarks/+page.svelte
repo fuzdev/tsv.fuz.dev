@@ -16,6 +16,7 @@
 	import { benchmarks_cross_runtime_json } from './benchmarks_cross_runtime.ts';
 	import {
 		benchmarks_cli,
+		cli_corpora_commit,
 		cli_scenario_find,
 		cli_ratio_vs_tsv,
 		cli_ratio_vs_tsv_npm,
@@ -70,6 +71,7 @@
 	// Section titles referenced by in-page anchors, slugified the same way
 	// `TomeSectionHeader` builds its ids so a rename can't orphan a link.
 	const LANGUAGE_SECTION_TITLE = 'Language support';
+	const PARSE_SECTION_TITLE = 'Parse speed';
 	const CLI_SECTION_TITLE = 'End-to-end CLI benchmark';
 	const DETAILS_SECTION_TITLE = 'Benchmarking details';
 	const CORPUS_SECTION_TITLE = 'Corpus';
@@ -172,6 +174,16 @@
 	const cli_svelte_npm_ratio = cli_ratio_vs_tsv_npm(CLI_SVELTE_KEY, 'rsvelte-fmt', 'wall_ms');
 	const cli_svelte_timed = cli_svelte_npm_ratio !== undefined;
 	const cli_svelte_npm_wall = format_ratio_approx(cli_svelte_npm_ratio);
+	// The CLI's Svelte corpus comes from the same fuzdev/corpora repo as this page's,
+	// possibly at another commit — said only while the two differ (either may be
+	// abbreviated, so they're compared by prefix).
+	const cli_svelte_corpora_commit = cli_svelte && cli_corpora_commit(cli_svelte.corpus);
+	const corpus_snapshot_full_commit = corpus_snapshot?.commit;
+	const cli_svelte_pin_differs =
+		!!cli_svelte_corpora_commit &&
+		!!corpus_snapshot_full_commit &&
+		!corpus_snapshot_full_commit.startsWith(cli_svelte_corpora_commit) &&
+		!cli_svelte_corpora_commit.startsWith(corpus_snapshot_full_commit);
 </script>
 
 <TomeContent {tome}>
@@ -194,9 +206,10 @@
 				coverage on deliberately hard test suites.
 			</p>
 			<p>
-				This page compares tsv to Prettier, and to Oxc and Biome, similar tools with more features,
-				configurable styles, and wider language support. It also times rsvelte, yuku-parser, swc,
-				dprint, Malva, and PostCSS;
+				This page compares tsv to Prettier and the JS parsers it replaces (svelte/compiler and
+				acorn-typescript), and to Oxc and Biome, similar tools with more features, configurable
+				styles, and wider language support. It also measures rsvelte, yuku-parser, swc, dprint,
+				Malva, and PostCSS;
 				<a href="#{docs_slugify(LANGUAGE_SECTION_TITLE)}">{LANGUAGE_SECTION_TITLE}</a> lays out what
 				each parses and formats.
 			</p>
@@ -205,9 +218,9 @@
 		<TomeSection>
 			<TomeSectionHeader text="tldr" />
 			<p>
-				Compared to Oxc and Biome, tsv builds smaller artifacts for the same capability and formats
-				its three languages faster in every pairing measured here, while lacking their features and
-				language breadth.
+				Compared to Oxc and Biome, tsv ships smaller artifacts, capability for capability, and
+				formats its three languages faster in every pairing measured here, while lacking their
+				features and language breadth.
 			</p>
 			<p>
 				Except in the CLI section, every timing here is in-process and one file at a time, isolating
@@ -225,7 +238,7 @@
 					Formatting Svelte, tsv is ~{format_svelte_vs_prettier} faster than Prettier and
 					~{format_svelte_vs_biome} faster than Biome, same pairings. Neither Oxc nor Biome ships a
 					dedicated Svelte formatter: Oxfmt delegates Svelte to Prettier, and Biome's row is its
-					experimental HTML path.
+					experimental HTML path, which leaves template expressions as written.
 				</li>
 				<li>
 					Formatting CSS, it's ~{format_css_vs_oxfmt} faster than Oxfmt, ~{format_css_vs_prettier}
@@ -237,15 +250,19 @@
 					line/column <code>loc</code> for drop-in acorn and Svelte compatibility, at
 					~{parse_ts_loc_cost} the span-only time: ~{parse_ts_vs_acorn} faster than
 					acorn-typescript, the parser it replaces, but behind Oxc and swc. That AST is checked
-					against acorn's and Svelte's at corpus scale, but Svelte's compiler hasn't yet been run on
-					it.
+					against acorn's and Svelte's at corpus scale, but hasn't yet been fed through Svelte's
+					compiler end to end.
 				</li>
 				<li>
 					Parsing Svelte, that default AST is ~{parse_svelte_vs_compiler} faster than
 					svelte/compiler (JS) and ~{parse_svelte_vs_rsvelte} faster than rsvelte
-					(native-vs-native). CSS runs the other way: Svelte's own <code>parseCss</code> is
-					~{parse_css_compiler_vs_tsv} faster than tsv's JSON wire and PostCSS
-					~{parse_css_postcss_vs_tsv}.
+					(native-vs-native).
+				</li>
+				<li>
+					Parsing CSS runs the other way: Svelte's own <code>parseCss</code> is
+					~{parse_css_compiler_vs_tsv} faster than tsv's default AST and PostCSS
+					~{parse_css_postcss_vs_tsv} faster, since JS parsers skip the serialization tsv pays for
+					(see <a href="#{docs_slugify(PARSE_SECTION_TITLE)}">{PARSE_SECTION_TITLE}</a>).
 				</li>
 				<li>
 					End to end as a CLI, in a
@@ -261,9 +278,9 @@
 				</li>
 				{#if cli_svelte_timed}
 					<li>
-						On a third-party Svelte corpus, tsv's CLI is ~{cli_svelte_npm_wall} faster than
-						rsvelte-fmt, another Rust Svelte formatter, though rsvelte-fmt's time includes an Oxfmt
-						pass that finds nothing to format.
+						On a third-party Svelte corpus, tsv's CLI, again through its Node bin, is
+						~{cli_svelte_npm_wall} faster than rsvelte-fmt, another Rust Svelte formatter, though
+						rsvelte-fmt's time includes an Oxfmt pass that finds nothing to format.
 					</li>
 				{:else if cli_svelte?.aborted}
 					<li>
@@ -310,7 +327,7 @@
 				<ul>
 					<li>
 						Each format row times the tool's own parse too: source in, formatted text out.
-						wasm-vs-wasm and native-vs-native (N-API here) are the like-for-like pairings, and the
+						Wasm-vs-wasm and native-vs-native (N-API here) are the like-for-like pairings, and the
 						<code>tsv-wasm</code> rows run the full parse+format build, not the smaller format-only
 						or parse-only ones.
 					</li>
@@ -334,7 +351,7 @@
 					</li>
 					<li>
 						Oxfmt formats TypeScript, JS, and CSS with its own native engine but delegates Svelte to
-						a Prettier it bundles, with a bundled
+						its bundled Prettier and
 						<a href="https://github.com/sveltejs/prettier-plugin-svelte">prettier-plugin-svelte</a>:
 						only the embedded <code>&lt;script&gt;</code> reaches its native engine, while the
 						markup, its expressions, and the <code>&lt;style&gt;</code> are that Prettier's.
@@ -342,31 +359,33 @@
 					<li>
 						Biome has no dedicated Svelte formatter: its Svelte row runs with
 						<code>html.experimentalFullSupportEnabled</code>, the experimental HTML-superset
-						pipeline that lets it format <code>.svelte</code> at all (without the flag it returns
-						only the script), and formats the embedded script and style too, so the work is
-						comparable. Its only in-process format entry point, <code>formatContent</code>, also
+						pipeline that formats the markup, script, and style (without the flag it returns only
+						the formatted script). It parses the template's expressions but leaves them as written,
+						where Prettier and tsv reprint them, so its Svelte row does somewhat less work than
+						theirs. Its in-process API's only format entry point, <code>formatContent</code>, also
 						opens the file in its workspace, pulls syntax diagnostics, and closes it on every call,
 						so its rows carry that wrapper. The harness also swaps in a fresh wasm instance once its
-						memory has grown past a threshold — before every sweep on the larger groups — and that
-						instance's slower first sweep costs a few percent. There's no native Biome entry: its
-						in-process API, <code>@biomejs/js-api</code>, runs only on its wasm builds, and the
-						native engine ships only as the <code>biome</code> CLI, a separate process rather than a
-						library.
+						memory has grown past a threshold — before every sweep in the Svelte and TypeScript
+						groups, every few in CSS — and that instance's slower first sweep adds about 1–4% to
+						Biome's rows. There's no native Biome entry: its in-process API,
+						<code>@biomejs/js-api</code>, runs only on its wasm builds, and the native engine ships
+						only as the <code>biome</code> CLI, a separate process rather than a library, which the
+						<a href="#{docs_slugify(CLI_SECTION_TITLE)}">CLI section</a> times.
 					</li>
 					<li>
 						The dprint entry is
 						<a href="https://dprint.dev/plugins/typescript/">dprint-plugin-typescript</a>, the
 						engine <code>deno fmt</code> runs for TypeScript and JS, loaded in-process as its wasm
-						plugin. It formats only TypeScript and JS, and no dprint markup plugin is wired in, so
-						it has no Svelte row and its CSS slot goes to
+						plugin. It formats only TypeScript and JS (JSX included), and no dprint markup plugin is
+						wired in, so it has no Svelte row and its CSS slot goes to
 						<a href="https://github.com/g-plane/malva">Malva</a>, a third-party CSS plugin for the
 						same host. This times the engine, not the <code>deno fmt</code> CLI.
 					</li>
 					<li>
 						<a href="https://github.com/baseballyama/rsvelte" rel="external">rsvelte-fmt</a>, the
-						other Rust-native Svelte formatter here, is grayed out in the Svelte group: it ran over
-						every Svelte file but isn't timed, since it ships no in-process API and a process per
-						file would measure spawn rather than formatting.
+						other Rust-native Svelte formatter here, is grayed out in the Svelte group: the harness
+						runs it over every Svelte file to check coverage but doesn't time it, since it ships no
+						in-process API and a process per file would measure spawn rather than formatting.
 						{#if cli_svelte_timed}
 							The <a href="#{docs_slugify(CLI_SECTION_TITLE)}">CLI section</a> times it.
 						{:else if cli_svelte?.aborted}
@@ -379,7 +398,7 @@
 		</TomeSection>
 
 		<TomeSection>
-			<TomeSectionHeader text="Parse speed" />
+			<TomeSectionHeader text={PARSE_SECTION_TITLE} />
 			<p>
 				tsv and <a href="https://oxc.rs/docs/guide/usage/parser">oxc-parser</a> share a mechanism:
 				both serialize the AST to JSON in Rust and hand it to the JS engine's
@@ -439,9 +458,10 @@
 						with per-node <code>loc</code> that the caller <code>JSON.parse</code>s — so
 						<code>rsvelte-parse</code> compares against <code>tsv json</code>, not the
 						<code>no-locs</code> entries. Its second entry passes rsvelte's own
-						<code>skipExpressionLoc</code>, which drops <code>loc</code> from every JS node but
-						keeps <code>name_loc</code> on elements and attributes, so it sits near tsv's span-only
-						wire without matching it.
+						<code>skipExpressionLoc</code>, which drops <code>loc</code> from every JS node, the
+						<code>&lt;script&gt;</code> program included, but keeps <code>name_loc</code> on
+						elements, attributes, and directives, so it sits near tsv's span-only wire without
+						matching it.
 						{#if rsvelte_svelte_target && rsvelte_svelte_target !== svelte_version}
 							Its addon targets its own upstream Svelte, {rsvelte_svelte_target}, a release apart
 							from the {svelte_version} the svelte/compiler row runs (both are listed under
@@ -470,7 +490,8 @@
 				disk; the <code>gz</code> beside each estimates the download. <code>tsv-wasm</code>,
 				<code>tsv (napi)</code>, and <code>tsv (ffi)</code> are tsv's full builds, parser and
 				formatter for Svelte, TypeScript/JS, and CSS in one artifact, beside format-only and
-				parse-only subsets.
+				parse-only subsets. Each group's ratios are against its smallest build, highlighted; hover
+				another row to re-anchor them.
 			</p>
 			<TomeSection>
 				<TomeSectionHeader text="In the browser: wasm and JS" />
@@ -483,12 +504,12 @@
 							prettier-plugin-svelte, and the parsers tsv replaces (Svelte's, plus acorn with
 							acorn-typescript) — and aren't files a package ships. Neither publishes a single
 							artifact, and installed size counts every language Prettier supports in two module
-							formats, so each entry is instead a minified, tree-shaken bundle of the least one job
-							needs for tsv's three languages: what you would deploy to a browser, not what Node
+							formats, so each entry is instead a minified, tree-shaken bundle of just what its job
+							needs across tsv's three languages: what you would deploy to a browser, not what Node
 							loads. The full entry is barely larger than the formatter, which already contains the
 							whole parse bundle: prettier-plugin-svelte needs Svelte's parser, which pulls in acorn
-							and acorn-typescript. Minified JS compresses much better than tsv's wasm, so next to
-							it they look smaller by <code>gz</code> than by raw bytes.
+							and acorn-typescript. Minified JS compresses much better than tsv's wasm, so beside it
+							these entries look smaller by <code>gz</code> than by raw bytes.
 						</li>
 						<li>
 							<code>dprint (wasm)</code> and <code>Malva (wasm)</code> expose no parser, so both sit
@@ -498,9 +519,9 @@
 						</li>
 						<li>
 							Biome's build carries a parser, formatter, and linter for every language it supports.
-							yuku-parser parses TypeScript, JS, and JSX only, where tsv's parse-only build beside
-							it carries Svelte and CSS parsers too. Oxfmt ships no wasm build, hence its grayed-out
-							slot under Formatter.
+							yuku-parser parses TypeScript, JS, JSX, and TSX only, where tsv's parse-only build
+							beside it carries Svelte and CSS parsers too. Oxfmt ships no wasm build, hence its
+							grayed-out slot under Formatter.
 						</li>
 					</ul>
 				</aside>
@@ -518,7 +539,7 @@
 							Svelte path. <code>tsv (napi)</code> is likewise its <code>.node</code> alone:
 							<a href="https://www.npmjs.com/package/@fuzdev/tsv"><code>@fuzdev/tsv</code></a> is a
 							JS dispatcher over prebuilt per-platform packages, and each also carries the
-							<code>tsv</code> CLI binary. Each leaves out nearly its own size again.
+							<code>tsv</code> CLI binary. Either package is close to twice its entry here.
 						</li>
 						<li>
 							The <code>(ffi)</code> entries are tsv's C-ABI build, which isn't published — what the
@@ -576,11 +597,11 @@
 			<p>
 				Rows run in a fixed order, not interleaved or shuffled: the reference row, then tsv's rows,
 				then the alternatives. A forced garbage collection before each row limits what one row
-				leaves for the next, but nothing pins the process to a core or holds the clock steady (an
-				unpinned laptop CPU), so whatever remains, thermal drift included, falls on the later rows.
-				Against every alternative that bias counts for tsv; against the reference row, which runs
-				first, it counts against tsv — Prettier in the format charts, and svelte/compiler,
-				acorn-typescript, and <code>parseCss</code> in the parse ones.
+				leaves for the next, but nothing pins the process to a core or holds the laptop CPU's clock
+				steady, so whatever remains, thermal drift included, falls on the later rows. Against every
+				alternative that bias counts for tsv; against the reference row, which runs first, it counts
+				against tsv — Prettier in the format charts, and svelte/compiler, acorn-typescript, and
+				<code>parseCss</code> in the parse ones.
 			</p>
 			<p>
 				One asymmetry isn't isolated: Oxfmt's programmatic <code>format</code> is async-only (as is
@@ -595,21 +616,22 @@
 		<TomeSection>
 			<TomeSectionHeader text={CORPUS_SECTION_TITLE} />
 			<p>
-				Every in-process timing on this page comes from {format_count(corpus_counts.files)} files of
-				<code>.svelte</code>, <code>.ts</code>/<code>.js</code>, and <code>.css</code> — real-world
-				code only, vendored at one pinned commit in the
+				Every in-process timing on this page comes from {format_count(corpus_counts.files)}
+				<code>.svelte</code>, <code>.ts</code>/<code>.js</code>, and <code>.css</code> files of
+				real-world code, vendored in the
 				<!-- eslint-disable-next-line svelte/no-navigation-without-resolve -->
 				<a href={corpus_snapshot_url}>
 					fuzdev/corpora{corpus_snapshot_commit ? `@${corpus_snapshot_commit}` : ''}
-				</a> snapshot so one clone reproduces it: the author's libraries, apps, and sites (the
-				fuz.dev ecosystem plus personal SvelteKit projects), and upstream framework source (Svelte,
-				SvelteKit, and the svelte.dev site).
+				</a> snapshot so one clone reproduces it. They're the author's libraries, apps, and sites
+				(the fuz.dev ecosystem plus personal SvelteKit projects), and upstream framework source
+				(Svelte, SvelteKit, and the svelte.dev site).
 			</p>
 			<ul>
 				<li>
 					The snapshot's third-party component libraries are left out: they would dominate the
 					Svelte set. The CLI section's Svelte corpus draws on them, and shares only its kit and
-					svelte.dev trees with this one.
+					svelte.dev trees with this
+					one{cli_svelte_pin_differs ? ', vendored at a different corpora commit' : ''}.
 				</li>
 				<li>
 					Test files count as real code and stay in. Fixture files (formatter test suites, and
@@ -628,7 +650,9 @@
 				</li>
 				<li>
 					The corpus is the author's own code plus Svelte's, the same code tsv is developed and
-					tested against and mostly tsv-formatted already, so every ratio here is "on this corpus",
+					tested against and mostly tsv-formatted already. Input already in a tool's own style may
+					format faster, which would favor tsv; pinning the other formatters to that style narrows
+					it, since the input then sits near their output too. Every ratio here is "on this corpus",
 					not a universal figure.
 				</li>
 			</ul>

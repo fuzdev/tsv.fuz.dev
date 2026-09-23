@@ -146,7 +146,7 @@ export const CLI_DELIVERY_KEY = 'tsv-delivery-paths';
  */
 export const CLI_TSV_NPM_LABEL = 'tsv via Node dispatcher';
 
-/** The delivery scenario's WASM row, as displayed. */
+/** The delivery scenario's wasm row, as displayed. */
 export const CLI_TSV_WASM_LABEL = 'tsv-wasm';
 
 /**
@@ -178,13 +178,13 @@ const SCENARIO_COPY: Record<string, CliScenarioCopy> = {
 	[CLI_SINGLE_FILE_KEY]: {
 		heading: 'Large single file',
 		description:
-			'With one input no formatter can parallelize across files, so wall-clock comes nearer engine speed plus startup: each tool’s own process and thread-pool setup, and Node’s for every row but the bare tsv binary — a fixed cost that weighs most on the fastest rows.',
+			'With one input no formatter can parallelize across files, so wall-clock comes nearer to engine speed plus startup: each tool’s own process and thread-pool setup, and Node’s for every row but the bare tsv binary — a fixed cost that weighs most on the fastest rows.',
 		tsv_only: false
 	},
 	[CLI_SVELTE_KEY]: {
 		heading: 'Svelte corpus',
 		description:
-			'Two Rust Svelte-native formatters head-to-head on a third-party .svelte corpus, rsvelte-fmt configured to tsv’s fixed style. Its time includes the Oxfmt it launches for non-.svelte files, which walks the corpus and finds none.',
+			'Two Rust Svelte-native formatters head-to-head on a third-party .svelte corpus, rsvelte-fmt configured to tsv’s fixed style. rsvelte-fmt’s time includes the Oxfmt it launches for non-.svelte files, which walks the corpus and finds none.',
 		abort_context:
 			'rsvelte-fmt 0.7.x can abort when its output and stderr share a pipe, and the harness doesn’t retry.',
 		tsv_only: false
@@ -192,7 +192,7 @@ const SCENARIO_COPY: Record<string, CliScenarioCopy> = {
 	[CLI_DELIVERY_KEY]: {
 		heading: 'tsv delivery paths',
 		description:
-			'Every row is tsv: the native binary, the same binary through @fuzdev/tsv’s Node dispatcher, and @fuzdev/tsv-wasm, the package for platforms without a prebuilt binary — tsv’s CLI reimplemented in JS over a WASM engine. One file, so the gaps are launch and engine cost, not file parallelism; the WASM row’s CPU ratio runs well past its time ratio, likely V8 tiering up the module on background threads.',
+			'Every row is tsv: the native binary, the same binary through @fuzdev/tsv’s Node dispatcher, and @fuzdev/tsv-wasm, the package for platforms without a prebuilt binary — tsv’s CLI reimplemented in JS over a wasm engine. One file, so the gaps are launch and engine cost, not file parallelism; the wasm row’s CPU ratio runs well past its time ratio, likely V8 tiering up the module on background threads.',
 		tsv_only: true
 	}
 };
@@ -247,6 +247,16 @@ export const to_abort_note = (scenario: FormatterScenario): string => {
 	});
 	return `Not timed: ${faults.length ? faults.join('; ') : scenario.aborted}.`;
 };
+
+/**
+ * The fuzdev/corpora commit a scenario's corpus line names, as the harness prints
+ * a corpus built from that snapshot (`fuzdev/corpora@<sha> …`).
+ *
+ * @param corpus - a scenario's `corpus` provenance line
+ * @returns the commit as printed, possibly abbreviated, or `undefined` for a corpus from elsewhere
+ */
+export const cli_corpora_commit = (corpus: string): string | undefined =>
+	/fuzdev\/corpora@([0-9a-f]+)/.exec(corpus)?.[1];
 
 /**
  * The sentence a scenario shows when the harness ran some tsv rows without the

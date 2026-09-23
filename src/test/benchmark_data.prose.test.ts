@@ -360,12 +360,12 @@ describe('prose ratios resolve', () => {
 	});
 
 	test('the scenario descriptions state facts the report carries', () => {
-		// the delivery copy: "the WASM row's CPU ratio runs well past its time ratio"
+		// the delivery copy: "the wasm row's CPU ratio runs well past its time ratio"
 		const cpu = cli_ratio_vs_tsv(CLI_DELIVERY_KEY, CLI_TSV_WASM_LABEL, 'cpu_ms');
 		const wall = cli_ratio_vs_tsv(CLI_DELIVERY_KEY, CLI_TSV_WASM_LABEL, 'wall_ms');
 		assert.isDefined(cpu, 'delivery scenario has no tsv-wasm row');
 		assert.isDefined(wall);
-		assert.isAbove(cpu, wall * 1.5, 'the WASM CPU ratio no longer runs well past its time ratio');
+		assert.isAbove(cpu, wall * 1.5, 'the wasm CPU ratio no longer runs well past its time ratio');
 		// the Svelte copy: "rsvelte-fmt 0.7.x crashes nondeterministically in the harness's preflight"
 		const rsvelte_version = benchmarks_cli.versions['rsvelte-fmt'];
 		assert.isDefined(rsvelte_version);
@@ -410,7 +410,7 @@ describe('prose ratios resolve', () => {
 		assert.isDefined(cli_memory_ratio_range({ scenario_key: CLI_DELIVERY_KEY }));
 	});
 
-	test('the WASM delivery row is "ahead of both Prettier rows … and behind Oxfmt and Biome"', () => {
+	test('the wasm delivery row is "ahead of both Prettier rows … and behind Oxfmt and Biome"', () => {
 		// the delivery and large-single-file scenarios time the same parser.ts, so
 		// the note's ordering claim is checkable across them
 		const delivery = benchmarks_cli.scenarios.find((s) => s.key === CLI_DELIVERY_KEY);

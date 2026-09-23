@@ -30,9 +30,9 @@ IMPORTANT for AI agents: Do NOT run `gro dev` - the developer will manage the de
 - Gro (`@fuzdev/gro`) - build system and task runner
 - tsv (via Gro) - code formatting
 - mdz (`@fuzdev/mdz`) - markdown preprocessor wired into `svelte.config.js`
-- `@fuzdev/tsv-wasm` - tsv's formatter + parser as WASM; powers the playground, loaded lazily in the browser
+- `@fuzdev/tsv-wasm` - tsv's formatter + parser as wasm; powers the playground, loaded lazily in the browser
 
-Note: `@fuzdev/tsv-wasm` is loaded only on `/docs/playground` via a browser-only dynamic `import()`, so the ~1MB-gzipped WASM (~2.5MB decoded) never weighs down `/docs` or the prerendered pages.
+Note: `@fuzdev/tsv-wasm` is loaded only on `/docs/playground` via a browser-only dynamic `import()`, so the ~1MB-gzipped wasm (~2.5MB decoded) never weighs down `/docs` or the prerendered pages.
 
 Note: several devDependencies — `@webref/css` (CSS spec data), `zimmerframe` (AST traversal), `@sveltejs/acorn-typescript`, `zod`, and `@fuzdev/blake3-wasm` — are *optional peer dependencies* of `@fuzdev/fuz_css`'s `vite_plugin_fuz_css`, declared here so its build-time CSS generation resolves them (e.g. `css_literal.ts` imports `@webref/css`, `css_class_extractor.ts` walks ASTs with `zimmerframe`). Of those only `zod` is imported by this app's own source — `formatter_benchmark_data.ts`'s schemas, read at gen and test time and as erased types by the page, so it never reaches the client bundle — so don't mistake the rest for dead deps. Likewise `esm-env`, `@types/estree`, and `@types/node` are peers of `@fuzdev/fuz_util` (the latter two optional), and `esm-env` and `@types/estree` optional peers of `@fuzdev/mdz` and `esm-env` of `@fuzdev/fuz_ui`, and `tslib` backs `tsconfig.json`'s `importHelpers` — none is imported here directly either.
 
@@ -46,7 +46,7 @@ tsv.fuz.dev is the public face of the tsv tool:
 - Benchmarks page with bar charts and tables, and a language-support matrix of the tools compared
 - Docs section (introduction, playground, benchmarks, conformance)
 - Conformance page with per-corpus-source parse-coverage tables over deliberately hard corpora, and a `Test corpus` section on how each source was chosen
-- Interactive playground (`/docs/playground`) — edit a deliberately-unformatted Svelte example in a syntax-highlighted editor (fuz_code's `CodeTextarea`); the formatted output below it updates live and the parsed AST follows on a short idle; runs `@fuzdev/tsv-wasm` as lazily-loaded WASM
+- Interactive playground (`/docs/playground`) — edit a deliberately-unformatted Svelte example in a syntax-highlighted editor (fuz_code's `CodeTextarea`); the formatted output below it updates live and the parsed AST follows on a short idle; runs `@fuzdev/tsv-wasm` as lazily-loaded wasm
 - Theme controls via fuz_ui's `ThemeRoot` in the root layout (no separate about/settings page)
 - Shows install instructions: the `fuzdev.tsv-format` VS Code extension, then the native `@fuzdev/tsv` (prebuilt N-API addon for Node/Bun, ships the `tsv` CLI), then `@fuzdev/tsv-wasm` (universal, same `tsv` CLI) and the format/parse subsets
 
@@ -185,9 +185,9 @@ the components' scripts hold no untested reductions.
 - `docs/tomes.ts` defines the doc sections: introduction, playground, benchmarks, conformance
 - Benchmark data, modules, and the refresh workflow: see [Benchmarks](#benchmarks)
 - Tests import route modules through the `$routes` alias (`svelte.config.js`), not a `#routes/*` subpath import — this repo has no `package.json` `imports` map; routes import each other relatively
-- The `/docs` index renders every tome's component through `DocsContent`, so the playground, benchmarks, and conformance tomes check `at_root` (`page.url.pathname === DOCS_PATH`) and render only a one-line link there, keeping the WASM, the charts, and their section ids off the index
+- The `/docs` index renders every tome's component through `DocsContent`, so the playground, benchmarks, and conformance tomes check `at_root` (`page.url.pathname === DOCS_PATH`) and render only a one-line link there, keeping the wasm, the charts, and their section ids off the index
 - `library.ts` builds component metadata at runtime from the `virtual:svelte-docinfo` module (provided by the `svelte-docinfo` Vite plugin); the docs index passes it to `DocsContent`
-- The playground (`/docs/playground`) loads `@fuzdev/tsv-wasm` via a browser-only dynamic `import()` inside `Playground.svelte`, so the WASM code-splits into its own chunk fetched only on that route, keeping `/docs` and the prerendered pages WASM-free. `@fuzdev/tsv-wasm` is in `vite.config.ts` `optimizeDeps.exclude` (like `@fuzdev/blake3-wasm`)
+- The playground (`/docs/playground`) loads `@fuzdev/tsv-wasm` via a browser-only dynamic `import()` inside `Playground.svelte`, so the wasm code-splits into its own chunk fetched only on that route, keeping `/docs` and the prerendered pages wasm-free. `@fuzdev/tsv-wasm` is in `vite.config.ts` `optimizeDeps.exclude` (like `@fuzdev/blake3-wasm`)
 - The playground's formatted pane recomputes on every keystroke (formatting is ~1 ms even on a 9 KB component) while the AST pane trails a ~150 ms idle: the AST is parsed, serialized, and syntax-highlighted — around half a megabyte of it for that same component — and rebuilding that DOM per keystroke is what a large paste feels. The top-level error is the live pane's; the AST pane renders its own, since its debounced source can still be the broken text the editor has moved past
 - The playground's editor is fuz_code's `CodeTextarea` (live syntax highlighting via the experimental CSS Custom Highlight API). It needs `@fuzdev/fuz_code/theme_highlight.css`, imported inside `Playground.svelte` rather than the root layout so it stays on this route only; `supports_css_highlight_api()` drives a graceful-degradation note where the API is unavailable (the editor still works, unstyled)
 

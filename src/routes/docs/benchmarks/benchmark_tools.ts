@@ -109,7 +109,7 @@ export const TOOL_SUPPORT: ReadonlyArray<ToolSupport> = [
 			scss: { format: true },
 			svelte: { format: 'prettier' }
 		},
-		other: 'JSON, TOML, and via Prettier YAML, GraphQL, Markdown, …',
+		other: 'JSON, TOML, YAML, GraphQL; Markdown, HTML, Vue, … via Prettier',
 		rows: { parse: ['oxc-parser', 'oxc-parser-wasm'], format: ['oxfmt'] },
 		cli_labels: ['oxfmt']
 	},

@@ -2,6 +2,8 @@ import { assert, describe, test } from 'vitest';
 
 import {
 	format_bytes,
+	format_cli_corpus,
+	format_commit,
 	format_gzip_size,
 	format_count,
 	format_coverage_percent,
@@ -272,21 +274,31 @@ describe('format_group_omissions', () => {
 		]
 	};
 
-	test('several files by several rows flags the overlap', () => {
+	test('several files by several rows lists each row, flagging the overlap', () => {
 		assert.strictEqual(
 			format_group_omissions(omissions),
-			"2 of 951 files (11.2% of this group's bytes) left out of every row's timed set, because a row here fails them in this harness — files failed, by row (rows can overlap): biome (wasm) 2, oxfmt (node napi) 1"
+			"2 of 951 files (11.2% of the group's bytes) are left out of every row, because rows here fail them in this harness — by row, overlapping: biome (wasm) 2, oxfmt (node napi) 1."
 		);
 	});
 
-	test('one file by one row takes a singular pronoun, with no overlap flag', () => {
+	test('one row is named outright, without a count', () => {
+		assert.strictEqual(
+			format_group_omissions({
+				...omissions,
+				by_tool: [{ name: 'biome-wasm', files: 2, bytes: 112, categories: {} }]
+			}),
+			"2 of 951 files (11.2% of the group's bytes) are left out of every row, because biome (wasm) fails them in this harness."
+		);
+	});
+
+	test('one file takes a singular pronoun', () => {
 		assert.strictEqual(
 			format_group_omissions({
 				...omissions,
 				omitted_files: 1,
 				by_tool: [{ name: 'oxfmt', files: 1, bytes: 112, categories: {} }]
 			}),
-			"1 of 951 files (11.2% of this group's bytes) left out of every row's timed set, because a row here fails it in this harness — files failed, by row: oxfmt (node napi) 1"
+			"1 of 951 files (11.2% of the group's bytes) are left out of every row, because oxfmt (node napi) fails it in this harness."
 		);
 	});
 });
@@ -295,5 +307,43 @@ describe('format_report_date', () => {
 	test('reads the day in UTC, whatever the local zone', () => {
 		// a moment that is still the 22nd west of UTC
 		assert.strictEqual(format_report_date('2026-09-23T01:44:33.674Z'), 'September 23, 2026');
+	});
+});
+
+describe('format_commit', () => {
+	test('abbreviates a full or longer-abbreviated SHA to one length', () => {
+		assert.strictEqual(format_commit('b4c8d2862dc13b0e04512dc2c5dd5f79a6c74c1b'), 'b4c8d28');
+		assert.strictEqual(format_commit('23392a6e'), '23392a6');
+		assert.strictEqual(format_commit('abc1234'), 'abc1234');
+	});
+});
+
+describe('format_cli_corpus', () => {
+	test('a git corpus reads as a commit with its date', () => {
+		assert.strictEqual(format_cli_corpus('8cf997c 2026-07-14'), 'commit 8cf997c (2026-07-14)');
+	});
+
+	test('a single file gets byte separators and keeps its content hash', () => {
+		assert.strictEqual(
+			format_cli_corpus('539588 bytes, sha256:dcddb577aa14'),
+			'539,588 bytes, sha256:dcddb577aa14'
+		);
+	});
+
+	test('a corpora snapshot abbreviates its commit and tree ids', () => {
+		assert.strictEqual(
+			format_cli_corpus(
+				'fuzdev/corpora@1117b4829309 (collections tree 5f40c547c3ed), snapshot 6214069 2026-09-04'
+			),
+			'fuzdev/corpora@1117b48 (collections tree 5f40c54), snapshot 6214069 (2026-09-04)'
+		);
+	});
+
+	test('an all-digit run is a number, not an id', () => {
+		assert.strictEqual(format_cli_corpus('12345678 bytes'), '12,345,678 bytes');
+	});
+
+	test('an unrecognized line passes through', () => {
+		assert.strictEqual(format_cli_corpus('unknown (ENOENT)'), 'unknown (ENOENT)');
 	});
 });

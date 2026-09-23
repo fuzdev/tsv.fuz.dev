@@ -41,7 +41,7 @@
 			Compared to Oxc, Biome, and SWC, tsv is a set of focused tools, not an extensible language
 			platform, so the focus is Web standards + TS + Svelte and there's no support for JSX/SCSS/etc.
 			tsv's extensibility story is currently limited to using its Rust crates as libraries (or
-			forking); bridging to JS or WASM plugins is an open question (leaning against).
+			forking); bridging to JS or wasm plugins is an open question (leaning against).
 		</p>
 		<p>
 			Compared to <a href="https://github.com/baseballyama/rsvelte">rsvelte</a>, tsv has its own
@@ -86,7 +86,7 @@
 				For format-on-save in VSCode and vsix-compatible editors, install the
 				<a href="https://github.com/fuzdev/vscode-extension-tsv-format">
 					<code>fuzdev.tsv-format</code> extension
-				</a>. It runs tsv's WASM build, so it works in both desktop VSCode and the browser host:
+				</a>. It runs tsv's wasm build, so it works in both desktop VSCode and the browser host:
 			</p>
 			<ul>
 				<li>
@@ -114,7 +114,7 @@
 			</p>
 			<p>
 				The native package covers Linux (x64 gnu and musl, arm64 gnu), macOS (arm64 and x64), and
-				Windows x64 — anywhere else, use the WASM build below.
+				Windows x64 — anywhere else, use the wasm build below.
 			</p>
 			<p>
 				The same CLI binaries are also attached to each
@@ -122,7 +122,7 @@
 				<code>SHA256SUMS</code> and a build provenance attestation, for use without npm.
 			</p>
 			<p>
-				tsv also ships as WASM, which runs everywhere including browsers and Deno, and carries the
+				tsv also ships as wasm, which runs everywhere including browsers and Deno, and carries the
 				same <code>tsv</code> CLI (formatting across worker threads, so <code>--jobs</code> works
 				there too):
 			</p>
@@ -162,7 +162,7 @@
 				parse fails, so a legacy sloppy script needs no options.
 			</p>
 			<p>
-				The native package needs no initialization; the WASM packages work zero-config in Node.js,
+				The native package needs no initialization; the wasm packages work zero-config in Node.js,
 				Bun, and Deno (sync auto-init), and browsers and bundlers call
 				<Code lang="ts" content="await init()" inline /> once first.
 			</p>
@@ -214,7 +214,7 @@
 			<ul>
 				<li>
 					<a href="https://github.com/fuzdev/tsv">github.com/fuzdev/tsv</a> — the formatter, parser,
-					WASM bindings, CLI, etc.
+					wasm bindings, CLI, etc.
 				</li>
 				<li>
 					<a href="https://github.com/fuzdev/tsv.fuz.dev">github.com/fuzdev/tsv.fuz.dev</a> — this

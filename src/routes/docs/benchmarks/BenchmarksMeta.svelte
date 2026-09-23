@@ -2,7 +2,7 @@
 	import { site_context } from '@fuzdev/fuz_ui/site.svelte.ts';
 
 	import type { BenchmarkBaseline } from './benchmark_data.ts';
-	import { format_report_date, format_version_label } from './benchmark_display.ts';
+	import { format_commit, format_report_date, format_version_label } from './benchmark_display.ts';
 
 	const {
 		baseline,
@@ -47,7 +47,7 @@
 			<li>tsv {baseline.versions.tsv}</li>
 			<li>
 				<!-- eslint-disable-next-line svelte/no-navigation-without-resolve -->
-				<a href={commit_url} rel="external">{baseline.git_commit}</a>
+				<a href={commit_url} rel="external">{format_commit(baseline.git_commit)}</a>
 			</li>
 		</ul>
 	</div>

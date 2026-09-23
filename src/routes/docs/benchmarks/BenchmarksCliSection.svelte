@@ -18,6 +18,7 @@
 		type CliMetric
 	} from './benchmarks_cli.ts';
 	import {
+		format_commit,
 		format_ms,
 		format_ms_range,
 		format_ratio_approx,
@@ -57,7 +58,7 @@
 	// the same cost as a share: the delivery table's one file, then the multi-file repo
 	const delivery_npm_wall = bare_ratio(CLI_DELIVERY_KEY, CLI_TSV_NPM_LABEL);
 	const npm_ts_cost = bare_ratio(CLI_TS_REPO_KEY, CLI_TSV_NPM_LABEL);
-	// what the WASM package costs over the native binary, from the tsv-only delivery scenario
+	// what the wasm package costs over the native binary, from the tsv-only delivery scenario
 	const wasm_wall = bare_ratio(CLI_DELIVERY_KEY, CLI_TSV_WASM_LABEL);
 	const wasm_memory = bare_ratio(CLI_DELIVERY_KEY, CLI_TSV_WASM_LABEL, 'memory_mb');
 	// the idle before each formatter's warmups, which narrows the run-order drift —
@@ -89,14 +90,19 @@
 		that <a href="https://github.com/ryanatkn/oxc-bench-formatter" rel="external">adds tsv</a>. It
 		times the whole CLI end to end — process spawn, file discovery, I/O, each tool's default
 		multi-file parallelism — plus peak memory: what you experience typing the command, on real code.
-		The fork's JSX scenarios are left out, since tsv has no JSX/TSX parser. Every formatter is
+		Upstream's JSX scenarios are left out, since tsv has no JSX/TSX parser. Every formatter is
 		installed from npm, pinned by the fork's lockfile, and the other tools are timed through their
-		packages' Node bins. Facing them, tsv gets two rows. <code>{CLI_TSV_NPM_LABEL}</code> is the
+		packages' Node bins. Against them, tsv has two rows. <code>{CLI_TSV_NPM_LABEL}</code> is the
 		like-for-like one: the Node bin of
 		<a href="https://www.npmjs.com/package/@fuzdev/tsv"><code>@fuzdev/tsv</code></a>, what
-		<code>npx tsv</code> runs, launching the native binary as Biome's and rsvelte-fmt's bins do.
-		<code>tsv</code> runs the binary directly from the platform package, skipping Node: what the
-		binary costs on its own.
+		<code>npx tsv</code> runs, launching the native binary as Biome's and rsvelte-fmt's bins do. The
+		plain <code>tsv</code> row runs the binary directly from the platform package, skipping Node:
+		what the binary costs on its own.
+	</p>
+	<p>
+		Each table's ratios are against its highlighted row — <code>{CLI_TSV_NPM_LABEL}</code> where tsv
+		faces other tools, the bare binary in the tsv-only table — and a minus means that many times
+		worse; hover another row to re-anchor them.
 	</p>
 	<BenchmarksCli report={benchmarks_cli} />
 	<aside>
@@ -108,20 +114,20 @@
 			</li>
 			<li>
 				tsv, Oxfmt, Biome, and rsvelte-fmt parallelize across files; Prettier's stable CLI formats
-				them one at a time (Prettier 3.9's parallel CLI sits behind <code>--experimental-cli</code>,
-				which the harness leaves off). No tool's thread count is pinned, so the wall-clock ratios
-				bake in each tool's parallelism, scale with core count, and mean little apart from this
-				machine. The CPU ratio column —
+				them one at a time (its worker pool needs <code>--experimental-cli</code> plus that CLI's
+				<code>--parallel</code>, which the harness leaves off). No tool's thread count is pinned, so
+				the wall-clock ratios bake in each tool's parallelism, scale with core count, and mean
+				little apart from this machine. The CPU ratio column —
 				<a href="https://github.com/sharkdp/hyperfine">hyperfine</a>'s user plus system time, summed
 				across threads and child processes — is the parallelism-neutral view, but only a rough
 				engine proxy: it also counts work beside the formatting, enough that even Prettier's CPU
 				time runs above its wall-clock.
 			</li>
 			<li>
-				CPU ratios barely move between tsv's two rows, since the dispatcher's fixed launch cost is
-				small beside the CPU a repo takes: on the TypeScript repo tsv leads Oxfmt
-				~{npm_ts_cpu_vs_oxfmt} in CPU through the dispatcher and ~{ts_cpu_vs_oxfmt} as the bare
-				binary, where wall-clock swings from ~{npm_ts_vs_oxfmt} to ~{ts_wall_vs_oxfmt}.
+				On the multi-file scenarios, CPU ratios barely move between tsv's two rows, since the
+				dispatcher's fixed launch cost is small beside the CPU a repo takes: on the TypeScript repo
+				tsv leads Oxfmt ~{npm_ts_cpu_vs_oxfmt} in CPU through the dispatcher and ~{ts_cpu_vs_oxfmt}
+				as the bare binary, where wall-clock swings from ~{npm_ts_vs_oxfmt} to ~{ts_wall_vs_oxfmt}.
 			</li>
 			<li>
 				tsv's dispatcher adds a fixed ~{npm_overhead} over the bare binary, most of it Node's own
@@ -129,26 +135,28 @@
 				machine), which every other npm-bin row pays too. That makes it ~{delivery_npm_wall} the
 				binary's time on the delivery table's one file, but ~{npm_ts_cost} on the TypeScript repo.
 				<a href="https://www.npmjs.com/package/@fuzdev/tsv-wasm"><code>@fuzdev/tsv-wasm</code></a>
-				takes ~{wasm_wall} the binary's time and ~{wasm_memory} its memory on that one file: still
-				well ahead of both Prettier rows on the large single file, behind Oxfmt and Biome.
+				takes ~{wasm_wall} the binary's time and ~{wasm_memory} its memory on that one file — still
+				well ahead of both Prettier rows there, but behind Oxfmt and Biome.
 			</li>
 			<li>
 				Through its dispatcher tsv uses {format_ratio_range(npm_memory)} less peak memory than every
 				other tool in every scenario, and as the bare binary {format_ratio_range(memory)} less. Peak
 				RSS comes from a separate pass without warmups, as many runs as the timed one, and counts
 				the largest single process in each command's tree, not the sum, so a row that launches a
-				native binary from Node — Biome's, rsvelte-fmt's, and tsv's dispatcher — is understated, and
-				the dispatcher row reads Node's peak rather than the binary's.
+				native binary from Node — Biome, rsvelte-fmt, and tsv through its dispatcher — is
+				understated, and the dispatcher row reads Node's peak rather than the binary's.
 			</li>
 			<li>
-				As in-process, every formatter is pinned to tsv's style in its own dialect — outputs still
-				differ where the tools decide differently — so these rows don't compare with upstream's
-				published numbers, which leave the tools nearer their defaults. Before timing, a preflight
-				run of each tool's check mode asserts that every formatter parses every file, that those
-				reporting a file count report the same one, and that each finds at least one file to change,
-				so a mis-scoped tool formatting nothing can't post an unbeatable time. A scenario whose
-				preflight fails, or whose timed run errors partway, is published as aborted rather than
-				timed around or dropped.
+				As in-process, every formatter is pinned to tsv's style in its own dialect (outputs still
+				differ where the tools decide differently), so these rows don't compare with upstream's
+				published numbers, which leave the tools nearer their defaults.
+			</li>
+			<li>
+				Before timing, a preflight run of each tool's check mode asserts that every formatter parses
+				every file, that those reporting a file count report the same one, and that each finds at
+				least one file to change, so a mis-scoped tool formatting nothing can't post an unbeatable
+				time. A scenario whose preflight fails, whose timed run errors partway, or whose memory pass
+				crashes is published as aborted rather than timed around or dropped.
 			</li>
 			<li>
 				The tools, the single file (the TypeScript compiler's <code>parser.ts</code> at a pinned
@@ -168,17 +176,18 @@
 	<p>
 		This section ran on {cli_date}, from
 		<!-- eslint-disable-next-line svelte/no-navigation-without-resolve -->
-		<a href={cli_commit_url}>its harness at {benchmarks_cli.git_commit}</a>{benchmarks_cli.git_dirty
-			? ' with uncommitted changes'
-			: ''}, on the same machine and Node as the in-process runs and with the same versions of the
-		tools both time (listed under <a href="#{docs_slugify(details_title)}">{details_title}</a>),
-		across {benchmarks_cli.machine.threads} threads, which its multi-file wall-clock scales with.
+		<a href={cli_commit_url}>
+			its harness at {format_commit(benchmarks_cli.git_commit)}
+		</a>{benchmarks_cli.git_dirty ? ' with uncommitted changes' : ''}, on the same machine and Node
+		as the in-process runs ({benchmarks_cli.machine.threads} threads, which its multi-file
+		wall-clock scales with). The versions of the tools both sections time are listed under
+		<a href="#{docs_slugify(details_title)}">{details_title}</a>;
 		{#if cli_tsv_binary.source === 'package'}
-			Its native tsv rows run the <code>{cli_tsv_binary.package}</code> binary,
+			its native tsv rows run the <code>{cli_tsv_binary.package}</code> binary,
 		{:else}
-			Its native tsv rows run a local
+			its native tsv rows run a local
 			build{cli_tsv_binary.built ? ` from ${cli_tsv_binary.built}` : ''},
 		{/if}
-		and its WASM row runs <code>@fuzdev/tsv-wasm</code> {cli_tsv_wasm_version}.
+		and its wasm row <code>@fuzdev/tsv-wasm</code> {cli_tsv_wasm_version}.
 	</p>
 </TomeSection>

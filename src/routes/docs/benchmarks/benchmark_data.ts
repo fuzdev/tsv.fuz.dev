@@ -208,7 +208,8 @@ export const corpus_repo_ref_url = (repo: CorpusRepoRef): string => {
 		: `${repo.url}/tree/${repo.commit}`;
 };
 
-const COMMIT_LABEL_LENGTH = 9;
+/** How many characters of a commit SHA the page prints. */
+export const COMMIT_LABEL_LENGTH = 7;
 
 /** A repo ref's commit as prose and tables print it, `undefined` for an unpinned ref. */
 export const corpus_repo_ref_commit = (repo: CorpusRepoRef): string | undefined =>
@@ -295,11 +296,11 @@ export interface BaselineVersions {
 	yuku_parser_wasm?: string;
 	biome?: string;
 	// `@dprint/typescript` — the plugin version (the host `@dprint/formatter` is
-	// just the Wasm loader).
+	// just the wasm loader).
 	dprint?: string;
 	// `@rsvelte/fmt` — the coverage-only Svelte formatter row.
 	rsvelte_fmt?: string;
-	// `dprint-plugin-malva` — dprint's CSS formatter plugin, over the same Wasm
+	// `dprint-plugin-malva` — dprint's CSS formatter plugin, over the same wasm
 	// host as `dprint` above.
 	malva?: string;
 	// `postcss` — the CSS parser row.
@@ -398,7 +399,7 @@ const CATEGORY_BY_NAME: Record<string, ImplementationCategory> = {
 	'tsv-wasm-internal': 'tsv_wasm',
 	'biome-wasm': 'biome',
 	'dprint-wasm': 'dprint',
-	// malva is dprint's own CSS plugin, loaded through the same Wasm host, so it
+	// malva is dprint's own CSS plugin, loaded through the same wasm host, so it
 	// shares dprint's category rather than claiming a hue of its own — the palette
 	// has ten and all ten are spoken for.
 	'malva-wasm': 'dprint',

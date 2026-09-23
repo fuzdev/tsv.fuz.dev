@@ -53,7 +53,7 @@ describe('derive_corpus_source_table', () => {
 				label: 'fuzdev/zzz',
 				subpath: undefined,
 				url: 'https://github.com/fuzdev/zzz/tree/0123456789abcdef0123456789abcdef01234567/src',
-				commit: '012345678',
+				commit: '0123456',
 				files: 5,
 				by_language: [3, 2, 0]
 			},

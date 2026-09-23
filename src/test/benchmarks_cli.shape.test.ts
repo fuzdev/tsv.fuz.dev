@@ -4,11 +4,13 @@ import { benchmarks_json } from '$routes/docs/benchmarks/benchmarks.ts';
 import { benchmarks_formatters_json } from '$routes/docs/benchmarks/benchmarks_formatters.ts';
 import {
 	benchmarks_cli,
+	cli_corpora_commit,
 	cli_default_anchor_label,
 	cli_settle_seconds,
 	CLI_DELIVERY_KEY,
 	CLI_SCENARIO_KEYS,
 	CLI_SINGLE_FILE_KEY,
+	CLI_SVELTE_KEY,
 	CLI_TSV_LABEL,
 	CLI_TSV_NPM_LABEL
 } from '$routes/docs/benchmarks/benchmarks_cli.ts';
@@ -147,6 +149,14 @@ describe('benchmarks_cli shape', () => {
 			assert.isNotEmpty(scenario.corpus, `${scenario.key} records no corpus`);
 			assert.notMatch(scenario.corpus, /unknown|not a git checkout/, scenario.key);
 		}
+	});
+
+	test('the Svelte corpus names the corpora commit the Corpus section compares its pin to', () => {
+		// "vendored at a different corpora commit" is said only while the pins differ,
+		// so a corpus line this can't read would drop the note silently
+		const svelte = benchmarks_cli.scenarios.find((s) => s.key === CLI_SVELTE_KEY);
+		assert.isDefined(svelte);
+		assert.isDefined(cli_corpora_commit(svelte.corpus), svelte.corpus);
 	});
 
 	test('every formatter accepts the whole corpus in every timed scenario, as the page claims', () => {

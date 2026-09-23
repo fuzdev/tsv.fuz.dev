@@ -1,10 +1,11 @@
 // Display helpers shared by the benchmarks and conformance pages: value formatters for
 // times, sizes, and ratios, the row labels, and the per-category colors.
 
-import type {
-	BenchmarkBaseline,
-	GroupOmissions,
-	ImplementationCategory
+import {
+	COMMIT_LABEL_LENGTH,
+	type BenchmarkBaseline,
+	type GroupOmissions,
+	type ImplementationCategory
 } from './benchmark_data.ts';
 
 /** A count with thousands separators (`44,220`), pinned to one locale so prerendered and hydrated output agree. */
@@ -367,18 +368,38 @@ export const format_runtime_display = (
 /**
  * The note under a timed group whose intersection left files out. Bytes beside the
  * count, since one large file is a bigger share of the work than its count suggests.
- * `by_tool` counts are per row and `omitted_files` is their union, so two rows failing
- * one file sum past it — the copy says "by row" and flags the overlap when there can be one.
- * Rows are named as the chart labels them (`format_label`).
+ * One failing row is named outright, its count being the total. Several are listed
+ * with their per-row counts, which can overlap: `omitted_files` is their union, so
+ * two rows failing one file sum past it. Rows are named as the chart labels them
+ * (`format_label`).
  */
 export const format_group_omissions = (omissions: GroupOmissions): string => {
-	const is_one = omissions.omitted_files === 1;
+	const pronoun = omissions.omitted_files === 1 ? 'it' : 'them';
+	const lead = `${format_count(omissions.omitted_files)} of ${format_count(omissions.files_total)} files (${format_percent(omissions.omitted_bytes, omissions.bytes_total)} of the group's bytes) are left out of every row`;
+	const [only] = omissions.by_tool;
+	if (omissions.by_tool.length === 1 && only) {
+		return `${lead}, because ${format_label(only.name)} fails ${pronoun} in this harness.`;
+	}
 	const tools = omissions.by_tool
 		.map((t) => `${format_label(t.name)} ${format_count(t.files)}`)
 		.join(', ');
-	return `${format_count(omissions.omitted_files)} of ${format_count(omissions.files_total)} files (${format_percent(omissions.omitted_bytes, omissions.bytes_total)} of this group's bytes) left out of every row's timed set, because a row here fails ${
-		is_one ? 'it' : 'them'
-	} in this harness — files failed, by row${
-		omissions.by_tool.length > 1 ? ' (rows can overlap)' : ''
-	}: ${tools}`;
+	return `${lead}, because rows here fail ${pronoun} in this harness — by row, overlapping: ${tools}.`;
 };
+
+/** A commit SHA as the page prints it, abbreviated to one length everywhere. */
+export const format_commit = (sha: string): string => sha.slice(0, COMMIT_LABEL_LENGTH);
+
+/**
+ * A CLI scenario's corpus provenance line, lightly formatted for the page: the
+ * harness prints `<sha> <date>` for a git corpus and `<n> bytes, sha256:<hash>` for
+ * a single file. Commit and tree ids are abbreviated as `format_commit` does
+ * (content hashes after `sha256:` stay as printed), a date beside a commit is
+ * parenthesized, a bare commit is labeled one, and byte counts get separators.
+ * Anything else passes through unchanged.
+ */
+export const format_cli_corpus = (corpus: string): string =>
+	corpus
+		.replace(/(?<!sha256:)\b(?=[0-9]*[a-f])[0-9a-f]{8,40}\b/g, format_commit)
+		.replace(/\b([0-9a-f]{7,40}) (\d{4}-\d{2}-\d{2})\b/g, '$1 ($2)')
+		.replace(/^(?=[0-9]*[a-f])([0-9a-f]{7,40}) \(/, 'commit $1 (')
+		.replace(/\b(\d+) bytes\b/g, (_, n: string) => `${format_count(Number(n))} bytes`);

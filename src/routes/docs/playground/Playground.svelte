@@ -12,7 +12,7 @@
 	import { playground_example } from './playground_example.ts';
 
 	// `@fuzdev/tsv-wasm` is loaded lazily, in the browser only — a dynamic import
-	// so the ~1MB-gzipped WASM lands in its own chunk, fetched the first time this
+	// so the ~1MB-gzipped wasm lands in its own chunk, fetched the first time this
 	// component mounts and never pulled into `/docs` or the prerendered HTML.
 	let tsv: typeof import('@fuzdev/tsv-wasm') | null = $state(null);
 	let load_error: string | null = $state(null);
@@ -26,7 +26,7 @@
 	// A tsv call's outcome: its string result, or the thrown error's message.
 	type Outcome = { value: string; error: null } | { value: null; error: string };
 
-	// Run a tsv call, capturing a thrown error as a message; `null` until the WASM
+	// Run a tsv call, capturing a thrown error as a message; `null` until the wasm
 	// loads. Lets `formatted` and `ast` share one shape and recompute as `source` changes
 	// — no blur or button.
 	const run = (fn: (t: NonNullable<typeof tsv>) => string): Outcome | null => {
@@ -96,7 +96,7 @@
 	};
 
 	// format the editable source in place — writes the formatted result back into
-	// the editor; no-op while the WASM is loading or the input doesn't parse
+	// the editor; no-op while the wasm is loading or the input doesn't parse
 	const format = (): void => {
 		if (!formatted || formatted.error !== null) return;
 		source = formatted.value;
