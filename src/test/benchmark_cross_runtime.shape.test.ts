@@ -63,6 +63,13 @@ describe('benchmarks_cross_runtime.json shape', () => {
 				// ratios anchor on node (the display-order base, not the report's
 				// deno-first storage order), so node's own ratio is exactly 1
 				assert.strictEqual(row.ratio_vs_base.node, 1, `${group.group}/${row.name} node anchor`);
+				// the tables print `mean_ns` beside ratios taken over `ops_per_second`,
+				// so the two must be one measurement
+				for (const [runtime, ops] of Object.entries(row.ops_per_second)) {
+					const mean = row.mean_ns[runtime as keyof typeof row.mean_ns];
+					assert(mean !== undefined, `${group.group}/${row.name} missing ${runtime} mean`);
+					assert.approximately(ops * mean, 1e9, 1e3, `${group.group}/${row.name} ${runtime}`);
+				}
 			}
 		}
 	});

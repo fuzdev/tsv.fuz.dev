@@ -16,6 +16,7 @@
 	import {
 		category_color,
 		format_group_label,
+		format_ns,
 		format_speedup,
 		format_unstable_readings
 	} from './benchmark_display.ts';
@@ -46,10 +47,15 @@
 
 	// the `fail` legend is explained only while some cell renders one
 	const has_fail = $derived(
-		groups.some((g) => g.rows.some((row) => runtimes.some((r) => row.ops_per_second[r] == null)))
+		groups.some((g) => g.rows.some((row) => runtimes.some((r) => row.mean_ns[r] == null)))
 	);
 
-	const format_ops = (n: number | undefined): string => (n == null ? 'fail' : n.toFixed(2));
+	// ms per sweep, as the per-runtime charts above print it
+	const format_mean = (ns: number | undefined): string => {
+		if (ns == null) return 'fail';
+		const { value, unit } = format_ns(ns);
+		return `${value} ${unit}`;
+	};
 
 	// An absent number reads as a load failure only when the report says so; every
 	// other gap is a row that runtime never measured, which a mixed-vintage report set
@@ -95,9 +101,9 @@
 	</aside>
 {/if}
 <p>
-	sweeps/sec — one sweep is a full pass over the group's timed file set (higher is faster); ratios
-	are vs <code>{base}</code>, negative when slower than it. The other tools' <code>native</code>
-	rows are their npm N-API addons under all three runtimes.
+	Time per sweep — one sweep is a full pass over the group's timed file set, as in the charts above;
+	ratios are vs <code>{base}</code>, negative when slower than it. The other tools'
+	<code>native</code> rows are their npm N-API addons under all three runtimes.
 	{#if has_fail}
 		A <code>fail</code> is a row that runtime contributed no number for — an implementation it can't
 		load (listed above when the report records it), or one its report doesn't carry.
@@ -128,7 +134,7 @@
 							<th scope="col" class="benchmarks-num">{runtime}</th>
 						{/each}
 						{#each others as runtime (runtime)}
-							<th scope="col" class="benchmarks-num">{runtime}/{base}</th>
+							<th scope="col" class="benchmarks-num">{runtime} vs {base}</th>
 						{/each}
 					</tr>
 				</thead>
@@ -141,17 +147,17 @@
 								{format_cross_runtime_label(row.name)}
 							</th>
 							{#each runtimes as runtime (runtime)}
-								{@const ops = row.ops_per_second[runtime]}
+								{@const mean = row.mean_ns[runtime]}
 								{@const cell_unstable = is_cell_unstable(report, group.group, row.name, runtime)}
 								<td
 									class="benchmarks-num"
-									title={ops == null
+									title={mean == null
 										? missing_cell_title(row.name, runtime)
 										: cell_unstable
 											? 'this measurement was not stable — see the note above the tables'
 											: undefined}
 								>
-									{format_ops(ops)}{cell_unstable ? ' ⚠' : ''}
+									{format_mean(mean)}{cell_unstable ? ' ⚠' : ''}
 								</td>
 							{/each}
 							{#each others as runtime (runtime)}

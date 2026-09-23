@@ -104,10 +104,10 @@
 		<ul>
 			<li>
 				<code>prettier + oxc-parser</code> is Prettier with <code>@prettier/plugin-oxc</code>, which
-				swaps in oxc's Rust parser while printing stays in JS.
+				swaps in Oxc's Rust parser while printing stays in JS.
 			</li>
 			<li>
-				tsv, oxfmt, biome, and rsvelte-fmt parallelize across files; prettier's stable CLI formats
+				tsv, Oxfmt, Biome, and rsvelte-fmt parallelize across files; Prettier's stable CLI formats
 				them one at a time (Prettier 3.9's parallel CLI sits behind <code>--experimental-cli</code>,
 				which the harness leaves off). No tool's thread count is pinned, so the wall-clock ratios
 				bake in each tool's parallelism, scale with core count, and mean little apart from this
@@ -137,9 +137,8 @@
 				other tool in every scenario, and as the bare binary {format_ratio_range(memory)} less. Peak
 				RSS comes from a separate pass without warmups, as many runs as the timed one, and counts
 				the largest single process in each command's tree, not the sum, so a row that launches a
-				native binary from Node — Biome's, rsvelte-fmt's, and tsv's dispatcher — is understated: the
-				smaller processes in its tree don't count, so the dispatcher row reads Node's peak, not the
-				binary's.
+				native binary from Node — Biome's, rsvelte-fmt's, and tsv's dispatcher — is understated, and
+				the dispatcher row reads Node's peak rather than the binary's.
 			</li>
 			<li>
 				As in-process, every formatter is pinned to tsv's style in its own dialect — outputs still

@@ -85,8 +85,10 @@ describe('CLI value formatting', () => {
 		assert.strictEqual(format_ms(1605.9), '1.6 s');
 	});
 
-	test('a span of ms collapses when both ends round alike', () => {
-		assert.strictEqual(format_ms_range({ min: 30.3, max: 31.3 }), '30–31 ms');
+	test('a span of ms collapses to its midpoint when the ends round at most 1 ms apart', () => {
+		assert.strictEqual(format_ms_range({ min: 28.2, max: 33.9 }), '28–34 ms');
+		assert.strictEqual(format_ms_range({ min: 30.3, max: 32.4 }), '30–32 ms');
+		assert.strictEqual(format_ms_range({ min: 30.3, max: 31.3 }), '31 ms');
 		assert.strictEqual(format_ms_range({ min: 30.3, max: 30.4 }), '30 ms');
 		assert.strictEqual(format_ms_range(undefined), '—');
 	});

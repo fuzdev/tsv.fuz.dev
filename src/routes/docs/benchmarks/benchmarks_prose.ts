@@ -20,8 +20,11 @@ export const IN_PROCESS_PAIRS = {
 	format_svelte_vs_prettier: ['format/svelte', 'prettier', 'tsv'],
 	format_svelte_vs_biome: ['format/svelte', 'biome-wasm', 'tsv-wasm'],
 	format_css_vs_oxfmt: ['format/css', 'oxfmt', 'tsv'],
+	format_css_vs_prettier: ['format/css', 'prettier', 'tsv'],
 	format_css_vs_biome: ['format/css', 'biome-wasm', 'tsv-wasm'],
 	parse_ts_vs_oxc: ['parse/typescript', 'oxc-parser', 'tsv-json-no-locations'],
+	// the drop-in comparison: tsv's default `loc`-bearing wire against the reference it replaces
+	parse_ts_vs_acorn: ['parse/typescript', 'acorn-typescript', 'tsv-json'],
 	// "carrying it costs ~Nx the hand-off time" — the loc-bearing wire over the span-only one
 	parse_ts_loc_cost: ['parse/typescript', 'tsv-json', 'tsv-json-no-locations'],
 	// the one entry that leads tsv's span-only wire, quoted in the direction the data runs

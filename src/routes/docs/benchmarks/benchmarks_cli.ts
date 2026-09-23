@@ -46,6 +46,11 @@ export interface CliScenarioCopy {
 	/** One-line description of what makes the comparison fair. */
 	description: string;
 	/**
+	 * Context appended to the abort note, rendered only when the scenario aborted —
+	 * a timed table doesn't need it.
+	 */
+	abort_context?: string;
+	/**
 	 * Every row is a tsv distribution, so the scenario compares tsv with itself and
 	 * says nothing about other tools — claims spanning "every other tool" skip it.
 	 */
@@ -173,7 +178,9 @@ const SCENARIO_COPY: Record<string, CliScenarioCopy> = {
 	[CLI_SVELTE_KEY]: {
 		heading: 'Svelte corpus',
 		description:
-			'Two Rust Svelte-native formatters head-to-head on a third-party .svelte corpus, rsvelte-fmt configured to tsv’s fixed style. Its time includes the oxfmt it launches for non-.svelte files, which walks the corpus and finds none. rsvelte-fmt 0.7.x crashes nondeterministically in the harness’s preflight on this corpus, aborting the scenario; the harness doesn’t retry, and since the crash has never been seen in a timed run, a table from a run that got through is unbiased.',
+			'Two Rust Svelte-native formatters head-to-head on a third-party .svelte corpus, rsvelte-fmt configured to tsv’s fixed style. Its time includes the Oxfmt it launches for non-.svelte files, which walks the corpus and finds none.',
+		abort_context:
+			'rsvelte-fmt’s crash on this corpus is nondeterministic, and the harness doesn’t retry.',
 		tsv_only: false
 	},
 	[CLI_DELIVERY_KEY]: {

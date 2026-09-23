@@ -70,14 +70,15 @@ export const format_ms = (ms: number): string =>
 	ms < 999.5 ? `${Math.round(ms)} ms` : `${(ms / 1000).toFixed(1)} s`;
 
 /**
- * A rounded millisecond span for prose (`30–31 ms`), collapsing to one figure when
- * both ends round alike; `—` for a missing one, as `format_ratio_approx`.
+ * A rounded millisecond span for prose (`28–34 ms`), collapsing to its rounded
+ * midpoint when the ends round at most 1 ms apart, a spread too fine to quote;
+ * `—` for a missing one, as `format_ratio_approx`.
  */
 export const format_ms_range = (range: { min: number; max: number } | undefined): string => {
 	if (!range) return '—';
 	const low = Math.round(range.min);
 	const high = Math.round(range.max);
-	return low === high ? `${low} ms` : `${low}–${high} ms`;
+	return high - low <= 1 ? `${Math.round((range.min + range.max) / 2)} ms` : `${low}–${high} ms`;
 };
 
 /** Peak memory in whole MiB (`50 MiB`); `—` when the harness measured none. */

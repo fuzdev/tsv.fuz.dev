@@ -158,6 +158,8 @@ export interface CrossRuntimeDisplayRow {
 	name: string;
 	category: ImplementationCategory;
 	ops_per_second: Partial<Record<BenchmarkRuntime, number>>;
+	// the mean time of one sweep per runtime, the unit the tables print
+	mean_ns: Partial<Record<BenchmarkRuntime, number>>;
 	// ratio of each runtime vs the base (first present) runtime; `> 1` = faster
 	ratio_vs_base: Partial<Record<BenchmarkRuntime, number>>;
 }
@@ -234,6 +236,7 @@ export const derive_cross_runtime_groups = (
 			name: row.name,
 			category: categorize_name(row.name),
 			ops_per_second: row.ops_per_second,
+			mean_ns: row.mean_ns,
 			ratio_vs_base
 		};
 	};

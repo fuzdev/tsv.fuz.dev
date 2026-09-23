@@ -28,7 +28,7 @@ export const TOOL_FOOTNOTES = {
 	plugin: 'via prettier-plugin-svelte',
 	prettier: 'via the Prettier it bundles, opt-in',
 	experimental: 'experimental, behind a flag',
-	oxc: "with oxc's formatters, linked in",
+	oxc: "with Oxc's formatters, linked in",
 	option: 'with its jsx option',
 	syntax: 'via a separate syntax package'
 } as const;
