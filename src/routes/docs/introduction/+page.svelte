@@ -8,30 +8,16 @@
 	import Svg from '@fuzdev/fuz_ui/Svg.svelte';
 	import { logo_tsv } from '@fuzdev/fuz_ui/logos.ts';
 
+	import {
+		format_example,
+		no_locations_example,
+		parse_example,
+		usage_example
+	} from './introduction_examples.ts';
+
 	const LIBRARY_ITEM_NAME = 'introduction';
 
 	const tome = tome_get_by_slug(LIBRARY_ITEM_NAME);
-
-	const usage_example = `import { format_svelte, parse_svelte, type Root } from '@fuzdev/tsv';
-
-const formatted = format_svelte('<script>\\nconst   x=1\\n<\\/script>');
-const ast: Root = parse_svelte('<script>const x = 1;<\\/script>');`;
-
-	const format_example = `import { format_svelte } from '@fuzdev/tsv-format-wasm';
-
-const formatted = format_svelte('<script>\\nconst   x=1\\n<\\/script>');`;
-
-	const parse_example = `import { parse_svelte, type Root } from '@fuzdev/tsv-parse-wasm';
-
-const ast: Root = parse_svelte('<script>const x = 1;<\\/script>');`;
-
-	const no_locations_example = `import { parse_typescript, reconstruct_locations } from '@fuzdev/tsv-parse-wasm';
-
-// span-only AST: start/end offsets, no per-node loc
-const ast = parse_typescript('const x = 1;', { locations: false });
-
-// derive line/column back when you need it, no re-parse
-reconstruct_locations(ast, 'const x = 1;');`;
 </script>
 
 <TomeContent {tome}>
@@ -119,8 +105,13 @@ reconstruct_locations(ast, 'const x = 1;');`;
 			</p>
 			<Code
 				lang="sh"
-				content={'npm i -D @fuzdev/tsv\nnpx tsv format src\nnpx tsv parse src/foo.svelte'}
+				content={'npm i -D @fuzdev/tsv\nnpx tsv format src\nnpx tsv format --check src\nnpx tsv parse src/foo.svelte'}
 			/>
+			<p>
+				<code>tsv format</code> writes changed files in place; <code>--check</code> writes nothing
+				and exits 1 if any file would change. Inside a git repo, discovery honors
+				<code>.gitignore</code>, <code>.prettierignore</code>, and <code>.formatignore</code>.
+			</p>
 			<p>
 				The native package covers Linux (x64 gnu and musl, arm64 gnu), macOS (arm64 and x64), and
 				Windows x64 — anywhere else, use the WASM build below.
@@ -187,7 +178,7 @@ reconstruct_locations(ast, 'const x = 1;');`;
 			<Code lang="ts" content={no_locations_example} />
 			<p>
 				Even when you need line/column, reconstructing it in JS beats the <code>loc</code>-bearing
-				AST end to end, by ~1.7x on TypeScript (~2.2x if you need none), as measured in
+				AST end to end, by ~1.7x on TypeScript, as measured in
 				<a href="https://github.com/fuzdev/tsv/blob/main/benches/js/results/report.node.md">
 					tsv's bench report
 				</a>. <code>reconstruct_locations</code> ships in every package that parses.

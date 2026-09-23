@@ -196,6 +196,7 @@ describe('format_speedup', () => {
 		assert.strictEqual(format_speedup(0.15), '-6.67x');
 		assert.strictEqual(format_speedup(0.05), '-20.0x'); // >= 10 magnitude → one decimal
 		assert.strictEqual(format_speedup(0.98), '-1.02x'); // near-parity sign flip
+		assert.strictEqual(format_speedup(0.998), '1.00x'); // rounds to parity, so unsigned
 	});
 });
 describe('format_count', () => {
@@ -276,14 +277,14 @@ describe('format_group_omissions', () => {
 		);
 	});
 
-	test('one file by one row reads singular, with no overlap flag', () => {
+	test('one file by one row takes a singular pronoun, with no overlap flag', () => {
 		assert.strictEqual(
 			format_group_omissions({
 				...omissions,
 				omitted_files: 1,
 				by_tool: [{ name: 'oxfmt', files: 1, bytes: 112, categories: {} }]
 			}),
-			"1 of 951 file (11.2% of this group's bytes) left out of every row's timed set, because a row here fails it in this harness — files failed, by row: oxfmt 1"
+			"1 of 951 files (11.2% of this group's bytes) left out of every row's timed set, because a row here fails it in this harness — files failed, by row: oxfmt 1"
 		);
 	});
 });

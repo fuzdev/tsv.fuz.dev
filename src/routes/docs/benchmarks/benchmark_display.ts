@@ -99,13 +99,15 @@ export const format_gzip_size = (gzip_bytes: number | null | undefined): string 
  * the page: at or above the reference it reads as a plain multiple (`2.50x`), while
  * a worse row shows the reciprocal negated (`0.15x` → `-6.67x`) so "how many times
  * slower, or bigger" is directly legible instead of a fraction the reader has to
- * invert. The minus is a convention for "times worse", not a literal negative rate.
+ * invert. The minus is a convention for "times worse", not a literal negative rate,
+ * so a worse row that rounds to `1.00x` prints unsigned — no direction to show.
  * Two decimals under 10 and one from there, as the bench report's own ratios print.
  */
 export const format_speedup = (ratio: number): string => {
 	const magnitude = ratio >= 1 ? ratio : 1 / ratio;
 	const digits = magnitude >= 10 ? 1 : 2;
-	return `${ratio < 1 ? '-' : ''}${magnitude.toFixed(digits)}x`;
+	const text = magnitude.toFixed(digits);
+	return `${ratio < 1 && text !== '1.00' ? '-' : ''}${text}x`;
 };
 
 /**
@@ -367,9 +369,7 @@ export const format_runtime_display = (
 export const format_group_omissions = (omissions: GroupOmissions): string => {
 	const is_one = omissions.omitted_files === 1;
 	const tools = omissions.by_tool.map((t) => `${t.name} ${format_count(t.files)}`).join(', ');
-	return `${format_count(omissions.omitted_files)} of ${format_count(omissions.files_total)} ${
-		is_one ? 'file' : 'files'
-	} (${format_percent(omissions.omitted_bytes, omissions.bytes_total)} of this group's bytes) left out of every row's timed set, because a row here fails ${
+	return `${format_count(omissions.omitted_files)} of ${format_count(omissions.files_total)} files (${format_percent(omissions.omitted_bytes, omissions.bytes_total)} of this group's bytes) left out of every row's timed set, because a row here fails ${
 		is_one ? 'it' : 'them'
 	} in this harness — files failed, by row${
 		omissions.by_tool.length > 1 ? ' (rows can overlap)' : ''

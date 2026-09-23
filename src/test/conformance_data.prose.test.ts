@@ -74,7 +74,7 @@ describe('conformance prose reads the report', () => {
 		assert.isAtMost(gap, 5, 'the accept sets differ by more than "a couple of files"');
 	});
 
-	test('the Corpus section splits pinned checkouts from three unpinned harvests', () => {
+	test('the Test corpus section splits pinned checkouts from three unpinned harvests', () => {
 		// "test suites, read from pinned checkouts, and three conformance suites the
 		// harness harvests into caches ... The harvested suites link their upstream unpinned"
 		const { rows } = derive_corpus_source_table(conformance_json, CONFORMANCE_SOURCE_LABELS);
