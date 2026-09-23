@@ -11,7 +11,11 @@
 	import { tome_get_by_slug } from '@fuzdev/fuz_ui/tome.ts';
 
 	import { conformance_json } from './conformance.ts';
-	import { CONFORMANCE_SOURCE_LABELS, derive_conformance_matrices } from './conformance_data.ts';
+	import {
+		CONFORMANCE_SOURCE_LABELS,
+		CONFORMANCE_VERSION_KEYS,
+		derive_conformance_matrices
+	} from './conformance_data.ts';
 	import { derive_corpus_source_table } from '../benchmarks/benchmark_data.ts';
 	import { format_count } from '../benchmarks/benchmark_display.ts';
 	import BenchmarksCorpus from '../benchmarks/BenchmarksCorpus.svelte';
@@ -34,11 +38,6 @@
 		conformance_json,
 		CONFORMANCE_SOURCE_LABELS
 	);
-	// the `tsc` column runs on the conformance surface alone, so its version is
-	// disclosed beside its note rather than in the perf report's meta panel (a
-	// plain string, so the leading space survives Svelte's block-edge trimming)
-	const tsc_version = conformance_json.versions.tsc;
-	const tsc_label = tsc_version ? ` (typescript ${tsc_version})` : '';
 </script>
 
 <TomeContent {tome}>
@@ -52,10 +51,9 @@
 	{:else}
 		<section>
 			<p>
-				Where the <TomeLink slug="benchmarks" /> use real-world code to compare performance, this
-				page shows parser coverage using a deliberately hard
-				<a href="#{docs_slugify(CORPUS_SECTION_TITLE)}">corpus</a> to compare one aspect of
-				correctness.
+				Where the <TomeLink slug="benchmarks" /> measure performance on real-world code, this page
+				compares one aspect of parser correctness — which files each parser accepts — on a
+				deliberately hard <a href="#{docs_slugify(CORPUS_SECTION_TITLE)}">corpus</a>.
 			</p>
 		</section>
 
@@ -66,47 +64,45 @@
 				<p>Notes:</p>
 				<ul>
 					<li>
+						The dimmed <code>−n</code> beside a percentage is the number of files rejected. A dimmed
+						<code>100%</code> marks a parser that selected the source, so its 100% is by
+						construction: svelte/compiler on the Svelte set and <code>tsc</code> on the TypeScript
+						compiler's cases. tsv's 100% on test262 is a result: test262's own metadata picks those
+						tests, not any parser's verdict (see
+						<a href="#{docs_slugify(CORPUS_SECTION_TITLE)}">{CORPUS_SECTION_TITLE}</a>).
+					</li>
+					<li>
 						Accepting a file says nothing about producing the <em>right</em> AST — tsv's output is
-						separately verified against the canonical parsers (svelte/compiler and its
-						<code>parseCss</code>, acorn-typescript) at corpus scale in
-						<a href="https://github.com/fuzdev/tsv">its repo's conformance gates</a>. Nor does
-						coverage reward rejecting what should be rejected: it counts acceptance only, so a
-						permissive parser scores well here. tsv defers most early errors — of test262's
-						should-reject parse tests it currently rejects fewer than half, tracked in
+						separately verified against the parsers it's a drop-in for (svelte/compiler, its
+						<code>parseCss</code>, and acorn-typescript) at corpus scale in
+						<a href="https://github.com/fuzdev/tsv/blob/main/docs/conformance_svelte.md">
+							its repo's conformance gates
+						</a>. Nor does coverage reward rejecting what should be rejected, so a permissive parser
+						scores well here: tsv doesn't yet check most early errors, rejecting fewer than half of
+						test262's should-reject parse tests, tracked in
 						<a href="https://github.com/fuzdev/tsv/blob/main/docs/conformance_test262.md">
 							its test262 notes
 						</a>.
 					</li>
 					<li>
-						A dimmed count beside a percentage is the files rejected. A greyed <code>100%</code>
-						marks the parser that chose a source, so reads 100% on it by construction:
-						svelte/compiler on the Svelte set (the files it rejects are excluded, so the others read
-						as drop-in fidelity against it) and <code>tsc</code>{tsc_label} on its compiler's cases.
-						tsv's 100% on test262 is a result, not a selection (see
-						<a href="#{docs_slugify(CORPUS_SECTION_TITLE)}">{CORPUS_SECTION_TITLE}</a>).
+						No CSS parser here is a validity oracle, so the CSS sources keep invalid and
+						out-of-scope inputs (wpt's deliberately invalid CSS, the preprocessor syntax in
+						Prettier's <code>.css</code> fixtures): read a row's parsers against each other, not
+						against 100%. tsv, a drop-in for Svelte's <code>parseCss</code>, sits above it by also
+						parsing spec-valid CSS that <code>parseCss</code> rejects. PostCSS leads by parsing
+						less, not because tsv falls short: it keeps selectors and at-rule preludes as unparsed
+						strings, so it accepts preprocessor syntax and modern CSS <code>parseCss</code> doesn't
+						implement yet.
 					</li>
 					<li>
-						The CSS sources keep intentionally-invalid and out-of-scope inputs (wpt's
-						deliberately-invalid CSS, preprocessor syntax in Prettier's <code>.css</code> fixtures),
-						since no CSS parser here is a validity oracle, so read a row's parsers against each
-						other, not against 100%.
-					</li>
-					<li>
-						PostCSS sitting above tsv is two grammars, not a gap. The CSS reference is Svelte's
-						<code>parseCss</code>, which tsv is a drop-in for and no validity oracle in either
-						direction; PostCSS keeps selectors and at-rule preludes as unparsed strings, so it
-						accepts preprocessor syntax, malformed rules, and modern CSS <code>parseCss</code>
-						doesn't implement yet.
-					</li>
-					<li>
-						oxc-parser's wasm binding is pinned to an older release (see the benchmarks' parse
-						notes) and accepts a couple of files the native one doesn't; the native column stands.
-						yuku-parser's is its wasm binding, since the native one segfaults on some of test262's
-						tests.
+						oxc-parser's column is its native binding; the wasm one, pinned to an older release (see
+						<TomeLink slug="benchmarks" hash={docs_slugify('Parse speed')} />), accepts a couple
+						more files. yuku-parser's is its wasm binding, since the native one segfaults on some of
+						test262's tests.
 					</li>
 				</ul>
 			</aside>
-			<BenchmarksMeta baseline={conformance_json} />
+			<BenchmarksMeta baseline={conformance_json} version_keys={CONFORMANCE_VERSION_KEYS} />
 		</TomeSection>
 
 		<TomeSection>
@@ -114,51 +110,46 @@
 			<p>
 				{format_count(corpus_source_table.totals.files)} files from
 				{corpus_source_table.rows.length} sources, none of them the real-world code used in the
-				<TomeLink slug="benchmarks" />: includes formatter and compiler test suites, read from
-				pinned checkouts, and three conformance suites the harness harvests into caches.
+				<TomeLink slug="benchmarks" />: formatter, compiler, and conformance test suites, each from
+				a pinned checkout. The three harvested into caches — test262, web-platform-tests CSS, and
+				the TypeScript compiler's cases — link their upstream without a commit.
 			</p>
 			<ul>
 				<li>
-					The Svelte set is the <code>.svelte</code> files plus the <code>.html</code> ones, which
-					load as Svelte — prettier-plugin-svelte's samples are components under that extension,
-					Prettier's HTML fixtures real HTML documents — less the files svelte/compiler rejects.
+					The Svelte set is every <code>.svelte</code> and <code>.html</code> file, less those
+					svelte/compiler rejects. The <code>.html</code> files load as Svelte:
+					prettier-plugin-svelte's are components, Prettier's HTML fixtures real HTML documents.
 				</li>
 				<li>
-					test262 is its expected-valid tests, as far as tsv's runner grades them: the cache drops
-					those outside tsv's scope — every Annex B <code>noStrict</code> positive among them, a
-					web-compatibility grammar tsv declines as a non-browser host.
+					test262 is its expected-valid tests outside <code>test/staging/</code>, less the
+					sloppy-mode tests under <code>test/annexB/</code>: Annex B is the web-browser layer,
+					optional for a non-browser host like tsv.
 				</li>
 				<li>
-					The TypeScript compiler's cases are the single-file ones tsc's parser accepts and whose
-					recorded baselines carry no syntax error.
+					The TypeScript compiler's cases are the single-file <code>.ts</code> ones tsc's parser
+					accepts and whose recorded baselines carry no grammar error.
 				</li>
 				<li>
-					The web-platform-tests CSS is extracted from its tests' <code>&lt;style&gt;</code> blocks.
+					The web-platform-tests CSS is the <code>&lt;style&gt;</code> blocks of its
+					<code>.html</code> pages.
 				</li>
 				<li>
-					Prettier's suites are what Prettier's own specs expect a parser of the language to accept.
-					Dropped: range- and cursor-marker files, front-matter fixtures, Babel-only proposals,
-					deliberate error cases a directory's spec marks as rejected by every parser it verifies
-					against, and the spec files themselves, which Prettier never runs as fixtures.
+					From Prettier's suites the harness drops range- and cursor-marker files, front-matter and
+					multiparser fixtures, Babel-only proposals, error cases its specs expect every parser to
+					reject, and the spec files themselves.
 				</li>
 				<li>
-					JSX is out by construction: Prettier's JSX suite and the compiler's <code>.tsx</code>
-					cases are dropped, and so are the <code>.js</code> fixtures Prettier's own parser reads as
-					JSX, since every parser here runs in TypeScript mode and rejects them alike. tsv rejects
-					JSX by design where oxc-parser, yuku-parser, swc, and tsc can parse it, so these tables
-					say nothing about that gap.
+					JSX is out by construction: Prettier's JSX suite, every <code>.tsx</code> file, and the
+					<code>.js</code> fixtures Prettier reads as JSX are dropped, since every parser here runs
+					in TypeScript mode and rejects them alike. tsv rejects JSX by design, whereas the other
+					TypeScript parsers here parse it, so these tables say nothing about that gap.
 				</li>
 				<li>
-					Every TS/JS file is parsed as a module, except test262's, parsed at the goal each test
-					declares, and Prettier's JS and TypeScript fixtures, retried as a script when the module
-					parse fails, as Prettier's own parsers retry; <code>tsc</code> alone infers the goal
-					itself.
+					TS/JS files parse as modules, with two exceptions: test262's parse as script or module, as
+					each test's flags declare, and Prettier's <code>.js</code> and <code>.ts</code> fixtures
+					retry as scripts when the module parse fails. <code>tsc</code> decides for itself.
 				</li>
 			</ul>
-			<p>
-				Files count under the language their extension names. The harvested suites link their
-				upstream unpinned.
-			</p>
 			<BenchmarksCorpus table={corpus_source_table} />
 		</TomeSection>
 	{/if}

@@ -12,10 +12,10 @@ import {
 // as `benchmark_data.prose.test.ts` does for the benchmarks page.
 describe('conformance prose reads the report', () => {
 	test('the unfiltered CSS sources are the ones some parser falls short of', () => {
-		// "The CSS sources keep intentionally-invalid and out-of-scope inputs ... so read a
-		// row's parsers against each other, not against 100%" — named for wpt's CSS and
-		// Prettier's `.css` fixtures; the note is empty for a row every parser accepts in
-		// full (PostCSS, keeping selectors as strings, may well read 100% on the Prettier set)
+		// "the CSS sources keep invalid and out-of-scope inputs ... read a row's parsers
+		// against each other, not against 100%" — named for wpt's CSS and Prettier's `.css`
+		// fixtures; the note is empty for a row every parser accepts in full (PostCSS,
+		// keeping selectors as strings, may well read 100% on the Prettier set)
 		const css = derive_conformance_matrices(conformance_json).find((m) => m.language === 'css');
 		for (const path of ['benches/js/.cache/wpt_css', '../prettier/tests/format/css']) {
 			const row = css?.sources.find((s) => s.origins[0]?.path === path);
@@ -43,8 +43,9 @@ describe('conformance prose reads the report', () => {
 	});
 
 	test('the CSS conformance note names the order the table shows', () => {
-		// "PostCSS sitting above tsv is two grammars, not a gap", over a `parseCss`
-		// reference tsv is a drop-in for
+		// "tsv, a drop-in for Svelte's `parseCss`, sits above it by also parsing spec-valid
+		// CSS that `parseCss` rejects. PostCSS leads by parsing less, not because tsv falls
+		// short"
 		const coverage = (language: string, name: string): number => {
 			const row = derive_conformance_groups(conformance_json)
 				.find((g) => g.language === language)
@@ -57,10 +58,10 @@ describe('conformance prose reads the report', () => {
 	});
 
 	test("the conformance note on oxc-parser's two bindings reads the report", () => {
-		// "its wasm binding is pinned to an older release ... and accepts a couple of
-		// files the native one doesn't" — both halves are facts about the copied report,
-		// and either can go stale on a refresh: the bindings re-aligning makes the note
-		// a fiction, a wider gap makes "a couple" an understatement.
+		// "the wasm one, pinned to an older release ..., accepts a couple more files" —
+		// both halves are facts about the copied report, and either can go stale on a
+		// refresh: the bindings re-aligning makes the note a fiction, a wider gap makes
+		// "a couple" an understatement.
 		const { versions, entries } = conformance_json;
 		assert.isDefined(versions.oxc_parser_wasm);
 		assert.notStrictEqual(versions.oxc_parser_wasm, versions.oxc_parser, 'bindings re-aligned');
@@ -74,9 +75,9 @@ describe('conformance prose reads the report', () => {
 		assert.isAtMost(gap, 5, 'the accept sets differ by more than "a couple of files"');
 	});
 
-	test('the Test corpus section splits pinned checkouts from three unpinned harvests', () => {
-		// "test suites, read from pinned checkouts, and three conformance suites the
-		// harness harvests into caches ... The harvested suites link their upstream unpinned"
+	test('the Test corpus section names three harvested suites, linked without a commit', () => {
+		// "The three the harness harvests into caches — test262, web-platform-tests CSS,
+		// and the TypeScript compiler's cases — link their upstream without a commit"
 		const { rows } = derive_corpus_source_table(conformance_json, CONFORMANCE_SOURCE_LABELS);
 		const harvested = rows.filter((row) => row.path.includes('/.cache/'));
 		assert.strictEqual(harvested.length, 3);
@@ -87,9 +88,9 @@ describe('conformance prose reads the report', () => {
 	});
 
 	test("Prettier's CSS fixtures carry no TypeScript/JS files: the spec files are dropped", () => {
-		// "...and the spec files themselves, which Prettier never runs as fixtures" — the
-		// only JS the CSS suite holds is its `format.test.js` harness files, so the
-		// suite's TypeScript-language slice is the whole of what that claim removes
+		// "From Prettier's suites the harness drops ... the spec files themselves" — the
+		// only JS the CSS suite holds is its `format.test.js` harness files, so the suite's
+		// TypeScript-language slice is the whole of what that claim removes
 		const table = derive_corpus_source_table(conformance_json, CONFORMANCE_SOURCE_LABELS);
 		const row = table.rows.find((r) => r.path === '../prettier/tests/format/css');
 		assert(row, 'the source is missing');

@@ -2,6 +2,7 @@ import { assert, describe, test } from 'vitest';
 
 import { conformance_json } from '$routes/docs/conformance/conformance.ts';
 import {
+	CONFORMANCE_ENGINE_VERSIONS,
 	CONFORMANCE_SELECTORS,
 	derive_conformance_groups,
 	derive_conformance_matrices
@@ -11,9 +12,8 @@ import { CONFORMANCE_REPORT_VERSION } from './benchmark_test_helpers.ts';
 
 // Shape gate for the committed conformance report `conformance.json`
 // (tsv's `report.conformance.node.json` — the parse-coverage surface over the
-// deliberately-hard fixture suites, disjoint from the perf corpus, a suite with a
-// validity oracle or harness filtered to what it calls valid), consumed by the
-// Parse conformance section.
+// deliberately-hard fixture suites, disjoint from the perf corpus), consumed by the
+// conformance page.
 describe('conformance.json shape', () => {
 	test('report is the conformance surface at the current version', () => {
 		assert.strictEqual(conformance_json.version, CONFORMANCE_REPORT_VERSION);
@@ -30,8 +30,8 @@ describe('conformance.json shape', () => {
 	test('every impl loaded, and no byte-graded pair disagreed on output', () => {
 		// an accept-set disagreement between two bindings of one engine is legitimate
 		// here (oxc-parser's pinned-older wasm binding — the prose test bounds it), but a
-		// byte mismatch between tsv's own native and wasm rows contradicts the section's
-		// "byte-identical output" claim, and a load failure silently drops a coverage row
+		// byte mismatch between tsv's own native and wasm rows is a binding-boundary bug,
+		// and a load failure silently drops a coverage row
 		assert.deepStrictEqual(conformance_json.unavailable, []);
 		for (const finding of conformance_json.variant_parity ?? []) {
 			assert.strictEqual(finding.output_mismatch ?? 0, 0, `${finding.group}/${finding.impl}`);
@@ -200,6 +200,18 @@ describe('conformance matrices over the committed report', () => {
 				}
 			}
 		}
+	});
+
+	test("every engine column names its versions, and each resolves in the report's", () => {
+		// the meta panel lists only these keys, so an engine without an entry would
+		// show a column with no version beside it
+		const names = new Set(matrices.flatMap((m) => m.engines.map((e) => e.name)));
+		for (const name of names) {
+			const keys = CONFORMANCE_ENGINE_VERSIONS[name];
+			assert(keys, `${name} has no CONFORMANCE_ENGINE_VERSIONS entry`);
+			for (const key of keys) assert.isDefined(conformance_json.versions[key], `${name}: ${key}`);
+		}
+		assert.sameMembers(Object.keys(CONFORMANCE_ENGINE_VERSIONS), [...names], 'a stale entry');
 	});
 
 	test('only the sources every parser accepts in full are folded', () => {

@@ -16,7 +16,7 @@
 
 <!-- a percentage this close to 100% compresses the gap, so the rejected count rides
 	beside it; a cell whose engine selected the source is full by construction, so it
-	reads a greyed `100%` without the decimals a result carries -->
+	reads a dimmed `100%` without the decimals a result carries -->
 {#snippet coverage_cell(cell: ConformanceCell | undefined)}
 	<td class="coverage-num">
 		{#if !cell}
@@ -102,7 +102,7 @@
 		white-space: nowrap;
 		font-variant-numeric: tabular-nums;
 	}
-	/* read out, not shown: the greyed `100%` says it by sight alone */
+	/* read out, not shown: the dimmed `100%` says it by sight alone */
 	.visually-hidden {
 		position: absolute;
 		width: 1px;

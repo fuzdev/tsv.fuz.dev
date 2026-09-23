@@ -239,14 +239,15 @@ const LABEL_OVERRIDES: Record<string, string> = {
 /** The report's language keys as the page prints them, shared by every group heading. */
 const LANGUAGE_LABELS: Record<string, string> = {
 	svelte: 'Svelte',
-	typescript: 'TypeScript',
+	// the group parses plain JS as well as TypeScript
+	typescript: 'TypeScript/JS',
 	css: 'CSS'
 };
 
-/** A report language key for display (`typescript` → `TypeScript`), verbatim when unknown. */
+/** A report language key for display (`typescript` → `TypeScript/JS`), verbatim when unknown. */
 export const format_language = (language: string): string => LANGUAGE_LABELS[language] ?? language;
 
-/** A group's name as its headings and table labels print it (`Format TypeScript`). */
+/** A group's name as its headings and table labels print it (`Format TypeScript/JS`). */
 export const format_group_label = (operation: string, language: string): string =>
 	`${operation === 'format' ? 'Format' : 'Parse'} ${format_language(language)}`;
 
@@ -276,7 +277,9 @@ export const VERSION_LABELS: Record<string, string> = {
 	rsvelte_parse: '@rsvelte/vite-plugin-svelte-native',
 	// not a tool version at all: the upstream Svelte that addon targets, worth
 	// showing beside the svelte pin the oracle row uses
-	rsvelte_parse_svelte_target: "rsvelte's upstream svelte"
+	rsvelte_parse_svelte_target: "rsvelte's upstream svelte",
+	// the package behind the `tsc` row, which runs its parser, not the CLI
+	tsc: 'typescript'
 };
 
 /** Formats a report version key for the meta panel, hyphenating the ones `VERSION_LABELS` doesn't name. */

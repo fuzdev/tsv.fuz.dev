@@ -438,12 +438,13 @@
 					</li>
 					<li>
 						oxc-parser, yuku-parser, and swc parse TypeScript and JS only (and JSX, not measured
-						here) — no CSS, no Svelte, no formatter — so they're timed in the TypeScript parse group
-						alone. oxc-parser's AST has no line/column option, so the span-only <code>no-locs</code>
-						entries are the one payload-matched pairing; swc's own AST shape (a <code>Module</code>
-						root with <code>span</code> offsets) matches neither tsv wire. oxc-parser's wasm row
-						runs an older release than its native row — the newest whose wasi binding loads in the
-						harness install — so the wasm-vs-wasm pairing crosses oxc versions (both listed under
+						here) — no CSS, no Svelte, no formatter — so they're timed in the TypeScript/JS parse
+						group alone. oxc-parser's AST has no line/column option, so the span-only
+						<code>no-locs</code> entries are the one payload-matched pairing; swc's own AST shape (a
+						<code>Module</code> root with <code>span</code> offsets) matches neither tsv wire.
+						oxc-parser's wasm row runs an older release than its native row — the newest whose wasi
+						binding loads in the harness install — so the wasm-vs-wasm pairing crosses oxc versions
+						(both listed under
 						<a href="#{docs_slugify(DETAILS_SECTION_TITLE)}">{DETAILS_SECTION_TITLE}</a>).
 					</li>
 					<li>

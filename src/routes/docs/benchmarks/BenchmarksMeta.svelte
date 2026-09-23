@@ -5,16 +5,25 @@
 	import { format_report_date, format_version_label } from './benchmark_display.ts';
 
 	const {
-		baseline
+		baseline,
+		version_keys
 	}: {
 		baseline: BenchmarkBaseline;
+		// narrows the versions list to these keys, for a page showing only some of
+		// the report's tools
+		version_keys?: ReadonlyArray<string>;
 	} = $props();
 
 	const site = site_context.get();
 
-	// every tool version the report carries, in report order, so a tool added
-	// upstream appears without a site edit — tsv itself renders under "run"
-	const versions = $derived(Object.entries(baseline.versions).filter(([key]) => key !== 'tsv'));
+	// every tool version the report carries (or `version_keys` names), in report
+	// order, so a tool added upstream appears without a site edit — tsv itself
+	// renders under "run"
+	const versions = $derived(
+		Object.entries(baseline.versions).filter(
+			([key]) => key !== 'tsv' && (!version_keys || version_keys.includes(key))
+		)
+	);
 
 	const formatted_date = $derived(format_report_date(baseline.timestamp));
 

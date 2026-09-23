@@ -6,6 +6,7 @@ import {
 	compare_group_order,
 	corpus_source_url,
 	parse_group_key,
+	type BaselineVersions,
 	type BenchmarkBaseline,
 	type SourceCoverageCell
 } from '../benchmarks/benchmark_data.ts';
@@ -31,14 +32,16 @@ export interface ConformanceGroup {
 /**
  * One coverage row per ENGINE, not per binding: the conformance headline is
  * "which files does this parser accept," which is identical across a tool's
- * native/wasm/internal variants — so the `-wasm` and `-internal` duplicates
- * are dropped and `tsv-json` stands in for tsv (relabeled plainly, since the
- * JSON-materialization qualifier is a speed concern, not a coverage one).
+ * native/wasm/internal variants at one release — so the `-wasm` and `-internal`
+ * duplicates are dropped and `tsv-json` stands in for tsv (relabeled plainly,
+ * since the JSON-materialization qualifier is a speed concern, not a coverage one).
  *
- * Which binding stands in is therefore arbitrary — except for yuku, where the
- * conformance report carries the wasm row alone: its native binding crashes the
- * host process on this corpus's escaped-identifier tests, so tsv's harness omits
- * that row there. Keying on `yuku-parser` would silently drop the engine.
+ * Which binding stands in is therefore arbitrary — except for oxc, whose wasm
+ * binding is pinned to an older release, so only the native row is the current
+ * engine; and yuku, where the conformance report carries the wasm row alone: its
+ * native binding crashes the host process on this corpus's escaped-identifier
+ * tests, so tsv's harness omits that row there. Keying on `yuku-parser` would
+ * silently drop the engine.
  */
 const CONFORMANCE_ENGINE_NAMES: Record<string, string> = {
 	'svelte/compiler': 'svelte/compiler',
@@ -67,6 +70,31 @@ const CONFORMANCE_ROW_NOTES: Record<string, string> = {
 	// the native binding segfaults on this corpus, spelled out in the page's notes
 	'yuku-parser-wasm': 'wasm'
 };
+
+/**
+ * The report's `versions` keys behind each engine column, keyed by display name.
+ * The report carries the harness's whole version map, formatters included, so the
+ * page's meta panel lists only these. The shape test holds every column to an
+ * entry and every key to the report.
+ */
+export const CONFORMANCE_ENGINE_VERSIONS: Record<string, Array<keyof BaselineVersions>> = {
+	// the meta panel shows tsv's under the run
+	tsv: [],
+	'svelte/compiler': ['svelte'],
+	'acorn-typescript': ['acorn', 'acorn_ts'],
+	// both bindings, since the page's notes set the native column against the wasm one
+	'oxc-parser': ['oxc_parser', 'oxc_parser_wasm'],
+	'yuku-parser': ['yuku_parser_wasm'],
+	rsvelte: ['rsvelte_parse', 'rsvelte_parse_svelte_target'],
+	swc: ['swc'],
+	tsc: ['tsc'],
+	PostCSS: ['postcss']
+};
+
+/** Every `versions` key `CONFORMANCE_ENGINE_VERSIONS` names, for the page's meta panel. */
+export const CONFORMANCE_VERSION_KEYS: Array<string> = Object.values(
+	CONFORMANCE_ENGINE_VERSIONS
+).flat();
 
 /**
  * Derives per-language parse-coverage groups from a conformance report

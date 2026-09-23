@@ -100,7 +100,7 @@ describe('CLI value formatting', () => {
 
 describe('format_group_label', () => {
 	test('names the operation and the language as the headings print them', () => {
-		assert.strictEqual(format_group_label('format', 'typescript'), 'Format TypeScript');
+		assert.strictEqual(format_group_label('format', 'typescript'), 'Format TypeScript/JS');
 		assert.strictEqual(format_group_label('parse', 'css'), 'Parse CSS');
 	});
 });
