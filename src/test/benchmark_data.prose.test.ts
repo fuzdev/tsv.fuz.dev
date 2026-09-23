@@ -366,10 +366,38 @@ describe('prose ratios resolve', () => {
 		assert.isDefined(cpu, 'delivery scenario has no tsv-wasm row');
 		assert.isDefined(wall);
 		assert.isAbove(cpu, wall * 1.5, 'the wasm CPU ratio no longer runs well past its time ratio');
-		// the Svelte copy: "rsvelte-fmt 0.7.x crashes nondeterministically in the harness's preflight"
+		// the Svelte abort context: "rsvelte-fmt 0.7.x can abort when its output and stderr share a pipe"
 		const rsvelte_version = benchmarks_cli.versions['rsvelte-fmt'];
 		assert.isDefined(rsvelte_version);
 		assert.match(rsvelte_version, /^0\.7\./, 'the Svelte copy names rsvelte-fmt 0.7.x');
+	});
+
+	test('the delivery note places the wasm row among the single-file tools', () => {
+		// "still well ahead of both Prettier rows there, but behind Oxfmt and Biome" —
+		// the delivery and single-file scenarios time the same file (the shape test
+		// holds them to one corpus revision), so the wasm row reads against the other
+		// tools' single-file times across the two tables
+		const wasm = cli_scenario_find(CLI_DELIVERY_KEY)?.results.find(
+			(r) => r.label === CLI_TSV_WASM_LABEL
+		);
+		assert(wasm, `${CLI_DELIVERY_KEY} has no ${CLI_TSV_WASM_LABEL} row`);
+		const single = cli_scenario_find(CLI_SINGLE_FILE_KEY);
+		assert(single, `no generated scenario has id "${CLI_SINGLE_FILE_KEY}"`);
+		const wall = (label: string): number => {
+			const row = single.results.find((r) => r.label === label);
+			assert(row, `${CLI_SINGLE_FILE_KEY} has no ${label} row`);
+			return row.wall_ms;
+		};
+		for (const label of ['prettier', 'prettier + oxc-parser']) {
+			assert.isAbove(
+				wall(label),
+				wasm.wall_ms * 2,
+				`${label}: the wasm row is no longer well ahead`
+			);
+		}
+		for (const label of ['oxfmt', 'biome']) {
+			assert.isBelow(wall(label), wasm.wall_ms, `${label}: the wasm row is no longer behind`);
+		}
 	});
 
 	test('the CPU-work column counts system time, as the note says', () => {
