@@ -372,7 +372,7 @@
 					<li>
 						The harness swaps in a fresh Biome wasm instance once its memory has grown past a
 						threshold — before every sweep in the Svelte and TypeScript groups, every few in CSS —
-						and that instance's slower first sweep adds about 3–4% to Biome's rows.
+						and that instance's slower first sweep adds a few percent to Biome's rows.
 					</li>
 					<li>
 						The dprint entry is
