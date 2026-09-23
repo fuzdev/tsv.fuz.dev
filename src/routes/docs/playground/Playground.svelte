@@ -73,7 +73,6 @@
 	});
 
 	$effect(() => {
-		if (tsv) return;
 		let cancelled = false;
 		void (async () => {
 			try {
@@ -127,7 +126,7 @@
 	{#if !ready}
 		<p>loading the formatter…</p>
 	{:else if error}
-		<p class="parse-error">{error}</p>
+		<p class="error">{error}</p>
 	{:else}
 		<p>formatted:</p>
 		<Code lang="svelte" content={formatted?.value ?? ''} />
@@ -135,7 +134,7 @@
 		{#if ast?.error}
 			<!-- the debounced source can still be the broken one the live pane has
 				already moved past, so this pane carries its own message -->
-			<p class="parse-error">{ast.error}</p>
+			<p class="error">{ast.error}</p>
 		{:else}
 			<div class="ast-output">
 				<CopyToClipboard text={ast?.value ?? ''} class="ast-copy" />
@@ -182,10 +181,6 @@
 		width: auto !important;
 	}
 	.error {
-		color: var(--color_e_40);
-		white-space: pre-wrap;
-	}
-	.parse-error {
 		color: var(--color_c_50);
 		white-space: pre-wrap;
 	}

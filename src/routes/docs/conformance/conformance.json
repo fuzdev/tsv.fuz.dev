@@ -2,8 +2,8 @@
 	"version": 19,
 	"runtime": "node",
 	"corpus_kind": "conformance",
-	"timestamp": "2026-09-23T00:29:14.160Z",
-	"git_commit": "55c0baed",
+	"timestamp": "2026-09-23T01:44:33.674Z",
+	"git_commit": "23392a6e",
 	"machine": {
 		"cpu_model": "AMD Ryzen 5 PRO 7530U with Radeon Graphics",
 		"os": "linux",

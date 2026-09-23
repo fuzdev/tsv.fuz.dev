@@ -96,8 +96,8 @@
 {/each}
 
 <style>
-	/* left-aligned like the source names they sit among, where the cross-runtime
-	   tables' `.benchmarks-num` aligns pure numbers right */
+	/* left-aligned like the source names they sit among, where `.benchmarks-num`
+	   aligns pure numbers right */
 	.coverage-num {
 		white-space: nowrap;
 		font-variant-numeric: tabular-nums;

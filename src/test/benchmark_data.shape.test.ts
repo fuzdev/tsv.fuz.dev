@@ -275,18 +275,14 @@ describe('benchmarks.json shape', () => {
 	});
 
 	test('speedup summary is fully populated, and every cell reads "faster than Prettier"', () => {
-		const rows = derive_speedup_summary(derive_benchmark_groups(benchmarks_json));
+		const rows = derive_speedup_summary(benchmarks_json);
 		assert.strictEqual(rows.length, 2); // native + wasm
 		for (const row of rows) {
 			// `BenchmarksSummary` captions the table as how much faster tsv is than
 			// Prettier, so a cell below 1 would render a slowdown under that caption
-			for (const [language, value] of [
-				['svelte', row.format_svelte],
-				['typescript', row.format_typescript],
-				['css', row.format_css]
-			] as const) {
-				assert.isDefined(value, `${row.variant} ${language}`);
-				assert.isAbove(value, 1, `${row.variant} ${language}`);
+			for (const { language, speedup } of row.cells) {
+				assert.isDefined(speedup, `${row.variant} ${language}`);
+				assert.isAbove(speedup, 1, `${row.variant} ${language}`);
 			}
 		}
 	});

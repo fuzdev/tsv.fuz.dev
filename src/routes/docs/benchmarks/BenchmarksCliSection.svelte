@@ -39,7 +39,7 @@
 	// as what the binary does without a Node launcher in front.
 	const npm_ratio = (scenario: string, label: string, metric: CliMetric = 'wall_ms') =>
 		format_ratio_approx(cli_ratio_vs_tsv_npm(scenario, label, metric));
-	const bare_ratio = (scenario: string, label: string, metric: CliMetric) =>
+	const bare_ratio = (scenario: string, label: string, metric: CliMetric = 'wall_ms') =>
 		format_ratio_approx(cli_ratio_vs_tsv(scenario, label, metric));
 	const npm_ts_vs_oxfmt = npm_ratio(CLI_TS_REPO_KEY, 'oxfmt');
 	const npm_ts_vs_biome = npm_ratio(CLI_TS_REPO_KEY, 'biome');

@@ -10,6 +10,7 @@ import {
 	format_share_approx,
 	format_speedup,
 	format_count_maybe,
+	format_report_date,
 	format_group_label,
 	format_group_omissions,
 	format_mib,
@@ -284,5 +285,12 @@ describe('format_group_omissions', () => {
 			}),
 			"1 of 951 file (11.2% of this group's bytes) left out of every row's timed set, because a row here fails it in this harness — files failed, by row: oxfmt 1"
 		);
+	});
+});
+
+describe('format_report_date', () => {
+	test('reads the day in UTC, whatever the local zone', () => {
+		// a moment that is still the 22nd west of UTC
+		assert.strictEqual(format_report_date('2026-09-23T01:44:33.674Z'), 'September 23, 2026');
 	});
 });

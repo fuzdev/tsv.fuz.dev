@@ -53,7 +53,7 @@ const CONFORMANCE_ENGINE_NAMES: Record<string, string> = {
 	swc: 'swc',
 	// The TypeScript compiler's own parser, which appears on this surface alone —
 	// a verdict rather than a speed, so it carries no throughput row. Its reading
-	// changes by corpus source, which the note below spells out.
+	// changes by corpus source: it selected the compiler cases (`CONFORMANCE_SELECTORS`).
 	tsc: 'tsc',
 	postcss: 'PostCSS'
 };

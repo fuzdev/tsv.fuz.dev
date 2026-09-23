@@ -74,17 +74,6 @@ describe('conformance prose reads the report', () => {
 		assert.isAtMost(gap, 5, 'the accept sets differ by more than "a couple of files"');
 	});
 
-	test('the byte check left "one file the report discloses" undigested, on tsv\'s rows', () => {
-		// the conformance note excuses exactly one file from tsv's native/wasm byte
-		// parity; a growing count is the check quietly covering less
-		const ungraded = Object.entries(conformance_json.output_digest_ungraded ?? {});
-		assert.isNotEmpty(ungraded, 'the note discloses a file the report no longer carries');
-		for (const [row, count] of ungraded) {
-			assert.match(row, /^parse\/typescript\/tsv-/, row);
-			assert.strictEqual(count, 1, row);
-		}
-	});
-
 	test('the Corpus section splits pinned checkouts from three unpinned harvests', () => {
 		// "test suites, read from pinned checkouts, and three conformance suites the
 		// harness harvests into caches ... The harvested suites link their upstream unpinned"

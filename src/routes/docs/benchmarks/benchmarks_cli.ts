@@ -386,7 +386,7 @@ export const cli_ratio_between = (
 ): number | undefined => {
 	const baseline = results.find((r) => r.label === baseline_label)?.[metric];
 	const other = results.find((r) => r.label === label)?.[metric];
-	if (baseline == null || other == null || !baseline) return undefined;
+	if (!baseline || other == null) return undefined;
 	return other / baseline;
 };
 

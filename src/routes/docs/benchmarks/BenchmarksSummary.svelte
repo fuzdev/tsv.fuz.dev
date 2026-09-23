@@ -1,6 +1,6 @@
 <script lang="ts">
-	import type { SpeedupRow } from './benchmark_data.ts';
-	import { format_speedup } from './benchmark_display.ts';
+	import { SPEEDUP_LANGUAGES, type SpeedupRow } from './benchmark_data.ts';
+	import { format_language, format_speedup } from './benchmark_display.ts';
 
 	const {
 		rows
@@ -19,22 +19,17 @@
 	<thead>
 		<tr>
 			<th scope="col">build</th>
-			<th scope="col">Svelte</th>
-			<th scope="col">TypeScript</th>
-			<th scope="col">CSS</th>
+			{#each SPEEDUP_LANGUAGES as language (language)}
+				<th scope="col">{format_language(language)}</th>
+			{/each}
 		</tr>
 	</thead>
 	<tbody>
 		{#each rows as row (row.variant)}
-			{@const cells = [
-				['svelte', row.format_svelte],
-				['typescript', row.format_typescript],
-				['css', row.format_css]
-			] as const}
 			<tr>
 				<th scope="row">{row.variant}</th>
-				{#each cells as [language, value] (language)}
-					<td class="speedup">{value != null ? format_speedup(value) : '—'}</td>
+				{#each row.cells as { language, speedup } (language)}
+					<td class="speedup">{speedup != null ? format_speedup(speedup) : '—'}</td>
 				{/each}
 			</tr>
 		{/each}

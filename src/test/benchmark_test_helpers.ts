@@ -11,7 +11,7 @@ import type {
  * floor, so `npm run update-benchmarks` pulling a newer shape fails the shape tests
  * until `benchmark_data.ts` mirrors the new fields and this is re-pinned.
  */
-export const REPORT_VERSION = 18;
+export const REPORT_VERSION = 19;
 
 /**
  * `REPORT_VERSION` for the conformance copy (`conformance.json`). A separate pin

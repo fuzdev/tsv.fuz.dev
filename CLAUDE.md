@@ -168,7 +168,7 @@ in the schema TSDoc in `formatter_benchmark_data.ts`.
 - `benchmarks_cli.ts` — shapes the CLI report for `BenchmarksCli.svelte` and owns the per-scenario prose and the `cli_*` claim helpers
 - `benchmarks_prose.ts` — `IN_PROCESS_PAIRS`, the in-process pairings the copy names; the page reads it by key and the prose test iterates it, so a pairing added to the copy is gated by construction
 - `benchmarks.ts`, `benchmarks_cross_runtime.ts`, `benchmarks_formatters.ts` (and the conformance page's `conformance.ts`) — re-export the JSON with types
-- `BenchmarksCliSection.svelte` — the CLI section's prose and its claims; the other `Benchmarks*.svelte` are visualizations (`BenchmarksSummary.svelte` carries its table's Prettier caption, which the prose test gates)
+- `BenchmarksCliSection.svelte` — the CLI section's prose and its claims; the other `Benchmarks*.svelte` are visualizations (`BenchmarksSummary.svelte` carries its table's Prettier caption, which `SPEEDUP_BASELINE_FORMAT` pins)
 - `benchmarks.css` — classes the components share, imported by the benchmarks and conformance `+page.svelte`s rather than the root stylesheet so they ship with those routes only
 
 The page quotes no hand-written ratios or counts from the reports: its prose computes them from

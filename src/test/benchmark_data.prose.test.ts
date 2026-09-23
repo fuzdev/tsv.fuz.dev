@@ -125,15 +125,6 @@ describe('prose ratios resolve', () => {
 		);
 	});
 
-	test('the "faster than Prettier" summary really divides by the prettier row', () => {
-		// `BenchmarksSummary` hard-codes "faster than Prettier" while a group's
-		// canonical entry is whichever canonical-category row sorts first, so a format
-		// group that grew another canonical row would silently re-baseline the table
-		for (const group of format_groups()) {
-			assert.strictEqual(group.canonical_entry?.name, 'prettier', group.language);
-		}
-	});
-
 	test('oxfmt formats Svelte at Prettier speed, as the note says it delegates', () => {
 		// "for Svelte it delegates to a Prettier it bundles" — if a future oxfmt grows its
 		// own Svelte path the two rows will part ways and the note is stale

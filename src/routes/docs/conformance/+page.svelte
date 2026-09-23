@@ -62,17 +62,18 @@
 					</a>.
 				</li>
 				<li>
-					A greyed <code>100%</code> marks the parser that chose a source, so reads 100% on it by
-					construction: svelte/compiler on the Svelte set (the files it rejects are excluded, so the
-					others read as drop-in fidelity against it) and <code>tsc</code>{tsc_label} on its
-					compiler's cases. tsv's 100% on test262 is a result, not a selection (see
+					A dimmed count beside a percentage is the files rejected. A greyed <code>100%</code> marks
+					the parser that chose a source, so reads 100% on it by construction: svelte/compiler on
+					the Svelte set (the files it rejects are excluded, so the others read as drop-in fidelity
+					against it) and <code>tsc</code>{tsc_label} on its compiler's cases. tsv's 100% on test262
+					is a result, not a selection (see
 					<a href="#{docs_slugify(CORPUS_SECTION_TITLE)}">Corpus</a>).
 				</li>
 				<li>
 					The CSS sources keep intentionally-invalid and out-of-scope inputs (wpt's
 					deliberately-invalid CSS, preprocessor syntax in Prettier's <code>.css</code> fixtures),
 					since no CSS parser here is a validity oracle, so read a row's parsers against each other,
-					not against 100%. The dimmed count beside a percentage is the files rejected.
+					not against 100%.
 				</li>
 				<li>
 					PostCSS sitting above tsv is two grammars, not a gap. The CSS reference is Svelte's
@@ -119,11 +120,10 @@
 				The web-platform-tests CSS is extracted from its tests' <code>&lt;style&gt;</code> blocks.
 			</li>
 			<li>
-				Prettier's suites are what Prettier itself expects a parser of the language to accept: its
-				range and cursor marker files and front-matter fixtures are dropped, as are the Babel-only
-				proposals and deliberate error cases each directory's spec declares rejected by every
-				ECMAScript, TypeScript, or CSS parser it verifies against, and the spec files themselves,
-				which Prettier never runs as fixtures.
+				Prettier's suites are what Prettier's own specs expect a parser of the language to accept.
+				Dropped: range- and cursor-marker files, front-matter fixtures, Babel-only proposals,
+				deliberate error cases a directory's spec marks as rejected by every parser it verifies
+				against, and the spec files themselves, which Prettier never runs as fixtures.
 			</li>
 			<li>
 				JSX is out by construction: Prettier's JSX suite and the compiler's <code>.tsx</code> cases

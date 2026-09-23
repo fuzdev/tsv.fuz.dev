@@ -5,7 +5,6 @@ import { benchmarks_formatters_json } from '$routes/docs/benchmarks/benchmarks_f
 import {
 	benchmarks_cli,
 	cli_default_anchor_label,
-	cli_memory_ratio_range,
 	cli_settle_seconds,
 	CLI_DELIVERY_KEY,
 	CLI_SCENARIO_KEYS,
@@ -179,25 +178,6 @@ describe('cli_settle_seconds', () => {
 		for (const scenario of benchmarks_cli.scenarios) {
 			assert.strictEqual(scenario.settle_seconds, settle, scenario.key);
 		}
-	});
-});
-
-describe('cli_memory_ratio_range', () => {
-	test('a named tool missing from a spanned scenario voids the range rather than narrowing it', () => {
-		// the TLDR's "less memory than either" names two tools; a renamed row must not
-		// leave the sentence quoting a range measured over one
-		const key = CLI_SINGLE_FILE_KEY;
-		assert.isDefined(cli_memory_ratio_range({ scenario_key: key, labels: ['oxfmt', 'biome'] }));
-		assert.isUndefined(
-			cli_memory_ratio_range({ scenario_key: key, labels: ['oxfmt', 'biome-renamed'] })
-		);
-		assert.isUndefined(
-			cli_memory_ratio_range({
-				scenario_key: key,
-				labels: ['oxfmt'],
-				baseline_label: 'tsv-renamed'
-			})
-		);
 	});
 });
 

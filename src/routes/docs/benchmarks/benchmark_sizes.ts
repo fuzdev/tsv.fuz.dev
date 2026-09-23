@@ -1,7 +1,7 @@
 // The binary-size domain of the benchmarks page: category and capability
 // grouping, and the synthesized combined builds. The report shapes these read live
-// in `benchmark_data.ts`; the size-ratio color scale lives with the other ratio
-// scale in `benchmark_baseline.ts`.
+// in `benchmark_data.ts`; the ratio color scale is `benchmark_baseline.ts`'s
+// shared `baseline_ratio_color`.
 
 import type { BinarySize, ImplementationCategory } from './benchmark_data.ts';
 
@@ -139,7 +139,8 @@ export const OXFMT_WASM_LABEL = 'oxfmt (wasm)';
 
 /**
  * A synthesized native entry summing two measured builds — `undefined` when
- * either is missing (an older baseline), gzip summed only when both carry it.
+ * either is missing (an artifact the report didn't size), gzip summed only when
+ * both carry it.
  */
 const sum_binary_sizes = (
 	sizes: Array<BinarySize>,
@@ -163,7 +164,7 @@ const sum_binary_sizes = (
  * parser (`oxc-parser (napi)`) and formatter (`oxfmt (napi)`) packages — together
  * they're the closest equivalent to tsv's single parse+format build, so the entry
  * stands beside `tsv (napi)` in the full-toolchain group. Returns `undefined` when
- * either half is missing (older baselines), and sums gzip only when both carry it.
+ * either half is missing, and sums gzip only when both carry it.
  */
 const synthesize_oxc_full = (sizes: Array<BinarySize>): BinarySize | undefined =>
 	sum_binary_sizes(sizes, OXC_FULL_LABEL, OXC_PARSER_NATIVE_LABEL, OXFMT_NATIVE_LABEL);
@@ -189,9 +190,8 @@ export const RSVELTE_INSTALL_LABEL = 'rsvelte-fmt + oxfmt (binary)';
  * directory holds nothing but `.svelte`. So the bare binary is the
  * single-file/editor figure and the sum is the project figure.
  *
- * Returns `undefined` when either half is missing (an older baseline predating the
- * rsvelte row), and sums gzip only when both carry it — same posture as
- * `synthesize_oxc_full`.
+ * Returns `undefined` when either half is missing, and sums gzip only when both
+ * carry it — same posture as `synthesize_oxc_full`.
  */
 const synthesize_rsvelte_install = (sizes: Array<BinarySize>): BinarySize | undefined =>
 	sum_binary_sizes(sizes, RSVELTE_INSTALL_LABEL, RSVELTE_LABEL, OXFMT_NATIVE_LABEL);
@@ -199,18 +199,13 @@ const synthesize_rsvelte_install = (sizes: Array<BinarySize>): BinarySize | unde
 /**
  * Groups the binary sizes by capability (full / formatter / parser), each group
  * mixing wasm and native builds sorted smallest-first. Bars scale to the group's
- * largest ENTRY, synthesized sums included — so the `+` rows below set the scale in
- * the groups that carry one, and every real build reads against an install footprint
- * rather than against another single artifact. The `vs` ratio anchors on the group's
+ * largest ENTRY, synthesized sums included. The `vs` ratio anchors on the group's
  * single smallest build, so exactly one entry reads 1.00x and every other is a
- * multiple of it — whichever tool that is. (It is not always tsv: yuku-parser's
- * parse-only builds undercut tsv's, which carry Svelte and CSS parsers besides, and
- * malva's CSS-only plugin undercuts tsv's three-language format-only wasm build.) A
- * combined `oxc-parser + oxfmt` entry is synthesized into the full-toolchain group,
- * since oxc ships parse and format apart.
- * oxfmt has no wasm build, so the formatter group gets a disabled `oxfmt (wasm)`
- * placeholder slotted just above its real `oxfmt (napi)` entry, holding the slot
- * rather than omitting it. The formatter group likewise carries both rsvelte-fmt
+ * multiple of it — whichever tool that is, tsv or not. A combined
+ * `oxc-parser + oxfmt` entry is synthesized into the full-toolchain group, since
+ * oxc ships parse and format apart. oxfmt has no wasm build, so the formatter
+ * group gets a disabled `oxfmt (wasm)` placeholder slotted just above its real
+ * `oxfmt (napi)` entry, holding the slot rather than omitting it. The formatter group likewise carries both rsvelte-fmt
  * figures — the bare binary and the `+ oxfmt` install it needs to format a
  * project (see `synthesize_rsvelte_install`).
  */

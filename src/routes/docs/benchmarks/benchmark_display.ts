@@ -1,4 +1,4 @@
-// Display helpers shared across the benchmarks page: value formatters for
+// Display helpers shared by the benchmarks and conformance pages: value formatters for
 // times, sizes, and ratios, the row labels, and the per-category colors.
 
 import type {
@@ -10,9 +10,21 @@ import type {
 /** A count with thousands separators (`44,220`), pinned to one locale so prerendered and hydrated output agree. */
 export const format_count = (n: number): string => n.toLocaleString('en-US');
 
+/**
+ * A report timestamp as a date (`September 23, 2026`), pinned to one locale and
+ * to UTC so the prerendering machine's zone doesn't pick the day.
+ */
+export const format_report_date = (timestamp: string): string =>
+	new Date(timestamp).toLocaleDateString('en-US', {
+		year: 'numeric',
+		month: 'long',
+		day: 'numeric',
+		timeZone: 'UTC'
+	});
+
 /** `format_count` for prose over a figure the report may lack: `—` rather than a throw mid-sentence. */
-export const format_count_maybe = (n: number | undefined): string =>
-	n === undefined ? '—' : format_count(n);
+export const format_count_maybe = (n: number | null | undefined): string =>
+	n == null ? '—' : format_count(n);
 
 export interface FormattedUnit {
 	value: string;
@@ -74,8 +86,7 @@ export const format_mib = (mib: number | null | undefined): string =>
 
 /**
  * Formats a gzipped binary size as a bar annotation (e.g. `717 KB gz`), or
- * `undefined` when the baseline lacks it (older runs, or no `gzip` available
- * on the generating machine).
+ * `undefined` when `gzip` was unavailable on the generating machine.
  */
 export const format_gzip_size = (gzip_bytes: number | null | undefined): string | undefined => {
 	if (gzip_bytes == null) return undefined;

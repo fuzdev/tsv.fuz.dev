@@ -17,7 +17,7 @@
 	} = $props();
 
 	// the count of files actually benchmarked, every row's shared timed set
-	const count_label = $derived(format_count_maybe(group.files_iterated ?? undefined));
+	const count_label = $derived(format_count_maybe(group.files_iterated));
 
 	const rows: Array<BaselineRow> = $derived(
 		group.entries.map((e) => ({

@@ -2,7 +2,7 @@
 	import { site_context } from '@fuzdev/fuz_ui/site.svelte.ts';
 
 	import type { BenchmarkBaseline } from './benchmark_data.ts';
-	import { format_version_label } from './benchmark_display.ts';
+	import { format_report_date, format_version_label } from './benchmark_display.ts';
 
 	const {
 		baseline
@@ -16,15 +16,7 @@
 	// upstream appears without a site edit — tsv itself renders under "run"
 	const versions = $derived(Object.entries(baseline.versions).filter(([key]) => key !== 'tsv'));
 
-	const formatted_date = $derived(
-		new Date(baseline.timestamp).toLocaleDateString('en-US', {
-			year: 'numeric',
-			month: 'long',
-			day: 'numeric',
-			// prerendered: pin the zone so the build box's doesn't pick the day
-			timeZone: 'UTC'
-		})
-	);
+	const formatted_date = $derived(format_report_date(baseline.timestamp));
 
 	// GitHub resolves abbreviated SHAs, so the short `git_commit` links directly.
 	const commit_url = $derived(`${site.repo_url}/commit/${baseline.git_commit}`);
@@ -43,11 +35,10 @@
 		<h3 class="mt_0 mb_sm">run</h3>
 		<ul class="unstyled">
 			<li>{formatted_date}</li>
-			<li>runtime: {baseline.runtime}</li>
 			<li>tsv {baseline.versions.tsv}</li>
 			<li>
 				<!-- eslint-disable-next-line svelte/no-navigation-without-resolve -->
-				<a href={commit_url}>{baseline.git_commit}</a>
+				<a href={commit_url} rel="external">{baseline.git_commit}</a>
 			</li>
 		</ul>
 	</div>

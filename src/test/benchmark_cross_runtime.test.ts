@@ -7,6 +7,7 @@ import {
 	derive_unavailable_by_runtime,
 	derive_unstable_cells,
 	format_cross_runtime_label,
+	is_cell_unstable,
 	is_impl_unavailable,
 	is_ratio_within_noise,
 	order_cross_runtime_runtimes,
@@ -165,6 +166,14 @@ describe('derive_unstable_cells', () => {
 			cells.map((c) => c.runtime),
 			['bun', 'node']
 		);
+	});
+
+	test('is_cell_unstable matches group, row, and runtime together', () => {
+		const r = report([cell('bun')]);
+		assert.isTrue(is_cell_unstable(r, 'format/css', 'tsv', 'bun'));
+		assert.isFalse(is_cell_unstable(r, 'format/css', 'tsv', 'node'));
+		assert.isFalse(is_cell_unstable(r, 'parse/css', 'tsv', 'bun'));
+		assert.isFalse(is_cell_unstable(r, 'format/css', 'tsv-wasm', 'bun'));
 	});
 });
 

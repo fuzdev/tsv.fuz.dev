@@ -29,10 +29,9 @@
 	const anchor_row = $derived(rows.find((r) => r.key === anchor_key));
 
 	// Hover is handled here rather than per row: the anchor is the GROUP's state, so
-	// the group is where the pointer belongs, and one delegated listener serves a
-	// group where 71 rows across the page would each have carried their own
-	// (`to_baseline_key`). A disabled row publishes no key, so it can never become
-	// the anchor.
+	// the group is where the pointer belongs, and one delegated listener per group
+	// replaces one per row (`to_baseline_key`). A disabled row publishes no key, so
+	// it can never become the anchor.
 </script>
 
 <!-- A table to assistive tech, since the bar rows are a grid of spans rather than

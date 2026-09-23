@@ -6,6 +6,7 @@
 		derive_unavailable_by_runtime,
 		derive_unstable_cells,
 		format_cross_runtime_label,
+		is_cell_unstable,
 		is_impl_unavailable,
 		is_ratio_within_noise,
 		order_cross_runtime_runtimes,
@@ -42,9 +43,6 @@
 	// "this runtime's report has no such row" (an older sibling, say).
 	const unavailable = $derived(derive_unavailable_by_runtime(report));
 	const unstable = $derived(derive_unstable_cells(report));
-	// `row_key` is the `group/name` composite, unlike `missing_cell_title`'s bare row name
-	const is_unstable = (row_key: string, runtime: BenchmarkRuntime): boolean =>
-		unstable.some((c) => `${c.group}/${c.name}` === row_key && c.runtime === runtime);
 
 	const format_ops = (n: number | undefined): string => (n == null ? 'fail' : n.toFixed(2));
 
@@ -124,7 +122,7 @@
 							</th>
 							{#each runtimes as runtime (runtime)}
 								{@const ops = row.ops_per_second[runtime]}
-								{@const cell_unstable = is_unstable(group.group + '/' + row.name, runtime)}
+								{@const cell_unstable = is_cell_unstable(report, group.group, row.name, runtime)}
 								<td
 									class="benchmarks-num"
 									title={ops == null

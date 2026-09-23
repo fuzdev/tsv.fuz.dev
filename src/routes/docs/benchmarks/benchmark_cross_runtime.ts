@@ -287,6 +287,17 @@ export const is_ratio_within_noise = (
 			cell.runtimes.includes(runtime)
 	);
 
+/** Did the composer flag `runtime`'s measurement of one row as unstable? */
+export const is_cell_unstable = (
+	report: CrossRuntimeReport,
+	group: string,
+	name: string,
+	runtime: BenchmarkRuntime
+): boolean =>
+	report.unstable_cells.some(
+		(cell) => cell.group === group && cell.name === name && cell.runtime === runtime
+	);
+
 /**
  * Did `runtime` record `name` as a load failure? The table renders an absent
  * number the same either way, so this is what lets a cell say WHICH gap it is —
@@ -319,7 +330,7 @@ export const format_cross_runtime_label = (name: string): string =>
  * `1.0` (parity recedes), ramping to `0.3` alpha at ratio `0.8` and below (red) or `1.2`
  * and above (green). The hue stays constant — only opacity moves — so it reads
  * consistently in light and dark themes while the cell's text keeps the default color.
- * Deliberately its own scale — NOT the shared `speedup_color` — because cross-runtime
+ * Deliberately its own scale — NOT the shared `baseline_ratio_color` — because cross-runtime
  * deltas cluster tightly near 1.0 and this must not bleed into the other displays.
  */
 export const cross_runtime_ratio_background = (ratio: number): string => {

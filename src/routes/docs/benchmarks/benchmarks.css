@@ -1,6 +1,6 @@
-/* Styles shared across the benchmarks page's components, which Svelte's scoped
-   `<style>` can't reach across. Imported by the benchmarks `+page.svelte` rather
-   than the root stylesheet so they ship with this route instead of every one. */
+/* Styles shared across the benchmarks components, which Svelte's scoped `<style>`
+   can't reach across. Imported by the benchmarks and conformance `+page.svelte`s
+   rather than the root stylesheet so they ship with those routes instead of every one. */
 
 /* a warning aside: the red tint over fuz_css's base aside styling, used by the
    page's asides and the cross-runtime section's */
@@ -29,7 +29,7 @@
 	text-align: left;
 }
 
-/* a numeric table cell, used by the cross-runtime tables */
+/* a right-aligned numeric table cell */
 .benchmarks-num {
 	text-align: right;
 	white-space: nowrap;

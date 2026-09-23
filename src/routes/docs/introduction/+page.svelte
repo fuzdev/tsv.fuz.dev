@@ -27,7 +27,7 @@ const ast: Root = parse_svelte('<script>const x = 1;<\\/script>');`;
 
 	const no_locations_example = `import { parse_typescript, reconstruct_locations } from '@fuzdev/tsv-parse-wasm';
 
-// span-only AST: start/end offsets, no per-node loc (~46% smaller)
+// span-only AST: start/end offsets, no per-node loc
 const ast = parse_typescript('const x = 1;', { locations: false });
 
 // derive line/column back when you need it, no re-parse
@@ -163,13 +163,12 @@ reconstruct_locations(ast, 'const x = 1;');`;
 				with bundled TS types.
 			</p>
 			<p>
-				Every parser also takes an acorn-style options object —
-				<Code lang="ts" content={'{locations: false}'} inline /> for the span-only wire (documented
-				below), plus TypeScript's
-				<Code lang="ts" content={"{sourceType: 'script' | 'module'}"} inline /> (default
-				<Code lang="ts" content="'module'" inline />), which <code>format_typescript</code> takes
-				too; formatting with no <code>sourceType</code> retries as a script when the module parse
-				fails, so a legacy sloppy script formats with no options.
+				Every parser also takes an acorn-style options object:
+				<Code lang="ts" content={'{locations: false}'} inline /> for the span-only AST (below), and
+				for TypeScript <Code lang="ts" content={"{sourceType: 'script' | 'module'}"} inline />
+				(default <Code lang="ts" content="'module'" inline />). <code>format_typescript</code> takes
+				<code>sourceType</code> too; without it, formatting retries as a script when the module
+				parse fails, so a legacy sloppy script needs no options.
 			</p>
 			<p>
 				The native package needs no initialization; the WASM packages work zero-config in Node.js,
@@ -180,22 +179,18 @@ reconstruct_locations(ast, 'const x = 1;');`;
 		<TomeSection>
 			<TomeSectionHeader text="Span-only parsing" />
 			<p>
-				For efficiency, the parsers have a span-only mode that skips the per-node line/column,
-				making the AST ~46% smaller and faster to materialize. You can derive line and column later
-				without re-parsing. This is the default in oxc-parser; tsv currently matches Svelte's
-				behavior by default, but the API may change.
+				The parsers have a span-only mode that skips the per-node line/column, making the AST ~46%
+				smaller and faster to hand to JS, and you can derive line and column later without
+				re-parsing. It's oxc-parser's default; tsv emits <code>loc</code> by default so the bare
+				call is a drop-in for Svelte's parser, though that default may change.
 			</p>
 			<Code lang="ts" content={no_locations_example} />
 			<p>
-				Passing <Code lang="ts" content={'{locations: false}'} inline /> is faster than the default,
-				because there's fewer bytes to emit and parse. Even when you need line/column,
-				reconstructing in JS beats the <code>loc</code>-bearing wire end-to-end by ~1.7x on
-				TypeScript (~2.2x if you need none), as measured in
+				Even when you need line/column, reconstructing it in JS beats the <code>loc</code>-bearing
+				AST end to end, by ~1.7x on TypeScript (~2.2x if you need none), as measured in
 				<a href="https://github.com/fuzdev/tsv/blob/main/benches/js/results/report.node.md">
 					tsv's bench report
-				</a>. tsv's default emits <code>loc</code> so that the bare call is a drop-in for Svelte's
-				parser. The <code>reconstruct_locations</code> helper is available in every package that
-				parses.
+				</a>. <code>reconstruct_locations</code> ships in every package that parses.
 			</p>
 			<p>Details:</p>
 			<ul>
@@ -228,7 +223,7 @@ reconstruct_locations(ast, 'const x = 1;');`;
 			<ul>
 				<li>
 					<a href="https://github.com/fuzdev/tsv">github.com/fuzdev/tsv</a> — the formatter, parser,
-					wasm bindings, CLI, etc
+					WASM bindings, CLI, etc.
 				</li>
 				<li>
 					<a href="https://github.com/fuzdev/tsv.fuz.dev">github.com/fuzdev/tsv.fuz.dev</a> — this

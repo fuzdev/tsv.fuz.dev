@@ -49,10 +49,8 @@ export interface BenchmarkBaseline {
 	machine: Machine;
 	// Per-corpus-source coverage — `group → source → impl → {processed, total}`,
 	// the machine-readable half of the per-source tables in tsv's own markdown
-	// report. Conformance reports only (the perf surface is 100% by construction).
-	// Not rendered as a table — this page shows each group's
-	// aggregate, which blends corpora answering different questions, so these rows
-	// are the sharper view if it ever grows one.
+	// report, rendered by `conformance_data.ts`'s per-source matrices. Conformance
+	// reports only (the perf surface is 100% by construction).
 	coverage_by_source?: Record<string, Record<string, Record<string, SourceCoverageCell>>>;
 	// Artifacts the size table reached for and didn't find. That table's
 	// COMPOSITION varies by the producing machine — a row exists only for a built
@@ -176,14 +174,12 @@ export interface CorpusSource {
 	path: string;
 	files: number;
 	// Per-language split of `files` (svelte/typescript/css counts summing to
-	// `files`). Present on reports whose loader emitted it; older reports carry
-	// only the `files` total, so treat it as optional.
+	// `files`).
 	by_language?: Partial<Record<string, number>>;
 	// The source's GitHub origin, detected by the bench at report-build time (URL +
 	// commit + subpath): for a `fuzdev/corpora` collection the UPSTREAM its manifest
-	// names, read from that manifest; for any other checkout, git. Absent on older reports and on sources with no
-	// GitHub remote — presence keys on the field, not the report `version` (it
-	// arrived without one and is not tied to any), so treat it as optional.
+	// names, read from that manifest; for any other checkout, git. Absent on
+	// sources with no GitHub remote.
 	repo?: CorpusRepoRef;
 }
 
@@ -290,36 +286,33 @@ export interface BaselineVersions {
 	oxc_parser?: string;
 	// `@oxc-parser/binding-wasm32-wasi` — the binding behind the `oxc-parser-wasm`
 	// row, pinned apart from `oxc-parser` (its newer versions fail to load), so the
-	// two can differ. Absent on reports produced before the split.
+	// two can differ.
 	oxc_parser_wasm?: string;
 	oxfmt?: string;
 	// `yuku-parser` (N-API) and `@yuku-parser/wasm` — one Zig engine behind two
-	// bindings, versioned in lockstep upstream. Absent on reports produced before
-	// the yuku rows.
+	// bindings, versioned in lockstep upstream.
 	yuku_parser?: string;
 	yuku_parser_wasm?: string;
 	biome?: string;
 	// `@dprint/typescript` — the plugin version (the host `@dprint/formatter` is
-	// just the Wasm loader). Absent on reports produced before the dprint row.
+	// just the Wasm loader).
 	dprint?: string;
-	// `@rsvelte/fmt` — the coverage-only Svelte formatter row. Absent on reports
-	// produced before the rsvelte-fmt row.
+	// `@rsvelte/fmt` — the coverage-only Svelte formatter row.
 	rsvelte_fmt?: string;
 	// `dprint-plugin-malva` — dprint's CSS formatter plugin, over the same Wasm
-	// host as `dprint` above. Absent on reports produced before the malva row.
+	// host as `dprint` above.
 	malva?: string;
-	// `postcss` — the CSS parser row. Absent on reports produced before it.
+	// `postcss` — the CSS parser row.
 	postcss?: string;
 	// `@rsvelte/vite-plugin-svelte-native` — the N-API addon behind the Svelte
 	// PARSE rows, a different package from `@rsvelte/fmt` above and versioned
-	// independently. Absent on reports produced before those rows.
+	// independently.
 	rsvelte_parse?: string;
 	// The upstream Svelte version that addon targets (its own `VERSION` export),
 	// which is not its package version — a drift from the `svelte` pin means those
 	// rows parse to a different Svelte than the svelte/compiler row beside them.
 	rsvelte_parse_svelte_target?: string;
-	// `@swc/core` — the TypeScript/JS parser row. Absent on reports produced
-	// before it.
+	// `@swc/core` — the TypeScript/JS parser row.
 	swc?: string;
 	// `typescript` — the engine behind the `tsc` row, which runs on the conformance
 	// surface alone, so the perf reports never carry it.
@@ -329,7 +322,7 @@ export interface BaselineVersions {
 export interface BinarySize {
 	label: string;
 	bytes: number;
-	// `js` (report `version` 17) is a minified JS bundle the tsv harness builds
+	// `js` is a minified JS bundle the tsv harness builds
 	// itself — the canonical toolchain's rows, which no package ships as one file.
 	kind: 'native' | 'wasm' | 'js';
 	// Gzipped on-disk size (≈ npm-tarball wire size); `null` when `gzip` was
@@ -389,11 +382,18 @@ export interface BenchmarkDisplayEntry {
 	coverage_only?: boolean;
 }
 
+/** The format groups the speedup summary reads, in column order. */
+export const SPEEDUP_LANGUAGES = ['svelte', 'typescript', 'css'] as const;
+
+export interface SpeedupCell {
+	language: (typeof SPEEDUP_LANGUAGES)[number];
+	speedup: number | undefined;
+}
+
 export interface SpeedupRow {
 	variant: string;
-	format_svelte: number | undefined;
-	format_typescript: number | undefined;
-	format_css: number | undefined;
+	// tsv's speedup over Prettier, one cell per `SPEEDUP_LANGUAGES` entry
+	cells: Array<SpeedupCell>;
 }
 
 // Implementation categorization
@@ -433,9 +433,10 @@ const CATEGORY_BY_NAME: Record<string, ImplementationCategory> = {
 export const categorize_name = (name: string): ImplementationCategory =>
 	CATEGORY_BY_NAME[name] ?? 'oxc';
 
-// Primary tsv entry names for speedup summary (fair comparisons)
+// The speedup summary's rows: tsv's primary format entries over the Prettier row
 const PRIMARY_NATIVE_FORMAT = 'tsv';
 const PRIMARY_WASM_FORMAT = 'tsv-wasm';
+const SPEEDUP_BASELINE_FORMAT = 'prettier';
 
 // Derivation functions
 
@@ -473,6 +474,8 @@ const CROSS_TOOL_RANK: Partial<Record<ImplementationCategory, number>> = {
 	swc: 6,
 	yuku: 7
 };
+// tsv's own rows follow every cross-tool slot
+const TSV_RANK_BASE = Object.keys(CROSS_TOOL_RANK).length;
 
 /**
  * Fixed slot for a format/parse row, applied in place of a size-ordered sort so the
@@ -487,9 +490,9 @@ const CROSS_TOOL_RANK: Partial<Record<ImplementationCategory, number>> = {
 const speed_entry_rank = (entry: BenchmarkDisplayEntry): number => {
 	const rank = CROSS_TOOL_RANK[entry.category];
 	if (rank !== undefined) return rank;
-	if (entry.name.endsWith('-no-locations')) return 8; // tsv json, span-only wire
-	if (entry.name.endsWith('-json')) return 9; // tsv json, loc-carrying wire
-	return 10; // tsv's engine rows: `tsv`/`tsv-wasm` (format), `-internal` (parse, no JS materialization)
+	if (entry.name.endsWith('-no-locations')) return TSV_RANK_BASE; // tsv json, span-only wire
+	if (entry.name.endsWith('-json')) return TSV_RANK_BASE + 1; // tsv json, loc-carrying wire
+	return TSV_RANK_BASE + 2; // tsv's engine rows: `tsv`/`tsv-wasm` (format), `-internal` (parse, no JS materialization)
 };
 
 /**
@@ -610,35 +613,15 @@ export const derive_benchmark_groups = (baseline: BenchmarkBaseline): Array<Benc
 	return result;
 };
 
-export const derive_speedup_summary = (groups: Array<BenchmarkGroup>): Array<SpeedupRow> => {
-	const find_speedup = (
-		operation: string,
-		language: string,
-		primary_name: string
-	): number | undefined => {
-		const group = groups.find((g) => g.operation === operation && g.language === language);
-		// a coverage-only or placeholder row carries a zero timing, on either side of
-		// the ratio — the canonical row is no more guaranteed to be timed than the other
-		if (!group?.canonical_entry?.mean_ns) return undefined;
-		const entry = group.entries.find((e) => e.name === primary_name);
-		if (!entry?.mean_ns) return undefined;
-		return group.canonical_entry.mean_ns / entry.mean_ns;
-	};
-
-	return [
-		{
-			variant: 'native',
-			format_svelte: find_speedup('format', 'svelte', PRIMARY_NATIVE_FORMAT),
-			format_typescript: find_speedup('format', 'typescript', PRIMARY_NATIVE_FORMAT),
-			format_css: find_speedup('format', 'css', PRIMARY_NATIVE_FORMAT)
-		},
-		{
-			variant: 'wasm',
-			format_svelte: find_speedup('format', 'svelte', PRIMARY_WASM_FORMAT),
-			format_typescript: find_speedup('format', 'typescript', PRIMARY_WASM_FORMAT),
-			format_css: find_speedup('format', 'css', PRIMARY_WASM_FORMAT)
-		}
-	];
+export const derive_speedup_summary = (baseline: BenchmarkBaseline): Array<SpeedupRow> => {
+	const to_row = (variant: string, name: string): SpeedupRow => ({
+		variant,
+		cells: SPEEDUP_LANGUAGES.map((language) => ({
+			language,
+			speedup: benchmark_speedup(baseline, `format/${language}`, SPEEDUP_BASELINE_FORMAT, name)
+		}))
+	});
+	return [to_row('native', PRIMARY_NATIVE_FORMAT), to_row('wasm', PRIMARY_WASM_FORMAT)];
 };
 
 // Measurement stability
