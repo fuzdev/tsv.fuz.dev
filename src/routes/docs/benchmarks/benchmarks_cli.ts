@@ -161,25 +161,25 @@ const SCENARIO_COPY: Record<string, CliScenarioCopy> = {
 	[CLI_TS_REPO_KEY]: {
 		heading: 'TypeScript repo',
 		description:
-			'Every formatter scoped to the same file set and pinned to tsv’s fixed style, so they do comparable line-break work over the same files; a preflight check aborts the scenario rather than publish a comparison the tools didn’t run on equal work.',
+			'Every formatter scoped to the same JSX-free files and pinned to tsv’s fixed style, each at its default parallelism (none, for Prettier).',
 		tsv_only: false
 	},
 	[CLI_SINGLE_FILE_KEY]: {
 		heading: 'Large single file',
 		description:
-			'With a single input no formatter can parallelize across files, so wall-clock is closer to an engine-plus-startup comparison than the multi-file rows — each tool still pays its own process and thread-pool setup, and every row but the bare tsv binary pays Node’s startup first, a fixed cost that weighs most on the fastest rows.',
+			'With one input no formatter can parallelize across files, so wall-clock comes nearer engine speed plus startup: each tool’s own process and thread-pool setup, and Node’s for every row but the bare tsv binary — a fixed cost that weighs most on the fastest rows.',
 		tsv_only: false
 	},
 	[CLI_SVELTE_KEY]: {
 		heading: 'Svelte corpus',
 		description:
-			'Two Rust Svelte-native formatters head-to-head on a third-party .svelte corpus, rsvelte-fmt configured to tsv’s fixed style so both do comparable line-break work. Its time includes the oxfmt it spawns for the files it doesn’t format itself. rsvelte-fmt 0.7.x aborts nondeterministically on this corpus under the harness’s preflight, and the harness never retries: a run is published as it ended, complete or aborted.',
+			'Two Rust Svelte-native formatters head-to-head on a third-party .svelte corpus, rsvelte-fmt configured to tsv’s fixed style. Its time includes the oxfmt it launches for non-.svelte files, which walks the corpus and finds none. rsvelte-fmt 0.7.x crashes nondeterministically in the harness’s preflight on this corpus, aborting the scenario; the harness doesn’t retry, and since the crash has never been seen in a timed run, a table from a run that got through is unbiased.',
 		tsv_only: false
 	},
 	[CLI_DELIVERY_KEY]: {
 		heading: 'tsv delivery paths',
 		description:
-			'Every row is tsv, not another tool: the native binary, the same binary through @fuzdev/tsv’s Node dispatcher (how npx tsv runs it), and @fuzdev/tsv-wasm, the same CLI over a WASM engine, the package for platforms without a prebuilt binary. One file, so the gaps are launch and engine cost, not file parallelism (the WASM row’s CPU time exceeds its wall-clock, most likely V8 compiling the module on background threads).',
+			'Every row is tsv: the native binary, the same binary through @fuzdev/tsv’s Node dispatcher, and @fuzdev/tsv-wasm, the package for platforms without a prebuilt binary — tsv’s CLI reimplemented in JS over a WASM engine. One file, so the gaps are launch and engine cost, not file parallelism; the WASM row’s CPU ratio runs well past its time ratio, likely V8 tiering up the module on background threads.',
 		tsv_only: true
 	}
 };
@@ -221,7 +221,7 @@ export const to_abort_note = (scenario: FormatterScenario): string => {
 	if (scenario.timings.length) return `Timed, but no memory was published: ${scenario.aborted}.`;
 	const faults = scenario.preflight.flatMap((entry) => {
 		const label = CLI_LABELS[entry.name] ?? entry.name;
-		if (entry.crashed) return [`${label} crashed partway through its parse check`];
+		if (entry.crashed) return [`${label} crashed partway through its preflight check`];
 		if (entry.unavailable) return [`${label} could not run`];
 		if (entry.rejected > 0) return [`${label} rejected ${entry.rejected} files`];
 		return [];
@@ -334,22 +334,6 @@ export const cli_ratio_vs_tsv_npm = (
 	label: string,
 	metric: CliMetric
 ): number | undefined => cli_ratio_vs(scenario_key, label, CLI_TSV_NPM_LABEL, metric);
-
-/**
- * The dispatcher row's highest peak RSS across the scenarios that face other
- * tools, in megabytes — the Node launcher's footprint rather than tsv's own.
- *
- * @param scenarios - the scenarios to read, the rendered ones by default
- * @returns the figure, or `undefined` when no such scenario measured one
- */
-export const cli_tsv_npm_memory_mb = (
-	scenarios: Array<CliScenario> = benchmarks_cli.scenarios
-): number | undefined => {
-	const peaks = scenarios
-		.filter((s) => !s.tsv_only)
-		.flatMap((s) => s.results.find((r) => r.label === CLI_TSV_NPM_LABEL)?.memory_mb ?? []);
-	return peaks.length ? Math.max(...peaks) : undefined;
-};
 
 /**
  * What the Node dispatcher adds over the bare binary in wall-clock, in

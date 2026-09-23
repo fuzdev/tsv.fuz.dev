@@ -32,10 +32,10 @@ export const IN_PROCESS_PAIRS = {
 	parse_svelte_vs_rsvelte: ['parse/svelte', 'rsvelte-parse', 'tsv-json'],
 	parse_css_compiler_vs_tsv: ['parse/css', 'tsv-json', 'svelte/compiler'],
 	parse_css_postcss_vs_tsv: ['parse/css', 'tsv-json', 'postcss'],
-	// Gated but not rendered: "tsv's default AST ... lands behind" Oxc is a composite
+	// Gated but not rendered: "tsv's default AST ... puts it behind Oxc" is a composite
 	// of `parse_ts_vs_oxc` and `parse_ts_loc_cost`, true only while the loc cost
 	// outruns tsv's span-only lead, so the sentence is gated as its own pair. Same
-	// for "(and behind swc's ...)" against swc's span-only AST.
+	// for "(and swc ...)" against swc's span-only AST.
 	parse_ts_default_vs_oxc: ['parse/typescript', 'tsv-json', 'oxc-parser'],
 	parse_ts_default_vs_swc: ['parse/typescript', 'tsv-json', 'swc']
 } as const satisfies Record<string, InProcessPair>;

@@ -4,7 +4,7 @@
 	import {
 		cli_default_anchor_label,
 		cli_ratio_between,
-		CLI_TSV_NPM_LABEL,
+		cli_settle_seconds,
 		type BenchmarksCliReport,
 		type CliScenario,
 		type CliFormatterResult,
@@ -59,11 +59,14 @@
 			};
 		});
 	};
-	// The harness's peak RSS is the largest single process in a command's tree, and
-	// for the dispatcher row that is Node, not the binary under it — which the
-	// default anchor's memory column would otherwise leave a reader to guess.
-	const has_dispatcher_memory = (scenario: CliScenario): boolean =>
-		scenario.results.some((r) => r.label === CLI_TSV_NPM_LABEL && r.memory_mb != null);
+	// the section's run-order note quotes the settle every scenario shares, so a table
+	// states its own only where it differs (a plain string, so the leading space
+	// survives Svelte's block-edge trimming)
+	const common_settle = $derived(cli_settle_seconds(report.scenarios));
+	const to_settle_note = (scenario: CliScenario): string =>
+		scenario.settle_seconds && scenario.settle_seconds !== common_settle
+			? ` that follow a ${scenario.settle_seconds} s idle`
+			: '';
 
 	// the anchor's own cells read as the unit they are; an unmeasured side stays a dash
 	const format_cell = (row: Row, ratio: number | undefined, measured: boolean): string =>
@@ -114,27 +117,18 @@
 					</tbody>
 				</table>
 			</div>
-			<!-- one note per table: the corpus revision, the run counts, and what the
-				dispatcher row's memory figure is -->
-			<p>
-				<small>
-					Corpus: {scenario.corpus}.
-					{#if scenario.benchmark_runs > 0}
-						Each time is the mean of {scenario.benchmark_runs} runs, after {scenario.warmup_runs}
-						untimed warmup
-						runs{scenario.settle_seconds ? ` that follow a ${scenario.settle_seconds} s idle` : ''};
-						each peak RSS is the mean of the per-run peaks over a separate, unwarmed pass of
-						{scenario.benchmark_runs} runs.
-					{/if}
-					{#if has_dispatcher_memory(scenario)}
-						The peak RSS of <strong>{CLI_TSV_NPM_LABEL}</strong> is its Node launcher's, not the
-						binary's.
-					{/if}
-				</small>
-			</p>
-		{:else}
-			<p><small>Corpus: {scenario.corpus}.</small></p>
 		{/if}
+		<!-- one note per table: the corpus revision and the run counts; the section's
+			notes say how memory is measured -->
+		<p>
+			<small>
+				Corpus: {scenario.corpus}.
+				{#if rows.length > 0 && scenario.benchmark_runs > 0}
+					Each time is the mean of {scenario.benchmark_runs} runs after {scenario.warmup_runs}
+					warmups{to_settle_note(scenario)}.
+				{/if}
+			</small>
+		</p>
 		{#if scenario.unshimmed}
 			<p><small>{scenario.unshimmed}</small></p>
 		{/if}

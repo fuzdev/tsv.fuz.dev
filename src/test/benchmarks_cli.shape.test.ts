@@ -150,7 +150,7 @@ describe('benchmarks_cli shape', () => {
 	});
 
 	test('every formatter accepts the whole corpus in every timed scenario, as the page claims', () => {
-		// The page's notes say the preflight parse check found nothing rejected, so
+		// The page's notes say the preflight asserts every formatter parses every file, so
 		// no formatter is credited for skipping files. That's a claim about the data —
 		// for the scenarios that were timed. An aborted one is the harness saying the
 		// opposite, and the page shows it as an abort, so its rows are exempt.

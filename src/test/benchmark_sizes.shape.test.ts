@@ -168,14 +168,28 @@ describe('benchmarks.json binary sizes', () => {
 		// "barely larger": the formatter already contains the Svelte parser
 		assert.isAbove(full.bytes, formatter.bytes);
 		assert.isBelow(full.bytes, formatter.bytes * 1.01);
-		// "minified JS compresses much better than wasm"
+		// "minified JS compresses much better than tsv's wasm" — tsv's only: other wasm
+		// builds (biome's, dprint's) gzip about as well as the bundles
 		const gz_share = (s: (typeof sizes)[number]) => (s.gzip_bytes ?? NaN) / s.bytes;
-		const wasm = sizes.filter((s) => s.kind === 'wasm' && s.gzip_bytes != null);
-		assert.isNotEmpty(wasm);
-		const best_wasm = Math.min(...wasm.map(gz_share));
+		const tsv_wasm = sizes.filter(
+			(s) => s.kind === 'wasm' && s.label.startsWith('tsv') && s.gzip_bytes != null
+		);
+		assert.isNotEmpty(tsv_wasm);
+		const best_tsv_wasm = Math.min(...tsv_wasm.map(gz_share));
 		for (const bundle of bundles) {
-			assert.isBelow(gz_share(bundle), best_wasm, bundle.label);
+			assert.isBelow(gz_share(bundle), best_tsv_wasm * 0.8, bundle.label);
 		}
+	});
+
+	test('the dprint and Malva note reads the sizes: Malva smaller on scope, dprint larger regardless', () => {
+		const size = (label: string) => {
+			const found = benchmarks_json.binary_sizes.find((s) => s.label === label);
+			assert(found, `${label} is missing`);
+			return found.bytes;
+		};
+		const tsv_format = size('tsv-format-wasm');
+		assert.isBelow(size('malva (wasm)'), tsv_format);
+		assert.isAbove(size('dprint (wasm)'), tsv_format);
 	});
 
 	test('formatter group gets a disabled oxfmt (wasm) placeholder just above oxfmt (napi), since oxfmt has no wasm build', () => {

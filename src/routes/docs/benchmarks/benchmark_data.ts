@@ -382,20 +382,6 @@ export interface BenchmarkDisplayEntry {
 	coverage_only?: boolean;
 }
 
-/** The format groups the speedup summary reads, in column order. */
-export const SPEEDUP_LANGUAGES = ['svelte', 'typescript', 'css'] as const;
-
-export interface SpeedupCell {
-	language: (typeof SPEEDUP_LANGUAGES)[number];
-	speedup: number | undefined;
-}
-
-export interface SpeedupRow {
-	variant: string;
-	// tsv's speedup over Prettier, one cell per `SPEEDUP_LANGUAGES` entry
-	cells: Array<SpeedupCell>;
-}
-
 // Implementation categorization
 
 const CATEGORY_BY_NAME: Record<string, ImplementationCategory> = {
@@ -432,11 +418,6 @@ const CATEGORY_BY_NAME: Record<string, ImplementationCategory> = {
 
 export const categorize_name = (name: string): ImplementationCategory =>
 	CATEGORY_BY_NAME[name] ?? 'oxc';
-
-// The speedup summary's rows: tsv's primary format entries over the Prettier row
-const PRIMARY_NATIVE_FORMAT = 'tsv';
-const PRIMARY_WASM_FORMAT = 'tsv-wasm';
-const SPEEDUP_BASELINE_FORMAT = 'prettier';
 
 // Derivation functions
 
@@ -611,17 +592,6 @@ export const derive_benchmark_groups = (baseline: BenchmarkBaseline): Array<Benc
 	}
 
 	return result;
-};
-
-export const derive_speedup_summary = (baseline: BenchmarkBaseline): Array<SpeedupRow> => {
-	const to_row = (variant: string, name: string): SpeedupRow => ({
-		variant,
-		cells: SPEEDUP_LANGUAGES.map((language) => ({
-			language,
-			speedup: benchmark_speedup(baseline, `format/${language}`, SPEEDUP_BASELINE_FORMAT, name)
-		}))
-	});
-	return [to_row('native', PRIMARY_NATIVE_FORMAT), to_row('wasm', PRIMARY_WASM_FORMAT)];
 };
 
 // Measurement stability

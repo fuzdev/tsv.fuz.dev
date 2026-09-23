@@ -273,7 +273,7 @@ describe('format_group_omissions', () => {
 	test('several files by several rows flags the overlap', () => {
 		assert.strictEqual(
 			format_group_omissions(omissions),
-			"2 of 951 files (11.2% of this group's bytes) left out of every row's timed set, because a row here fails them in this harness — files failed, by row (rows can overlap): biome-wasm 2, oxfmt 1"
+			"2 of 951 files (11.2% of this group's bytes) left out of every row's timed set, because a row here fails them in this harness — files failed, by row (rows can overlap): biome (wasm) 2, oxfmt (node napi) 1"
 		);
 	});
 
@@ -284,7 +284,7 @@ describe('format_group_omissions', () => {
 				omitted_files: 1,
 				by_tool: [{ name: 'oxfmt', files: 1, bytes: 112, categories: {} }]
 			}),
-			"1 of 951 files (11.2% of this group's bytes) left out of every row's timed set, because a row here fails it in this harness — files failed, by row: oxfmt 1"
+			"1 of 951 files (11.2% of this group's bytes) left out of every row's timed set, because a row here fails it in this harness — files failed, by row: oxfmt (node napi) 1"
 		);
 	});
 });

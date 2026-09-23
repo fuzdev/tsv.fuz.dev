@@ -50,7 +50,8 @@ export type SizeCapability = 'full' | 'formatter' | 'parser';
  *   bucket: both are dprint plugins loaded over the one `@dprint/formatter` host,
  *   and neither exposes a parser. dprint's covers TypeScript/JS, malva's CSS —
  *   each a slice of what tsv's format-only build does, so pair both against
- *   `tsv-format-wasm` and read the gap as scope before engine.
+ *   `tsv-format-wasm`: malva's smaller size there is scope, while dprint is larger
+ *   despite it.
  * - `swc` and rsvelte's addon back parse rows and ship no formatter. Both are far
  *   wider than what the rows measure — swc's `.node` is an entire compiler
  *   (transforms, minifier, bundler) and rsvelte's carries the compiler plus

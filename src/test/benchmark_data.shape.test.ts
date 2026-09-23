@@ -6,8 +6,7 @@ import {
 	CORPUS_SOURCE_LABELS,
 	categorize_name,
 	derive_corpus_source_table,
-	derive_benchmark_groups,
-	derive_speedup_summary
+	derive_benchmark_groups
 } from '$routes/docs/benchmarks/benchmark_data.ts';
 import { VERSION_LABELS } from '$routes/docs/benchmarks/benchmark_display.ts';
 import { conformance_json } from '$routes/docs/conformance/conformance.ts';
@@ -270,19 +269,6 @@ describe('benchmarks.json shape', () => {
 				const prev_wasm = group.entries[i - 1]!.name.includes('wasm');
 				const curr_wasm = group.entries[i]!.name.includes('wasm');
 				assert.isFalse(!prev_wasm && curr_wasm, `${key} native precedes wasm within a tier`);
-			}
-		}
-	});
-
-	test('speedup summary is fully populated, and every cell reads "faster than Prettier"', () => {
-		const rows = derive_speedup_summary(benchmarks_json);
-		assert.strictEqual(rows.length, 2); // native + wasm
-		for (const row of rows) {
-			// `BenchmarksSummary` captions the table as how much faster tsv is than
-			// Prettier, so a cell below 1 would render a slowdown under that caption
-			for (const { language, speedup } of row.cells) {
-				assert.isDefined(speedup, `${row.variant} ${language}`);
-				assert.isAbove(speedup, 1, `${row.variant} ${language}`);
 			}
 		}
 	});

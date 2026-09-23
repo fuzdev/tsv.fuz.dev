@@ -44,6 +44,11 @@
 	const unavailable = $derived(derive_unavailable_by_runtime(report));
 	const unstable = $derived(derive_unstable_cells(report));
 
+	// the `fail` legend is explained only while some cell renders one
+	const has_fail = $derived(
+		groups.some((g) => g.rows.some((row) => runtimes.some((r) => row.ops_per_second[r] == null)))
+	);
+
 	const format_ops = (n: number | undefined): string => (n == null ? 'fail' : n.toFixed(2));
 
 	// An absent number reads as a load failure only when the report says so; every
@@ -91,11 +96,18 @@
 {/if}
 <p>
 	sweeps/sec — one sweep is a full pass over the group's timed file set (higher is faster); ratios
-	are vs <code>{base}</code>, negative when slower than it. A <code>fail</code> is a row that
-	runtime contributed no number for — an implementation it can't load (listed above when the report
-	records it), or one its report doesn't carry. tsv's <code>native</code> rows compare C-FFI against
-	N-API in the <code>deno</code> column, and the other tools' <code>native</code> rows are their npm
-	N-API addons under all three runtimes.
+	are vs <code>{base}</code>, negative when slower than it. The other tools' <code>native</code>
+	rows are their npm N-API addons under all three runtimes.
+	{#if has_fail}
+		A <code>fail</code> is a row that runtime contributed no number for — an implementation it can't
+		load (listed above when the report records it), or one its report doesn't carry.
+	{/if}
+</p>
+<p>
+	A <code>≈</code> marks a delta inside the two measurements' combined noise, which reads as parity.
+	The slowest rows have too few timings for that check, so an unmarked delta there isn't necessarily
+	an effect, and the check can't see variance between whole runs: Bun's allocation-heavy JS rows
+	(Prettier, PostCSS) have sat at two levels 10% or more apart.
 </p>
 {#if runtime_versions.length}
 	<ul class="unstyled versions">

@@ -368,10 +368,13 @@ export const format_runtime_display = (
  * count, since one large file is a bigger share of the work than its count suggests.
  * `by_tool` counts are per row and `omitted_files` is their union, so two rows failing
  * one file sum past it — the copy says "by row" and flags the overlap when there can be one.
+ * Rows are named as the chart labels them (`format_label`).
  */
 export const format_group_omissions = (omissions: GroupOmissions): string => {
 	const is_one = omissions.omitted_files === 1;
-	const tools = omissions.by_tool.map((t) => `${t.name} ${format_count(t.files)}`).join(', ');
+	const tools = omissions.by_tool
+		.map((t) => `${format_label(t.name)} ${format_count(t.files)}`)
+		.join(', ');
 	return `${format_count(omissions.omitted_files)} of ${format_count(omissions.files_total)} files (${format_percent(omissions.omitted_bytes, omissions.bytes_total)} of this group's bytes) left out of every row's timed set, because a row here fails ${
 		is_one ? 'it' : 'them'
 	} in this harness — files failed, by row${

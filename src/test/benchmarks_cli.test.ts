@@ -7,7 +7,6 @@ import {
 	cli_memory_ratio_range,
 	cli_ratio_between,
 	cli_settle_seconds,
-	cli_tsv_npm_memory_mb,
 	cli_tsv_npm_overhead_ms_range,
 	CLI_TSV_LABEL,
 	CLI_TSV_NPM_LABEL,
@@ -52,7 +51,7 @@ describe('to_abort_note', () => {
 					]
 				})
 			),
-			'Not timed: rsvelte-fmt crashed partway through its parse check; tsv via Node dispatcher could not run; biome rejected 3 files.'
+			'Not timed: rsvelte-fmt crashed partway through its preflight check; tsv via Node dispatcher could not run; biome rejected 3 files.'
 		);
 	});
 
@@ -206,14 +205,6 @@ describe('cli claims spanning scenarios', () => {
 		assert.isUndefined(cli_settle_seconds([settled(5), settled()]));
 		assert.isUndefined(cli_settle_seconds([settled(0)]));
 		assert.isUndefined(cli_settle_seconds([]));
-	});
-
-	test("the dispatcher's peak memory skips the tsv-only scenarios", () => {
-		assert.strictEqual(cli_tsv_npm_memory_mb([facing, delivery]), 40);
-		assert.isUndefined(cli_tsv_npm_memory_mb([delivery]));
-		assert.isUndefined(
-			cli_tsv_npm_memory_mb([scenario('s', { results: [result(CLI_TSV_NPM_LABEL, 50, null)] })])
-		);
 	});
 
 	test('the dispatcher overhead spans every scenario that timed both rows', () => {

@@ -90,9 +90,8 @@
 						Prettier's <code>.css</code> fixtures): read a row's parsers against each other, not
 						against 100%. tsv, a drop-in for Svelte's <code>parseCss</code>, sits above it by also
 						parsing spec-valid CSS that <code>parseCss</code> rejects. PostCSS leads by parsing
-						less, not because tsv falls short: it keeps selectors and at-rule preludes as unparsed
-						strings, so it accepts preprocessor syntax and modern CSS <code>parseCss</code> doesn't
-						implement yet.
+						less, not because tsv falls short: it keeps selectors as unparsed strings, so it accepts
+						preprocessor syntax and modern CSS <code>parseCss</code> doesn't implement yet.
 					</li>
 					<li>
 						oxc-parser's column is its native binding; the wasm one, pinned to an older release (see
@@ -110,9 +109,10 @@
 			<p>
 				{format_count(corpus_source_table.totals.files)} files from
 				{corpus_source_table.rows.length} sources, none of them the real-world code used in the
-				<TomeLink slug="benchmarks" />: formatter, compiler, and conformance test suites, each from
-				a pinned checkout. The three harvested into caches — test262, web-platform-tests CSS, and
-				the TypeScript compiler's cases — link their upstream without a commit.
+				<TomeLink slug="benchmarks" />: formatter, compiler, and conformance test suites. Each links
+				its upstream at the commit the harness pinned, except the three harvested into caches —
+				test262, web-platform-tests CSS, and the TypeScript compiler's cases — which carry no
+				commit.
 			</p>
 			<ul>
 				<li>
