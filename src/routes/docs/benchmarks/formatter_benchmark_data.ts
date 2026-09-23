@@ -91,6 +91,12 @@ export const FormatterScenario = z.strictObject({
 	/** Empty in the harness's upstream scenarios, which run no preflight. */
 	preflight: z.array(FormatterPreflight),
 	/**
+	 * How many files the scenario formatted: the count every formatter that reports
+	 * one agreed on in preflight. Absent where none reports one, and from reports
+	 * that predate the field.
+	 */
+	files: z.number().int().positive().optional(),
+	/**
 	 * Why the harness stopped early. Before timing (preflight failed) there are no
 	 * timings, speedups, or memory rows and the `preflight` entries say which
 	 * formatter caused it; after timing (a memory run crashed) timings and speedups

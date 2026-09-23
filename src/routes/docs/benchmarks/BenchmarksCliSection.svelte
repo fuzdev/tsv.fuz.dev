@@ -72,11 +72,13 @@
 	// The harness records its own machine and tool versions; the shape test holds them
 	// to the ones the details section lists, so only what the harness alone records is
 	// quoted: when and from which revision it ran, the thread count its wall-clock
-	// scales with, and the tsv packages it installs.
+	// scales with, the tsv packages it installs, and the Prettier plugin.
 	const cli_date = format_report_date(benchmarks_cli.timestamp);
 	const cli_commit_url = `https://github.com/ryanatkn/oxc-bench-formatter/commit/${benchmarks_cli.git_commit}`;
 	const cli_tsv_binary = benchmarks_cli.tsv_binary;
 	const cli_tsv_wasm_version = benchmarks_cli.versions['tsv-wasm'];
+	// the prettier + oxc-parser row's plugin, which carries its own oxc-parser
+	const cli_plugin_oxc_version = benchmarks_cli.versions['@prettier/plugin-oxc'];
 </script>
 
 <TomeSection>
@@ -90,9 +92,10 @@
 		that <a href="https://github.com/ryanatkn/oxc-bench-formatter" rel="external">adds tsv</a>. It
 		times the whole CLI end to end — process spawn, file discovery, I/O, each tool's default
 		multi-file parallelism — plus peak memory: what you experience typing the command, on real code.
-		Upstream's other three scenarios are left out, since their corpora include JSX and tsv has no
-		JSX/TSX parser. Every formatter is installed from npm, pinned by the fork's lockfile, and the
-		other tools are timed through their packages' Node bins. Against them, tsv has two rows.
+		Upstream's other three scenarios are left out: their corpora include JSX, which tsv doesn't
+		parse, and two also sort imports and Tailwind classes or format languages beyond tsv's three.
+		Every formatter is installed from npm, pinned by the fork's lockfile, and the other tools are
+		timed through their packages' Node bins. Against them, tsv has two rows.
 		<code>{CLI_TSV_NPM_LABEL}</code> is the like-for-like one: the Node bin of
 		<a href="https://www.npmjs.com/package/@fuzdev/tsv"><code>@fuzdev/tsv</code></a>, what
 		<code>npx tsv</code> runs once it's installed, launching the native binary as Biome's and
@@ -128,13 +131,16 @@
 				tsv's dispatcher adds a fixed ~{npm_overhead} over the bare binary, most of it Node's own
 				startup (a bare <code>node -e ""</code> takes ~{format_ms(node_startup_ms)} on this
 				machine), which every other npm-bin row pays too. That makes it ~{delivery_npm_wall} the
-				binary's time on the delivery table's one file but ~{npm_ts_cost} on the TypeScript repo,
-				where CPU ratios move far less than wall-clock: tsv leads Oxfmt ~{npm_ts_cpu_vs_oxfmt} in
-				CPU through the dispatcher and ~{ts_cpu_vs_oxfmt} as the bare binary, against
-				~{npm_ts_vs_oxfmt} and ~{ts_wall_vs_oxfmt} wall-clock.
+				binary's time on the delivery table's one file but ~{npm_ts_cost} on the TypeScript repo.
+				Against the repo's multi-threaded work it adds little CPU: tsv leads Oxfmt
+				~{npm_ts_cpu_vs_oxfmt} in CPU through the dispatcher and ~{ts_cpu_vs_oxfmt} as the bare
+				binary, against ~{npm_ts_vs_oxfmt} and ~{ts_wall_vs_oxfmt} wall-clock.
+			</li>
+			<li>
 				<a href="https://www.npmjs.com/package/@fuzdev/tsv-wasm"><code>@fuzdev/tsv-wasm</code></a>
-				takes ~{wasm_wall} the binary's time and ~{wasm_memory} its memory on that one file, still
-				well ahead of both Prettier rows in the single-file table but behind Oxfmt and Biome.
+				takes ~{wasm_wall} the binary's time and ~{wasm_memory} its memory on the delivery table's
+				one file, still well ahead of both Prettier rows in the single-file table but behind Oxfmt
+				and Biome.
 			</li>
 			<li>
 				Through its dispatcher tsv uses {format_ratio_range(npm_memory)} less peak memory than every
@@ -187,5 +193,9 @@
 			build{cli_tsv_binary.built ? ` from ${cli_tsv_binary.built}` : ''},
 		{/if}
 		and its wasm row <code>@fuzdev/tsv-wasm</code> {cli_tsv_wasm_version}.
+		{#if cli_plugin_oxc_version}
+			Its <code>prettier + oxc-parser</code> row runs <code>@prettier/plugin-oxc</code>
+			{cli_plugin_oxc_version}, with its own oxc-parser, not the release listed there.
+		{/if}
 	</p>
 </TomeSection>

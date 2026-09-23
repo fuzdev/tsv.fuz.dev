@@ -16,11 +16,14 @@ export type InProcessPair = readonly [group: string, slower: string, faster: str
 export const IN_PROCESS_PAIRS = {
 	format_ts_vs_oxfmt: ['format/typescript', 'oxfmt', 'tsv'],
 	format_ts_vs_prettier: ['format/typescript', 'prettier', 'tsv'],
+	format_ts_wasm_vs_prettier: ['format/typescript', 'prettier', 'tsv-wasm'],
 	format_ts_vs_biome: ['format/typescript', 'biome-wasm', 'tsv-wasm'],
 	format_svelte_vs_prettier: ['format/svelte', 'prettier', 'tsv'],
+	format_svelte_wasm_vs_prettier: ['format/svelte', 'prettier', 'tsv-wasm'],
 	format_svelte_vs_biome: ['format/svelte', 'biome-wasm', 'tsv-wasm'],
 	format_css_vs_oxfmt: ['format/css', 'oxfmt', 'tsv'],
 	format_css_vs_prettier: ['format/css', 'prettier', 'tsv'],
+	format_css_wasm_vs_prettier: ['format/css', 'prettier', 'tsv-wasm'],
 	format_css_vs_biome: ['format/css', 'biome-wasm', 'tsv-wasm'],
 	parse_ts_vs_oxc: ['parse/typescript', 'oxc-parser', 'tsv-json-no-locations'],
 	// the drop-in comparison: tsv's default `loc`-bearing wire against the reference it replaces

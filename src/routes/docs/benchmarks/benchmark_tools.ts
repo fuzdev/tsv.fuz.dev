@@ -122,7 +122,7 @@ export const TOOL_SUPPORT: ReadonlyArray<ToolSupport> = [
 			css: { format: true },
 			svelte: { format: 'experimental' }
 		},
-		other: 'JSON, GraphQL, HTML (opt-in), and experimental Vue, Astro',
+		other: 'JSON, GraphQL, GritQL, HTML (opt-in), and experimental Vue, Astro',
 		rows: { format: ['biome-wasm'] },
 		cli_labels: ['biome']
 	},

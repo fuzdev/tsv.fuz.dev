@@ -777,6 +777,11 @@ export interface SweepStats {
 	/** The span of cleaned timing counts the report kept per row. */
 	sample_size_min: number | undefined;
 	sample_size_max: number | undefined;
+	/**
+	 * The largest level shift any row showed while it was measured (`|drift|`, a
+	 * fraction) — what bounds, loosely, how far a row's timings moved in place.
+	 */
+	drift_max: number | undefined;
 }
 
 export const derive_sweep_stats = (baseline: BenchmarkBaseline): SweepStats => {
@@ -787,12 +792,14 @@ export const derive_sweep_stats = (baseline: BenchmarkBaseline): SweepStats => {
 		categorize_name(e.name) === 'canonical' ? (e.min_iterations ?? []) : []
 	);
 	const sample_sizes = baseline.entries.flatMap((e) => e.sample_size ?? []);
+	const drifts = baseline.entries.flatMap((e) => (e.drift == null ? [] : Math.abs(e.drift)));
 	const floor = min_of(floors);
 	return {
 		floor,
 		canonical_floor: min_of(canonical_floors) ?? floor,
 		sample_size_min: min_of(sample_sizes),
-		sample_size_max: sample_sizes.length ? Math.max(...sample_sizes) : undefined
+		sample_size_max: sample_sizes.length ? Math.max(...sample_sizes) : undefined,
+		drift_max: drifts.length ? Math.max(...drifts) : undefined
 	};
 };
 

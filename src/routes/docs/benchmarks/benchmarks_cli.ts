@@ -63,6 +63,8 @@ export interface CliScenario extends CliScenarioCopy {
 	target: string;
 	/** Which revision of the corpus the numbers came from, as the harness records it. */
 	corpus: string;
+	/** How many files the scenario formatted, when the harness recorded it. */
+	files?: number;
 	/**
 	 * Every formatter the scenario benched, as displayed, in the harness's order —
 	 * timed or only preflight-checked. An abort before timing empties `results`
@@ -184,7 +186,7 @@ const SCENARIO_COPY: Record<string, CliScenarioCopy> = {
 	[CLI_SVELTE_KEY]: {
 		heading: 'Svelte corpus',
 		description:
-			'Two Rust Svelte-native formatters head-to-head on a third-party .svelte corpus, rsvelte-fmt configured to tsv’s fixed style. rsvelte-fmt’s time includes the Oxfmt it launches for non-.svelte files, which walks the corpus and finds none.',
+			'Two Rust Svelte-native formatters head-to-head on a third-party .svelte corpus (over half of it flowbite-svelte), rsvelte-fmt configured to tsv’s fixed style. rsvelte-fmt’s time includes the Oxfmt it launches for non-.svelte files, which walks the corpus and finds none.',
 		abort_context:
 			'rsvelte-fmt 0.7.x can abort when its output and stderr share a pipe, and the harness doesn’t retry.',
 		tsv_only: false
@@ -284,6 +286,7 @@ export const to_cli_scenarios = (
 						...copy,
 						target: scenario.target,
 						corpus: scenario.corpus,
+						...(scenario.files === undefined ? null : { files: scenario.files }),
 						labels: to_labels(scenario),
 						results: to_results(scenario),
 						warmup_runs: scenario.warmup_runs,

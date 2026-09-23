@@ -1,6 +1,12 @@
 <script lang="ts">
 	import { to_baseline_key } from './benchmark_baseline.ts';
-	import { format_cli_corpus, format_mib, format_ms, format_speedup } from './benchmark_display.ts';
+	import {
+		format_cli_corpus,
+		format_count,
+		format_mib,
+		format_ms,
+		format_speedup
+	} from './benchmark_display.ts';
 	import {
 		cli_default_anchor_label,
 		cli_ratio_between,
@@ -118,11 +124,14 @@
 				</table>
 			</div>
 		{/if}
-		<!-- one note per table: the corpus revision and the run counts; the section's
+		<!-- one note per table: the corpus revision and size, and the run counts; the section's
 			notes say how memory is measured -->
 		<p>
 			<small>
-				Corpus: {format_cli_corpus(scenario.corpus)}.
+				Corpus:
+				{format_cli_corpus(scenario.corpus)}{scenario.files
+					? `, ${format_count(scenario.files)} files`
+					: ''}.
 				{#if rows.length > 0 && scenario.benchmark_runs > 0}
 					Each time is the mean of {scenario.benchmark_runs} runs after {scenario.warmup_runs}
 					warmups{to_settle_note(scenario)}.

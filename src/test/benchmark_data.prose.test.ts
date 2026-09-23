@@ -160,11 +160,13 @@ describe('prose ratios resolve', () => {
 		}
 	});
 
-	test('the pairings the copy calls payload-matched are, and the ones it excludes are not', () => {
-		// The page names four pairings as comparing the same PRODUCT and rules three out
-		// ("swc's AST ... matches neither tsv wire", and the `no-locs` entries, not the
-		// default wire, "are the payload-matched comparison with oxc-parser"). Those are claims about
-		// the report's `payload` tiers, so read them off it rather than trusting prose.
+	test('the pairings the copy compares by payload tier share one, and the ones it excludes do not', () => {
+		// The page names four pairings as comparing the same kind of PRODUCT and rules three
+		// out ("swc's AST ... matches neither tsv wire", and the `no-locs` entries, not the
+		// default wire, are "the closest comparison with oxc-parser"). Those are claims about
+		// the report's `payload` tiers, so read them off it rather than trusting prose. A
+		// shared tier is a shape, not a byte count: the copy says Oxc's span-only AST runs
+		// larger than tsv's.
 		const entry = (group: string, name: string) => {
 			const found = benchmarks_json.entries.find((e) => e.group === group && e.name === name);
 			assert(found, `${group}/${name} is missing`);

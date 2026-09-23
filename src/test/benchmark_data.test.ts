@@ -316,9 +316,9 @@ describe('derive_sweep_stats', () => {
 		const stats = derive_sweep_stats(
 			create_baseline({
 				entries: [
-					entry({ name: 'prettier', min_iterations: 16, sample_size: 16 }),
-					entry({ name: 'tsv', min_iterations: 8, sample_size: 900 }),
-					entry({ name: 'biome-wasm', min_iterations: 8, sample_size: 6 })
+					entry({ name: 'prettier', min_iterations: 16, sample_size: 16, drift: 0.004 }),
+					entry({ name: 'tsv', min_iterations: 8, sample_size: 900, drift: -0.012 }),
+					entry({ name: 'biome-wasm', min_iterations: 8, sample_size: 6, drift: null })
 				]
 			})
 		);
@@ -326,21 +326,23 @@ describe('derive_sweep_stats', () => {
 			floor: 8,
 			canonical_floor: 16,
 			sample_size_min: 6,
-			sample_size_max: 900
+			sample_size_max: 900,
+			drift_max: 0.012
 		});
 	});
 
 	test('a report with only untimed rows reads as undefined, never Infinity', () => {
 		const stats = derive_sweep_stats(
 			create_baseline({
-				entries: [entry({ sample_size: null, min_iterations: null })]
+				entries: [entry({ sample_size: null, min_iterations: null, drift: null })]
 			})
 		);
 		assert.deepEqual(stats, {
 			floor: undefined,
 			canonical_floor: undefined,
 			sample_size_min: undefined,
-			sample_size_max: undefined
+			sample_size_max: undefined,
+			drift_max: undefined
 		});
 	});
 });
