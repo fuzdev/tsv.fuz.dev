@@ -4,104 +4,145 @@
 	import TomeLink from '@fuzdev/fuz_ui/TomeLink.svelte';
 	import TomeSection from '@fuzdev/fuz_ui/TomeSection.svelte';
 	import TomeSectionHeader from '@fuzdev/fuz_ui/TomeSectionHeader.svelte';
-	import {tome_get_by_slug} from '@fuzdev/fuz_ui/tome.ts';
+	import { tome_get_by_slug } from '@fuzdev/fuz_ui/tome.ts';
 	import Svg from '@fuzdev/fuz_ui/Svg.svelte';
-	import {logo_tsv} from '@fuzdev/fuz_ui/logos.ts';
+	import { logo_tsv } from '@fuzdev/fuz_ui/logos.ts';
+
+	import {
+		format_example,
+		no_locations_example,
+		parse_example,
+		usage_example
+	} from './introduction_examples.ts';
 
 	const LIBRARY_ITEM_NAME = 'introduction';
 
 	const tome = tome_get_by_slug(LIBRARY_ITEM_NAME);
-
-	const usage_example = `import {format_svelte, parse_svelte, type Root} from '@fuzdev/tsv_wasm';
-
-const formatted = format_svelte('<script>\\nconst   x=1\\n<\\/script>');
-const ast: Root = parse_svelte('<script>const x = 1;<\\/script>');`;
-
-	const format_example = `import {format_svelte} from '@fuzdev/tsv_format_wasm';
-
-const formatted = format_svelte('<script>\\nconst   x=1\\n<\\/script>');`;
-
-	const parse_example = `import {parse_svelte, type Root} from '@fuzdev/tsv_parse_wasm';
-
-const ast: Root = parse_svelte('<script>const x = 1;<\\/script>');`;
-
-	const no_locations_example = `import {parse_typescript_no_locations, reconstruct_locations} from '@fuzdev/tsv_parse_wasm';
-
-// span-only AST: start/end offsets, no per-node loc (~46% smaller)
-const ast = parse_typescript_no_locations('const x = 1;');
-
-// derive line/column back when you need it, no re-parse
-reconstruct_locations(ast, 'const x = 1;');`;
 </script>
 
 <TomeContent {tome}>
 	<section>
 		<Svg data={logo_tsv} size="var(--icon_size_xl2)" class="float:right ml_lg mb_lg" />
 		<p>
-			tsv is a toolchain for TypeScript/JS, CSS, and Svelte in Rust. The first release has a
-			formatter that closely follows <a href="https://prettier.io/">Prettier</a> +
+			tsv is a toolchain for TypeScript/JS, CSS, and Svelte in Rust (and planned HTML/JSON). Today
+			it ships a formatter that closely follows <a href="https://prettier.io/">Prettier</a> +
 			<a href="https://github.com/sveltejs/prettier-plugin-svelte">prettier-plugin-svelte</a>, and a
-			drop-in replacement for <a href="https://svelte.dev/">Svelte</a>'s parser +
+			drop-in for <a href="https://svelte.dev/">Svelte</a>'s parser +
 			<a href="https://github.com/acornjs/acorn">acorn</a> +
 			<a href="https://github.com/sveltejs/acorn-typescript">acorn-typescript</a>.
 		</p>
 		<p>
-			Compared to Oxc, Biome, and SWC, tsv is a set of focused tools, not a generic language
-			platform, so the focus is web standards and there's no support for JSX/SCSS/etc, beyond Svelte
-			as the only JS framework. The extensibility story is currently limited to using its Rust
-			crates as libraries; bridging to JS or WASM plugins is an open question, but may not be
-			supported.
+			tsv aims to simplify its covered domains and stay lean, and so it makes opinionated choices.
+			The formatter has a single non-configurable style, using Svelte's Prettier config. Among other
+			benefits this means tsv doesn't depend on a JS runtime, which it would need to resolve configs
+			like Prettier.
+		</p>
+		<p>
+			Compared to Oxc, Biome, and SWC, tsv is a set of focused tools, not an extensible language
+			platform, so the focus is Web standards + TS + Svelte and there's no support for JSX/SCSS/etc.
+			tsv's extensibility story is currently limited to using its Rust crates as libraries (or
+			forking); bridging to JS or wasm plugins is an open question (leaning against).
+		</p>
+		<p>
+			Compared to <a href="https://github.com/baseballyama/rsvelte">rsvelte</a>, tsv has its own
+			TS/JS/CSS parsers instead of using Oxc, and rsvelte additionally has a Svelte compiler and
+			linter/typechecker integration (the full toolchain; tsv has some in-progress work here, scope
+			unknown and may never ship).
 		</p>
 		<p>tsv prioritizes, in order:</p>
 		<ol>
-			<li>correctness (Svelte and TypeScript conformance, spec adherence for HTML/CSS/JS)</li>
+			<li>correctness (spec conformance for HTML/CSS/JS, fidelity to Svelte and TypeScript)</li>
 			<li>speed</li>
 			<li>binary size and memory usage</li>
-			<li>extensibility (valued but deprioritized)</li>
+			<li>extensibility, modularity, reusability</li>
 		</ol>
 		<p>
-			See the <a href="https://tsv.fuz.dev/docs/benchmarks">benchmarks</a> for stats. Compared to Oxc
-			and Biome, tsv is significantly faster, smaller, and uses less memory to parse and format its supported
-			languages
+			Staying simple is an over-arching goal, and sometimes at odds with flexibility. Feedback is
+			welcome to help navigate these tradeoffs.
 		</p>
 		<p>
-			This is an early release, and reports and feedback are appreciated - see the
-			<a href="https://github.com/fuzdev/tsv/issues">issues</a> and
-			<a href="https://github.com/fuzdev/tsv/discussions">discussions</a>.
+			See the <TomeLink slug="benchmarks" /> for measurements. Compared to Oxc/oxfmt and Biome, tsv
+			is smaller and faster at parsing and formatting its supported languages, but lacks their
+			features, extensibility, and broad language support. One reason for tsv to exist is to help
+			find the performance bonuses left on the table in the Web's implementations.
 		</p>
 		<p>
-			AI disclosure: this codebase is mostly LLM-generated, and the usual caveats apply. The first
-			release took 7 months and ~1800 manual commits. It's a high-effort project that prioritizes
-			quality.
+			tsv is near production-ready, with a long tail of rare bugs (and numerous fixes to bugs in
+			acorn-typescript/Prettier/prettier-plugin-svelte), and APIs may still change. Reports and
+			feedback are appreciated. See the <a href="https://github.com/fuzdev/tsv/issues">issues</a>
+			and <a href="https://github.com/fuzdev/tsv/discussions">discussions</a>.
 		</p>
 		<p>
-			These docs are a work in progress. For design details see the <a
-				href="https://github.com/fuzdev/tsv">readme</a
-			>.
+			AI disclosure: this codebase is mostly LLM-generated, and some caveats apply. It's a
+			high-effort project that prioritizes quality.
+		</p>
+		<p>
+			These docs are a work in progress. There are more design details in the
+			<a href="https://github.com/fuzdev/tsv#about">readme</a>.
 		</p>
 		<TomeSection>
 			<TomeSectionHeader text="Install" />
-			<p>tsv ships as WASM packages on npm, a CLI with a formatter and parser:</p>
+			<p>
+				For format-on-save in VSCode and vsix-compatible editors, install the
+				<a href="https://github.com/fuzdev/vscode-extension-tsv-format">
+					<code>fuzdev.tsv-format</code> extension
+				</a>. It runs tsv's wasm build, so it works in both desktop VSCode and the browser host:
+			</p>
+			<ul>
+				<li>
+					<a href="https://marketplace.visualstudio.com/items?itemName=fuzdev.tsv-format">
+						VSCode Marketplace
+					</a>
+				</li>
+				<li>
+					<a href="https://open-vsx.org/extension/fuzdev/tsv-format">Open VSX</a>
+				</li>
+			</ul>
+			<p>
+				tsv is published to npm as
+				<a href="https://www.npmjs.com/package/@fuzdev/tsv"><code>@fuzdev/tsv</code></a> with native
+				binaries:
+			</p>
 			<Code
 				lang="sh"
-				content={'npm i -D @fuzdev/tsv_wasm\nnpx tsv format src\nnpx tsv parse src/foo.svelte'}
+				content={'npm i -D @fuzdev/tsv\nnpx tsv format src\nnpx tsv format --check src\nnpx tsv parse src/foo.svelte'}
 			/>
+			<p>
+				<code>tsv format</code> writes changed files in place; <code>--check</code> writes nothing
+				and exits 1 if any file would change. Inside a git repo, discovery honors
+				<code>.gitignore</code>, <code>.prettierignore</code>, and <code>.formatignore</code>.
+			</p>
+			<p>
+				The native package covers Linux (x64 gnu and musl, arm64 gnu), macOS (arm64 and x64), and
+				Windows x64 — anywhere else, use the wasm build below.
+			</p>
+			<p>
+				The same CLI binaries are also attached to each
+				<a href="https://github.com/fuzdev/tsv/releases">GitHub Release</a> with a
+				<code>SHA256SUMS</code> and a build provenance attestation, for use without npm.
+			</p>
+			<p>
+				tsv also ships as wasm, which runs everywhere including browsers and Deno, and carries the
+				same <code>tsv</code> CLI (formatting across worker threads, so <code>--jobs</code> works
+				there too):
+			</p>
+			<Code lang="sh" content={'npm i -D @fuzdev/tsv-wasm\nnpx tsv format src'} />
 			<p>For smaller builds, the formatter and parser also ship solo:</p>
 			<Code
 				lang="sh"
-				content={'npm i -D @fuzdev/tsv_format_wasm\nnpm i -D @fuzdev/tsv_parse_wasm'}
+				content={'npm i -D @fuzdev/tsv-format-wasm\nnpm i -D @fuzdev/tsv-parse-wasm'}
 			/>
 			<p>
 				See the <TomeLink slug="benchmarks" /> for size and performance details.
 			</p>
-			<p>
-				Native builds are not yet available but are coming in v0.2, see
-				<a href="https://github.com/fuzdev/tsv/issues/139">issue 139</a>.
-			</p>
 		</TomeSection>
 		<TomeSection>
 			<TomeSectionHeader text="Usage" />
-			<p>All three packages share the same API. The full package exports both halves:</p>
+			<p>
+				All four packages share one API — the same function names, options, and errors — so
+				<code>@fuzdev/tsv</code> and <code>@fuzdev/tsv-wasm</code> are drop-in swaps for each other.
+				Both export the formatter and parser together:
+			</p>
 			<Code lang="ts" content={usage_example} />
 			<p>The formatter alone:</p>
 			<Code lang="ts" content={format_example} />
@@ -110,38 +151,74 @@ reconstruct_locations(ast, 'const x = 1;');`;
 			<p>
 				<code>format_typescript</code>, <code>format_css</code>, <code>parse_typescript</code>, and
 				<code>parse_css</code> work the same way, and the parsers return Svelte-compatible JSON ASTs
-				with bundled TS types. Everything works zero-config in Node.js, Bun, and Deno (sync
-				auto-init); browsers and bundlers call <code>await init()</code> once first.
+				with bundled TS types.
+			</p>
+			<p>
+				Every parser also takes an acorn-style options object:
+				<Code lang="ts" content={'{locations: false}'} inline /> for the span-only AST (below), and
+				for TypeScript <Code lang="ts" content={"{sourceType: 'script' | 'module'}"} inline />
+				(default <Code lang="ts" content="'module'" inline />). <code>format_typescript</code> takes
+				<code>sourceType</code> too; without it, formatting retries as a script when the module
+				parse fails, so a legacy sloppy script needs no options.
+			</p>
+			<p>
+				The native package needs no initialization; the wasm packages work zero-config in Node.js,
+				Bun, and Deno (sync auto-init), and browsers and bundlers call
+				<Code lang="ts" content="await init()" inline /> once first.
 			</p>
 		</TomeSection>
 		<TomeSection>
 			<TomeSectionHeader text="Span-only parsing" />
 			<p>
-				For TypeScript and Svelte, the parsers also emit a span-only AST that drops the per-node
-				<code>loc</code> (line/column) object — Svelte also drops <code>name_loc</code> — for a ~46%
-				smaller, faster-to-materialize result, mirroring acorn's <code>locations: false</code>. Line
-				and column stay derivable from the <code>start</code>/<code>end</code> offsets plus your source,
-				so nothing is lost when you have the source.
+				The parsers have a span-only mode that skips the per-node line/column, making the AST ~46%
+				smaller and faster to hand to JS, and you can derive line and column later without
+				re-parsing. It's oxc-parser's default; tsv emits <code>loc</code> by default so the bare
+				call is a drop-in for Svelte's parser, though that default may change.
 			</p>
 			<Code lang="ts" content={no_locations_example} />
 			<p>
-				<code>reconstruct_locations(ast, source)</code> walks the tree and adds <code>loc</code>
-				back, mutating in place — exact for TypeScript, approximate for Svelte (it skips the parser's
-				own
-				<code>name_loc</code> and a couple of position quirks). For sparse lookups,
-				<code>create_locator(source)</code> reuses one line table across calls. CSS has no
-				<code>loc</code>, so there's no span-only variant for it.
+				Even when you need line/column, reconstructing it in JS beats the <code>loc</code>-bearing
+				AST end to end, by ~1.7x on TypeScript, as measured in
+				<a href="https://github.com/fuzdev/tsv/blob/main/benches/js/results/report.node.md">
+					tsv's bench report
+				</a>. <code>reconstruct_locations</code> ships in every package that parses.
 			</p>
+			<p>Details:</p>
+			<ul>
+				<li>
+					Span-only drops the per-node <code>loc</code> object (and <code>name_loc</code> on Svelte
+					nodes), mirroring acorn's <Code lang="ts" content={'{locations: false}'} inline />. The
+					rest is unchanged, so every node keeps its <code>start</code>/<code>end</code> offsets.
+				</li>
+				<li>
+					<Code lang="ts" content="reconstruct_locations(ast, source)" inline /> walks the tree and
+					adds <code>loc</code> back, mutating in place — exact for TypeScript, approximate for
+					Svelte, where it throws on the rare input it can't reconstruct rather than guess (parse
+					those with <code>loc</code>).
+				</li>
+				<li>
+					For sparse lookups, <Code lang="ts" content="create_locator(source, opts?)" inline />
+					reuses one line table across calls, so you pay for the positions you actually ask for;
+					pass <Code lang="ts" content={"{language: 'svelte'}"} inline /> for a <code>.svelte</code>
+					document.
+				</li>
+				<li>
+					CSS nodes carry no <code>loc</code> to begin with, so
+					<Code lang="ts" content={'{locations: false}'} inline /> is accepted as an inert no-op
+					there.
+				</li>
+			</ul>
 		</TomeSection>
 		<TomeSection>
 			<TomeSectionHeader text="Source code" />
 			<ul>
 				<li>
-					<a href="https://github.com/fuzdev/tsv">github.com/fuzdev/tsv</a> - the formatter, parser, wasm
-					bindings, CLI, etc
+					<a href="https://github.com/fuzdev/tsv">github.com/fuzdev/tsv</a> — the formatter, parser,
+					wasm bindings, CLI, etc.
 				</li>
 				<li>
-					<a href="https://github.com/fuzdev/tsv.fuz.dev">github.com/fuzdev/tsv.fuz.dev</a> - this website
+					<a href="https://github.com/fuzdev/tsv.fuz.dev">github.com/fuzdev/tsv.fuz.dev</a> — this
+					website
 				</li>
 			</ul>
 		</TomeSection>

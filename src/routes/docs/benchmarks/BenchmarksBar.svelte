@@ -1,10 +1,6 @@
 <script lang="ts">
-	import {
-		category_color,
-		format_label,
-		type FormattedUnit,
-		type ImplementationCategory,
-	} from './benchmark_data.ts';
+	import type { ImplementationCategory } from './benchmark_data.ts';
+	import { category_color, format_row_label, type FormattedUnit } from './benchmark_display.ts';
 
 	const {
 		label,
@@ -14,6 +10,10 @@
 		ratio_text,
 		ratio_color,
 		annotation,
+		disabled = false,
+		coverage_only = false,
+		baseline_key,
+		anchor = false
 	}: {
 		label: string;
 		bar_fraction: number;
@@ -21,53 +21,94 @@
 		value: FormattedUnit;
 		ratio_text: string;
 		ratio_color: string | undefined;
-		// optional extra context shown between value and ratio (corpus coverage in
-		// benchmark groups, gzipped size in binary-size groups); omitted when absent
+		// optional extra context shown between value and ratio (gzipped size in the
+		// binary-size groups); omitted when absent
 		annotation?: string | undefined;
+		// a grayed-out, inert placeholder (a tool that doesn't run in this group) —
+		// no bar, no value, no ratio, just the label held in its shared slot
+		disabled?: boolean;
+		// inert for a different reason: the tool DID run over the whole corpus but
+		// was deliberately never timed (no in-process API, so a per-file row would
+		// have measured process spawn). Reads `not timed` rather than `n/a`, since
+		// "we chose not to measure this" and "this tool wasn't here" are different
+		// claims and the gray alone can't tell them apart
+		coverage_only?: boolean;
+		// hover-to-rebaseline: the key the group's delegated `pointerover` reads off
+		// this row to adopt it as the ratio anchor. Omitted on inert placeholders,
+		// which publish no key and so can never become the anchor.
+		baseline_key?: string | undefined;
+		// the row every ratio in the group is currently taken against
+		anchor?: boolean;
 	} = $props();
+
+	const display_label = $derived(format_row_label(label, category, disabled));
 </script>
 
-<div class="bar-row" class:has-annotation={annotation != null}>
-	<span class="bar-label">{format_label(label)}</span>
-	<div class="bar-track">
-		<div
-			class="bar-fill"
-			style:width="{bar_fraction * 100}%"
-			style:background={category_color(category)}
-		></div>
+<!-- the grid is a table to assistive tech (its parent is the `role="table"`):
+	each row is one tool, its cells the label, measurement, annotation, and ratio;
+	the bar itself only repeats the measurement visually, so it is hidden. Hover is
+	handled by the group, which reads `data-baseline-key` off whichever row the
+	pointer is over — see `BenchmarksBaselineGroup` -->
+<div class="bar-row" class:disabled class:anchor role="row" data-baseline-key={baseline_key}>
+	<span class="bar-label" role="rowheader">{display_label}</span>
+	<div class="bar-track" role="cell" aria-hidden="true">
+		{#if !disabled}
+			<div
+				class="bar-fill"
+				style:width="{bar_fraction * 100}%"
+				style:background={category_color(category)}
+			></div>
+		{/if}
 	</div>
-	<span class="bar-value">{value.value} <span class="text_50">{value.unit}</span></span>
+	<span class="bar-value" role="cell">
+		{#if disabled}
+			{coverage_only ? 'not timed' : 'n/a'}
+		{:else}
+			{value.value} {value.unit}
+		{/if}
+	</span>
 	{#if annotation != null}
-		<span class="bar-annotation text_50">{annotation}</span>
+		<small class="bar-annotation" role="cell">{annotation}</small>
 	{/if}
-	<span class="bar-ratio" style:color={ratio_color}>{ratio_text}</span>
+	<span class="bar-ratio" role="cell" style:color={ratio_color}>
+		{#if !disabled}{ratio_text}{/if}
+	</span>
 </div>
 
 <style>
+	/* a row borrows its columns from the group's grid (`BenchmarksBaselineGroup`), so
+	 * every row's cells line up and size to the group's content */
 	.bar-row {
 		display: grid;
-		grid-template-columns: 12rem 1fr 5.6rem 3.4rem;
+		grid-template-columns: subgrid;
+		grid-column: 1 / -1;
 		align-items: center;
-		gap: var(--space_sm);
-		height: 2rem;
+		/* rows sit flush (no inter-row gap) with a little padding, so the anchor
+		 * highlight reads as one contiguous, full-height band per row */
+		padding: var(--space_xs);
 	}
-	.bar-row.has-annotation {
-		grid-template-columns: 12rem 1fr 5.6rem 6rem 3.4rem;
+	.bar-row.disabled {
+		opacity: 0.6;
 	}
-	.bar-annotation {
-		font-size: var(--font_size_xs);
+	/* the row every ratio in the group is currently taken against — the default, or
+	 * whichever enabled row is hovered (driven in JS) — marked as the CLI tables mark
+	 * theirs */
+	.bar-row.anchor {
+		background-color: var(--fg_05);
+		box-shadow: inset var(--border_width_3) 0 0 var(--fg_50);
+	}
+	.bar-label,
+	.bar-value,
+	.bar-annotation,
+	.bar-ratio {
 		text-align: right;
-		font-variant-numeric: tabular-nums;
 		white-space: nowrap;
 	}
 	.bar-label {
-		font-size: var(--font_size_sm);
-		text-align: right;
-		overflow: hidden;
-		text-overflow: ellipsis;
-		white-space: nowrap;
+		grid-column: label;
 	}
 	.bar-track {
+		grid-column: track;
 		height: 1.2rem;
 		border-radius: var(--border_radius_xs);
 		background: var(--fg_05);
@@ -79,14 +120,23 @@
 		transition: width 0.3s ease;
 	}
 	.bar-value {
-		font-size: var(--font_size_sm);
-		text-align: right;
-		font-variant-numeric: tabular-nums;
-		white-space: nowrap;
+		grid-column: value;
+	}
+	.bar-annotation {
+		grid-column: annotation;
 	}
 	.bar-ratio {
-		font-size: var(--font_size_sm);
+		grid-column: ratio;
 		font-weight: 700;
-		text-align: right;
+		font-variant-numeric: tabular-nums;
+	}
+	/* too narrow for a bar beside its label: the label takes a line of its own */
+	@container benchmarks-bars (max-width: 36rem) {
+		.bar-label {
+			grid-column: 1 / -1;
+			/* clear of the anchor's edge, which the right-aligned label never met */
+			padding-left: var(--space_xs);
+			text-align: left;
+		}
 	}
 </style>

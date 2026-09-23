@@ -5,15 +5,16 @@
 
 	import Code from '@fuzdev/fuz_code/Code.svelte';
 	import CodeTextarea from '@fuzdev/fuz_code/CodeTextarea.svelte';
-	import {supports_css_highlight_api} from '@fuzdev/fuz_code/highlight_manager.ts';
-	import {to_error_message} from '@fuzdev/fuz_util/error.ts';
+	import { supports_css_highlight_api } from '@fuzdev/fuz_code/highlight_manager.ts';
+	import CopyToClipboard from '@fuzdev/fuz_ui/CopyToClipboard.svelte';
+	import { to_error_message } from '@fuzdev/fuz_util/error.ts';
 
-	import {playground_example} from './playground_example.ts';
+	import { playground_example } from './playground_example.ts';
 
-	// `@fuzdev/tsv_wasm` is loaded lazily, in the browser only — a dynamic import
-	// so the ~900KB WASM lands in its own chunk, fetched the first time this
+	// `@fuzdev/tsv-wasm` is loaded lazily, in the browser only — a dynamic import
+	// so the ~1MB-gzipped wasm lands in its own chunk, fetched the first time this
 	// component mounts and never pulled into `/docs` or the prerendered HTML.
-	let tsv: typeof import('@fuzdev/tsv_wasm') | null = $state(null);
+	let tsv: typeof import('@fuzdev/tsv-wasm') | null = $state(null);
 	let load_error: string | null = $state(null);
 
 	// the editable source — starts as the deliberately-unformatted example so the
@@ -23,25 +24,42 @@
 	const ready = $derived(tsv !== null);
 
 	// A tsv call's outcome: its string result, or the thrown error's message.
-	type Outcome = {value: string; error: null} | {value: null; error: string};
+	type Outcome = { value: string; error: null } | { value: null; error: string };
 
-	// Run a tsv call, capturing a thrown error as a message; `null` until the WASM
+	// Run a tsv call, capturing a thrown error as a message; `null` until the wasm
 	// loads. Lets `formatted` and `ast` share one shape and recompute as `source` changes
 	// — no blur or button.
 	const run = (fn: (t: NonNullable<typeof tsv>) => string): Outcome | null => {
 		if (!tsv) return null;
 		try {
-			return {value: fn(tsv), error: null};
+			return { value: fn(tsv), error: null };
 		} catch (err) {
-			return {value: null, error: to_error_message(err)};
+			return { value: null, error: to_error_message(err) };
 		}
 	};
 
 	const formatted = $derived.by(() => run((t) => t.format_svelte(source)));
-	const ast = $derived.by(() => run((t) => JSON.stringify(t.parse_svelte(source), null, 2)));
 
-	// format and parse fail together on malformed input — surface one message, not two
-	const error = $derived(formatted?.error ?? ast?.error ?? null);
+	// The AST pane trails the editor by an idle beat while the formatted pane stays
+	// live. Formatting is cheap (~1 ms on a 9 KB component), but the AST is parsed,
+	// serialized to JSON, and syntax-highlighted — half a megabyte of it for that
+	// same component — and rebuilding that DOM per keystroke is what a large paste
+	// feels. The default example is small enough that the delay never shows.
+	const AST_DEBOUNCE_MS = 150;
+	// seeded from the example, like `source`, so the first render has an AST to show
+	let ast_source = $state(playground_example);
+	$effect(() => {
+		const next = source;
+		const id = setTimeout(() => (ast_source = next), AST_DEBOUNCE_MS);
+		return () => clearTimeout(id);
+	});
+	const ast = $derived.by(() => run((t) => JSON.stringify(t.parse_svelte(ast_source), null, 2)));
+
+	// The top-level error is the LIVE pane's, so it tracks what is in the editor now;
+	// the AST pane renders its own beside its (debounced, possibly still-broken)
+	// source rather than folding it in here, where it would read as a message about
+	// text the user has already fixed.
+	const error = $derived(formatted?.error ?? null);
 
 	// CodeTextarea highlights via the experimental CSS Custom Highlight API; where
 	// it's unsupported the editor still works but shows no token colors. Defaulting to
@@ -55,11 +73,10 @@
 	});
 
 	$effect(() => {
-		if (tsv) return;
 		let cancelled = false;
 		void (async () => {
 			try {
-				const mod = await import('@fuzdev/tsv_wasm');
+				const mod = await import('@fuzdev/tsv-wasm');
 				await mod.init();
 				if (cancelled) return;
 				tsv = mod;
@@ -72,20 +89,22 @@
 		};
 	});
 
+	const is_base = $derived(source === playground_example);
+
 	const reset = (): void => {
 		source = playground_example;
 	};
 
 	// format the editable source in place — writes the formatted result back into
-	// the editor; no-op while the WASM is loading or the input doesn't parse
+	// the editor; no-op while the wasm is loading or the input doesn't parse
 	const format = (): void => {
 		if (!formatted || formatted.error !== null) return;
 		source = formatted.value;
 	};
 </script>
 
-<header class="row">
-	<button type="button" class="plain" onclick={reset} disabled={!ready}>reset</button>
+<header class="row mb_xs">
+	<button type="button" class="plain" onclick={reset} disabled={!ready || is_base}>reset</button>
 	<button type="button" class="plain" onclick={format} disabled={!ready || error !== null}>
 		format
 	</button>
@@ -107,12 +126,21 @@
 	{#if !ready}
 		<p>loading the formatter…</p>
 	{:else if error}
-		<p class="parse_error">{error}</p>
+		<p class="error">{error}</p>
 	{:else}
-		<p>formatted</p>
+		<p>formatted:</p>
 		<Code lang="svelte" content={formatted?.value ?? ''} />
-		<p>AST</p>
-		<Code lang="json" content={ast?.value ?? ''} class="ast" />
+		<p>AST:</p>
+		{#if ast?.error}
+			<!-- the debounced source can still be the broken one the live pane has
+				already moved past, so this pane carries its own message -->
+			<p class="error">{ast.error}</p>
+		{:else}
+			<div class="ast-output">
+				<CopyToClipboard text={ast?.value ?? ''} class="ast-copy" />
+				<Code lang="json" content={ast?.value ?? ''} class="ast" />
+			</div>
+		{/if}
 	{/if}
 </section>
 
@@ -132,11 +160,27 @@
 	section :global(.ast) {
 		max-height: 500px;
 	}
-	.error {
-		color: var(--color_e_40);
-		white-space: pre-wrap;
+	/* float a copy button over the AST pane's top-right corner; it stays pinned as
+	   the pane scrolls since it's absolute to this wrapper, not inside the scroller */
+	.ast-output {
+		position: relative;
 	}
-	.parse_error {
+	.ast-output :global(.ast-copy) {
+		--font_size: var(--font_size_lg);
+		position: absolute;
+		top: var(--space_xs);
+		/* clear the pane's scrollbar */
+		right: var(--space_md);
+		z-index: 1;
+		background: var(--shade_00);
+	}
+	/* TODO hacky: fuz_ui's CopyToClipboard sets an inline `style:width="100%"` on
+	   its icon wrapper div, which only `!important` can beat from here — drop this
+	   once that wrapper stops hardcoding its width */
+	.ast-output :global(.ast-copy > div) {
+		width: auto !important;
+	}
+	.error {
 		color: var(--color_c_50);
 		white-space: pre-wrap;
 	}

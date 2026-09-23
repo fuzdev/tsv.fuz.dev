@@ -1,0 +1,579 @@
+{
+	"timestamp": "2026-09-23T21:18:37.149Z",
+	"git_commit": "a02708c",
+	"git_dirty": false,
+	"machine": {
+		"cpu_model": "AMD Ryzen 5 PRO 7530U with Radeon Graphics",
+		"threads": 12,
+		"os": "linux",
+		"arch": "x86_64"
+	},
+	"node_startup": {
+		"mean_ms": 18.509,
+		"stddev_ms": 0.618,
+		"runs": 20
+	},
+	"versions": {
+		"prettier": "3.9.6",
+		"biome": "2.5.13",
+		"oxfmt": "0.68.0",
+		"rsvelte-fmt": "0.7.23",
+		"tsv": "0.4.1",
+		"tsv-wasm": "0.4.1",
+		"node": "24.14.1"
+	},
+	"tsv_binary": {
+		"source": "package",
+		"package": "@fuzdev/tsv-linux-x64-gnu"
+	},
+	"scenarios": [
+		{
+			"id": "large-single-file",
+			"name": "Large Single File",
+			"target": "TypeScript compiler parser.ts (~540KB)",
+			"corpus": "539588 bytes, sha256:dcddb577aa14",
+			"warmup_runs": 3,
+			"benchmark_runs": 20,
+			"settle_seconds": 10,
+			"preflight": [
+				{
+					"name": "prettier",
+					"rejected": 0,
+					"unavailable": false,
+					"crashed": false
+				},
+				{
+					"name": "prettier+oxc-parser",
+					"rejected": 0,
+					"unavailable": false,
+					"crashed": false
+				},
+				{
+					"name": "biome",
+					"rejected": 0,
+					"unavailable": false,
+					"crashed": false
+				},
+				{
+					"name": "oxfmt",
+					"rejected": 0,
+					"unavailable": false,
+					"crashed": false
+				},
+				{
+					"name": "tsv-npm",
+					"rejected": 0,
+					"unavailable": false,
+					"crashed": false
+				},
+				{
+					"name": "tsv",
+					"rejected": 0,
+					"unavailable": false,
+					"crashed": false
+				}
+			],
+			"timings": [
+				{
+					"name": "prettier",
+					"mean_ms": 1620.432,
+					"stddev_ms": 26.219,
+					"user_ms": 1555.45,
+					"system_ms": 865.342,
+					"min_ms": 1557.27,
+					"max_ms": 1660.41
+				},
+				{
+					"name": "prettier+oxc-parser",
+					"mean_ms": 976.694,
+					"stddev_ms": 8.69,
+					"user_ms": 887.228,
+					"system_ms": 445.983,
+					"min_ms": 962.295,
+					"max_ms": 1003.355
+				},
+				{
+					"name": "biome",
+					"mean_ms": 107.881,
+					"stddev_ms": 1.265,
+					"user_ms": 81.098,
+					"system_ms": 34.199,
+					"min_ms": 105.631,
+					"max_ms": 110.254
+				},
+				{
+					"name": "oxfmt",
+					"mean_ms": 61.679,
+					"stddev_ms": 1.717,
+					"user_ms": 46.105,
+					"system_ms": 48.393,
+					"min_ms": 60.125,
+					"max_ms": 66.591
+				},
+				{
+					"name": "tsv-npm",
+					"mean_ms": 46.564,
+					"stddev_ms": 0.602,
+					"user_ms": 30.037,
+					"system_ms": 18.991,
+					"min_ms": 45.665,
+					"max_ms": 47.863
+				},
+				{
+					"name": "tsv",
+					"mean_ms": 16.764,
+					"stddev_ms": 0.548,
+					"user_ms": 10.016,
+					"system_ms": 6.754,
+					"min_ms": 16.017,
+					"max_ms": 18.74
+				}
+			],
+			"fastest": "tsv",
+			"speedups": [
+				{
+					"name": "tsv-npm",
+					"ratio": 2.7776,
+					"ratio_stddev": 0.0977
+				},
+				{
+					"name": "oxfmt",
+					"ratio": 3.6793,
+					"ratio_stddev": 0.158
+				},
+				{
+					"name": "biome",
+					"ratio": 6.4353,
+					"ratio_stddev": 0.2236
+				},
+				{
+					"name": "prettier+oxc-parser",
+					"ratio": 58.2616,
+					"ratio_stddev": 1.9749
+				},
+				{
+					"name": "prettier",
+					"ratio": 96.6618,
+					"ratio_stddev": 3.5273
+				}
+			],
+			"memory": [
+				{
+					"name": "prettier",
+					"mean_mb": 306.063,
+					"min_mb": 292.738,
+					"max_mb": 327.07,
+					"ratio": 22.7871,
+					"ratio_stddev": 0.6138
+				},
+				{
+					"name": "prettier+oxc-parser",
+					"mean_mb": 196.77,
+					"min_mb": 193.41,
+					"max_mb": 198.375,
+					"ratio": 14.6499,
+					"ratio_stddev": 0.1557
+				},
+				{
+					"name": "biome",
+					"mean_mb": 94.521,
+					"min_mb": 92.934,
+					"max_mb": 97.176,
+					"ratio": 7.0373,
+					"ratio_stddev": 0.1016
+				},
+				{
+					"name": "oxfmt",
+					"mean_mb": 114.015,
+					"min_mb": 113.82,
+					"max_mb": 114.352,
+					"ratio": 8.4887,
+					"ratio_stddev": 0.0703
+				},
+				{
+					"name": "tsv-npm",
+					"mean_mb": 49.34,
+					"min_mb": 47.309,
+					"max_mb": 49.648,
+					"ratio": 3.6735,
+					"ratio_stddev": 0.0473
+				},
+				{
+					"name": "tsv",
+					"mean_mb": 13.431,
+					"min_mb": 13.219,
+					"max_mb": 13.609
+				}
+			]
+		},
+		{
+			"id": "typescript-only-non-jsx-subset",
+			"name": "TypeScript-only (non-JSX subset)",
+			"target": "Outline repository (non-JSX JS/TS subset)",
+			"corpus": "8cf997c 2026-07-14",
+			"warmup_runs": 3,
+			"benchmark_runs": 10,
+			"settle_seconds": 10,
+			"preflight": [
+				{
+					"name": "prettier",
+					"rejected": 0,
+					"unavailable": false,
+					"crashed": false
+				},
+				{
+					"name": "prettier+oxc-parser",
+					"rejected": 0,
+					"unavailable": false,
+					"crashed": false
+				},
+				{
+					"name": "biome",
+					"rejected": 0,
+					"unavailable": false,
+					"crashed": false
+				},
+				{
+					"name": "oxfmt",
+					"rejected": 0,
+					"unavailable": false,
+					"crashed": false
+				},
+				{
+					"name": "tsv-npm",
+					"rejected": 0,
+					"unavailable": false,
+					"crashed": false
+				},
+				{
+					"name": "tsv",
+					"rejected": 0,
+					"unavailable": false,
+					"crashed": false
+				}
+			],
+			"timings": [
+				{
+					"name": "prettier",
+					"mean_ms": 8325.389,
+					"stddev_ms": 72.367,
+					"user_ms": 13874.069,
+					"system_ms": 907.009,
+					"min_ms": 8228.237,
+					"max_ms": 8430.571
+				},
+				{
+					"name": "prettier+oxc-parser",
+					"mean_ms": 6864.058,
+					"stddev_ms": 87.471,
+					"user_ms": 8825.068,
+					"system_ms": 540.436,
+					"min_ms": 6712.083,
+					"max_ms": 6985.163
+				},
+				{
+					"name": "biome",
+					"mean_ms": 299.878,
+					"stddev_ms": 1.428,
+					"user_ms": 2173.453,
+					"system_ms": 226.363,
+					"min_ms": 298.187,
+					"max_ms": 302.519
+				},
+				{
+					"name": "oxfmt",
+					"mean_ms": 115.961,
+					"stddev_ms": 2.532,
+					"user_ms": 530.074,
+					"system_ms": 273.978,
+					"min_ms": 112.624,
+					"max_ms": 119.823
+				},
+				{
+					"name": "tsv-npm",
+					"mean_ms": 76.022,
+					"stddev_ms": 0.68,
+					"user_ms": 289.677,
+					"system_ms": 130.209,
+					"min_ms": 75.266,
+					"max_ms": 77.573
+				},
+				{
+					"name": "tsv",
+					"mean_ms": 45.185,
+					"stddev_ms": 0.285,
+					"user_ms": 269.243,
+					"system_ms": 115.521,
+					"min_ms": 44.8,
+					"max_ms": 45.765
+				}
+			],
+			"fastest": "tsv",
+			"speedups": [
+				{
+					"name": "tsv-npm",
+					"ratio": 1.6825,
+					"ratio_stddev": 0.0184
+				},
+				{
+					"name": "oxfmt",
+					"ratio": 2.5664,
+					"ratio_stddev": 0.0583
+				},
+				{
+					"name": "biome",
+					"ratio": 6.6367,
+					"ratio_stddev": 0.0525
+				},
+				{
+					"name": "prettier+oxc-parser",
+					"ratio": 151.9108,
+					"ratio_stddev": 2.1605
+				},
+				{
+					"name": "prettier",
+					"ratio": 184.252,
+					"ratio_stddev": 1.9796
+				}
+			],
+			"memory": [
+				{
+					"name": "prettier",
+					"mean_mb": 478.305,
+					"min_mb": 397.051,
+					"max_mb": 535.211,
+					"ratio": 23.1253,
+					"ratio_stddev": 2.2024
+				},
+				{
+					"name": "prettier+oxc-parser",
+					"mean_mb": 303.916,
+					"min_mb": 299.164,
+					"max_mb": 308.375,
+					"ratio": 14.6939,
+					"ratio_stddev": 0.4863
+				},
+				{
+					"name": "biome",
+					"mean_mb": 144.821,
+					"min_mb": 141.664,
+					"max_mb": 146.641,
+					"ratio": 7.0019,
+					"ratio_stddev": 0.236
+				},
+				{
+					"name": "oxfmt",
+					"mean_mb": 225.951,
+					"min_mb": 219.461,
+					"max_mb": 232.301,
+					"ratio": 10.9244,
+					"ratio_stddev": 0.3905
+				},
+				{
+					"name": "tsv-npm",
+					"mean_mb": 49.573,
+					"min_mb": 49.289,
+					"max_mb": 49.867,
+					"ratio": 2.3968,
+					"ratio_stddev": 0.076
+				},
+				{
+					"name": "tsv",
+					"mean_mb": 20.683,
+					"min_mb": 19.691,
+					"max_mb": 21.73
+				}
+			]
+		},
+		{
+			"id": "svelte-tsv-vs-rsvelte-fmt",
+			"name": "Svelte (tsv vs rsvelte-fmt)",
+			"target": "third-party .svelte corpus (kit, svelte.dev, layerchart, svelte-ux, flowbite-svelte, svelte-maplibre, layercake)",
+			"corpus": "fuzdev/corpora@1117b4829309 (collections tree 5f40c547c3ed), snapshot 6214069 2026-09-04",
+			"warmup_runs": 3,
+			"benchmark_runs": 10,
+			"settle_seconds": 10,
+			"preflight": [
+				{
+					"name": "rsvelte-fmt",
+					"rejected": 0,
+					"unavailable": false,
+					"crashed": false
+				},
+				{
+					"name": "tsv-npm",
+					"rejected": 0,
+					"unavailable": false,
+					"crashed": false
+				},
+				{
+					"name": "tsv",
+					"rejected": 0,
+					"unavailable": false,
+					"crashed": false
+				}
+			],
+			"timings": [
+				{
+					"name": "rsvelte-fmt",
+					"mean_ms": 189.076,
+					"stddev_ms": 11.624,
+					"user_ms": 833.735,
+					"system_ms": 705.772,
+					"min_ms": 176.002,
+					"max_ms": 212.932
+				},
+				{
+					"name": "tsv-npm",
+					"mean_ms": 71.689,
+					"stddev_ms": 1.235,
+					"user_ms": 244.257,
+					"system_ms": 143.421,
+					"min_ms": 70.487,
+					"max_ms": 74.196
+				},
+				{
+					"name": "tsv",
+					"mean_ms": 41.051,
+					"stddev_ms": 0.447,
+					"user_ms": 226.574,
+					"system_ms": 126.821,
+					"min_ms": 40.591,
+					"max_ms": 42.211
+				}
+			],
+			"fastest": "tsv",
+			"speedups": [
+				{
+					"name": "tsv-npm",
+					"ratio": 1.7463,
+					"ratio_stddev": 0.0356
+				},
+				{
+					"name": "rsvelte-fmt",
+					"ratio": 4.6059,
+					"ratio_stddev": 0.2876
+				}
+			],
+			"memory": [
+				{
+					"name": "rsvelte-fmt",
+					"mean_mb": 134.023,
+					"min_mb": 121.297,
+					"max_mb": 147.301,
+					"ratio": 10.2783,
+					"ratio_stddev": 0.672
+				},
+				{
+					"name": "tsv-npm",
+					"mean_mb": 49.579,
+					"min_mb": 49.348,
+					"max_mb": 49.809,
+					"ratio": 3.8023,
+					"ratio_stddev": 0.107
+				},
+				{
+					"name": "tsv",
+					"mean_mb": 13.039,
+					"min_mb": 12.547,
+					"max_mb": 13.672
+				}
+			]
+		},
+		{
+			"id": "tsv-delivery-paths",
+			"name": "tsv Delivery Paths",
+			"target": "TypeScript compiler parser.ts (~540KB), through each tsv distribution",
+			"corpus": "539588 bytes, sha256:dcddb577aa14",
+			"warmup_runs": 3,
+			"benchmark_runs": 20,
+			"settle_seconds": 10,
+			"preflight": [
+				{
+					"name": "tsv-wasm",
+					"rejected": 0,
+					"unavailable": false,
+					"crashed": false
+				},
+				{
+					"name": "tsv-npm",
+					"rejected": 0,
+					"unavailable": false,
+					"crashed": false
+				},
+				{
+					"name": "tsv",
+					"rejected": 0,
+					"unavailable": false,
+					"crashed": false
+				}
+			],
+			"timings": [
+				{
+					"name": "tsv-wasm",
+					"mean_ms": 151.999,
+					"stddev_ms": 3.33,
+					"user_ms": 321.777,
+					"system_ms": 56.413,
+					"min_ms": 146.922,
+					"max_ms": 160.339
+				},
+				{
+					"name": "tsv-npm",
+					"mean_ms": 47.522,
+					"stddev_ms": 1.094,
+					"user_ms": 32.828,
+					"system_ms": 17.021,
+					"min_ms": 45.923,
+					"max_ms": 50.085
+				},
+				{
+					"name": "tsv",
+					"mean_ms": 16.908,
+					"stddev_ms": 0.249,
+					"user_ms": 11.173,
+					"system_ms": 5.688,
+					"min_ms": 16.524,
+					"max_ms": 17.465
+				}
+			],
+			"fastest": "tsv",
+			"speedups": [
+				{
+					"name": "tsv-npm",
+					"ratio": 2.8107,
+					"ratio_stddev": 0.0768
+				},
+				{
+					"name": "tsv-wasm",
+					"ratio": 8.99,
+					"ratio_stddev": 0.2372
+				}
+			],
+			"memory": [
+				{
+					"name": "tsv-wasm",
+					"mean_mb": 116.519,
+					"min_mb": 112.676,
+					"max_mb": 119.781,
+					"ratio": 8.7196,
+					"ratio_stddev": 0.1775
+				},
+				{
+					"name": "tsv-npm",
+					"mean_mb": 49.596,
+					"min_mb": 49.289,
+					"max_mb": 49.777,
+					"ratio": 3.7115,
+					"ratio_stddev": 0.034
+				},
+				{
+					"name": "tsv",
+					"mean_mb": 13.363,
+					"min_mb": 13.105,
+					"max_mb": 13.566
+				}
+			]
+		}
+	]
+}
