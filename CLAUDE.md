@@ -43,7 +43,7 @@ Note: `vite` is deliberately held at 7.x (with `@sveltejs/vite-plugin-svelte` 6.
 tsv.fuz.dev is the public face of the tsv tool:
 
 - Landing page (home) with links to benchmarks and docs
-- Benchmarks page with bar charts and tables
+- Benchmarks page with bar charts and tables, and a language-support matrix of the tools compared
 - Docs section (introduction, playground, benchmarks, conformance)
 - Conformance page with per-corpus-source parse-coverage tables over deliberately hard corpora, and a `Test corpus` section on how each source was chosen
 - Interactive playground (`/docs/playground`) — edit a deliberately-unformatted Svelte example in a syntax-highlighted editor (fuz_code's `CodeTextarea`); the formatted output below it updates live and the parsed AST follows on a short idle; runs `@fuzdev/tsv-wasm` as lazily-loaded WASM
@@ -80,8 +80,10 @@ src/
     ├── conformance_data.test.ts     # unit tests for the conformance grouping and per-source matrices
     ├── conformance_data.shape.test.ts # shape gates over the committed conformance report
     ├── conformance_data.prose.test.ts # gates the claims the conformance page's prose quotes
-    ├── benchmark_sizes.test.ts      # unit tests for the binary-size capability grouping
+    ├── benchmark_sizes.test.ts      # unit tests for the binary-size target and capability grouping
     ├── benchmark_sizes.shape.test.ts # shape gates over the committed report's binary sizes, and the tldr's like-for-like size claim
+    ├── benchmark_tools.test.ts      # unit tests for the language-support matrix's timed marks
+    ├── benchmark_tools.shape.test.ts # gates the matrix's rows against the reports: every timed row and CLI row listed, every timed capability stated, every CLI scenario mapped to a column
     ├── benchmark_cross_runtime.test.ts # unit tests for the combined-report derivations
     ├── benchmark_cross_runtime.shape.test.ts # shape gates over the committed combined report
     ├── benchmark_display.test.ts    # unit tests for the value formatters and row labels
@@ -162,7 +164,8 @@ in the schema TSDoc in `formatter_benchmark_data.ts`.
 - `benchmark_data.ts` — per-runtime report types, plus the format/parse, stability, and corpus derivations; imports none of the others
 - `BenchmarksCorpus.svelte` — the per-source corpus table both pages' corpus sections render (`Corpus` on the benchmarks page, `Test corpus` on the conformance page), from `benchmark_data.ts`'s `derive_corpus_source_table`; a source no repo names needs a hand label (`CORPUS_SOURCE_LABELS`), and the conformance page hand-labels every source (`CONFORMANCE_SOURCE_LABELS`, which its matrix also reads); the shape test holds both
 - `benchmark_display.ts` — value formatters, row labels, per-category colors; imports only `benchmark_data.ts`'s types
-- `benchmark_sizes.ts`, `benchmark_cross_runtime.ts` — one domain each, built on `benchmark_data.ts` (the cross-runtime one on `benchmark_display.ts` too); the conformance page's `conformance_data.ts` does the same from its own directory — a matrix per language (corpus sources × engines, the aggregate as the leading row), with hand-stated maps the report has no field for: the engine names, the row notes, the source labels, `CONFORMANCE_ENGINE_VERSIONS` (the version keys each engine column lists, so the page's meta panel skips the report's formatters), and `CONFORMANCE_SELECTORS`, the engine that selected a source and so reads 100% on it by construction; the shape test holds each to the report
+- `benchmark_tools.ts` + `BenchmarksTools.svelte` — the language-support matrix: each tool's parse and format support per language, stated by hand (`TOOL_SUPPORT`, verified against the tools' docs and installed packages), with the cells the page times derived from the in-process and CLI reports; the shape test holds the two together
+- `benchmark_sizes.ts` (the binary sizes split by target — browser: wasm and JS; native — then grouped by capability), `benchmark_cross_runtime.ts` — one domain each, built on `benchmark_data.ts` (the cross-runtime one on `benchmark_display.ts` too); the conformance page's `conformance_data.ts` does the same from its own directory — a matrix per language (corpus sources × engines, the aggregate as the leading row), with hand-stated maps the report has no field for: the engine names, the row notes, the source labels, `CONFORMANCE_ENGINE_VERSIONS` (the version keys each engine column lists, so the page's meta panel skips the report's formatters), and `CONFORMANCE_SELECTORS`, the engine that selected a source and so reads 100% on it by construction; the shape test holds each to the report
 - `benchmark_baseline.ts` + `BenchmarksBaselineGroup.svelte` — hover-to-rebaseline: hovering a row re-anchors that group's ratios, restoring the default anchor on leave; pointer-only by design, and a disabled row never anchors. `BenchmarksCli.svelte`'s tables behave the same way
 - `formatter_benchmark_data.ts` — the harness report's Zod schemas and `parse_formatter_benchmarks`
 - `benchmarks_cli.ts` — shapes the CLI report for `BenchmarksCli.svelte` and owns the per-scenario prose and the `cli_*` claim helpers

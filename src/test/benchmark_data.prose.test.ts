@@ -269,7 +269,7 @@ describe('prose ratios resolve', () => {
 		}
 	});
 
-	test('the process the dispatcher row\'s peak RSS leaves out "is the binary itself"', () => {
+	test('the dispatcher row "reads Node\'s peak, not the binary\'s"', () => {
 		// the harness reports the largest single process in the tree, so the memory note
 		// holds only while the Node launcher outgrows the binary it spawns
 		for (const scenario of benchmarks_cli.scenarios) {
@@ -481,7 +481,7 @@ describe('prose ratios resolve', () => {
 	});
 
 	test('Prettier sits at the sweep floor, as Benchmarking details says', () => {
-		// the disclosure that the headline denominator runs at the bench's per-row floor:
+		// the disclosure that Prettier, every format chart's default anchor, runs at the bench's per-row floor:
 		// each Prettier format row's raw timing count must be exactly its floor
 		const prettier_rows = benchmarks_json.entries.filter(
 			(e) => e.name === 'prettier' && e.group.startsWith('format/')
@@ -529,5 +529,29 @@ describe('prose ratios resolve', () => {
 			[...slugs].some((slug) => slug?.startsWith('fuzdev/')),
 			'the page names the fuz.dev repos but the corpus has none'
 		);
+	});
+
+	test('the corpus is "the author\'s own and Svelte\'s", as the tldr and Corpus section say', () => {
+		// every source is one of the author's repos or Svelte's, or the `<style>` harvest
+		// drawn from their components, which carries no repo — named by path, so a new
+		// repo-less cache has to be checked against the claim before it passes
+		const sources = benchmarks_json.corpus_sources ?? [];
+		assert.isNotEmpty(sources);
+		for (const source of sources) {
+			const slug = source.repo?.slug;
+			if (!slug) {
+				assert.strictEqual(
+					source.path,
+					'benches/js/.cache/svelte_styles',
+					'unknown repo-less source'
+				);
+				continue;
+			}
+			assert.match(
+				slug,
+				/^(fuzdev|ryanatkn|sveltejs)\//,
+				`${slug} is neither the author's nor Svelte's`
+			);
+		}
 	});
 });

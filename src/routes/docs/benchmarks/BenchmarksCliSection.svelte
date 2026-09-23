@@ -138,7 +138,8 @@
 				RSS comes from a separate pass without warmups, as many runs as the timed one, and counts
 				the largest single process in each command's tree, not the sum, so a row that launches a
 				native binary from Node — Biome's, rsvelte-fmt's, and tsv's dispatcher — is understated: the
-				smaller processes in its tree don't count, which for tsv's dispatcher is the binary itself.
+				smaller processes in its tree don't count, so the dispatcher row reads Node's peak, not the
+				binary's.
 			</li>
 			<li>
 				As in-process, every formatter is pinned to tsv's style in its own dialect — outputs still

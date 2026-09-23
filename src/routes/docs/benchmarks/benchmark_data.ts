@@ -518,7 +518,7 @@ export const derive_benchmark_groups = (baseline: BenchmarkBaseline): Array<Benc
 		// format, the JS baseline for parse), so the first row is the default 1.00x
 		// anchor; the shared component reads that default off the first row and
 		// recomputes every ratio, re-baselining onto whichever row is hovered. (Size
-		// groups lead with their smallest build; see `derive_size_groups`.)
+		// groups lead with their smallest build; see `derive_size_targets`.)
 		// An untimed row (see `BenchmarkDisplayEntry.coverage_only`) coerces to 0, so it
 		// can't set the bar scale; it renders inert, so the 0 is never shown or divided by.
 		const slowest = Math.max(...entries.map((e) => e.mean_ns ?? 0));

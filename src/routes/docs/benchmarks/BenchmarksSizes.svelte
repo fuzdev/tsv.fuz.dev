@@ -1,19 +1,15 @@
 <script lang="ts">
 	import type { BaselineRow } from './benchmark_baseline.ts';
-	import type { BinarySize } from './benchmark_data.ts';
 	import { format_bytes, format_gzip_size } from './benchmark_display.ts';
-	import { derive_size_groups, type SizeCapabilityGroup } from './benchmark_sizes.ts';
+	import type { SizeCapabilityGroup } from './benchmark_sizes.ts';
 	import BenchmarksBaselineGroup from './BenchmarksBaselineGroup.svelte';
 
 	const {
-		sizes
+		groups
 	}: {
-		sizes: Array<BinarySize>;
+		/** One target's builds by capability (full toolchain / formatter / parser) — see `derive_size_targets`. */
+		groups: Array<SizeCapabilityGroup>;
 	} = $props();
-
-	// grouped by capability (full toolchain / formatter / parser) so each build
-	// sits beside its closest competitor; wasm and native mix within a group
-	const size_groups = $derived(derive_size_groups(sizes));
 
 	// a row without a gzip size — a disabled placeholder (e.g. oxfmt's absent wasm
 	// build), or an entry the report left null — falls back to 'n/a' when its group's
@@ -37,9 +33,10 @@
 	};
 </script>
 
-{#each size_groups as group (group.capability)}
+{#each groups as group (group.capability)}
 	<div class="mb_xl5">
-		<h3>{group.heading}</h3>
+		<!-- under the target's own section heading -->
+		<h4>{group.heading}</h4>
 		<BenchmarksBaselineGroup rows={to_rows(group)} label={group.heading} />
 	</div>
 {/each}

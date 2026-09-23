@@ -3,9 +3,8 @@ import { assert, describe, test } from 'vitest';
 import {
 	categorize_size,
 	categorize_size_capability,
-	derive_size_groups,
+	derive_size_targets,
 	OXC_FULL_LABEL,
-	RSVELTE_INSTALL_LABEL,
 	OXFMT_WASM_LABEL,
 	type SizeCapability
 } from '$routes/docs/benchmarks/benchmark_sizes.ts';
@@ -54,38 +53,44 @@ describe('categorize_size_capability', () => {
 	});
 });
 
-describe('derive_size_groups', () => {
+describe('derive_size_targets', () => {
 	const size = (label: string, bytes: number): BinarySize => ({
 		label,
 		bytes,
-		kind: label.includes('wasm') ? 'wasm' : 'native',
+		kind: label.includes('wasm') ? 'wasm' : label.includes('js bundle') ? 'js' : 'native',
 		gzip_bytes: null
 	});
 
-	test('the oxfmt wasm placeholder sits above its native build', () => {
-		const [formatter] = derive_size_groups([
-			size('tsv format (ffi)', 10),
-			size('oxfmt (napi)', 30),
-			size('dprint (wasm)', 20)
+	test('wasm and js builds land in the browser target, native builds in the native one', () => {
+		const targets = derive_size_targets([
+			size('tsv-wasm', 3),
+			size('prettier + parsers (js bundle)', 2),
+			size('tsv (napi)', 4)
 		]);
-		assert.deepEqual(
-			formatter!.entries.map((e) => e.label),
-			['tsv format (ffi)', 'dprint (wasm)', OXFMT_WASM_LABEL, 'oxfmt (napi)']
-		);
-		assert.isTrue(formatter!.entries[2]!.disabled);
+		const labels = (groups: typeof targets.browser) =>
+			groups.flatMap((g) => g.entries.filter((e) => !e.disabled).map((e) => e.label));
+		assert.sameMembers(labels(targets.browser), ['tsv-wasm', 'prettier + parsers (js bundle)']);
+		assert.sameMembers(labels(targets.native), ['tsv (napi)']);
 	});
 
-	test('the placeholder trails the group when there is no native oxfmt to sit above', () => {
-		const [formatter] = derive_size_groups([size('tsv format (ffi)', 10)]);
+	test('the browser formatter group ends with the oxfmt wasm placeholder', () => {
+		const { browser, native } = derive_size_targets([
+			size('tsv-format-wasm', 10),
+			size('dprint (wasm)', 20),
+			size('oxfmt (napi)', 30)
+		]);
+		const formatter = browser.find((g) => g.capability === 'formatter');
 		assert.deepEqual(
-			formatter!.entries.map((e) => e.label),
-			['tsv format (ffi)', OXFMT_WASM_LABEL]
+			formatter?.entries.map((e) => e.label),
+			['tsv-format-wasm', 'dprint (wasm)', OXFMT_WASM_LABEL]
 		);
+		assert.isTrue(formatter?.entries.at(-1)?.disabled);
+		assert.isFalse(native.some((g) => g.entries.some((e) => e.label === OXFMT_WASM_LABEL)));
 	});
 
-	test('a synthesized sum carries gzip only when both halves do', () => {
+	test('the oxc sum lands in the native full toolchain and carries gzip only when both halves do', () => {
 		const full = (sizes: Array<BinarySize>) =>
-			derive_size_groups(sizes)
+			derive_size_targets(sizes).native
 				.find((g) => g.capability === 'full')
 				?.entries.find((e) => e.label === OXC_FULL_LABEL);
 		const both = full([
@@ -99,22 +104,8 @@ describe('derive_size_groups', () => {
 		assert.isNull(one?.gzip_bytes);
 	});
 
-	test('synthesized sums need both halves', () => {
-		const groups = derive_size_groups([size('oxc-parser (napi)', 5)]);
-		assert.isFalse(groups.some((g) => g.entries.some((e) => e.label === OXC_FULL_LABEL)));
-	});
-
-	test('the rsvelte-fmt install sums its binary with the oxfmt it needs over a directory', () => {
-		const install = (sizes: Array<BinarySize>) =>
-			derive_size_groups(sizes)
-				.flatMap((g) => g.entries)
-				.find((e) => e.label === RSVELTE_INSTALL_LABEL);
-		const both = install([
-			{ ...size('rsvelte-fmt (binary)', 5), gzip_bytes: 2 },
-			{ ...size('oxfmt (napi)', 7), gzip_bytes: 3 }
-		]);
-		assert.strictEqual(both?.bytes, 12);
-		assert.strictEqual(both?.gzip_bytes, 5);
-		assert.isUndefined(install([size('rsvelte-fmt (binary)', 5)]));
+	test('the oxc sum needs both halves', () => {
+		const { native } = derive_size_targets([size('oxc-parser (napi)', 5)]);
+		assert.isFalse(native.some((g) => g.entries.some((e) => e.label === OXC_FULL_LABEL)));
 	});
 });
