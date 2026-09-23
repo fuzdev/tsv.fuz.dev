@@ -292,8 +292,8 @@ describe('prose ratios resolve', () => {
 	});
 
 	test('the CLI CPU-work note reads the way the numbers run', () => {
-		// "CPU ratios barely move between tsv's two rows ... where wall-clock swings from
-		// ~A to ~B" — the two CPU leads must sit inside the wall-clock span: dispatcher
+		// "CPU ratios move far less than wall-clock: tsv leads Oxfmt ~C ... and ~D ...,
+		// against ~A and ~B wall-clock" — the two CPU leads must sit inside the wall-clock span: dispatcher
 		// wall < dispatcher CPU <= bare CPU < bare wall. Any one flipping on a refresh
 		// leaves the note explaining the opposite of what the table shows.
 		const defined = (value: number | undefined, name: string): number => {

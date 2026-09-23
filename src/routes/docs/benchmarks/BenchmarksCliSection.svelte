@@ -90,14 +90,14 @@
 		that <a href="https://github.com/ryanatkn/oxc-bench-formatter" rel="external">adds tsv</a>. It
 		times the whole CLI end to end — process spawn, file discovery, I/O, each tool's default
 		multi-file parallelism — plus peak memory: what you experience typing the command, on real code.
-		Upstream's JSX scenarios are left out, since tsv has no JSX/TSX parser. Every formatter is
-		installed from npm, pinned by the fork's lockfile, and the other tools are timed through their
-		packages' Node bins. Against them, tsv has two rows. <code>{CLI_TSV_NPM_LABEL}</code> is the
-		like-for-like one: the Node bin of
+		Upstream's other three scenarios are left out, since their corpora include JSX and tsv has no
+		JSX/TSX parser. Every formatter is installed from npm, pinned by the fork's lockfile, and the
+		other tools are timed through their packages' Node bins. Against them, tsv has two rows.
+		<code>{CLI_TSV_NPM_LABEL}</code> is the like-for-like one: the Node bin of
 		<a href="https://www.npmjs.com/package/@fuzdev/tsv"><code>@fuzdev/tsv</code></a>, what
-		<code>npx tsv</code> runs, launching the native binary as Biome's and rsvelte-fmt's bins do. The
-		plain <code>tsv</code> row runs the binary directly from the platform package, skipping Node:
-		what the binary costs on its own.
+		<code>npx tsv</code> runs once it's installed, launching the native binary as Biome's and
+		rsvelte-fmt's bins do. The plain <code>tsv</code> row runs the binary directly from the platform
+		package, skipping Node: what the binary costs on its own.
 	</p>
 	<p>
 		Each table's ratios are against its highlighted row — <code>{CLI_TSV_NPM_LABEL}</code> where tsv
@@ -114,29 +114,27 @@
 			</li>
 			<li>
 				tsv, Oxfmt, Biome, and rsvelte-fmt parallelize across files; Prettier's stable CLI formats
-				them one at a time (its worker pool needs <code>--experimental-cli</code> plus that CLI's
-				<code>--parallel</code>, which the harness leaves off). No tool's thread count is pinned, so
-				the wall-clock ratios bake in each tool's parallelism, scale with core count, and mean
-				little apart from this machine. The CPU ratio column —
-				<a href="https://github.com/sharkdp/hyperfine">hyperfine</a>'s user plus system time, summed
-				across threads and child processes — is the parallelism-neutral view, but only a rough
-				engine proxy: it also counts work beside the formatting, enough that even Prettier's CPU
-				time runs above its wall-clock.
+				them one at a time (its worker pool comes with <code>--experimental-cli</code>, which the
+				harness leaves off). No tool's thread count is pinned, so the wall-clock ratios bake in each
+				tool's parallelism, scale with core count, and mean little apart from this machine.
 			</li>
 			<li>
-				On the multi-file scenarios, CPU ratios barely move between tsv's two rows, since the
-				dispatcher's fixed launch cost is small beside the CPU a repo takes: on the TypeScript repo
-				tsv leads Oxfmt ~{npm_ts_cpu_vs_oxfmt} in CPU through the dispatcher and ~{ts_cpu_vs_oxfmt}
-				as the bare binary, where wall-clock swings from ~{npm_ts_vs_oxfmt} to ~{ts_wall_vs_oxfmt}.
+				The CPU ratio column — <a href="https://github.com/sharkdp/hyperfine">hyperfine</a>'s user
+				plus system time, summed across threads and child processes — is the parallelism-neutral
+				view, but only a rough engine proxy: it also counts work beside the formatting, enough that
+				even Prettier's CPU time runs above its wall-clock.
 			</li>
 			<li>
 				tsv's dispatcher adds a fixed ~{npm_overhead} over the bare binary, most of it Node's own
 				startup (a bare <code>node -e ""</code> takes ~{format_ms(node_startup_ms)} on this
 				machine), which every other npm-bin row pays too. That makes it ~{delivery_npm_wall} the
-				binary's time on the delivery table's one file, but ~{npm_ts_cost} on the TypeScript repo.
+				binary's time on the delivery table's one file but ~{npm_ts_cost} on the TypeScript repo,
+				where CPU ratios move far less than wall-clock: tsv leads Oxfmt ~{npm_ts_cpu_vs_oxfmt} in
+				CPU through the dispatcher and ~{ts_cpu_vs_oxfmt} as the bare binary, against
+				~{npm_ts_vs_oxfmt} and ~{ts_wall_vs_oxfmt} wall-clock.
 				<a href="https://www.npmjs.com/package/@fuzdev/tsv-wasm"><code>@fuzdev/tsv-wasm</code></a>
-				takes ~{wasm_wall} the binary's time and ~{wasm_memory} its memory on that one file — still
-				well ahead of both Prettier rows there, but behind Oxfmt and Biome.
+				takes ~{wasm_wall} the binary's time and ~{wasm_memory} its memory on that one file, still
+				well ahead of both Prettier rows in the single-file table but behind Oxfmt and Biome.
 			</li>
 			<li>
 				Through its dispatcher tsv uses {format_ratio_range(npm_memory)} less peak memory than every

@@ -219,8 +219,7 @@
 			<TomeSectionHeader text="tldr" />
 			<p>
 				Compared to Oxc and Biome, tsv ships smaller artifacts, capability for capability, and
-				formats its three languages faster in every pairing measured here, while lacking their
-				features and language breadth.
+				formats its three languages faster in every pairing measured here.
 			</p>
 			<p>
 				Except in the CLI section, every timing here is in-process and one file at a time, isolating
@@ -238,7 +237,7 @@
 					Formatting Svelte, tsv is ~{format_svelte_vs_prettier} faster than Prettier and
 					~{format_svelte_vs_biome} faster than Biome, same pairings. Neither Oxc nor Biome ships a
 					dedicated Svelte formatter: Oxfmt delegates Svelte to Prettier, and Biome's row is its
-					experimental HTML path, which leaves template expressions as written.
+					experimental HTML path.
 				</li>
 				<li>
 					Formatting CSS, it's ~{format_css_vs_oxfmt} faster than Oxfmt, ~{format_css_vs_prettier}
@@ -280,7 +279,8 @@
 					<li>
 						On a third-party Svelte corpus, tsv's CLI, again through its Node bin, is
 						~{cli_svelte_npm_wall} faster than rsvelte-fmt, another Rust Svelte formatter, though
-						rsvelte-fmt's time includes an Oxfmt pass that finds nothing to format.
+						rsvelte-fmt's time includes a second Node launch, the Oxfmt it runs for
+						non-<code>.svelte</code> files, which finds none.
 					</li>
 				{:else if cli_svelte?.aborted}
 					<li>
@@ -364,13 +364,15 @@
 						where Prettier and tsv reprint them, so its Svelte row does somewhat less work than
 						theirs. Its in-process API's only format entry point, <code>formatContent</code>, also
 						opens the file in its workspace, pulls syntax diagnostics, and closes it on every call,
-						so its rows carry that wrapper. The harness also swaps in a fresh wasm instance once its
-						memory has grown past a threshold — before every sweep in the Svelte and TypeScript
-						groups, every few in CSS — and that instance's slower first sweep adds about 1–4% to
-						Biome's rows. There's no native Biome entry: its in-process API,
+						so its rows carry that wrapper. There's no native Biome entry: its in-process API,
 						<code>@biomejs/js-api</code>, runs only on its wasm builds, and the native engine ships
 						only as the <code>biome</code> CLI, a separate process rather than a library, which the
 						<a href="#{docs_slugify(CLI_SECTION_TITLE)}">CLI section</a> times.
+					</li>
+					<li>
+						The harness swaps in a fresh Biome wasm instance once its memory has grown past a
+						threshold — before every sweep in the Svelte and TypeScript groups, every few in CSS —
+						and that instance's slower first sweep adds about 3–4% to Biome's rows.
 					</li>
 					<li>
 						The dprint entry is
@@ -628,8 +630,8 @@
 			</p>
 			<ul>
 				<li>
-					The snapshot's third-party component libraries are left out: they would dominate the
-					Svelte set. The CLI section's Svelte corpus draws on them, and shares only its kit and
+					The snapshot's third-party Svelte libraries and tooling are left out: they would dominate
+					the Svelte set. The CLI section's Svelte corpus draws on them, and shares only its kit and
 					svelte.dev trees with this
 					one{cli_svelte_pin_differs ? ', vendored at a different corpora commit' : ''}.
 				</li>
