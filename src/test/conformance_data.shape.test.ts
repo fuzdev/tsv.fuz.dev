@@ -7,15 +7,16 @@ import {
 	derive_conformance_matrices
 } from '$routes/docs/conformance/conformance_data.ts';
 
-import { REPORT_VERSION } from './benchmark_test_helpers.ts';
+import { CONFORMANCE_REPORT_VERSION } from './benchmark_test_helpers.ts';
 
 // Shape gate for the committed conformance report `conformance.json`
 // (tsv's `report.conformance.node.json` — the parse-coverage surface over the
-// deliberately-hard fixture suites, disjoint from the perf corpus, Svelte set minus
-// canonical-rejects), consumed by the Parse conformance section.
+// deliberately-hard fixture suites, disjoint from the perf corpus, a suite with a
+// validity oracle or harness filtered to what it calls valid), consumed by the
+// Parse conformance section.
 describe('conformance.json shape', () => {
 	test('report is the conformance surface at the current version', () => {
-		assert.strictEqual(conformance_json.version, REPORT_VERSION);
+		assert.strictEqual(conformance_json.version, CONFORMANCE_REPORT_VERSION);
 		assert.strictEqual(conformance_json.corpus_kind, 'conformance');
 		assert.strictEqual(conformance_json.runtime, 'node');
 	});
@@ -51,6 +52,16 @@ describe('conformance.json shape', () => {
 
 	test('corpus sources disclose the composition', () => {
 		assert.isNotEmpty(conformance_json.corpus_sources ?? []);
+	});
+
+	test('every exclusion cache was applied', () => {
+		// an absent cache (`null`) leaves files every row rejects in the denominators —
+		// a run tsv refuses unless told to tolerate it, and never one to publish
+		const caches = Object.entries(conformance_json.exclusion_caches ?? {});
+		assert.isNotEmpty(caches, 'the report records no exclusion caches');
+		for (const [label, size] of caches) {
+			assert.isNumber(size, `the ${label} exclusion cache was absent for this run`);
+		}
 	});
 
 	test('derives one coverage group per language, each with a tsv row and full coverage data', () => {

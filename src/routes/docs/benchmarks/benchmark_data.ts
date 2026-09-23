@@ -34,6 +34,11 @@ export interface BenchmarkBaseline {
 	// Per-entry corpus composition (path + loaded file count) — discloses which
 	// sources were present on the machine that produced the report.
 	corpus_sources: Array<CorpusSource>;
+	// The exclusion caches the conformance view applied, by label, each its size —
+	// `null` for an absent one, which only a tolerated (`BENCH_ALLOW_MISSING=1`),
+	// not-comparable run publishes. Conformance reports only; not rendered, the
+	// shape test refuses a `null`.
+	exclusion_caches?: Record<string, number | null>;
 	// The real-code snapshot every `real`/`framework` source was read from — the
 	// `fuzdev/corpora` checkout at its commit (`subpath` empty), one roll-up commit
 	// for the whole real-code corpus. Absent on conformance-only reports (no real code).
@@ -121,6 +126,9 @@ export const is_payload_matched = (
 export interface SourceCoverageCell {
 	processed: number;
 	total: number;
+	// of `processed`, files accepted only on the Script-goal retry a source allows
+	// (Prettier's JS and TypeScript suites); absent when there was none — carried, not rendered
+	script_only?: number;
 }
 
 // One implementation that failed to load on the machine that produced a report

@@ -6,12 +6,19 @@ import type {
 } from '$routes/docs/benchmarks/formatter_benchmark_data.ts';
 
 /**
- * The report shape version the committed copies are pinned to — tsv's
- * `REPORT_SCHEMA_VERSION`, shared by the per-runtime and conformance reports. Exact
- * rather than a floor, so `npm run update-benchmarks` pulling a newer shape fails
- * the shape tests until `benchmark_data.ts` mirrors the new fields and this is re-pinned.
+ * The report shape version the committed perf copy (`benchmarks.json`) is pinned to —
+ * tsv's `REPORT_SCHEMA_VERSION` as of the run that produced it. Exact rather than a
+ * floor, so `npm run update-benchmarks` pulling a newer shape fails the shape tests
+ * until `benchmark_data.ts` mirrors the new fields and this is re-pinned.
  */
 export const REPORT_VERSION = 18;
+
+/**
+ * `REPORT_VERSION` for the conformance copy (`conformance.json`). A separate pin
+ * because the two copies come from separate runs: a field only the conformance
+ * report carries moves tsv's version with no reason to re-run the perf bench.
+ */
+export const CONFORMANCE_REPORT_VERSION = 19;
 
 /** A stable, timed `BaselineEntry`, which each test overrides the fields it reads. */
 export const create_baseline_entry = (overrides: Partial<BaselineEntry> = {}): BaselineEntry => ({

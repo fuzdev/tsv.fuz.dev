@@ -127,13 +127,15 @@
 			</li>
 			<li>
 				JSX is out by construction: Prettier's JSX suite and the compiler's <code>.tsx</code> cases
-				are dropped, and every parser runs in TypeScript mode, where the JSX left in Prettier's JS
-				fixtures is rejected. tsv rejects JSX by design where oxc-parser, yuku-parser, swc, and tsc
-				can parse it, so these tables say nothing about that gap.
+				are dropped, and so are the <code>.js</code> fixtures Prettier's own parser reads as JSX,
+				since every parser here runs in TypeScript mode and rejects them alike. tsv rejects JSX by
+				design where oxc-parser, yuku-parser, swc, and tsc can parse it, so these tables say nothing
+				about that gap.
 			</li>
 			<li>
 				Every TS/JS file is parsed as a module, except test262's, parsed at the goal each test
-				declares; <code>tsc</code> alone infers the goal itself.
+				declares, and Prettier's JS and TypeScript fixtures, retried as a script when the module
+				parse fails, as Prettier's own parsers retry; <code>tsc</code> alone infers the goal itself.
 			</li>
 		</ul>
 		<p>
