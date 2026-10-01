@@ -145,12 +145,6 @@
 </section>
 
 <style>
-	/* The section stacks in normal flow — fuz_css's flow margins space the <p>
-	   labels and block `Code` brings its own bottom margin; only the editor wrapper
-	   isn't a flow element, so give it the matching margin. */
-	section :global(.code_textarea) {
-		margin-bottom: var(--space_lg);
-	}
 	/* the editor defaults to fuz_css's 100px textarea height — give it room to work */
 	section :global(.code_textarea textarea) {
 		height: 500px;
