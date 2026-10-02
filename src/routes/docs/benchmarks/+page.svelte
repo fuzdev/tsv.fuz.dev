@@ -201,7 +201,7 @@
 				coverage on deliberately hard test suites.
 			</p>
 			<p>
-				This page compares tsv to Prettier and the JS parsers it replaces (svelte/compiler and
+				This page compares tsv to Prettier and the JS parsers it can replace (Svelte's and
 				acorn-typescript), and to Oxc and Biome, similar tools with more features, configurable
 				styles, and wider language support. It also measures rsvelte, yuku-parser, swc, dprint,
 				Malva, and PostCSS;
@@ -249,7 +249,7 @@
 					~{parse_ts_yuku_vs_tsv} slower than yuku-parser's (~{parse_ts_yuku_wasm_vs_tsv_wasm} as
 					wasm). Its default AST adds per-node line/column <code>loc</code> for drop-in acorn and
 					Svelte compatibility, at ~{parse_ts_loc_cost} the span-only time: ~{parse_ts_vs_acorn}
-					faster than acorn-typescript, the parser it replaces, but slower than Oxc and swc.
+					faster than acorn-typescript, the parser it can replace, but slower than Oxc and swc.
 				</li>
 				<li>
 					Parsing Svelte, that default AST is ~{parse_svelte_vs_compiler} faster than
@@ -498,7 +498,7 @@
 					<ul>
 						<li>
 							The <code>(js bundle)</code> entries are the reference toolchain — Prettier with
-							prettier-plugin-svelte, and the parsers tsv replaces (Svelte's, plus acorn with
+							prettier-plugin-svelte, and the parsers tsv can replace (Svelte's, plus acorn with
 							acorn-typescript) — and aren't files any package ships. Each entry is a minified
 							bundle of only what its job imports for tsv's three languages: what you would deploy
 							to a browser, not what Node loads. The full entry is barely larger than the formatter,
