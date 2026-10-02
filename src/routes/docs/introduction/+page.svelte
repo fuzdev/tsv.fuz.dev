@@ -24,8 +24,8 @@
 	<section>
 		<Svg data={logo_tsv} size="var(--icon_size_xl2)" class="float:right ml_lg mb_lg" />
 		<p>
-			tsv is a toolchain for TypeScript/JS, CSS, and Svelte in Rust (and planned HTML/JSON). Today
-			it ships a formatter that closely follows <a href="https://prettier.io/">Prettier</a> +
+			tsv is a Rust toolchain for TypeScript/JS, CSS, and Svelte (and planned HTML/JSON). Today it
+			ships a formatter that closely follows <a href="https://prettier.io/">Prettier</a> +
 			<a href="https://github.com/sveltejs/prettier-plugin-svelte">prettier-plugin-svelte</a>, and a
 			drop-in for <a href="https://svelte.dev/">Svelte</a>'s parser +
 			<a href="https://github.com/acornjs/acorn">acorn</a> +
@@ -34,20 +34,20 @@
 		<p>
 			tsv aims to simplify its covered domains and stay lean, and so it makes opinionated choices.
 			The formatter has a single non-configurable style, using Svelte's Prettier config. Among other
-			benefits, tsv doesn't depend on a JS runtime, which it would need in order to resolve configs
-			the way Prettier does.
+			benefits, this means tsv doesn't depend on a JS runtime, which it would need in order to
+			resolve configs the way Prettier does.
 		</p>
 		<p>
 			Compared to Oxc, Biome, and swc, tsv is a set of focused tools, not an extensible language
-			platform, so the focus is Web standards + TS + Svelte and there's no support for JSX/SCSS/etc.
+			platform, so it targets Web standards + TS + Svelte and there's no support for JSX/SCSS/etc.
 			tsv's extensibility story is currently limited to using its Rust crates as libraries (or
 			forking); bridging to JS or wasm plugins is an open question (leaning against).
 		</p>
 		<p>
 			Compared to <a href="https://github.com/baseballyama/rsvelte">rsvelte</a>, tsv has its own
 			TS/JS/CSS parsers instead of using Oxc, and rsvelte additionally has a Svelte compiler and
-			linter/typechecker integration (the full toolchain; tsv has some in-progress work here, scope
-			unknown and may never ship).
+			linter/typechecker integration (the full toolchain; tsv has some work in progress here, of
+			unknown scope, that may never ship).
 		</p>
 		<p>tsv prioritizes, in order:</p>
 		<ol>
@@ -57,14 +57,14 @@
 			<li>extensibility, modularity, reusability</li>
 		</ol>
 		<p>
-			Staying simple is an over-arching goal, and sometimes at odds with flexibility. Feedback is
+			Staying simple is an overarching goal, and is sometimes at odds with flexibility. Feedback is
 			welcome to help navigate these tradeoffs.
 		</p>
 		<p>
 			See the <TomeLink slug="benchmarks" /> for measurements. Compared to Oxc/Oxfmt and Biome, tsv
 			is smaller and faster at parsing and formatting its supported languages, but lacks their
 			features, extensibility, and broad language support. One reason for tsv to exist is to help
-			find the performance bonuses left on the table in the Web's implementations.
+			find the performance left on the table in the Web's implementations.
 		</p>
 		<p>
 			tsv is near production-ready, with a long tail of rare bugs, and APIs may still change.
@@ -83,15 +83,15 @@
 		<TomeSection>
 			<TomeSectionHeader text="Install" />
 			<p>
-				For format-on-save in VSCode and vsix-compatible editors, install the
+				For format-on-save in VS Code and vsix-compatible editors, install the
 				<a href="https://github.com/fuzdev/vscode-extension-tsv-format">
 					<code>fuzdev.tsv-format</code> extension
-				</a>. It runs tsv's wasm build, so it works in both desktop VSCode and the browser host:
+				</a>. It runs tsv's wasm build, so it works in both desktop VS Code and the browser host:
 			</p>
 			<ul>
 				<li>
 					<a href="https://marketplace.visualstudio.com/items?itemName=fuzdev.tsv-format">
-						VSCode Marketplace
+						VS Code Marketplace
 					</a>
 				</li>
 				<li>
@@ -174,10 +174,9 @@
 			<TomeSectionHeader text="Span-only parsing" />
 			<p>
 				The parsers have a span-only mode that skips the per-node line/column, making the AST ~46%
-				smaller on TypeScript and faster to hand to JS, and you can derive line and column later
-				without re-parsing. Span-only is oxc-parser's default. tsv emits <code>loc</code> by default
-				so that a call with no options is a drop-in for Svelte's parser, though that default may
-				change.
+				smaller on TypeScript and faster to hand to JS. You can derive line and column later without
+				re-parsing. Span-only is oxc-parser's default. tsv emits <code>loc</code> by default so that
+				a call with no options is a drop-in for Svelte's parser, though that default may change.
 			</p>
 			<Code lang="ts" content={no_locations_example} />
 			<p>

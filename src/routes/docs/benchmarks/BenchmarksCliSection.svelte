@@ -89,7 +89,7 @@
 	<TomeSectionHeader text={title} />
 	<p>
 		The numbers above time tsv's engine in-process, one file at a time. This section times the whole
-		CLI end to end, on real code, as you experience it typing the command: process spawn, file
+		CLI end to end, on real code, as you'd experience it from the command line: process spawn, file
 		discovery, I/O, and each tool's default multi-file parallelism, plus peak memory. It comes from
 		a fork of Oxc's own
 		<a href="https://github.com/oxc-project/bench-formatter" rel="external">
@@ -97,7 +97,7 @@
 		</a>
 		that <a href="https://github.com/ryanatkn/oxc-bench-formatter" rel="external">adds tsv</a>.
 		Upstream's other three scenarios aren't shown: their corpora include JSX, which tsv doesn't
-		parse; one also formats a whole repo's other and embedded languages, and one sorts imports and
+		parse; one also formats a repo's other languages and embedded code, and one sorts imports and
 		Tailwind classes.
 	</p>
 	<p>
