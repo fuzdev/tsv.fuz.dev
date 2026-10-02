@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { plural } from '@fuzdev/fuz_util/string.ts';
+
 	import { to_baseline_key } from './benchmark_baseline.ts';
 	import {
 		format_cli_corpus,
@@ -130,7 +132,7 @@
 			<small>
 				Corpus:
 				{format_cli_corpus(scenario.corpus)}{scenario.files
-					? `, ${format_count(scenario.files)} files`
+					? `, ${format_count(scenario.files)} file${plural(scenario.files)}`
 					: ''}.
 				{#if rows.length > 0 && scenario.benchmark_runs > 0}
 					Each time is the mean of {scenario.benchmark_runs} runs after {scenario.warmup_runs}
