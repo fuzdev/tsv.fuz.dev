@@ -192,7 +192,7 @@
 	{:else}
 		<section>
 			<p>
-				tsv is a Rust toolchain of parsers and formatters for TypeScript/JS, CSS, and Svelte. Its
+				tsv is a Rust toolchain for parsing and formatting TypeScript/JS, CSS, and Svelte. Its
 				formatter closely follows <a href="https://prettier.io/">Prettier</a> and borrows its
 				architectural patterns, and we're grateful for the hard work of Prettier's
 				<a href="https://github.com/prettier/prettier/graphs/contributors">contributors</a>. After
