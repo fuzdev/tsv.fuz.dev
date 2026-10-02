@@ -464,6 +464,12 @@
 						yet been fed through Svelte's compiler end to end.
 					</li>
 					<li>
+						The <code>no-locs</code> entries have no reference-parser counterpart: acorn-typescript
+						refuses to run with acorn's <code>locations</code> option off, and svelte/compiler has
+						no such option, so neither can produce a span-only AST to time. On TypeScript their
+						closest comparisons are oxc-parser and yuku-parser.
+					</li>
+					<li>
 						When line/column is needed, the span-only wire plus JS-side
 						<code>reconstruct_locations</code> beats tsv's default <code>loc</code>-bearing wire on
 						TypeScript (on Svelte the two roughly tie) — see the
