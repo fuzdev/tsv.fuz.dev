@@ -2,7 +2,6 @@ import { assert, describe, test } from 'vitest';
 
 import {
 	cli_comparison_results,
-	cli_corpora_commit,
 	cli_default_anchor_label,
 	cli_label_is_tsv,
 	cli_memory_is_complete,
@@ -328,20 +327,5 @@ describe('to_unshimmed_note', () => {
 			to_unshimmed_note(['tsv-npm', 'tsv-wasm']),
 			'tsv via Node dispatcher and tsv-wasm ran as a bare Node script, skipping the few milliseconds of pnpm bin shim the other tools’ rows go through.'
 		);
-	});
-});
-
-describe('cli_corpora_commit', () => {
-	test('reads the commit off a corpora snapshot line', () => {
-		assert.strictEqual(
-			cli_corpora_commit(
-				'fuzdev/corpora@1117b4829309 (collections tree 5f40c547c3ed), snapshot 6214069 2026-09-04'
-			),
-			'1117b4829309'
-		);
-	});
-
-	test('a corpus from elsewhere has none', () => {
-		assert.isUndefined(cli_corpora_commit('8cf997c 2026-07-14'));
 	});
 });

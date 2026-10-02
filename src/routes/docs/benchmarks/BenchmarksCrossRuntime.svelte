@@ -113,7 +113,7 @@
 	A <code>≈</code> marks a delta inside the two measurements' combined noise: read it as parity. The
 	check has two limits. The slowest rows have too few timings for it, so an unmarked delta there
 	isn't necessarily an effect. And it can't see variance between whole runs: Bun's allocation-heavy
-	JS rows (Prettier, PostCSS) have sat at two levels 10% or more apart.
+	JS rows (Prettier, PostCSS) have sat at two distinct levels.
 </p>
 {#if runtime_versions.length}
 	<ul class="unstyled versions">

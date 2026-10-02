@@ -8,7 +8,8 @@ import {
 	OXC_FULL_LABEL,
 	OXFMT_WASM_LABEL,
 	RSVELTE_LABEL,
-	SIZE_CAPABILITY_BY_LABEL
+	SIZE_CAPABILITY_BY_LABEL,
+	TSV_NAPI_LABEL
 } from '$routes/docs/benchmarks/benchmark_sizes.ts';
 
 // Shape gate for the binary-size half of the committed benchmarks.json: the size
@@ -46,7 +47,7 @@ describe('benchmarks.json binary sizes', () => {
 		}
 	});
 
-	test('binary sizes split by target, then group by capability with one smallest-build anchor', () => {
+	test('binary sizes split by target, then group by capability with one default anchor', () => {
 		const targets = derive_size_targets(benchmarks_json.binary_sizes);
 		for (const [target, groups] of Object.entries(targets)) {
 			// full / formatter / parser, in that order, all present in the current data
@@ -60,16 +61,24 @@ describe('benchmarks.json binary sizes', () => {
 				for (const e of group.entries) {
 					// every entry lands in the target and group its kind and capability name
 					assert.strictEqual(to_size_target(e), target, `${e.label} target`);
+					// tsv's full native addon also stands in the native formatter group
+					if (group.capability === 'formatter' && e.label === TSV_NAPI_LABEL) continue;
 					assert.strictEqual(categorize_size_capability(e.label), group.capability);
 				}
-				// the group's default ratio anchor (its 1.0x row) is the single smallest real
-				// build, and it leads the group — a disabled placeholder must not sort first
+				// the smallest real build leads the group — a disabled placeholder must not
+				// sort first — and is the default ratio anchor (the 1.0x row) unless the
+				// group holds tsv's published native build, which then anchors instead
 				const real = group.entries.filter((e) => !e.disabled);
 				const smallest = real.reduce((a, b) => (a.bytes <= b.bytes ? a : b));
 				assert.strictEqual(
 					group.entries[0]?.label,
 					smallest.label,
 					`${target} ${group.capability}`
+				);
+				assert.strictEqual(
+					group.anchor_label,
+					real.some((e) => e.label === TSV_NAPI_LABEL) ? TSV_NAPI_LABEL : smallest.label,
+					`${target} ${group.capability} anchor`
 				);
 			}
 		}
@@ -105,10 +114,11 @@ describe('benchmarks.json binary sizes', () => {
 		assert.strictEqual(rsvelte.category, 'rsvelte');
 	});
 
-	test('tsv "builds smaller artifacts for the same capability" than Oxc and Biome', () => {
-		// The TLDR's size claim, like for like within each target and capability: tsv's
-		// wasm builds against the wasm competitors, its native builds against the native
-		// ones (the ffi build stands in where a group has no napi build of tsv)
+	test('tsv\'s artifacts are "smaller than theirs too, capability for capability"', () => {
+		// The TLDR's size claim against Oxc and Biome, like for like within each target
+		// and capability: tsv's wasm builds against the wasm competitors, its native
+		// builds against the native ones (the ffi build stands in where a group has no
+		// napi build of tsv)
 		const targets = derive_size_targets(benchmarks_json.binary_sizes);
 		const bytes = (target: 'browser' | 'native', capability: string, label: string): number => {
 			const entry = targets[target]
@@ -122,6 +132,7 @@ describe('benchmarks.json binary sizes', () => {
 			['browser', 'parser', 'tsv-parse-wasm', 'oxc-parser (wasm)'],
 			['native', 'full', 'tsv (napi)', OXC_FULL_LABEL],
 			['native', 'full', 'tsv (ffi)', OXC_FULL_LABEL],
+			['native', 'formatter', 'tsv (napi)', 'oxfmt (napi)'],
 			['native', 'formatter', 'tsv format (ffi)', 'oxfmt (napi)'],
 			['native', 'parser', 'tsv parse (ffi)', 'oxc-parser (napi)']
 		];

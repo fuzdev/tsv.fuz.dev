@@ -99,9 +99,9 @@ export const format_gzip_size = (gzip_bytes: number | null | undefined): string 
 /**
  * How many times better a row is than its reference, for every chart and table on
  * the page: at or above the reference it reads as a plain multiple (`2.50x`), while
- * a worse row shows the reciprocal negated (`0.15x` → `-6.67x`) so "how many times
+ * a worse row shows the reciprocal negated (`0.15x` → `−6.67x`) so "how many times
  * slower, or bigger" is directly legible instead of a fraction the reader has to
- * invert. The minus is a convention for "times worse", not a literal negative rate,
+ * invert. The minus (U+2212, not a hyphen) is a convention for "times worse", not a literal negative rate,
  * so a worse row that rounds to `1.00x` prints unsigned — no direction to show.
  * Two decimals under 10 and one from there, as the bench report's own ratios print.
  */
@@ -110,7 +110,7 @@ export const format_speedup = (ratio: number): string => {
 	// the tier is read off the rounded value, so 9.996 prints `10.0x`, not `10.00x`
 	const digits = Number(magnitude.toFixed(2)) >= 10 ? 1 : 2;
 	const text = magnitude.toFixed(digits);
-	return `${ratio < 1 && text !== '1.00' ? '-' : ''}${text}x`;
+	return `${ratio < 1 && text !== '1.00' ? '−' : ''}${text}x`;
 };
 
 /**
@@ -156,6 +156,15 @@ export const format_unstable_readings = (entry: {
  */
 export const format_share_approx = (fraction: number | undefined): string =>
 	fraction === undefined ? '—' : `${Math.round(fraction * 100)}%`;
+
+/**
+ * A fraction as a whole-number percentage rounded up (`3%` for 2.1%), for prose
+ * that quotes it as an upper bound ("no more than N"), which rounding to nearest
+ * could put below the value it bounds; `—` for a missing one. Rounded to a
+ * hundredth of a percent first, so float noise can't push an exact value up one.
+ */
+export const format_share_ceil = (fraction: number | undefined): string =>
+	fraction === undefined ? '—' : `${Math.ceil(Math.round(fraction * 1e4) / 100)}%`;
 
 /**
  * A part of a whole as a percentage with one decimal (`11.2%`). Rounded, with both
@@ -375,8 +384,9 @@ export const format_runtime_display = (
  * (`format_label`).
  */
 export const format_group_omissions = (omissions: GroupOmissions): string => {
-	const pronoun = omissions.omitted_files === 1 ? 'it' : 'them';
-	const lead = `${format_count(omissions.omitted_files)} of ${format_count(omissions.files_total)} files (${format_percent(omissions.omitted_bytes, omissions.bytes_total)} of the group's bytes) are left out of every row`;
+	const one = omissions.omitted_files === 1;
+	const pronoun = one ? 'it' : 'them';
+	const lead = `${format_count(omissions.omitted_files)} of ${format_count(omissions.files_total)} files (${format_percent(omissions.omitted_bytes, omissions.bytes_total)} of the group's bytes) ${one ? 'is' : 'are'} left out of every row`;
 	const [only] = omissions.by_tool;
 	if (omissions.by_tool.length === 1 && only) {
 		return `${lead}, because ${format_label(only.name)} fails ${pronoun} in this harness.`;

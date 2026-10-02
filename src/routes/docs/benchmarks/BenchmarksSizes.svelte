@@ -35,6 +35,10 @@
 	<div class="mb_xl5">
 		<!-- under the target's own section heading -->
 		<h4>{group.heading}</h4>
-		<BenchmarksBaselineGroup rows={to_rows(group)} label={group.heading} />
+		<BenchmarksBaselineGroup
+			rows={to_rows(group)}
+			label={group.heading}
+			default_anchor={group.anchor_label}
+		/>
 	</div>
 {/each}

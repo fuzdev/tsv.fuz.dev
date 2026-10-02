@@ -174,16 +174,19 @@
 			<TomeSectionHeader text="Span-only parsing" />
 			<p>
 				The parsers have a span-only mode that skips the per-node line/column, making the AST ~46%
-				smaller and faster to hand to JS, and you can derive line and column later without
-				re-parsing. Span-only is oxc-parser's default. tsv emits <code>loc</code> by default so that
-				a call with no options is a drop-in for Svelte's parser, though that default may change.
+				smaller on TypeScript and faster to hand to JS, and you can derive line and column later
+				without re-parsing. Span-only is oxc-parser's default. tsv emits <code>loc</code> by default
+				so that a call with no options is a drop-in for Svelte's parser, though that default may
+				change.
 			</p>
 			<Code lang="ts" content={no_locations_example} />
 			<p>
 				Even when you need line/column, reconstructing it in JS beats the <code>loc</code>-bearing
-				AST end to end, by ~1.7x on TypeScript, as measured in
-				<a href="https://github.com/fuzdev/tsv/blob/main/benches/js/results/report.node.md">
-					tsv's bench report
+				AST end to end, by ~1.7x on TypeScript, as measured by
+				<a
+					href="https://github.com/fuzdev/tsv/blob/main/benches/js/diagnostics/reconstruct_vs_materialize.ts"
+				>
+					a diagnostic in tsv's bench harness
 				</a>. <code>reconstruct_locations</code> ships in every package that parses.
 			</p>
 			<p>Details:</p>

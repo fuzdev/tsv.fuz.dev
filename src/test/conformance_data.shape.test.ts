@@ -215,11 +215,10 @@ describe('conformance matrices over the committed report', () => {
 	});
 
 	test('only the sources every parser accepts in full are folded', () => {
-		// the folded row's label says so. Whether the committed report folds at all is
-		// the data's to decide (a fold needs two fully-accepted sources in one matrix,
-		// and the TypeScript matrix has one since Prettier's CSS suite stopped carrying
-		// its harness files), so the fold itself is pinned on synthetic rows in
-		// `conformance_data.test.ts`; this gate holds the invariant over any fold present
+		// whether the committed report folds at all is the data's to decide (a fold needs
+		// two fully-accepted sources in one matrix), so the fold itself is pinned on
+		// synthetic rows in `conformance_data.test.ts`; this gate holds the invariant
+		// over any fold present
 		const folded = matrices.flatMap((m) => m.sources.filter((s) => s.folded));
 		for (const row of folded) {
 			assert.isNotEmpty(row.cells);

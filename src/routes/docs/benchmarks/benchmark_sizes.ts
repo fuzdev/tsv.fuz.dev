@@ -113,8 +113,15 @@ export interface SizeDisplayEntry extends BinarySize {
 export interface SizeCapabilityGroup {
 	capability: SizeCapability;
 	heading: string;
-	// sorted smallest-first, so the first enabled entry is the default ratio anchor (1.00x)
+	// sorted smallest-first
 	entries: Array<SizeDisplayEntry>;
+	/**
+	 * The entry the group's ratios default to (its 1.00x row): `TSV_NAPI_LABEL` where
+	 * the group has it, since the smaller `(ffi)` builds beside it aren't published
+	 * and a ratio against them compares with nothing a reader can install; otherwise
+	 * the smallest build.
+	 */
+	anchor_label: string | undefined;
 }
 
 /**
@@ -135,6 +142,9 @@ const SIZE_CAPABILITY_ORDER: ReadonlyArray<{
 	{ capability: 'formatter', heading: 'Formatter' },
 	{ capability: 'parser', heading: 'Parser' }
 ];
+
+/** tsv's published native build, the full N-API addon — the label the tsv harness emits. */
+export const TSV_NAPI_LABEL = 'tsv (napi)';
 
 /** The measured oxfmt native addon — the label the tsv harness emits, half of the synthesized oxc sum. */
 export const OXFMT_NATIVE_LABEL = 'oxfmt (napi)';
@@ -176,10 +186,11 @@ const synthesize_oxc_full = (sizes: Array<BinarySize>): BinarySize | undefined =
 /**
  * Splits the binary sizes by target (see `SizeTarget`), then groups each target's
  * builds by capability (full / formatter / parser), smallest-first. Bars scale to
- * the group's largest entry and the ratio anchors on its smallest, so exactly one
+ * the group's largest entry and the ratio anchors on `anchor_label`, so exactly one
  * entry per group reads 1.00x, whichever tool that is. A combined
  * `oxc-parser + oxfmt` entry is synthesized into the native full-toolchain group,
- * since oxc ships parse and format apart. oxfmt has no wasm build, so the browser
+ * since oxc ships parse and format apart. `TSV_NAPI_LABEL` appears in the native
+ * formatter group as well as the full one, anchoring both. oxfmt has no wasm build, so the browser
  * formatter group ends with a disabled `oxfmt (wasm)` placeholder, holding its
  * slot rather than omitting it.
  */
@@ -204,6 +215,12 @@ const to_capability_groups = (
 			(s) => to_size_target(s) === target && categorize_size_capability(s.label) === capability
 		);
 		if (items.length === 0) continue;
+		// tsv publishes no native formatter-only build, so its full addon stands in the
+		// native formatter group too, as the row a reader can install
+		if (target === 'native' && capability === 'formatter') {
+			const napi = sizes.find((s) => s.label === TSV_NAPI_LABEL);
+			if (napi) items.push(napi);
+		}
 		const max = Math.max(...items.map((s) => s.bytes));
 		const entries: Array<SizeDisplayEntry> = items
 			.toSorted((a, b) => a.bytes - b.bytes)
@@ -227,7 +244,10 @@ const to_capability_groups = (
 				disabled: true
 			});
 		}
-		groups.push({ capability, heading, entries });
+		const anchor_label = (
+			entries.find((e) => e.label === TSV_NAPI_LABEL) ?? entries.find((e) => !e.disabled)
+		)?.label;
+		groups.push({ capability, heading, entries, anchor_label });
 	}
 	return groups;
 };

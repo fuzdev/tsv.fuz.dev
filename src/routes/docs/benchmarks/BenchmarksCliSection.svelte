@@ -78,13 +78,11 @@
 	// The harness records its own machine and tool versions; the shape test holds them
 	// to the ones the details section lists, so only what the harness alone records is
 	// quoted: when and from which revision it ran, the thread count its wall-clock
-	// scales with, the tsv packages it installs, and the Prettier plugin.
+	// scales with, and the tsv packages it installs.
 	const cli_date = format_report_date(benchmarks_cli.timestamp);
 	const cli_commit_url = `https://github.com/ryanatkn/oxc-bench-formatter/commit/${benchmarks_cli.git_commit}`;
 	const cli_tsv_binary = benchmarks_cli.tsv_binary;
 	const cli_tsv_wasm_version = benchmarks_cli.versions['tsv-wasm'];
-	// the prettier + oxc-parser row's plugin, which carries its own oxc-parser
-	const cli_plugin_oxc_version = benchmarks_cli.versions['@prettier/plugin-oxc'];
 </script>
 
 <TomeSection>
@@ -98,8 +96,9 @@
 			<code>bench-formatter</code>
 		</a>
 		that <a href="https://github.com/ryanatkn/oxc-bench-formatter" rel="external">adds tsv</a>.
-		Upstream's other three scenarios are left out: their corpora include JSX, which tsv doesn't
-		parse, and two also sort imports and Tailwind classes or format languages beyond tsv's three.
+		Upstream's other three scenarios aren't shown: their corpora include JSX, which tsv doesn't
+		parse; one also formats a whole repo's other and embedded languages, and one sorts imports and
+		Tailwind classes.
 	</p>
 	<p>
 		Every formatter is installed from npm, pinned by the fork's lockfile. The other tools are timed
@@ -112,9 +111,9 @@
 		what the binary costs on its own, called the bare binary below.
 	</p>
 	<p>
-		Each table's ratios are relative to its highlighted row: <code>{CLI_TSV_NPM_LABEL}</code> where
-		tsv faces other tools, the bare binary in the tsv-only table. A negative ratio means that many
-		times worse. Hover another row to compare against it instead.
+		As in the charts above, each table's ratios are relative to its highlighted row:
+		<code>{CLI_TSV_NPM_LABEL}</code> where tsv faces other tools, the bare binary in the tsv-only
+		table.
 	</p>
 	<BenchmarksCli report={benchmarks_cli} />
 	<aside>
@@ -148,44 +147,36 @@
 			<li>
 				<a href="https://www.npmjs.com/package/@fuzdev/tsv-wasm"><code>@fuzdev/tsv-wasm</code></a>
 				takes ~{wasm_wall} the binary's time and ~{wasm_memory} its memory on the delivery table's
-				one file, still well ahead of both Prettier rows in the single-file table but behind Oxfmt
-				and Biome.
+				one file. In time that is still well ahead of both Prettier rows in the single-file table
+				but behind Oxfmt and Biome.
 			</li>
 			<li>
 				{#if npm_memory && memory}
-					Through its dispatcher tsv uses {format_ratio_range(npm_memory)} less peak memory than
-					every other tool in {memory_scope}, and as the bare binary {format_ratio_range(memory)}
-					less.
+					As the bare binary tsv uses {format_ratio_range(memory)} less peak memory than every other
+					tool in {memory_scope}; through its dispatcher, {format_ratio_range(npm_memory)} less,
+					though that row shows Node's peak, not the binary's.
 				{/if}
 				Peak memory is peak RSS, measured in a separate pass without warmups, with as many runs as
-				the timed one. It is the largest single process in each command's tree, not the sum. So the
+				the timed one. It is the largest single process in each command's tree, not the sum, so the
 				rows that launch a native binary from Node (Biome, rsvelte-fmt, and tsv through its
-				dispatcher) are understated, and the dispatcher row shows Node's peak, not the binary's.
+				dispatcher) are understated.
 			</li>
 			<li>
 				As in the in-process charts, every formatter is pinned to tsv's fixed style in its own
-				option dialect (outputs still differ where the tools decide differently). So these rows
-				aren't comparable with upstream's published numbers, which leave the tools nearer their
-				defaults.
+				option dialect, so these rows aren't comparable with upstream's published numbers, which
+				leave the tools nearer their defaults.
 			</li>
 			<li>
 				Before timing, a preflight run of each tool's check mode asserts that every formatter parses
 				every file, that those reporting a file count report the same one, and that each finds at
 				least one file to change, so a mis-scoped tool formatting nothing can't post an unbeatable
-				time. A scenario whose preflight fails, whose timed run errors partway, or whose memory pass
-				crashes is published as aborted rather than timed around or dropped.
-			</li>
-			<li>
-				Every input is pinned: the tools by the fork's lockfile, the single file (the TypeScript
-				compiler's <code>parser.ts</code>) to a release, the Svelte corpus to a
-				<a href="https://github.com/fuzdev/corpora">fuzdev/corpora</a> commit, and the TypeScript
-				repo (Outline) to the commit under its table.
+				time.
 			</li>
 			<li>
 				hyperfine runs commands in the order given, with no interleaving or shuffling, so on a
 				machine that throttles, the later commands run hotter{settle_note}. Every scenario runs
-				tsv's two rows last, the dispatcher row and then the bare binary (the tables sort by time,
-				not run order), so the fixed order counts against tsv, not for it.
+				tsv's two rows last, the dispatcher row and then the bare binary, so thermal drift counts
+				against tsv, not for it.
 			</li>
 		</ul>
 	</aside>
@@ -195,8 +186,8 @@
 		<a href={cli_commit_url}>
 			its harness at {format_commit(benchmarks_cli.git_commit)}
 		</a>{benchmarks_cli.git_dirty ? ' with uncommitted changes' : ''}, on the same machine and Node
-		as the in-process runs ({benchmarks_cli.machine.threads} threads; multi-file wall-clock times
-		scale with that count). The versions of the tools both sections time are listed under
+		as the in-process runs ({benchmarks_cli.machine.threads} threads). The versions of the tools
+		both sections time are listed under
 		<a href="#{docs_slugify(details_title)}">{details_title}</a>;
 		{#if cli_tsv_binary.source === 'package'}
 			its native tsv rows run the <code>{cli_tsv_binary.package}</code> binary,
@@ -205,10 +196,5 @@
 			build{cli_tsv_binary.built ? ` from ${cli_tsv_binary.built}` : ''},
 		{/if}
 		and its wasm row <code>@fuzdev/tsv-wasm</code> {cli_tsv_wasm_version}.
-		{#if cli_plugin_oxc_version}
-			Its <code>prettier + oxc-parser</code> row runs <code>@prettier/plugin-oxc</code>
-			{cli_plugin_oxc_version}, which carries its own oxc-parser rather than the release listed
-			there.
-		{/if}
 	</p>
 </TomeSection>

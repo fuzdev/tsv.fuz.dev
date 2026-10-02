@@ -10,21 +10,28 @@
 
 	const {
 		rows,
-		label
+		label,
+		default_anchor
 	}: {
-		// ordered so the first enabled row is the default baseline (callers lead with
-		// the canonical reference for speed, the smallest build for size)
+		// ordered so the first enabled row is the default baseline unless
+		// `default_anchor` names another (callers lead with the canonical reference
+		// for speed, the smallest build for size)
 		rows: Array<BaselineRow>;
+		// the key of the row to anchor on by default, when it isn't the first enabled one
+		default_anchor?: string;
 		// names the group to assistive tech, which reads the bars as a table
 		label: string;
 	} = $props();
 
 	// the row currently acting as the baseline: the hovered row while the pointer is
-	// over an enabled row, otherwise the group default (its first enabled row). Each
+	// over an enabled row, otherwise the group default (`default_anchor`, or its first enabled row). Each
 	// group instance owns its own state, so the three groups in a section re-baseline
 	// independently.
 	let hovered_key: string | undefined = $state(undefined);
-	const default_anchor_key = $derived(rows.find((r) => !r.disabled)?.key);
+	const default_anchor_key = $derived(
+		(rows.find((r) => !r.disabled && r.key === default_anchor) ?? rows.find((r) => !r.disabled))
+			?.key
+	);
 	const anchor_key = $derived(hovered_key ?? default_anchor_key);
 	const anchor_row = $derived(rows.find((r) => r.key === anchor_key));
 
@@ -72,7 +79,7 @@
 	/* the group is the grid and its rows are subgrids, so the columns size to the
 	 * group's content — no widths to keep in step with the labels and values. The
 	 * ratio column is the exception: its text changes on hover, so it is held at the
-	 * widest ratio `format_speedup` prints (`-123.4x`) and re-baselining shifts nothing */
+	 * widest ratio `format_speedup` prints (`−123.4x`) and re-baselining shifts nothing */
 	.bar-group {
 		container: benchmarks-bars / inline-size;
 		display: grid;

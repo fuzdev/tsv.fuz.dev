@@ -10,6 +10,7 @@ import {
 	format_label,
 	format_percent,
 	format_share_approx,
+	format_share_ceil,
 	format_speedup,
 	format_count_maybe,
 	format_report_date,
@@ -189,6 +190,19 @@ describe('format_share_approx', () => {
 	});
 });
 
+describe('format_share_ceil', () => {
+	test('rounds a fraction up to a whole percentage, dash when missing', () => {
+		assert.strictEqual(format_share_ceil(0.0275), '3%');
+		assert.strictEqual(format_share_ceil(0.0301), '4%');
+		assert.strictEqual(format_share_ceil(undefined), '—');
+	});
+
+	test('an exact percentage is not pushed up by float noise', () => {
+		assert.strictEqual(format_share_ceil(0.07), '7%'); // 0.07 * 100 is 7.000000000000001
+		assert.strictEqual(format_share_ceil(0.03), '3%');
+	});
+});
+
 describe('format_speedup', () => {
 	test('at or above the reference reads as a plain multiple', () => {
 		assert.strictEqual(format_speedup(1), '1.00x');
@@ -198,9 +212,9 @@ describe('format_speedup', () => {
 	});
 
 	test('a worse row negates the reciprocal so the factor is directly legible', () => {
-		assert.strictEqual(format_speedup(0.15), '-6.67x');
-		assert.strictEqual(format_speedup(0.05), '-20.0x'); // >= 10 magnitude → one decimal
-		assert.strictEqual(format_speedup(0.98), '-1.02x'); // near-parity sign flip
+		assert.strictEqual(format_speedup(0.15), '−6.67x');
+		assert.strictEqual(format_speedup(0.05), '−20.0x'); // >= 10 magnitude → one decimal
+		assert.strictEqual(format_speedup(0.98), '−1.02x'); // near-parity sign flip
 		assert.strictEqual(format_speedup(0.998), '1.00x'); // rounds to parity, so unsigned
 	});
 });
@@ -299,7 +313,7 @@ describe('format_group_omissions', () => {
 				omitted_files: 1,
 				by_tool: [{ name: 'oxfmt', files: 1, bytes: 112, categories: {} }]
 			}),
-			"1 of 951 files (11.2% of the group's bytes) are left out of every row, because oxfmt (node napi) fails it in this harness."
+			"1 of 951 files (11.2% of the group's bytes) is left out of every row, because oxfmt (node napi) fails it in this harness."
 		);
 	});
 });

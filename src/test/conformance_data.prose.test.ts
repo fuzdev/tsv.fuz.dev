@@ -76,9 +76,9 @@ describe('conformance prose reads the report', () => {
 	});
 
 	test('the Test corpus section names three harvested suites, linked without a commit', () => {
-		// "Each links its upstream at the commit the harness pinned, except the three
-		// harvested into caches — test262, web-platform-tests CSS, and the TypeScript
-		// compiler's cases — which carry no commit"
+		// "Each source links its upstream at the commit the harness pinned, except the three
+		// harvested into caches, whose commit the report doesn't record: test262,
+		// web-platform-tests CSS, and the TypeScript compiler's cases"
 		const { rows } = derive_corpus_source_table(conformance_json, CONFORMANCE_SOURCE_LABELS);
 		const harvested = rows.filter((row) => row.path.includes('/.cache/'));
 		assert.strictEqual(harvested.length, 3);

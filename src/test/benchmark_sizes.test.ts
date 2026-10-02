@@ -88,6 +88,26 @@ describe('derive_size_targets', () => {
 		assert.isFalse(native.some((g) => g.entries.some((e) => e.label === OXFMT_WASM_LABEL)));
 	});
 
+	test("a group anchors on tsv's published native build where it has one, else its smallest", () => {
+		const { native, browser } = derive_size_targets([
+			size('tsv (ffi)', 3),
+			size('tsv (napi)', 4),
+			size('tsv parse (ffi)', 2),
+			size('tsv format (ffi)', 2),
+			size('oxfmt (napi)', 8),
+			size('oxc-parser (napi)', 5),
+			size('tsv-wasm', 6),
+			size('biome (wasm)', 9)
+		]);
+		const anchor = (groups: typeof native, capability: string) =>
+			groups.find((g) => g.capability === capability)?.anchor_label;
+		assert.strictEqual(anchor(native, 'full'), 'tsv (napi)'); // not the smaller, unpublished ffi
+		// the full addon stands in the formatter group too: tsv publishes no format-only one
+		assert.strictEqual(anchor(native, 'formatter'), 'tsv (napi)');
+		assert.strictEqual(anchor(native, 'parser'), 'tsv parse (ffi)');
+		assert.strictEqual(anchor(browser, 'full'), 'tsv-wasm');
+	});
+
 	test('the oxc sum lands in the native full toolchain and carries gzip only when both halves do', () => {
 		const full = (sizes: Array<BinarySize>) =>
 			derive_size_targets(sizes).native

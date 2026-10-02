@@ -32,8 +32,12 @@ export const IN_PROCESS_PAIRS = {
 	parse_ts_loc_cost: ['parse/typescript', 'tsv-json', 'tsv-json-no-locations'],
 	// the one entry that leads tsv's span-only wire, quoted in the direction the data runs
 	parse_ts_yuku_vs_tsv: ['parse/typescript', 'tsv-json-no-locations', 'yuku-parser'],
-	// TODO: quote the wasm-vs-wasm yuku pairing again (it runs wider than native) once
-	// tsv publishes a minimal `tsv-parse-ts-wasm`
+	// the wasm-vs-wasm pairing runs wider than the native one, so the copy quotes both
+	parse_ts_yuku_wasm_vs_tsv_wasm: [
+		'parse/typescript',
+		'tsv-wasm-json-no-locations',
+		'yuku-parser-wasm'
+	],
 	parse_svelte_vs_compiler: ['parse/svelte', 'svelte/compiler', 'tsv-json'],
 	parse_svelte_vs_rsvelte: ['parse/svelte', 'rsvelte-parse', 'tsv-json'],
 	parse_css_compiler_vs_tsv: ['parse/css', 'tsv-json', 'svelte/compiler'],

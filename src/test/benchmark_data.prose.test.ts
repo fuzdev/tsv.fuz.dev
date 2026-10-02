@@ -71,7 +71,25 @@ describe('prose ratios resolve', () => {
 		}
 	});
 
-	test('tsv "formats its three languages faster in every pairing measured here"', () => {
+	test('tsv\'s "native CLI beats theirs in every scenario"', () => {
+		// the TLDR's absolute CLI claim spans every scenario Oxfmt or Biome is timed in,
+		// not just the repo it quotes ratios for, and both of tsv's native rows
+		let compared = 0;
+		for (const scenario of benchmarks_cli.scenarios.filter((s) => !s.tsv_only)) {
+			for (const label of ['oxfmt', 'biome']) {
+				if (!scenario.results.some((r) => r.label === label)) continue;
+				for (const ratio_vs of [cli_ratio_vs_tsv_npm, cli_ratio_vs_tsv]) {
+					const ratio = ratio_vs(scenario.key, label, 'wall_ms');
+					assert.isDefined(ratio, `${scenario.key}: ${label}`);
+					assert.isAbove(ratio, 1, `${scenario.key}: ${label}`);
+					compared++;
+				}
+			}
+		}
+		assert.isAbove(compared, 0);
+	});
+
+	test('tsv "formats its three languages faster … in every in-process pairing here"', () => {
 		// The TLDR's absolute claim spans every timed format row, not just the pairs
 		// it quotes: dprint and malva are timed too. Like for like is native-vs-native
 		// and wasm-vs-wasm, and the JS rows face native tsv; gating tsv-wasm, tsv's
@@ -127,7 +145,7 @@ describe('prose ratios resolve', () => {
 	});
 
 	test('oxfmt formats Svelte at Prettier speed, as the note says it delegates', () => {
-		// "delegates Svelte to a Prettier it bundles", which the TLDR leans on to quote
+		// "delegates Svelte to its bundled Prettier", which the TLDR leans on to quote
 		// only Prettier for Svelte — if a future oxfmt grows its own Svelte path the
 		// two rows will part ways and both are stale
 		const ratio = benchmark_speedup(benchmarks_json, 'format/svelte', 'oxfmt', 'prettier');
@@ -136,7 +154,7 @@ describe('prose ratios resolve', () => {
 	});
 
 	test('the CSS parse note reads the internal rows it points at', () => {
-		// "the JSON hand-off is ~N% of tsv's time there (the gap to the internal row)",
+		// "the JSON hand-off is ~N% of tsv's time there (the gap between its json and internal entries)",
 		// offered as why the JS parsers finish ahead — the wire must cost more than the
 		// engine, or the explanation is wrong
 		const wire_share = benchmark_speedup(benchmarks_json, 'parse/css', 'tsv-json', 'tsv-internal');
@@ -212,7 +230,7 @@ describe('prose ratios resolve', () => {
 
 	test('every CLI ratio the prose quotes is present', () => {
 		// (the TypeScript-repo wall/CPU pairs are covered by the CPU-work test below)
-		// the CLI note's "less than every other tool in every scenario", against the bare
+		// the CLI note's "less peak memory than every other tool in every scenario", against the bare
 		// binary and the dispatcher — both read as "less" and both are floored to one
 		// decimal for display, so the LOW end must reach 1.1 or the range would print
 		// "1.0–Nx less memory", a claim of nothing. The sentence is dropped when no
@@ -281,7 +299,7 @@ describe('prose ratios resolve', () => {
 		}
 	});
 
-	test('the dispatcher row "reads Node\'s peak, not the binary\'s"', () => {
+	test('the dispatcher row "shows Node\'s peak, not the binary\'s"', () => {
 		// the harness reports the largest single process in the tree, so the memory note
 		// holds only while the Node launcher outgrows the binary it spawns
 		for (const scenario of benchmarks_cli.scenarios) {
@@ -306,8 +324,8 @@ describe('prose ratios resolve', () => {
 	});
 
 	test('the CLI CPU-work note reads the way the numbers run', () => {
-		// "CPU ratios move far less than wall-clock: tsv leads Oxfmt ~C ... and ~D ...,
-		// against ~A and ~B wall-clock" — the two CPU leads must sit inside the wall-clock span: dispatcher
+		// "in CPU time tsv leads Oxfmt ~C through the dispatcher and ~D as the bare binary;
+		// in wall-clock time, ~A and ~B" — the two CPU leads must sit inside the wall-clock span: dispatcher
 		// wall < dispatcher CPU <= bare CPU < bare wall. Any one flipping on a refresh
 		// leaves the note explaining the opposite of what the table shows.
 		const defined = (value: number | undefined, name: string): number => {
@@ -341,7 +359,7 @@ describe('prose ratios resolve', () => {
 				assert_reads_faster(ratio, `${label}: ${name}`);
 			}
 		}
-		// "even Prettier's CPU time runs above its wall-clock"
+		// "even Prettier's CPU time exceeds its wall-clock time"
 		for (const key of [CLI_SINGLE_FILE_KEY, CLI_TS_REPO_KEY]) {
 			const prettier = cli_scenario_find(key)?.results.find((r) => r.label === 'prettier');
 			assert(prettier, `${key} has no prettier row`);
@@ -359,7 +377,7 @@ describe('prose ratios resolve', () => {
 		assert.isDefined(overhead);
 		assert.isAbove(floor, 0);
 		assert.isBelow(floor, overhead.max);
-		// "most of it Node's own startup"
+		// "Most of that is Node's own startup"
 		assert.isAbove(floor, overhead.max / 2);
 	});
 
@@ -374,20 +392,15 @@ describe('prose ratios resolve', () => {
 	});
 
 	test('the scenario descriptions state facts the report carries', () => {
-		// the delivery copy: "the wasm row's CPU ratio runs well past its time ratio"
-		const cpu = cli_ratio_vs_tsv(CLI_DELIVERY_KEY, CLI_TSV_WASM_LABEL, 'cpu_ms');
-		const wall = cli_ratio_vs_tsv(CLI_DELIVERY_KEY, CLI_TSV_WASM_LABEL, 'wall_ms');
-		assert.isDefined(cpu, 'delivery scenario has no tsv-wasm row');
-		assert.isDefined(wall);
-		assert.isAbove(cpu, wall * 1.5, 'the wasm CPU ratio no longer runs well past its time ratio');
-		// the Svelte abort context: "rsvelte-fmt 0.7.x can abort when its output and stderr share a pipe"
+		// the Svelte abort context: "rsvelte-fmt 0.7.x can abort when its stdout and stderr share a pipe"
 		const rsvelte_version = benchmarks_cli.versions['rsvelte-fmt'];
 		assert.isDefined(rsvelte_version);
 		assert.match(rsvelte_version, /^0\.7\./, 'the Svelte copy names rsvelte-fmt 0.7.x');
 	});
 
 	test('the delivery note places the wasm row among the single-file tools', () => {
-		// "still well ahead of both Prettier rows there, but behind Oxfmt and Biome" —
+		// "still well ahead of both Prettier rows in the single-file table but behind Oxfmt
+		// and Biome" —
 		// the delivery and single-file scenarios time the same file (the shape test
 		// holds them to one corpus revision), so the wasm row reads against the other
 		// tools' single-file times across the two tables
@@ -474,8 +487,8 @@ describe('prose ratios resolve', () => {
 	});
 
 	test('the run-order note holds: every scenario runs the dispatcher row, then bare tsv, last', () => {
-		// "Every scenario puts the bare binary last, with its Node dispatcher row just
-		// before it" — hyperfine reports commands in the order it ran them,
+		// "Every scenario runs tsv's two rows last, the dispatcher row and then the bare
+		// binary" — hyperfine reports commands in the order it ran them,
 		// and the generated timings keep that order. An aborted scenario has no timings
 		// to order, so its preflight rows, which the harness runs in the same order, stand in.
 		for (const key of CLI_SCENARIO_KEYS) {
@@ -488,22 +501,6 @@ describe('prose ratios resolve', () => {
 				key
 			);
 		}
-	});
-
-	test('the "only parser here besides" notes still describe their groups', () => {
-		// "rsvelte's is the only Svelte parser here besides tsv's and the svelte/compiler
-		// reference" and "PostCSS is the only CSS parser here besides tsv's and the
-		// parseCss reference" — a row added to either group makes its note wrong
-		const others = (group: string): Array<string> => [
-			...new Set(
-				benchmarks_json.entries
-					.filter((e) => e.group === group)
-					.map((e) => categorize_name(e.name))
-					.filter((category) => category !== 'canonical' && !category.startsWith('tsv_'))
-			)
-		];
-		assert.deepStrictEqual(others('parse/svelte'), ['rsvelte']);
-		assert.deepStrictEqual(others('parse/css'), ['postcss']);
 	});
 
 	test('the corpus figures the Corpus section quotes resolve', () => {
@@ -533,6 +530,17 @@ describe('prose ratios resolve', () => {
 			assert.isDefined(entry.min_iterations, entry.group);
 			assert.strictEqual(entry.raw_sample_size, entry.min_iterations, `${entry.group}/prettier`);
 		}
+	});
+
+	test('"most of the TypeScript parse rows, tsv\'s included" sit at the sweep floor', () => {
+		// Benchmarking details names them beside Prettier as the rows the stability
+		// check proves least for
+		const rows = benchmarks_json.entries.filter(
+			(e) => e.group === 'parse/typescript' && e.min_iterations != null
+		);
+		const at_floor = rows.filter((e) => e.raw_sample_size === e.min_iterations);
+		assert.isAbove(at_floor.length, rows.length / 2);
+		assert(at_floor.some((e) => categorize_name(e.name).startsWith('tsv_')));
 	});
 
 	test('the slowest rows have "too few timings" for the cross-runtime noise check', () => {
