@@ -22,7 +22,7 @@
 		{#if !cell}
 			—
 		{:else if cell.selected}
-			<span class="text_40">100%<span class="visually-hidden">by construction</span></span>
+			<span class="text_40">100%<span class="visually-hidden">{' '}by construction</span></span>
 		{:else}
 			{format_coverage_percent(cell.coverage_fraction)}
 			{#if cell.rejected > 0}

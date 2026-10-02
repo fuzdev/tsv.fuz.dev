@@ -144,7 +144,7 @@
 			<p><small>{scenario.unshimmed}</small></p>
 		{/if}
 		{#if scenario.aborted}
-			<p>{scenario.aborted}{scenario.abort_context ? ` ${scenario.abort_context}` : ''}</p>
+			<p>{scenario.aborted}</p>
 		{/if}
 	</div>
 {/each}

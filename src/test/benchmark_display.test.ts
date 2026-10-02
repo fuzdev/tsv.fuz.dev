@@ -194,6 +194,7 @@ describe('format_speedup', () => {
 		assert.strictEqual(format_speedup(1), '1.00x');
 		assert.strictEqual(format_speedup(2.5), '2.50x');
 		assert.strictEqual(format_speedup(12.3), '12.3x'); // >= 10 drops to one decimal
+		assert.strictEqual(format_speedup(9.996), '10.0x'); // the tier follows the rounded value
 	});
 
 	test('a worse row negates the reciprocal so the factor is directly legible', () => {

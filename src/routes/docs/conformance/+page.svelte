@@ -65,24 +65,26 @@
 				<ul>
 					<li>
 						The dimmed <code>−n</code> beside a percentage is the number of files rejected. A dimmed
-						<code>100%</code> marks a parser that selected the source, so its 100% is by
-						construction: svelte/compiler on the Svelte set and <code>tsc</code> on the TypeScript
-						compiler's cases. tsv's 100% on test262 is a result: test262's own metadata picks those
-						tests, not any parser's verdict (see
+						<code>100%</code> marks a parser that was used to select the source's files, so its 100%
+						is by construction, not a result: svelte/compiler on the Svelte set and <code>tsc</code>
+						on the TypeScript compiler's cases. tsv's 100% on test262 is a result: those tests are
+						picked by test262's own metadata, not by any parser's verdict (see
 						<a href="#{docs_slugify(CORPUS_SECTION_TITLE)}">{CORPUS_SECTION_TITLE}</a>).
 					</li>
 					<li>
-						Accepting a file says nothing about producing the <em>right</em> AST — tsv's output is
-						separately verified against the parsers it's a drop-in for (svelte/compiler, its
-						<code>parseCss</code>, and acorn-typescript) at corpus scale in
+						Coverage has two blind spots. Accepting a file says nothing about producing the
+						<em>right</em> AST; tsv's output is verified separately against the parsers it's a
+						drop-in for (svelte/compiler, its <code>parseCss</code>, and acorn-typescript) at corpus
+						scale in
 						<a href="https://github.com/fuzdev/tsv/blob/main/docs/conformance_svelte.md">
 							its repo's conformance gates
-						</a>. Nor does coverage reward rejecting what should be rejected, so a permissive parser
-						scores well here: tsv doesn't yet check most early errors, rejecting fewer than half of
-						test262's should-reject parse tests, tracked in
+						</a>. And coverage doesn't reward rejecting what should be rejected, so a permissive
+						parser scores well here. tsv is permissive in this sense: it doesn't yet check most
+						early errors, and rejects fewer than half of test262's should-reject parse tests
+						(tracked in
 						<a href="https://github.com/fuzdev/tsv/blob/main/docs/conformance_test262.md">
 							its test262 notes
-						</a>.
+						</a>).
 					</li>
 					<li>
 						No CSS parser here is a validity oracle, so the CSS sources keep invalid and
@@ -108,20 +110,21 @@
 			<TomeSectionHeader text={CORPUS_SECTION_TITLE} />
 			<p>
 				{format_count(corpus_source_table.totals.files)} files from
-				{corpus_source_table.rows.length} sources, none of them the real-world code used in the
-				<TomeLink slug="benchmarks" />: formatter, compiler, and conformance test suites. Each links
-				its upstream at the commit the harness pinned, except the three harvested into caches —
-				test262, web-platform-tests CSS, and the TypeScript compiler's cases — which carry no
-				commit.
+				{corpus_source_table.rows.length} sources, all of them formatter, compiler, and conformance
+				test suites; none is the real-world code used in the <TomeLink slug="benchmarks" />. Each
+				source links its upstream at the commit the harness pinned, except the three harvested into
+				caches, which carry no commit: test262, web-platform-tests CSS, and the TypeScript
+				compiler's cases.
 			</p>
 			<ul>
 				<li>
-					The Svelte set is every <code>.svelte</code> and <code>.html</code> file, less those
+					The Svelte set is every <code>.svelte</code> and <code>.html</code> file, minus those
 					svelte/compiler rejects. The <code>.html</code> files load as Svelte:
-					prettier-plugin-svelte's are components, Prettier's HTML fixtures real HTML documents.
+					prettier-plugin-svelte's are components, and Prettier's HTML fixtures are real HTML
+					documents.
 				</li>
 				<li>
-					test262 is its expected-valid tests outside <code>test/staging/</code>, less the
+					test262 is its expected-valid tests outside <code>test/staging/</code>, minus the
 					sloppy-mode tests under <code>test/annexB/</code>: Annex B is the web-browser layer,
 					optional for a non-browser host like tsv.
 				</li>
@@ -139,10 +142,11 @@
 					reject, and the spec files themselves.
 				</li>
 				<li>
-					JSX is out by construction: Prettier's JSX suite, every <code>.tsx</code> file, and the
-					<code>.js</code> fixtures Prettier reads as JSX are dropped, since every parser here runs
-					in TypeScript mode and rejects them alike. tsv rejects JSX by design, whereas the other
-					TypeScript parsers here parse it, so these tables say nothing about that gap.
+					JSX is excluded: Prettier's JSX suite, every <code>.tsx</code> file, and the
+					<code>.js</code> fixtures Prettier reads as JSX are dropped, since every parser here is
+					run in plain TypeScript mode, where all of them reject JSX. In their JSX modes the other
+					TypeScript parsers here parse it, and tsv has none by design, so these tables say nothing
+					about that gap.
 				</li>
 				<li>
 					TS/JS files parse as modules, with two exceptions: test262's parse as script or module, as

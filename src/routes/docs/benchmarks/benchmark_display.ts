@@ -107,7 +107,8 @@ export const format_gzip_size = (gzip_bytes: number | null | undefined): string 
  */
 export const format_speedup = (ratio: number): string => {
 	const magnitude = ratio >= 1 ? ratio : 1 / ratio;
-	const digits = magnitude >= 10 ? 1 : 2;
+	// the tier is read off the rounded value, so 9.996 prints `10.0x`, not `10.00x`
+	const digits = Number(magnitude.toFixed(2)) >= 10 ? 1 : 2;
 	const text = magnitude.toFixed(digits);
 	return `${ratio < 1 && text !== '1.00' ? '-' : ''}${text}x`;
 };

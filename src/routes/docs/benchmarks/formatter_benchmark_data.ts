@@ -71,9 +71,8 @@ export const FormatterScenario = z.strictObject({
 	target: z.string().min(1),
 	/**
 	 * Which revision of that corpus these numbers came from — a commit and date, or
-	 * a size and content hash for a single downloaded file. Most of the corpora
-	 * track their upstream default branch, so without it two runs of a scenario
-	 * can't be told apart.
+	 * a size and content hash for a single downloaded file. It is how a published
+	 * run says which pin of each corpus it ran at, so two runs can be told apart.
 	 */
 	corpus: z.string().min(1),
 	/**

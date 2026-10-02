@@ -26,6 +26,10 @@
 	// A tsv call's outcome: its string result, or the thrown error's message.
 	type Outcome = { value: string; error: null } | { value: null; error: string };
 
+	// Input nested past the wasm stack traps with this message, and unlike a parse
+	// error the trap poisons the instance: every later call throws the same thing.
+	const WASM_TRAP_MESSAGE = 'memory access out of bounds';
+
 	// Run a tsv call, capturing a thrown error as a message; `null` until the wasm
 	// loads. Lets `formatted` and `ast` share one shape and recompute as `source` changes
 	// — no blur or button.
@@ -34,7 +38,15 @@
 		try {
 			return { value: fn(tsv), error: null };
 		} catch (err) {
-			return { value: null, error: to_error_message(err) };
+			const message = to_error_message(err);
+			if (!message.includes(WASM_TRAP_MESSAGE)) return { value: null, error: message };
+			// swap in a fresh instance, or the editor stays dead until a reload
+			try {
+				tsv.reinstantiate();
+			} catch {
+				// the trap message below still says what happened
+			}
+			return { value: null, error: 'This input is nested too deeply for the wasm build.' };
 		}
 	};
 
@@ -110,10 +122,6 @@
 	</button>
 </header>
 
-{#if load_error}
-	<p class="error">Couldn't load the tsv formatter: {load_error}</p>
-{/if}
-
 {#if !highlight_supported}
 	<p>
 		This browser doesn't support live syntax highlighting — the editor still works without token
@@ -123,7 +131,9 @@
 
 <section>
 	<CodeTextarea bind:value={source} lang="svelte" autocapitalize="off" autocomplete="off" />
-	{#if !ready}
+	{#if load_error}
+		<p class="error">Couldn't load the tsv formatter: {load_error}</p>
+	{:else if !ready}
 		<p>loading the formatter…</p>
 	{:else if error}
 		<p class="error">{error}</p>

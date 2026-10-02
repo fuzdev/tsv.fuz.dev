@@ -34,11 +34,11 @@
 		<p>
 			tsv aims to simplify its covered domains and stay lean, and so it makes opinionated choices.
 			The formatter has a single non-configurable style, using Svelte's Prettier config. Among other
-			benefits this means tsv doesn't depend on a JS runtime, which it would need to resolve configs
-			like Prettier.
+			benefits, tsv doesn't depend on a JS runtime, which it would need in order to resolve configs
+			the way Prettier does.
 		</p>
 		<p>
-			Compared to Oxc, Biome, and SWC, tsv is a set of focused tools, not an extensible language
+			Compared to Oxc, Biome, and swc, tsv is a set of focused tools, not an extensible language
 			platform, so the focus is Web standards + TS + Svelte and there's no support for JSX/SCSS/etc.
 			tsv's extensibility story is currently limited to using its Rust crates as libraries (or
 			forking); bridging to JS or wasm plugins is an open question (leaning against).
@@ -61,20 +61,20 @@
 			welcome to help navigate these tradeoffs.
 		</p>
 		<p>
-			See the <TomeLink slug="benchmarks" /> for measurements. Compared to Oxc/oxfmt and Biome, tsv
+			See the <TomeLink slug="benchmarks" /> for measurements. Compared to Oxc/Oxfmt and Biome, tsv
 			is smaller and faster at parsing and formatting its supported languages, but lacks their
 			features, extensibility, and broad language support. One reason for tsv to exist is to help
 			find the performance bonuses left on the table in the Web's implementations.
 		</p>
 		<p>
-			tsv is near production-ready, with a long tail of rare bugs (and numerous fixes to bugs in
-			acorn-typescript/Prettier/prettier-plugin-svelte), and APIs may still change. Reports and
-			feedback are appreciated. See the <a href="https://github.com/fuzdev/tsv/issues">issues</a>
-			and <a href="https://github.com/fuzdev/tsv/discussions">discussions</a>.
+			tsv is near production-ready, with a long tail of rare bugs, and APIs may still change.
+			Reports and feedback are appreciated. See the
+			<a href="https://github.com/fuzdev/tsv/issues">issues</a> and
+			<a href="https://github.com/fuzdev/tsv/discussions">discussions</a>.
 		</p>
 		<p>
-			AI disclosure: this codebase is mostly LLM-generated, and some caveats apply. It's a
-			high-effort project that prioritizes quality.
+			AI disclosure: this codebase is LLM-generated. It's a high-effort project that prioritizes
+			quality.
 		</p>
 		<p>
 			These docs are a work in progress. There are more design details in the
@@ -127,6 +127,9 @@
 				there too):
 			</p>
 			<Code lang="sh" content={'npm i -D @fuzdev/tsv-wasm\nnpx tsv format src'} />
+			<p>
+				Both packages claim the <code>tsv</code> bin name, so install one or the other in a project.
+			</p>
 			<p>For smaller builds, the formatter and parser also ship solo:</p>
 			<Code
 				lang="sh"
@@ -163,7 +166,7 @@
 			</p>
 			<p>
 				The native package needs no initialization; the wasm packages work zero-config in Node.js,
-				Bun, and Deno (sync auto-init), and browsers and bundlers call
+				Bun, and Deno (sync auto-init); in browsers and bundlers, call
 				<Code lang="ts" content="await init()" inline /> once first.
 			</p>
 		</TomeSection>
@@ -172,8 +175,8 @@
 			<p>
 				The parsers have a span-only mode that skips the per-node line/column, making the AST ~46%
 				smaller and faster to hand to JS, and you can derive line and column later without
-				re-parsing. It's oxc-parser's default; tsv emits <code>loc</code> by default so the bare
-				call is a drop-in for Svelte's parser, though that default may change.
+				re-parsing. Span-only is oxc-parser's default. tsv emits <code>loc</code> by default so that
+				a call with no options is a drop-in for Svelte's parser, though that default may change.
 			</p>
 			<Code lang="ts" content={no_locations_example} />
 			<p>
@@ -199,8 +202,8 @@
 				<li>
 					For sparse lookups, <Code lang="ts" content="create_locator(source, opts?)" inline />
 					reuses one line table across calls, so you pay for the positions you actually ask for;
-					pass <Code lang="ts" content={"{language: 'svelte'}"} inline /> for a <code>.svelte</code>
-					document.
+					pass the span-only tree as <Code lang="ts" content={'{ast}'} inline /> for a
+					<code>.svelte</code> document.
 				</li>
 				<li>
 					CSS nodes carry no <code>loc</code> to begin with, so

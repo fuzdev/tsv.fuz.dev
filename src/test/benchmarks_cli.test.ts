@@ -5,6 +5,7 @@ import {
 	cli_corpora_commit,
 	cli_default_anchor_label,
 	cli_label_is_tsv,
+	cli_memory_is_complete,
 	cli_memory_ratio_range,
 	cli_ratio_between,
 	cli_settle_seconds,
@@ -55,6 +56,32 @@ describe('to_abort_note', () => {
 		);
 	});
 
+	test('a single rejected file reads in the singular', () => {
+		assert.strictEqual(
+			to_abort_note(scenario({ preflight: [preflight('biome', { rejected: 1 })] })),
+			'Not timed: biome rejected 1 file.'
+		);
+	});
+
+	test("the crash context follows only its own formatter's preflight crash", () => {
+		const crash_context = { name: 'rsvelte-fmt', note: 'It does that.' };
+		assert.strictEqual(
+			to_abort_note(
+				scenario({ preflight: [preflight('rsvelte-fmt', { crashed: true })] }),
+				crash_context
+			),
+			'Not timed: rsvelte-fmt crashed partway through its preflight check. It does that.'
+		);
+		// another formatter's crash, a rejection, and an abort after timing are other causes
+		for (const other of [
+			scenario({ preflight: [preflight('tsv', { crashed: true })] }),
+			scenario({ preflight: [preflight('rsvelte-fmt', { rejected: 2 })] }),
+			scenario({ timings: [timing], preflight: [preflight('rsvelte-fmt', { crashed: true })] })
+		]) {
+			assert.notInclude(to_abort_note(other, crash_context), crash_context.note);
+		}
+	});
+
 	test('a preflight abort with every row clean keeps the harness wording', () => {
 		assert.strictEqual(
 			to_abort_note(scenario({ preflight: [preflight('tsv', {})] })),
@@ -92,9 +119,10 @@ describe('to_cli_scenarios', () => {
 		assert.ok(svelte);
 		assert.deepEqual(svelte.labels, ['rsvelte-fmt', CLI_TSV_NPM_LABEL, CLI_TSV_LABEL]);
 		assert.isEmpty(svelte.results);
-		assert.strictEqual(
-			svelte.aborted,
-			'Not timed: rsvelte-fmt crashed partway through its preflight check.'
+		// the fault read off the rows, then the scenario's own context for that crash
+		assert.match(
+			svelte.aborted ?? '',
+			/^Not timed: rsvelte-fmt crashed partway through its preflight check\. rsvelte-fmt 0\.7\.x can abort /
 		);
 		assert.isUndefined(cli_default_anchor_label(svelte));
 	});
@@ -266,6 +294,24 @@ describe('cli claims spanning scenarios', () => {
 			results: [result(CLI_TSV_LABEL, 20, null), result('oxfmt', 60, 100)]
 		});
 		assert.isUndefined(cli_memory_ratio_range({}, [facing, no_figure]));
+	});
+
+	test('a scenario that published no memory is skipped unscoped, and reported incomplete', () => {
+		// timed, then aborted in its memory pass: rows with no figure at all
+		const memory_aborted = scenario('s', {
+			results: [result(CLI_TSV_LABEL, 20, null), result('oxfmt', 60, null)]
+		});
+		const untimed = scenario('u', { results: [] });
+		assert.deepEqual(cli_memory_ratio_range({}, [facing, memory_aborted, untimed]), {
+			min: 10,
+			max: 10
+		});
+		assert.isUndefined(cli_memory_ratio_range({}, [memory_aborted]));
+		// named, it voids rather than skips
+		assert.isUndefined(cli_memory_ratio_range({ scenario_key: 's' }, [facing, memory_aborted]));
+		assert.isTrue(cli_memory_is_complete([facing, delivery]));
+		assert.isFalse(cli_memory_is_complete([facing, memory_aborted]));
+		assert.isFalse(cli_memory_is_complete([facing, untimed]));
 	});
 
 	test('a tsv-only scenario is spanned only by name', () => {

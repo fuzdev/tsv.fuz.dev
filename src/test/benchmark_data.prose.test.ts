@@ -9,6 +9,7 @@ import {
 	cli_comparison_results,
 	cli_label_is_tsv,
 	cli_memory_ratio_range,
+	cli_scenario_has_memory,
 	cli_scenario_find,
 	cli_ratio_vs_tsv,
 	cli_ratio_vs_tsv_npm,
@@ -214,11 +215,20 @@ describe('prose ratios resolve', () => {
 		// the CLI note's "less than every other tool in every scenario", against the bare
 		// binary and the dispatcher — both read as "less" and both are floored to one
 		// decimal for display, so the LOW end must reach 1.1 or the range would print
-		// "1.0–Nx less memory", a claim of nothing
+		// "1.0–Nx less memory", a claim of nothing. The sentence is dropped when no
+		// scenario facing other tools published memory (every one aborted), so the
+		// ranges must resolve exactly when one did
+		const memory_published = benchmarks_cli.scenarios.some(
+			(s) => !s.tsv_only && cli_scenario_has_memory(s)
+		);
 		for (const range of [
 			cli_memory_ratio_range(),
 			cli_memory_ratio_range({ baseline_label: CLI_TSV_NPM_LABEL })
 		]) {
+			if (!memory_published) {
+				assert.isUndefined(range);
+				continue;
+			}
 			assert.isDefined(range);
 			assert.isAtLeast(range.min, 1.1);
 		}
@@ -282,11 +292,13 @@ describe('prose ratios resolve', () => {
 		}
 	});
 
-	test('the memory note\'s "every other tool in every scenario" spans every competitor row', () => {
-		// the unscoped memory range skips a row without a figure, so a missed memory
-		// pass would narrow the claim silently rather than void it — every competitor
-		// row must carry one
+	test('the memory note\'s "every other tool" spans every competitor row of the scenarios it names', () => {
+		// the unscoped memory range skips a row without a figure, so a tool missing from
+		// one memory table would narrow the claim silently rather than void it — every
+		// competitor row must carry one. A scenario that published no memory at all is
+		// an abort the note excludes by name ("every scenario that published memory")
 		for (const scenario of benchmarks_cli.scenarios.filter((s) => !s.tsv_only)) {
+			if (!cli_scenario_has_memory(scenario)) continue;
 			for (const r of cli_comparison_results(scenario)) {
 				assert.isNotNull(r.memory_mb, `${scenario.key}: ${r.label} has no memory figure`);
 			}

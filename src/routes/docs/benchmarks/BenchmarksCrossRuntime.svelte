@@ -95,25 +95,25 @@
 				</li>
 			{/each}
 		</ul>
-		A drift is a cost that moved while the row was being measured (negative: still warming up;
+		Drift is a change in a row's cost while it was being measured (negative: still warming up;
 		positive: degrading); the cell is marked ⚠ below and its ratio should be read as unmeasured
 		until that runtime is re-run.
 	</aside>
 {/if}
 <p>
-	Time per sweep — one sweep is a full pass over the group's timed file set, as in the charts above;
-	ratios are vs <code>{base}</code>, negative when slower than it. The other tools'
-	<code>native</code> rows are their npm N-API addons under all three runtimes.
+	Times are per sweep: one full pass over the group's timed file set, as in the charts above. Ratios
+	are relative to <code>{base}</code>, negative when slower. The other tools' <code>native</code>
+	rows are their npm N-API addons under all three runtimes.
 	{#if has_fail}
-		A <code>fail</code> is a row that runtime contributed no number for — an implementation it can't
-		load (listed above when the report records it), or one its report doesn't carry.
+		A <code>fail</code> means that runtime has no number for the row: either it can't load the
+		implementation (listed above when the report records it), or its report doesn't carry the row.
 	{/if}
 </p>
 <p>
-	A <code>≈</code> marks a delta inside the two measurements' combined noise, which reads as parity.
-	The slowest rows have too few timings for that check, so an unmarked delta there isn't necessarily
-	an effect, and the check can't see variance between whole runs: Bun's allocation-heavy JS rows
-	(Prettier, PostCSS) have sat at two levels 10% or more apart.
+	A <code>≈</code> marks a delta inside the two measurements' combined noise: read it as parity. The
+	check has two limits. The slowest rows have too few timings for it, so an unmarked delta there
+	isn't necessarily an effect. And it can't see variance between whole runs: Bun's allocation-heavy
+	JS rows (Prettier, PostCSS) have sat at two levels 10% or more apart.
 </p>
 {#if runtime_versions.length}
 	<ul class="unstyled versions">

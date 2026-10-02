@@ -18,6 +18,8 @@
 // is authored here. To refresh: run `pnpm run update-readme` in the harness, then
 // `gro gen` here.
 
+import { plural } from '@fuzdev/fuz_util/string.ts';
+
 import { benchmarks_formatters_json } from './benchmarks_formatters.ts';
 import type { FormatterBenchmarks, FormatterScenario } from './formatter_benchmark_data.ts';
 
@@ -33,7 +35,7 @@ export interface CliFormatterResult {
 	 * differs sharply per tool.
 	 */
 	cpu_ms: number;
-	/** Peak resident set size (RSS), in megabytes; `null` when the harness measured no memory. */
+	/** Peak resident set size (RSS), in MiB; `null` when the harness measured no memory. */
 	memory_mb: number | null;
 }
 
@@ -46,10 +48,11 @@ export interface CliScenarioCopy {
 	/** One-line description of what makes the comparison fair. */
 	description: string;
 	/**
-	 * Context appended to the abort note, rendered only when the scenario aborted —
-	 * a timed table doesn't need it.
+	 * Context for one formatter's known preflight crash, appended to the abort note
+	 * only when that formatter's check is what crashed — any other abort has a
+	 * different cause, which the note must not attribute to this one.
 	 */
-	abort_context?: string;
+	crash_context?: { /** The formatter, as the harness names it. */ name: string; note: string };
 	/**
 	 * Every row is a tsv distribution, so the scenario compares tsv with itself and
 	 * says nothing about other tools — claims spanning "every other tool" skip it.
@@ -180,21 +183,23 @@ const SCENARIO_COPY: Record<string, CliScenarioCopy> = {
 	[CLI_SINGLE_FILE_KEY]: {
 		heading: 'Large single file',
 		description:
-			'With one input no formatter can parallelize across files, so wall-clock comes nearer to engine speed plus startup: each tool’s own process and thread-pool setup, and Node’s for every row but the bare tsv binary — a fixed cost that weighs most on the fastest rows.',
+			'With one input, no formatter can parallelize across files, so wall-clock time comes nearer to engine speed plus startup. Startup is each tool’s own process and thread-pool setup, plus Node’s for every row but the bare tsv binary: a fixed cost that weighs most on the fastest rows.',
 		tsv_only: false
 	},
 	[CLI_SVELTE_KEY]: {
 		heading: 'Svelte corpus',
 		description:
-			'Two Rust Svelte-native formatters head-to-head on a third-party .svelte corpus (over half of it flowbite-svelte), rsvelte-fmt configured to tsv’s fixed style. rsvelte-fmt’s time includes the Oxfmt it launches for non-.svelte files, which walks the corpus and finds none.',
-		abort_context:
-			'rsvelte-fmt 0.7.x can abort when its output and stderr share a pipe, and the harness doesn’t retry.',
+			'Two Rust-native Svelte formatters head-to-head on a third-party .svelte corpus (over half of it flowbite-svelte), with rsvelte-fmt pinned to tsv’s fixed style. rsvelte-fmt’s time includes the Oxfmt it launches for non-.svelte files, which walks the corpus and finds none.',
+		crash_context: {
+			name: 'rsvelte-fmt',
+			note: 'rsvelte-fmt 0.7.x can abort when its stdout and stderr share a pipe, and the harness doesn’t retry.'
+		},
 		tsv_only: false
 	},
 	[CLI_DELIVERY_KEY]: {
 		heading: 'tsv delivery paths',
 		description:
-			'Every row is tsv: the native binary, the same binary through @fuzdev/tsv’s Node dispatcher, and @fuzdev/tsv-wasm, the package for platforms without a prebuilt binary — tsv’s CLI reimplemented in JS over a wasm engine. One file, so the gaps are launch and engine cost, not file parallelism; the wasm row’s CPU ratio runs well past its time ratio, likely V8 tiering up the module on background threads.',
+			'Every row is tsv, delivered three ways: the native binary; the same binary through @fuzdev/tsv’s Node dispatcher; and @fuzdev/tsv-wasm, tsv’s CLI reimplemented in JS over a wasm engine, the package for platforms without a prebuilt binary. The corpus is one file, so the gaps are launch and engine cost, not file parallelism. The wasm row’s CPU ratio runs well past its time ratio, likely because V8 tiers up the module on background threads.',
 		tsv_only: true
 	}
 };
@@ -236,18 +241,26 @@ export const CLI_SCENARIO_KEYS = Object.keys(SCENARIO_COPY);
  * note says only what is missing. A preflight abort names the fault per
  * formatter in its rows and then only says it is aborting, so the cause is read
  * back off those rows; one with every row clean — a scope mismatch, say — keeps
- * the harness's own wording.
+ * the harness's own wording. A scenario's `crash_context` follows only when the
+ * formatter it names is one whose check crashed.
  */
-export const to_abort_note = (scenario: FormatterScenario): string => {
+export const to_abort_note = (
+	scenario: FormatterScenario,
+	crash_context?: CliScenarioCopy['crash_context']
+): string => {
 	if (scenario.timings.length) return `Timed, but no memory was published: ${scenario.aborted}.`;
+	const context = scenario.preflight.some((e) => e.crashed && e.name === crash_context?.name)
+		? ` ${crash_context?.note}`
+		: '';
 	const faults = scenario.preflight.flatMap((entry) => {
 		const label = to_label(entry.name);
 		if (entry.crashed) return [`${label} crashed partway through its preflight check`];
 		if (entry.unavailable) return [`${label} could not run`];
-		if (entry.rejected > 0) return [`${label} rejected ${entry.rejected} files`];
+		if (entry.rejected > 0)
+			return [`${label} rejected ${entry.rejected} file${plural(entry.rejected)}`];
 		return [];
 	});
-	return `Not timed: ${faults.length ? faults.join('; ') : scenario.aborted}.`;
+	return `Not timed: ${faults.length ? faults.join('; ') : scenario.aborted}.${context}`;
 };
 
 /**
@@ -294,7 +307,9 @@ export const to_cli_scenarios = (
 						...(scenario.settle_seconds === undefined
 							? null
 							: { settle_seconds: scenario.settle_seconds }),
-						...(scenario.aborted === undefined ? null : { aborted: to_abort_note(scenario) }),
+						...(scenario.aborted === undefined
+							? null
+							: { aborted: to_abort_note(scenario, copy.crash_context) }),
 						...(scenario.unshimmed ? { unshimmed: to_unshimmed_note(scenario.unshimmed) } : null)
 					}
 				]
@@ -446,11 +461,30 @@ export const cli_comparison_results = (
 	);
 
 /**
+ * Whether a scenario published any memory figure. One aborted in its memory pass
+ * keeps its timed rows and carries none, and one aborted before timing has no rows.
+ */
+export const cli_scenario_has_memory = (scenario: Pick<CliScenario, 'results'>): boolean =>
+	scenario.results.some((r) => r.memory_mb != null);
+
+/**
+ * Whether every scenario facing other tools published memory — what lets a claim
+ * spanning them say "every scenario" without qualifying it.
+ *
+ * @param scenarios - the scenarios to read, the rendered ones by default
+ */
+export const cli_memory_is_complete = (
+	scenarios: Array<CliScenario> = benchmarks_cli.scenarios
+): boolean => scenarios.filter((s) => !s.tsv_only).every(cli_scenario_has_memory);
+
+/**
  * The span of "times less memory than tsv" across `cli_comparison_results`, over one
  * scenario or every scenario that faces other tools — the range claims the
  * page's prose quotes. Unscoped, it skips the tsv-only scenarios, whose rows are
  * tsv's own distributions rather than "every other tool"; name one explicitly to
- * span it. An optional `labels` list narrows the span to just those formatters,
+ * span it. Unscoped and unnamed it also skips a scenario that published no memory
+ * at all (an abort), which `cli_memory_is_complete` reports so the sentence can
+ * say what it spans. An optional `labels` list narrows the span to just those formatters,
  * so a sentence naming specific tools quotes a range measured over exactly them
  * — every named tool must resolve in every spanned scenario, or the range is
  * `undefined` rather than quietly narrower than the sentence claims — and
@@ -469,6 +503,7 @@ export const cli_memory_ratio_range = (
 	const spanned = scenarios.filter((s) => (scenario_key ? s.key === scenario_key : !s.tsv_only));
 	const ratios: Array<number> = [];
 	for (const scenario of spanned) {
+		if (!scenario_key && !labels && !cli_scenario_has_memory(scenario)) continue;
 		const compared = cli_comparison_results(scenario).filter(
 			(r) => !labels || labels.includes(r.label)
 		);

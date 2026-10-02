@@ -142,9 +142,9 @@ describe('benchmarks_cli shape', () => {
 	});
 
 	test('every rendered scenario names the corpus revision it ran on', () => {
-		// the page prints the provenance under each table, and most of the corpora
-		// track their upstream default branch — an empty or unknown one would leave
-		// numbers no rerun can be compared against
+		// the page prints the provenance under each table, and it is what says which
+		// pin of the corpus a run used — an empty or unknown one would leave numbers
+		// no rerun can be compared against
 		for (const scenario of benchmarks_cli.scenarios) {
 			assert.isNotEmpty(scenario.corpus, `${scenario.key} records no corpus`);
 			assert.notMatch(scenario.corpus, /unknown|not a git checkout/, scenario.key);
@@ -180,14 +180,14 @@ describe('benchmarks_cli shape', () => {
 describe('cli_settle_seconds', () => {
 	test("the settle the run-order note quotes is every rendered scenario's", () => {
 		// the note says the harness idles before "each formatter's warmups" without
-		// naming a scenario, so one figure has to hold for all of them; a report that
-		// records none, or a run that turned it off, quotes nothing
-		const settle = cli_settle_seconds();
-		if (settle === undefined) return;
-		assert.isAbove(settle, 0);
-		for (const scenario of benchmarks_cli.scenarios) {
-			assert.strictEqual(scenario.settle_seconds, settle, scenario.key);
-		}
+		// naming a scenario, so one figure has to hold for all of them — read off the
+		// scenarios rather than the helper, which answers only when they already agree.
+		// A published run settles: one that turned it off is a smoke run
+		const settles = new Set(benchmarks_cli.scenarios.map((s) => s.settle_seconds));
+		assert.strictEqual(settles.size, 1, 'the rendered scenarios disagree on the settle');
+		const [settle] = settles;
+		assert(settle !== undefined && settle > 0, 'the rendered scenarios record no settle');
+		assert.strictEqual(cli_settle_seconds(), settle);
 	});
 });
 
