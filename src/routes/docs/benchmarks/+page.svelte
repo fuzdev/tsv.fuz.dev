@@ -215,8 +215,8 @@
 			<p>
 				tsv formats its three languages faster than Oxc and Biome in every in-process pairing here,
 				and its CLI outpaces theirs in every shared scenario. Its artifacts are smaller than theirs
-				too, capability for capability, except against oxc-parser's native build, since tsv
-				publishes no native parse-only build yet.
+				too, except against oxc-parser's native build, since tsv publishes no native parse-only
+				build yet. Theirs carry more languages and features.
 			</p>
 			<p>
 				Except in the CLI section, every timing here is in-process and one file at a time, isolating
@@ -244,7 +244,7 @@
 				</li>
 				<li>
 					Parsing TypeScript to its span-only AST (offsets only, like Oxc's), tsv is natively
-					~{parse_ts_vs_oxc} faster than oxc-parser, largely because Oxc's AST carries more (see
+					~{parse_ts_vs_oxc} faster than oxc-parser's default JSON output (see
 					<a href="#{docs_slugify(PARSE_SECTION_TITLE)}">{PARSE_SECTION_TITLE}</a>), and
 					~{parse_ts_yuku_vs_tsv} slower than yuku-parser (~{parse_ts_yuku_wasm_vs_tsv_wasm} as
 					wasm). Its default AST adds per-node line/column <code>loc</code> for drop-in acorn and
@@ -259,8 +259,8 @@
 				<li>
 					Parsing CSS runs the other way: Svelte's own <code>parseCss</code> is
 					~{parse_css_compiler_vs_tsv} faster than tsv's default AST and PostCSS
-					~{parse_css_postcss_vs_tsv} faster, since JS parsers skip the serialization tsv pays for
-					(see <a href="#{docs_slugify(PARSE_SECTION_TITLE)}">{PARSE_SECTION_TITLE}</a>).
+					~{parse_css_postcss_vs_tsv} faster (see
+					<a href="#{docs_slugify(PARSE_SECTION_TITLE)}">{PARSE_SECTION_TITLE}</a>).
 				</li>
 				<li>
 					End to end as a CLI, tsv formats the JSX-free subset of a real TypeScript repo
@@ -291,7 +291,8 @@
 			<TomeSectionHeader text={LANGUAGE_SECTION_TITLE} />
 			<p>
 				Support matrix for <strong>P</strong>arsers and <strong>F</strong>ormatters
-				(<strong>bold</strong> is timed on this page, faded is supported but not timed):
+				(<strong>bold</strong> is timed on this page, <span class="text_40">faded</span> is
+				supported but not timed):
 			</p>
 			<BenchmarksTools rows={tool_matrix} />
 		</TomeSection>
@@ -393,10 +394,10 @@
 		<TomeSection>
 			<TomeSectionHeader text={PARSE_SECTION_TITLE} />
 			<p>
-				tsv and <a href="https://oxc.rs/docs/guide/usage/parser">oxc-parser</a> share a mechanism:
-				both serialize the AST to JSON in Rust and hand it to the JS engine's
-				<code>JSON.parse</code>, native and wasm alike. What they deliver differs, so tsv is timed
-				three ways:
+				tsv and <a href="https://oxc.rs/docs/guide/usage/parser">oxc-parser</a>, in its default
+				mode, share a mechanism: both serialize the AST to JSON in Rust and hand it to the JS
+				engine's <code>JSON.parse</code>, native and wasm alike. What they deliver differs, so tsv
+				is timed three ways:
 			</p>
 			<ul>
 				<li>
@@ -410,8 +411,7 @@
 					the closest comparison with oxc-parser but not an equal one: Oxc's AST also writes out
 					default-valued fields tsv omits (<code>optional: false</code>,
 					<code>decorators: []</code>, <code>typeAnnotation: null</code>), about 30% more bytes, and
-					its parse also collects comments and module records. Much of the gap between them is
-					therefore payload.
+					its parse also collects comments and module records.
 				</li>
 				<li>
 					<code>internal</code> builds tsv's AST in Rust and stops: no serialization, nothing
@@ -434,14 +434,12 @@
 				<p>Notes:</p>
 				<ul>
 					<li>
-						Parsers written in JS skip the Rust-to-JS serialization tsv and Oxc pay for, which keeps
-						them competitive. On CSS that cost decides the order: the JSON hand-off is
-						~{parse_css_wire_share} of tsv's time there (the gap between its <code>json</code> and
-						<code>internal</code> entries), and the grammar is simple enough that Svelte's
-						<code>parseCss</code> and PostCSS both finish ahead of <code>tsv json</code>. The CSS
-						corpus is also the page's weakest sample (see
-						<a href="#{docs_slugify(CORPUS_SECTION_TITLE)}">Corpus</a>), so those ratios carry the
-						most noise.
+						Parsers written in JS skip the Rust-to-JS serialization tsv and Oxc pay for. On CSS the
+						JSON hand-off is ~{parse_css_wire_share} of tsv's time (the gap between its
+						<code>json</code> and <code>internal</code> entries), and Svelte's <code>parseCss</code>
+						and PostCSS both finish ahead of <code>tsv json</code>. The CSS corpus is also the
+						page's weakest sample (see <a href="#{docs_slugify(CORPUS_SECTION_TITLE)}">Corpus</a>),
+						so those ratios carry the most noise.
 					</li>
 					<li>
 						Biome is grayed out across all three parse groups: its in-process API exposes no parse
@@ -513,14 +511,13 @@
 						<li>
 							<code>dprint (wasm)</code> and <code>Malva (wasm)</code> expose no parser, so both sit
 							under Formatter beside tsv's format-only wasm build. That build does Svelte,
-							TypeScript/JS, and CSS in one artifact, so Malva's smaller size reflects its narrower
-							scope (CSS and its dialects only), while dprint (TypeScript/JS and JSX only) is larger
-							despite its narrower one.
+							TypeScript/JS, and CSS in one artifact; Malva formats CSS and its dialects only, and
+							dprint TypeScript/JS and JSX only.
 						</li>
 						<li>
-							Biome's build carries its whole toolchain: a parser, formatter, and linter for every
-							language it supports, plus assists like import sorting, GritQL search and plugins, and
-							a module graph. yuku-parser parses TypeScript, JS, JSX, and TSX only, where tsv's
+							Biome's build carries its whole toolchain: parsers, formatters, and linters across the
+							languages it supports, plus assists like import sorting, GritQL search and plugins,
+							and a module graph. yuku-parser parses TypeScript, JS, JSX, and TSX only, where tsv's
 							parse-only build beside it carries Svelte and CSS parsers too. Oxfmt ships no wasm
 							build, hence its grayed-out slot under Formatter.
 						</li>
@@ -674,9 +671,8 @@
 				<li>
 					The corpus is the author's own code plus Svelte's, the same code tsv is developed and
 					tested against and mostly tsv-formatted already. Input already in a tool's own style may
-					format faster, which would favor tsv. Pinning the other formatters to that style narrows
-					the advantage, since the input then sits near their output too. Read every ratio here as
-					"on this corpus", not as a universal figure.
+					format faster, which would favor tsv. Read every ratio here as "on this corpus", not as a
+					universal figure.
 				</li>
 			</ul>
 			<Details eager summary="By source">

@@ -101,24 +101,24 @@
 		Tailwind classes.
 	</p>
 	<p>
-		Every formatter is installed from npm, pinned by the fork's lockfile. The other tools are timed
-		through their packages' Node bins, so tsv has two rows wherever it faces them.
-		<code>{CLI_TSV_NPM_LABEL}</code> is the like-for-like row: the Node bin of
-		<a href="https://www.npmjs.com/package/@fuzdev/tsv"><code>@fuzdev/tsv</code></a>, which is what
-		<code>npx tsv</code> runs once it's installed. That bin is a small Node script, the dispatcher,
-		which launches the native binary, as Biome's and rsvelte-fmt's bins do. The plain
-		<code>tsv</code> row runs the same binary directly from the platform package, skipping Node:
-		what the binary costs on its own, called the bare binary below.
-	</p>
-	<p>
 		As in the charts above, each table's ratios are relative to its highlighted row:
-		<code>{CLI_TSV_NPM_LABEL}</code> where tsv faces other tools, the bare binary in the tsv-only
-		table.
+		<code>{CLI_TSV_NPM_LABEL}</code>, tsv through its npm package's Node bin, where tsv faces other
+		tools, and the bare <code>tsv</code> binary in the tsv-only table.
 	</p>
 	<BenchmarksCli report={benchmarks_cli} />
 	<aside>
 		<p>Notes:</p>
 		<ul>
+			<li>
+				Every formatter is installed from npm, pinned by the fork's lockfile. The other tools are
+				timed through their packages' Node bins, so tsv has two rows wherever it faces them.
+				<code>{CLI_TSV_NPM_LABEL}</code> is the like-for-like row: the Node bin of
+				<a href="https://www.npmjs.com/package/@fuzdev/tsv"><code>@fuzdev/tsv</code></a>, which is
+				what <code>npx tsv</code> runs once it's installed. That bin is a small Node script, the
+				dispatcher, which launches the native binary, as Biome's and rsvelte-fmt's bins do. The
+				plain <code>tsv</code> row runs the same binary directly from the platform package, skipping
+				Node: what the binary costs on its own, the bare binary.
+			</li>
 			<li>
 				<code>prettier + oxc-parser</code> is Prettier with <code>@prettier/plugin-oxc</code>, which
 				swaps in Oxc's Rust parser while printing stays in JS.
