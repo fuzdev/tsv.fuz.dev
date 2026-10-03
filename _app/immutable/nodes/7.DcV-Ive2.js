@@ -1,0 +1,61 @@
+import"../chunks/DsnmJJEf.js";import{p as B,b as D,f as _,a as v,s as e,d as o,c as f,aG as i,r as n}from"../chunks/BAdDP0T7.js";import{a as N,T as I}from"../chunks/CjOcnlk_.js";import{C as t}from"../chunks/CAMwYNE8.js";import{T as b,a as y}from"../chunks/oJ_6qw_B.js";import{i as E}from"../chunks/CXEPnXss.js";import{S as H}from"../chunks/Cag_o9v4.js";import{l as F}from"../chunks/CCks4Vng.js";const V=`import { format_svelte, parse_svelte, type Root } from '@fuzdev/tsv';
+
+const formatted = format_svelte('<script>\\nconst   x=1\\n<\/script>');
+const ast: Root = parse_svelte('<script>const x = 1;<\/script>');`,W=`import { format_svelte } from '@fuzdev/tsv-format-wasm';
+
+const formatted = format_svelte('<script>\\nconst   x=1\\n<\/script>');`,Y=`import { parse_svelte, type Root } from '@fuzdev/tsv-parse-wasm';
+
+const ast: Root = parse_svelte('<script>const x = 1;<\/script>');`,q=`import { parse_typescript, reconstruct_locations } from '@fuzdev/tsv-parse-wasm';
+
+// span-only AST: start/end offsets, no per-node loc
+const ast = parse_typescript('const x = 1;', { locations: false });
+
+// derive line/column back when you need it, no re-parse
+reconstruct_locations(ast, 'const x = 1;');`;var G=f(`<!> <p>For format-on-save in VS Code and vsix-compatible editors, install the <a href="https://github.com/fuzdev/vscode-extension-tsv-format"><code>fuzdev.tsv-format</code> extension</a>. It runs tsv's wasm build, so it works in both desktop VS Code and the browser host:</p> <ul><li><a href="https://marketplace.visualstudio.com/items?itemName=fuzdev.tsv-format">VS Code Marketplace</a></li> <li><a href="https://open-vsx.org/extension/fuzdev/tsv-format">Open VSX</a></li></ul> <p>tsv is published to npm as <a href="https://www.npmjs.com/package/@fuzdev/tsv"><code>@fuzdev/tsv</code></a> with native
+				binaries:</p> <!> <p><code>tsv format</code> writes changed files in place; <code>--check</code> writes nothing
+				and exits 1 if any file would change. Inside a git repo, discovery honors <code>.gitignore</code>, <code>.prettierignore</code>, and <code>.formatignore</code>.</p> <p>The native package covers Linux (x64 gnu and musl, arm64 gnu), macOS (arm64 and x64), and
+				Windows x64 — anywhere else, use the wasm build below.</p> <p>The same CLI binaries are also attached to each <a href="https://github.com/fuzdev/tsv/releases">GitHub Release</a> with a <code>SHA256SUMS</code> and a build provenance attestation, for use without npm.</p> <p>tsv also ships as wasm, which runs everywhere including browsers and Deno, and carries the
+				same <code>tsv</code> command (formatting across worker threads, so <code>--jobs</code> works there too):</p> <!> <p>Both packages claim the <code>tsv</code> bin name, so install one or the other in a project.</p> <p>For smaller builds, the formatter and parser also ship solo:</p> <!> <p>See the <!> for size and performance details.</p>`,1),U=f(`<!> <p>All four packages share one API — the same function names, options, and errors — so <code>@fuzdev/tsv</code> and <code>@fuzdev/tsv-wasm</code> are drop-in swaps for each other.
+				Both export the formatter and parser together:</p> <!> <p>The formatter alone:</p> <!> <p>The parser alone:</p> <!> <p><code>format_typescript</code>, <code>format_css</code>, <code>parse_typescript</code>, and <code>parse_css</code> work the same way, and the parsers return acorn- and
+				Svelte-compatible JSON ASTs with bundled TS types. Their output is checked against
+				acorn-typescript's and Svelte's at corpus scale, but hasn't yet been fed through Svelte's
+				compiler end to end.</p> <p>Every parser also takes an acorn-style options object: <!> for the span-only AST (below), and
+				for TypeScript <!> (default <!>). <code>format_typescript</code> takes <code>sourceType</code> too; without it, formatting retries as a script when the module
+				parse fails, so a legacy sloppy script needs no options.</p> <p>The native package needs no initialization; the wasm packages work zero-config in Node.js,
+				Bun, and Deno (sync auto-init); in browsers and bundlers, call <!> once first.</p>`,1),X=f(`<!> <p>The parsers have a span-only mode that skips the per-node line/column, making the AST ~46%
+				smaller on TypeScript and faster to hand to JS. You can derive line and column later without
+				re-parsing. Span-only is oxc-parser's default. tsv emits <code>loc</code> by default so that
+				a call with no options is a drop-in for Svelte's parser, though that default may change.</p> <!> <p>Even when you need line/column, reconstructing it in JS beats the <code>loc</code>-bearing
+				AST end to end, by ~1.7x on TypeScript, as measured by <a href="https://github.com/fuzdev/tsv/blob/main/benches/js/diagnostics/reconstruct_vs_materialize.ts">a diagnostic in tsv's bench harness</a>. <code>reconstruct_locations</code> ships in every package that parses.</p> <p>Details:</p> <ul><li>Span-only drops the per-node <code>loc</code> object (and <code>name_loc</code> on Svelte
+					nodes), mirroring acorn's <!>. The
+					rest is unchanged, so every node keeps its <code>start</code>/<code>end</code> offsets.</li> <li><!> walks the tree and
+					adds <code>loc</code> back, mutating in place — exact for TypeScript, approximate for
+					Svelte, where it throws on the rare input it can't reconstruct rather than guess (parse
+					those with <code>loc</code>).</li> <li>For sparse lookups, <!> reuses one line table across calls, so you pay for the positions you actually ask for;
+					pass the span-only tree as <!> for a <code>.svelte</code> document.</li> <li>CSS nodes carry no <code>loc</code> to begin with, so <!> is accepted as an inert no-op
+					there.</li></ul>`,1),K=f(`<!> <ul><li><a href="https://github.com/fuzdev/tsv">github.com/fuzdev/tsv</a> — the formatter, parser,
+					wasm bindings, CLI, etc.</li> <li><a href="https://github.com/fuzdev/tsv.fuz.dev">github.com/fuzdev/tsv.fuz.dev</a> — this
+					website</li></ul>`,1),Q=f(`<section><!> <p>tsv is a Rust toolchain for TypeScript/JS, CSS, and Svelte (and planned HTML/JSON). Today it
+			ships a formatter that closely follows <a href="https://prettier.io/">Prettier</a> + <a href="https://github.com/sveltejs/prettier-plugin-svelte">prettier-plugin-svelte</a>, and a
+			drop-in for <a href="https://svelte.dev/">Svelte</a>'s parser + <a href="https://github.com/acornjs/acorn">acorn</a> + <a href="https://github.com/sveltejs/acorn-typescript">acorn-typescript</a>.</p> <p>tsv aims to simplify its covered domains and stay lean, and so it makes opinionated choices.
+			The formatter has a single non-configurable style, using Svelte's Prettier config. Among other
+			benefits, this means tsv doesn't depend on a JS runtime, which it would need in order to
+			resolve configs the way Prettier does.</p> <p>Compared to Oxc, Biome, and swc, tsv is a set of focused tools, not an extensible language
+			platform, so it targets Web standards + TS + Svelte and there's no support for JSX/SCSS/etc.
+			tsv's extensibility story is currently limited to using its Rust crates as libraries (or
+			forking); bridging to JS or wasm plugins is an open question (leaning against).</p> <p>Compared to <a href="https://github.com/baseballyama/rsvelte">rsvelte</a>, tsv has its own
+			TS/JS/CSS parsers instead of using Oxc. rsvelte also includes a Svelte compiler and
+			linter/typechecker integration; tsv has early, open-ended work in that direction that may
+			never ship.</p> <p>tsv prioritizes, in order:</p> <ol><li>correctness (spec conformance for JS/CSS, planned for HTML/JSON; fidelity to Svelte and
+				TypeScript)</li> <li>speed</li> <li>binary size and memory usage</li> <li>extensibility, modularity, reusability</li></ol> <p>Staying simple is an overarching goal, and is sometimes at odds with flexibility. Feedback is
+			welcome to help navigate these tradeoffs.</p> <p>See the <!> for measurements. Compared to Oxc/Oxfmt and Biome, tsv
+			formats its supported languages faster and is smaller in nearly every like-for-like build, but
+			lacks their features, extensibility, and broad language support. One reason for tsv to exist
+			is to help find the performance left on the table in the Web's implementations.</p> <p>tsv is near production-ready, with a long tail of rare bugs, and APIs may still change.
+			Reports and feedback are appreciated. See the <a href="https://github.com/fuzdev/tsv/issues">issues</a> and <a href="https://github.com/fuzdev/tsv/discussions">discussions</a>.</p> <p>AI disclosure: this codebase is LLM-generated. It's a high-effort project that prioritizes
+			quality.</p> <p>These docs are a work in progress. There are more design details in the <a href="https://github.com/fuzdev/tsv#about">readme</a>.</p> <!> <!> <!> <!></section>`);function ce(R,j){B(j,!0);const J=E("introduction");N(R,{get tome(){return J},children:(L,ee)=>{var k=Q(),T=o(k);H(T,{get data(){return F},size:"var(--icon_size_xl2)",class:"float:right ml_lg mb_lg"});var w=e(T,16),O=e(o(w));I(O,{slug:"benchmarks"}),i(),n(w);var z=e(w,8);b(z,{children:(u,S)=>{var s=G(),a=_(s);y(a,{text:"Install"});var p=e(a,8);t(p,{lang:"sh",content:`npm i -D @fuzdev/tsv
+npx tsv format src
+npx tsv format --check src
+npx tsv parse src/foo.svelte`});var c=e(p,10);t(c,{lang:"sh",content:`npm i -D @fuzdev/tsv-wasm
+npx tsv format src`});var r=e(c,6);t(r,{lang:"sh",content:`npm i -D @fuzdev/tsv-format-wasm
+npm i -D @fuzdev/tsv-parse-wasm`});var l=e(r,2),d=e(o(l));I(d,{slug:"benchmarks"}),i(),n(l),v(u,s)},$$slots:{default:!0}});var $=e(z,2);b($,{children:(u,S)=>{var s=U(),a=_(s);y(a,{text:"Usage"});var p=e(a,4);t(p,{lang:"ts",get content(){return V}});var c=e(p,4);t(c,{lang:"ts",get content(){return W}});var r=e(c,4);t(r,{lang:"ts",get content(){return Y}});var l=e(r,4),d=e(o(l));t(d,{lang:"ts",dangerous_raw_html:'<span class="token_punctuation">{</span>locations<span class="token_operator">:</span> <span class="token_boolean">false</span><span class="token_punctuation">}</span>',inline:!0});var g=e(d,2);t(g,{lang:"ts",dangerous_raw_html:`<span class="token_punctuation">{</span>sourceType<span class="token_operator">:</span> <span class="token_string">'script'</span> <span class="token_operator">|</span> <span class="token_string">'module'</span><span class="token_punctuation">}</span>`,inline:!0});var h=e(g,2);t(h,{lang:"ts",dangerous_raw_html:`<span class="token_string">'module'</span>`,inline:!0}),i(5),n(l);var m=e(l,2),x=e(o(m));t(x,{lang:"ts",dangerous_raw_html:'<span class="token_special_keyword">await</span> <span class="token_function">init</span><span class="token_punctuation">()</span>',inline:!0}),i(),n(m),v(u,s)},$$slots:{default:!0}});var C=e($,2);b(C,{children:(u,S)=>{var s=X(),a=_(s);y(a,{text:"Span-only parsing"});var p=e(a,4);t(p,{lang:"ts",get content(){return q}});var c=e(p,6),r=o(c),l=e(o(r),5);t(l,{lang:"ts",dangerous_raw_html:'<span class="token_punctuation">{</span>locations<span class="token_operator">:</span> <span class="token_boolean">false</span><span class="token_punctuation">}</span>',inline:!0}),i(5),n(r);var d=e(r,2),g=o(d);t(g,{lang:"ts",dangerous_raw_html:'<span class="token_function">reconstruct_locations</span><span class="token_punctuation">(</span>ast<span class="token_punctuation">,</span> source<span class="token_punctuation">)</span>',inline:!0}),i(5),n(d);var h=e(d,2),m=e(o(h));t(m,{lang:"ts",dangerous_raw_html:'<span class="token_function">create_locator</span><span class="token_punctuation">(</span>source<span class="token_punctuation">,</span> opts<span class="token_operator">?</span><span class="token_punctuation">)</span>',inline:!0});var x=e(m,2);t(x,{lang:"ts",dangerous_raw_html:'<span class="token_punctuation">{</span>ast<span class="token_punctuation">}</span>',inline:!0}),i(3),n(h);var A=e(h,2),M=e(o(A),3);t(M,{lang:"ts",dangerous_raw_html:'<span class="token_punctuation">{</span>locations<span class="token_operator">:</span> <span class="token_boolean">false</span><span class="token_punctuation">}</span>',inline:!0}),i(),n(A),n(c),v(u,s)},$$slots:{default:!0}});var P=e(C,2);b(P,{children:(u,S)=>{var s=K(),a=_(s);y(a,{text:"Source code"}),i(2),v(u,s)},$$slots:{default:!0}}),n(k),v(L,k)},$$slots:{default:!0}}),D()}export{ce as component};
