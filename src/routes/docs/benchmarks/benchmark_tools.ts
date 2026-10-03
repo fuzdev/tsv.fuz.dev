@@ -28,7 +28,7 @@ export const TOOL_FOOTNOTES = {
 	plugin: 'via prettier-plugin-svelte',
 	prettier: 'via the Prettier it bundles, opt-in',
 	experimental: 'experimental, behind a flag',
-	oxc: "with Oxc's formatters, linked in",
+	oxc: "with Oxc's formatters",
 	option: 'with its jsx option',
 	syntax: 'via a separate syntax package'
 } as const;
@@ -136,15 +136,15 @@ export const TOOL_SUPPORT: ReadonlyArray<ToolSupport> = [
 			scss: { format: 'oxc' },
 			svelte: { parse: true, format: true }
 		},
-		other: 'JSON',
+		other: 'JSON, and the rest of what oxfmt formats with oxfmt installed',
 		rows: { parse: ['rsvelte-parse', 'rsvelte-parse-skip-expr-loc'], format: ['rsvelte-fmt'] },
 		cli_labels: ['rsvelte-fmt']
 	},
 	{
-		name: 'dprint',
+		name: '@dprint/typescript',
 		url: 'https://dprint.dev/plugins/typescript/',
 		languages: { typescript: { format: true }, jsx: { format: true } },
-		other: 'more through its other plugins',
+		other: "dprint's other plugins add Malva, Svelte markup (markup_fmt), JSON, Markdown, …",
 		rows: { format: ['dprint-wasm'] }
 	},
 	{
