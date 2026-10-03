@@ -259,7 +259,8 @@
 					Parsing CSS runs the other way: Svelte's own <code>parseCss</code> is
 					~{parse_css_compiler_vs_tsv} faster than tsv's default AST and PostCSS
 					~{parse_css_postcss_vs_tsv} faster (see
-					<a href="#{docs_slugify(PARSE_SECTION_TITLE)}">{PARSE_SECTION_TITLE}</a>).
+					<a href="#{docs_slugify(PARSE_SECTION_TITLE)}">{PARSE_SECTION_TITLE}</a> - Svelte's is
+					lower fidelity).
 				</li>
 				<li>
 					End to end as a CLI, tsv formats the JSX-free subset of a real TypeScript repo
