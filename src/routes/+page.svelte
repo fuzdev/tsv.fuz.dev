@@ -1,10 +1,10 @@
 <script lang="ts">
-	import {resolve} from '$app/paths';
+	import { resolve } from '$app/paths';
 	import DocsFooter from '@fuzdev/fuz_ui/DocsFooter.svelte';
-	import {FUZ_DEV_URL} from '@fuzdev/fuz_ui/constants.ts';
-	import {site_context} from '@fuzdev/fuz_ui/site.svelte.ts';
+	import { FUZ_DEV_URL } from '@fuzdev/fuz_ui/constants.ts';
+	import { site_context } from '@fuzdev/fuz_ui/site.svelte.ts';
 	import Svg from '@fuzdev/fuz_ui/Svg.svelte';
-	import {logo_tsv} from '@fuzdev/fuz_ui/logos.ts';
+	import { logo_tsv } from '@fuzdev/fuz_ui/logos.ts';
 
 	const site = site_context.get();
 </script>
@@ -24,9 +24,9 @@
 	<section class="box">
 		<div class="column gap_lg">
 			<a class="font_size_xl chip px_xl py_sm text-align:center" href={resolve('/docs')}>docs</a>
-			<a class="font_size_xl chip px_xl py_sm text-align:center" href={resolve('/docs/benchmarks')}
-				>benchmarks</a
-			>
+			<a class="font_size_xl chip px_xl py_sm text-align:center" href={resolve('/docs/benchmarks')}>
+				benchmarks
+			</a>
 		</div>
 	</section>
 	<section class="box">
