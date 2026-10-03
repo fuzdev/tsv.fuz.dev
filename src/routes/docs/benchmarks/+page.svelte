@@ -289,6 +289,7 @@
 
 		<TomeSection>
 			<TomeSectionHeader text={LANGUAGE_SECTION_TITLE} />
+			<p>Support matrix for <strong>P</strong>arsers and <strong>F</strong>ormatters:</p>
 			<BenchmarksTools rows={tool_matrix} />
 		</TomeSection>
 
