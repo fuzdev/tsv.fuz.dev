@@ -45,9 +45,9 @@
 		</p>
 		<p>
 			Compared to <a href="https://github.com/baseballyama/rsvelte">rsvelte</a>, tsv has its own
-			TS/JS/CSS parsers instead of using Oxc. rsvelte also includes a Svelte compiler and
-			linter/typechecker integration; tsv has early, open-ended work in that direction that may
-			never ship.
+			TS/JS/CSS parsers instead of using Oxc. rsvelte also ships a Svelte compiler and
+			linter/typechecker integration; tsv has experimental work in that direction that may never
+			ship.
 		</p>
 		<p>tsv prioritizes, in order:</p>
 		<ol>
@@ -65,13 +65,13 @@
 		</p>
 		<p>
 			See the <TomeLink slug="benchmarks" /> for measurements. Compared to Oxc/Oxfmt and Biome, tsv
-			formats its supported languages faster and is smaller in nearly every like-for-like build, but
-			lacks their features, extensibility, and broad language support. One reason for tsv to exist
-			is to help find the performance left on the table in the Web's implementations.
+			is generally faster and smaller, but lacks their features, extensibility, and broad language
+			support. One reason for tsv to exist is to help find the performance left on the table in the
+			Web's implementations.
 		</p>
 		<p>
 			tsv is near production-ready, with a long tail of rare bugs, and APIs may still change.
-			Reports and feedback are appreciated. See the
+			Reports and opinions are appreciated. See the
 			<a href="https://github.com/fuzdev/tsv/issues">issues</a> and
 			<a href="https://github.com/fuzdev/tsv/discussions">discussions</a>.
 		</p>
@@ -117,7 +117,7 @@
 			</p>
 			<p>
 				The native package covers Linux (x64 gnu and musl, arm64 gnu), macOS (arm64 and x64), and
-				Windows x64 — anywhere else, use the wasm build below.
+				Windows x64 - for other platforms use the wasm build below.
 			</p>
 			<p>
 				The same CLI binaries are also attached to each
@@ -125,19 +125,23 @@
 				<code>SHA256SUMS</code> and a build provenance attestation, for use without npm.
 			</p>
 			<p>
-				tsv also ships as wasm, which runs everywhere including browsers and Deno, and carries the
-				same <code>tsv</code> command (formatting across worker threads, so <code>--jobs</code>
-				works there too):
+				tsv also ships as wasm, which runs everywhere including browsers and Deno, and provides the
+				same <code>tsv</code> command:
 			</p>
 			<Code lang="sh" content={'npm i -D @fuzdev/tsv-wasm\nnpx tsv format src'} />
 			<p>
-				Both packages claim the <code>tsv</code> bin name, so install one or the other in a project.
+				Both packages claim the <code>tsv</code> bin name. (TBD if the wasm package needs a
+				different name)
 			</p>
 			<p>For smaller builds, the formatter and parser also ship solo:</p>
 			<Code
 				lang="sh"
 				content={'npm i -D @fuzdev/tsv-format-wasm\nnpm i -D @fuzdev/tsv-parse-wasm'}
 			/>
+			<p>
+				Optimally-sized builds for parsing and formatting individual languages may be added upon
+				request. (open an issue)
+			</p>
 			<p>
 				See the <TomeLink slug="benchmarks" /> for size and performance details.
 			</p>
