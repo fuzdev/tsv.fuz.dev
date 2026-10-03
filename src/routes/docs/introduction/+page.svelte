@@ -45,13 +45,16 @@
 		</p>
 		<p>
 			Compared to <a href="https://github.com/baseballyama/rsvelte">rsvelte</a>, tsv has its own
-			TS/JS/CSS parsers instead of using Oxc, and rsvelte additionally has a Svelte compiler and
-			linter/typechecker integration (the full toolchain; tsv has some work in progress here, of
-			unknown scope, that may never ship).
+			TS/JS/CSS parsers instead of using Oxc. rsvelte also includes a Svelte compiler and
+			linter/typechecker integration; tsv has early, open-ended work in that direction that may
+			never ship.
 		</p>
 		<p>tsv prioritizes, in order:</p>
 		<ol>
-			<li>correctness (spec conformance for HTML/CSS/JS, fidelity to Svelte and TypeScript)</li>
+			<li>
+				correctness (spec conformance for JS/CSS, planned for HTML/JSON; fidelity to Svelte and
+				TypeScript)
+			</li>
 			<li>speed</li>
 			<li>binary size and memory usage</li>
 			<li>extensibility, modularity, reusability</li>
@@ -62,9 +65,9 @@
 		</p>
 		<p>
 			See the <TomeLink slug="benchmarks" /> for measurements. Compared to Oxc/Oxfmt and Biome, tsv
-			is smaller and faster at parsing and formatting its supported languages, but lacks their
-			features, extensibility, and broad language support. One reason for tsv to exist is to help
-			find the performance left on the table in the Web's implementations.
+			formats its supported languages faster and is smaller in nearly every like-for-like build, but
+			lacks their features, extensibility, and broad language support. One reason for tsv to exist
+			is to help find the performance left on the table in the Web's implementations.
 		</p>
 		<p>
 			tsv is near production-ready, with a long tail of rare bugs, and APIs may still change.
@@ -123,8 +126,8 @@
 			</p>
 			<p>
 				tsv also ships as wasm, which runs everywhere including browsers and Deno, and carries the
-				same <code>tsv</code> CLI (formatting across worker threads, so <code>--jobs</code> works
-				there too):
+				same <code>tsv</code> command (formatting across worker threads, so <code>--jobs</code>
+				works there too):
 			</p>
 			<Code lang="sh" content={'npm i -D @fuzdev/tsv-wasm\nnpx tsv format src'} />
 			<p>
@@ -153,8 +156,8 @@
 			<Code lang="ts" content={parse_example} />
 			<p>
 				<code>format_typescript</code>, <code>format_css</code>, <code>parse_typescript</code>, and
-				<code>parse_css</code> work the same way, and the parsers return Svelte-compatible JSON ASTs
-				with bundled TS types.
+				<code>parse_css</code> work the same way, and the parsers return acorn- and
+				Svelte-compatible JSON ASTs with bundled TS types.
 			</p>
 			<p>
 				Every parser also takes an acorn-style options object:

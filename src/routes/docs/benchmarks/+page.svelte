@@ -214,9 +214,9 @@
 			<TomeSectionHeader text="tldr" />
 			<p>
 				tsv formats its three languages faster than Oxc and Biome in every in-process pairing here,
-				and its native CLI beats theirs in every scenario. Its artifacts are smaller than theirs
-				too, capability for capability, except for a native parse-only build, since natively tsv
-				publishes only its full build.
+				and its CLI outpaces theirs in every shared scenario. Its artifacts are smaller than theirs
+				too, capability for capability, except against oxc-parser's native build, since tsv
+				publishes no native parse-only build.
 			</p>
 			<p>
 				Except in the CLI section, every timing here is in-process and one file at a time, isolating
@@ -243,10 +243,10 @@
 					and ~{format_css_vs_biome} faster than Biome (wasm-vs-wasm).
 				</li>
 				<li>
-					Parsing TypeScript, tsv's span-only AST (offsets only, like Oxc's) is natively
-					~{parse_ts_vs_oxc} faster than Oxc's, largely because Oxc's carries more (see
+					Parsing TypeScript to its span-only AST (offsets only, like Oxc's), tsv is natively
+					~{parse_ts_vs_oxc} faster than oxc-parser, largely because Oxc's AST carries more (see
 					<a href="#{docs_slugify(PARSE_SECTION_TITLE)}">{PARSE_SECTION_TITLE}</a>), and
-					~{parse_ts_yuku_vs_tsv} slower than yuku-parser's (~{parse_ts_yuku_wasm_vs_tsv_wasm} as
+					~{parse_ts_yuku_vs_tsv} slower than yuku-parser (~{parse_ts_yuku_wasm_vs_tsv_wasm} as
 					wasm). Its default AST adds per-node line/column <code>loc</code> for drop-in acorn and
 					Svelte compatibility, at ~{parse_ts_loc_cost} the span-only time: ~{parse_ts_vs_acorn}
 					faster than acorn-typescript, the parser it can replace, but slower than Oxc and swc.
@@ -264,10 +264,10 @@
 				</li>
 				<li>
 					End to end as a CLI, tsv formats the JSX-free subset of a real TypeScript repo
-					~{cli_npm_ts_vs_oxfmt} faster than Oxfmt and ~{cli_npm_ts_vs_biome} faster than Biome,
-					using less memory than either (~{cli_ts_wall_vs_oxfmt} and ~{cli_ts_wall_vs_biome} faster
-					as the bare binary, without Node in front). That is with every tool launched through its
-					npm package's Node bin, in a
+					~{cli_npm_ts_vs_oxfmt} faster than Oxfmt and ~{cli_npm_ts_vs_biome} faster than Biome
+					(~{cli_ts_wall_vs_oxfmt} and ~{cli_ts_wall_vs_biome} as the bare binary, without Node in
+					front), using less memory than either. That is with every tool launched through its npm
+					package's Node bin, in a
 					<a href="https://github.com/ryanatkn/oxc-bench-formatter" rel="external">
 						fork of Oxc's <code>bench-formatter</code>
 					</a>. These are wall-clock ratios, so they include each tool's multi-file parallelism (see
@@ -453,8 +453,8 @@
 						<a href="#{docs_slugify(DETAILS_SECTION_TITLE)}">{DETAILS_SECTION_TITLE}</a>).
 					</li>
 					<li>
-						tsv's default AST is checked against acorn's and Svelte's at corpus scale, but hasn't
-						yet been fed through Svelte's compiler end to end.
+						tsv's default AST is checked against acorn-typescript's and Svelte's at corpus scale,
+						but hasn't yet been fed through Svelte's compiler end to end.
 					</li>
 					<li>
 						rsvelte's parser matches tsv's default output in mechanism and payload — a JSON string
@@ -471,9 +471,9 @@
 					</li>
 					<li>
 						PostCSS is the base of Prettier's CSS parse, so it's the parse-side counterpart of the
-						Prettier format entry; none of the Rust CSS tools considered exposes a parse call. Its
-						payload doesn't match tsv's: it keeps selectors as strings where <code>parseCss</code>
-						and tsv parse them.
+						Prettier format entry; none of the Rust CSS tools here exposes a parse call. Its payload
+						doesn't match tsv's: it keeps selectors as strings where <code>parseCss</code> and tsv
+						parse them.
 					</li>
 				</ul>
 			</aside>
@@ -537,7 +537,7 @@
 							Svelte path). <code>tsv (napi)</code> is likewise its <code>.node</code> alone:
 							<a href="https://www.npmjs.com/package/@fuzdev/tsv"><code>@fuzdev/tsv</code></a> is a
 							JS dispatcher over prebuilt per-platform packages, each of which also carries the
-							<code>tsv</code> CLI binary. Installed, each tool is about twice its entry here.
+							<code>tsv</code> CLI binary. Installed, both are about twice their entries here.
 						</li>
 						<li>
 							The <code>(ffi)</code> entries are tsv's C-ABI build, which isn't published: natively,
@@ -595,9 +595,9 @@
 		<TomeSection>
 			<TomeSectionHeader text={DETAILS_SECTION_TITLE} />
 			<p>
-				Each row is the mean time of one sweep, a pass over its group's timed file set. Within a
-				group every tool is timed on the same files — the intersection of what every timed tool
-				accepted, so a file one rejects drops out for everyone. The count above each chart is that
+				Each row is the mean time per sweep, a pass over its group's timed file set. Within a group
+				every tool is timed on the same files — the intersection of what every timed tool accepted,
+				so a file one rejects drops out for everyone. The count above each chart is that
 				intersection, and a chart that runs short of the corpus total says beneath it what was left
 				out and which rows failed it.
 			</p>

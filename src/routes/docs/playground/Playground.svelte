@@ -132,9 +132,9 @@
 <section>
 	<CodeTextarea bind:value={source} lang="svelte" autocapitalize="off" autocomplete="off" />
 	{#if load_error}
-		<p class="error">Couldn't load the tsv formatter: {load_error}</p>
+		<p class="error">Couldn't load tsv: {load_error}</p>
 	{:else if !ready}
-		<p>loading the formatter…</p>
+		<p>loading tsv…</p>
 	{:else if error}
 		<p class="error">{error}</p>
 	{:else}

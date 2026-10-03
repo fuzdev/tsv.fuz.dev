@@ -77,7 +77,7 @@
 					<li>
 						Coverage has two blind spots. Accepting a file says nothing about producing the
 						<em>right</em> AST; tsv's output is verified separately against the parsers it's a
-						drop-in for (svelte/compiler, its <code>parseCss</code>, and acorn-typescript) at corpus
+						drop-in for (Svelte's parser, its <code>parseCss</code>, and acorn-typescript) at corpus
 						scale in
 						<a href="https://github.com/fuzdev/tsv/blob/main/docs/conformance_svelte.md">
 							its repo's conformance gates

@@ -189,7 +189,7 @@ const SCENARIO_COPY: Record<string, CliScenarioCopy> = {
 	[CLI_SVELTE_KEY]: {
 		heading: 'Svelte corpus',
 		description:
-			'Two Rust-native Svelte formatters head-to-head (over half the corpus is flowbite-svelte), with rsvelte-fmt pinned to tsv’s fixed style. rsvelte-fmt’s time includes the Oxfmt it launches for the file types it doesn’t format itself, which walks the corpus and finds none.',
+			'Two Rust-native Svelte formatters head-to-head, with rsvelte-fmt pinned to tsv’s fixed style. rsvelte-fmt’s time includes the Oxfmt it launches for the file types it doesn’t format itself, which walks the corpus and finds none.',
 		crash_context: {
 			name: 'rsvelte-fmt',
 			note: 'rsvelte-fmt 0.7.x can abort when its stdout and stderr share a pipe, and the harness doesn’t retry.'
@@ -199,7 +199,7 @@ const SCENARIO_COPY: Record<string, CliScenarioCopy> = {
 	[CLI_DELIVERY_KEY]: {
 		heading: 'tsv delivery paths',
 		description:
-			'Every row is tsv, delivered three ways: the native binary; the same binary through @fuzdev/tsv’s Node dispatcher; and @fuzdev/tsv-wasm, tsv’s CLI reimplemented in JS over a wasm engine, the package for platforms without a prebuilt binary. The corpus is one file, so the gaps are launch and engine cost, not file parallelism. ',
+			'Every row is tsv, delivered three ways: the native binary; the same binary through @fuzdev/tsv’s Node dispatcher; and @fuzdev/tsv-wasm, tsv’s CLI reimplemented in JS over a wasm engine, the package for platforms without a prebuilt binary. The corpus is one file, so the gaps are launch and engine cost, not file parallelism.',
 		tsv_only: true
 	}
 };

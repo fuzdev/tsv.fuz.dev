@@ -26,7 +26,7 @@ export const IN_PROCESS_PAIRS = {
 	format_css_wasm_vs_prettier: ['format/css', 'prettier', 'tsv-wasm'],
 	format_css_vs_biome: ['format/css', 'biome-wasm', 'tsv-wasm'],
 	parse_ts_vs_oxc: ['parse/typescript', 'oxc-parser', 'tsv-json-no-locations'],
-	// the drop-in comparison: tsv's default `loc`-bearing wire against the reference it replaces
+	// the drop-in comparison: tsv's default `loc`-bearing wire against the reference it can replace
 	parse_ts_vs_acorn: ['parse/typescript', 'acorn-typescript', 'tsv-json'],
 	// "carrying it costs ~Nx the hand-off time" — the loc-bearing wire over the span-only one
 	parse_ts_loc_cost: ['parse/typescript', 'tsv-json', 'tsv-json-no-locations'],

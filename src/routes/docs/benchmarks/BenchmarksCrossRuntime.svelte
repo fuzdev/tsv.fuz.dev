@@ -170,7 +170,7 @@
 									class="benchmarks-num ratio"
 									class:within-noise={within_noise}
 									title={within_noise
-										? `this delta is smaller than the two measurements' combined noise — not a runtime effect`
+										? `this delta is smaller than the two measurements' combined noise, so read it as parity`
 										: undefined}
 									style:background={ratio != null && !within_noise
 										? cross_runtime_ratio_background(ratio)

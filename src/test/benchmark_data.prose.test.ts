@@ -71,9 +71,9 @@ describe('prose ratios resolve', () => {
 		}
 	});
 
-	test('tsv\'s "native CLI beats theirs in every scenario"', () => {
+	test('tsv\'s "CLI outpaces theirs in every shared scenario"', () => {
 		// the TLDR's absolute CLI claim spans every scenario Oxfmt or Biome is timed in,
-		// not just the repo it quotes ratios for, and both of tsv's native rows
+		// not just the repo it quotes ratios for, through both the dispatcher and the bare binary
 		let compared = 0;
 		for (const scenario of benchmarks_cli.scenarios.filter((s) => !s.tsv_only)) {
 			for (const label of ['oxfmt', 'biome']) {
