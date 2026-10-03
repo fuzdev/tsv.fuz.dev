@@ -299,9 +299,8 @@
 		<TomeSection>
 			<TomeSectionHeader text={FORMAT_SECTION_TITLE} />
 			<p>
-				tsv formats JS with its TypeScript parser, so JS and TypeScript share one chart. Each
-				chart's ratios are relative to its highlighted row, and a negative ratio means that many
-				times worse. Hover another row to compare against it instead.
+				Each chart's ratios are relative to its highlighted row, and a negative ratio means that
+				many times worse. Hover another row to compare against it instead.
 			</p>
 			{#if unstable_entries.length}
 				<aside class="benchmarks-warning">
