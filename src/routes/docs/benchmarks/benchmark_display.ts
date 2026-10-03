@@ -231,6 +231,9 @@ const LABEL_OVERRIDES: Record<string, string> = {
 	// the one tsv-wasm entry listed here: the generic formatting below would
 	// break the `no-locs` hyphen its native sibling deliberately keeps
 	'tsv-wasm-json-no-locations': 'tsv-wasm json no-locs',
+	// the span-only wire plus `loc` rebuilt in JS — what `{locations: true}` returns
+	'tsv-json-no-locations+reconstruct': 'tsv json no-locs +reconstruct (node napi)',
+	'tsv-wasm-json-no-locations+reconstruct': 'tsv-wasm json no-locs +reconstruct',
 	'tsv-internal': 'tsv internal (node napi)',
 	'oxc-parser': 'oxc-parser (node napi)',
 	oxfmt: 'oxfmt (node napi)',

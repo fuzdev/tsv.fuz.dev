@@ -107,7 +107,7 @@ export interface ToolOmissions {
 
 // What a PARSE row hands JS (see `BaselineEntry.payload`). Mirrors the bench's
 // `PayloadTier`.
-export type PayloadTier = 'drop_in' | 'span_only' | 'own_shape' | 'none';
+export type PayloadTier = 'drop_in' | 'drop_in_superset' | 'span_only' | 'own_shape' | 'none';
 
 // Whether a ratio between two parse rows compares the same PRODUCT: their tiers are
 // equal and neither is `own_shape`. `null` when either row carries no tier — a
@@ -268,8 +268,10 @@ export interface BaselineEntry {
 	// default mode); `null` on an untimed row.
 	files_iterated: number | null;
 	// What a parse row hands JS — the canonical parser's own AST shape (`drop_in`),
-	// a `start`/`end`-only tree (`span_only`), the tool's own dialect or reduction
-	// (`own_shape`), or nothing materialized (`none`). Most of a parse row's time is
+	// that shape plus fields the canonical parser leaves off some nodes, such as a
+	// `loc` on every positioned object where Svelte gives one only to acorn-parsed
+	// nodes (`drop_in_superset`), a `start`/`end`-only tree (`span_only`), the tool's
+	// own dialect or reduction (`own_shape`), or nothing materialized (`none`). Most of a parse row's time is
 	// building that product, so a ratio between two rows integrates it
 	// (`is_payload_matched`). `null` on format rows.
 	payload: PayloadTier | null;
@@ -392,10 +394,12 @@ const CATEGORY_BY_NAME: Record<string, ImplementationCategory> = {
 	tsv: 'tsv_native',
 	'tsv-json': 'tsv_native_json',
 	'tsv-json-no-locations': 'tsv_native_json',
+	'tsv-json-no-locations+reconstruct': 'tsv_native_json',
 	'tsv-internal': 'tsv_native',
 	'tsv-wasm': 'tsv_wasm',
 	'tsv-wasm-json': 'tsv_wasm_json',
 	'tsv-wasm-json-no-locations': 'tsv_wasm_json',
+	'tsv-wasm-json-no-locations+reconstruct': 'tsv_wasm_json',
 	'tsv-wasm-internal': 'tsv_wasm',
 	'biome-wasm': 'biome',
 	'dprint-wasm': 'dprint',
@@ -465,7 +469,8 @@ const TSV_RANK_BASE = Object.keys(CROSS_TOOL_RANK).length;
  * reference first (the default 1.00x anchor), then the cross-tool comparisons
  * (alphabetically: biome, dprint — whose category malva shares — oxc, postcss,
  * rsvelte, swc, yuku), then tsv's JSON-materializing
- * wires (the span-only `no-locations` wire before the default `loc`-carrying one),
+ * wires (the span-only `no-locations` wire before the `loc`-carrying one — the
+ * `+reconstruct` row that adds `loc` in JS, or the older Rust-emitted `-json` wire),
  * then tsv's own engine rows — `tsv`/`tsv-wasm` in the format groups, the
  * `-internal` rows in the parse groups.
  */
@@ -473,6 +478,7 @@ const speed_entry_rank = (entry: BenchmarkDisplayEntry): number => {
 	const rank = CROSS_TOOL_RANK[entry.category];
 	if (rank !== undefined) return rank;
 	if (entry.name.endsWith('-no-locations')) return TSV_RANK_BASE; // tsv json, span-only wire
+	if (entry.name.endsWith('+reconstruct')) return TSV_RANK_BASE + 1; // span-only + `loc` in JS
 	if (entry.name.endsWith('-json')) return TSV_RANK_BASE + 1; // tsv json, loc-carrying wire
 	return TSV_RANK_BASE + 2; // tsv's engine rows: `tsv`/`tsv-wasm` (format), `-internal` (parse, no JS materialization)
 };

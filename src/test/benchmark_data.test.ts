@@ -376,6 +376,14 @@ describe('is_payload_matched', () => {
 		assert.isFalse(is_payload_matched({ payload: 'own_shape' }, { payload: 'own_shape' }));
 	});
 
+	test('a superset matches only another superset — never the exact drop-in', () => {
+		assert.isTrue(
+			is_payload_matched({ payload: 'drop_in_superset' }, { payload: 'drop_in_superset' })
+		);
+		assert.isFalse(is_payload_matched({ payload: 'drop_in_superset' }, { payload: 'drop_in' }));
+		assert.isFalse(is_payload_matched({ payload: 'drop_in_superset' }, { payload: 'span_only' }));
+	});
+
 	test('a row with no tier makes the question unanswerable, not false', () => {
 		assert.isNull(is_payload_matched({ payload: null }, { payload: 'drop_in' }));
 	});

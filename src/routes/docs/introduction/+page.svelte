@@ -192,7 +192,7 @@
 				Even when you need line/column, reconstructing it in JS beats the <code>loc</code>-bearing
 				AST end to end, by ~1.7x on TypeScript, as measured by
 				<a
-					href="https://github.com/fuzdev/tsv/blob/main/benches/js/diagnostics/reconstruct_vs_materialize.ts"
+					href="https://github.com/fuzdev/tsv/blob/v0.5.0/benches/js/diagnostics/reconstruct_vs_materialize.ts"
 				>
 					a diagnostic in tsv's bench harness
 				</a>. <code>reconstruct_locations</code> ships in every package that parses.
