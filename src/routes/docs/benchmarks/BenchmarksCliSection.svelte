@@ -96,9 +96,9 @@
 			<code>bench-formatter</code>
 		</a>
 		that <a href="https://github.com/ryanatkn/oxc-bench-formatter" rel="external">adds tsv</a>.
-		Upstream's other three scenarios aren't shown: their corpora include JSX, which tsv doesn't
-		parse; one also formats a repo's other languages and embedded code, and one sorts imports and
-		Tailwind classes.
+		Upstream's other scenarios aren't shown: their corpora include JSX, which tsv doesn't parse; one
+		also formats a repo's other languages and embedded code, and one sorts imports and Tailwind
+		classes.
 	</p>
 	<p>
 		As in the charts above, each table's ratios are relative to its highlighted row:

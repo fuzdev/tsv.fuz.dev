@@ -234,8 +234,7 @@
 				<li>
 					Formatting Svelte, tsv is ~{format_svelte_vs_prettier} faster than Prettier
 					(~{format_svelte_wasm_vs_prettier} as wasm) and ~{format_svelte_vs_biome} faster than
-					Biome (wasm-vs-wasm). Neither Oxc nor Biome ships a dedicated Svelte formatter (see
-					<a href="#{docs_slugify(FORMAT_SECTION_TITLE)}">{FORMAT_SECTION_TITLE}</a>).
+					Biome (wasm-vs-wasm).
 				</li>
 				<li>
 					Formatting CSS, tsv is ~{format_css_vs_oxfmt} faster than Oxfmt (native-vs-native),
@@ -266,22 +265,14 @@
 					End to end as a CLI, tsv formats the JSX-free subset of a real TypeScript repo
 					~{cli_npm_ts_vs_oxfmt} faster than Oxfmt and ~{cli_npm_ts_vs_biome} faster than Biome
 					(~{cli_ts_wall_vs_oxfmt} and ~{cli_ts_wall_vs_biome} as the bare binary, without Node in
-					front), using less memory than either. That is with every tool launched through its npm
-					package's Node bin, in a
-					<a href="https://github.com/ryanatkn/oxc-bench-formatter" rel="external">
-						fork of Oxc's <code>bench-formatter</code>
-					</a>. These are wall-clock ratios, so they include each tool's multi-file parallelism (see
+					front), using less memory than either. These are wall-clock ratios, so they include each
+					tool's multi-file parallelism (see
 					<a href="#{docs_slugify(CLI_SECTION_TITLE)}">the CLI section</a>).
 				</li>
 				{#if cli_svelte_timed}
 					<li>
 						On a third-party Svelte corpus, tsv's CLI, again through its Node bin, is
 						~{cli_svelte_npm_wall} faster than rsvelte-fmt, another Rust Svelte formatter.
-					</li>
-				{:else if cli_svelte?.aborted}
-					<li>
-						The CLI's Svelte head-to-head against rsvelte-fmt, another Rust Svelte formatter,
-						currently publishes no numbers: the harness aborted it.
 					</li>
 				{/if}
 			</ul>
@@ -448,14 +439,9 @@
 						(in Oxfmt) but ships no CSS parse binding.
 					</li>
 					<li>
-						oxc-parser's wasm row runs an older release than its native row — the newest whose wasi
-						binding loads in the harness install — so the wasm-vs-wasm pairing crosses Oxc versions
-						(both listed under
+						oxc-parser's wasm row runs an older release than its native row, so the wasm-vs-wasm
+						pairing crosses Oxc versions (both listed under
 						<a href="#{docs_slugify(DETAILS_SECTION_TITLE)}">{DETAILS_SECTION_TITLE}</a>).
-					</li>
-					<li>
-						tsv's default AST is checked against acorn-typescript's and Svelte's at corpus scale,
-						but hasn't yet been fed through Svelte's compiler end to end.
 					</li>
 					<li>
 						rsvelte's parser matches tsv's default output in mechanism and payload — a JSON string
@@ -556,8 +542,7 @@
 						<li>
 							<code>{RSVELTE_LABEL}</code> is a standalone executable carrying a CLI and Oxc's
 							JS/TS, CSS, and JSON formatters beside its Svelte engine, where the tsv entries are
-							bare libraries. Over a directory it also needs Oxfmt, an optional peer dependency it
-							hands every file type it doesn't format itself.
+							bare libraries.
 						</li>
 						<li>
 							<code>swc (napi)</code> and <code>rsvelte compiler (napi)</code> back parse rows but

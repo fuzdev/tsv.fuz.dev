@@ -157,7 +157,9 @@
 			<p>
 				<code>format_typescript</code>, <code>format_css</code>, <code>parse_typescript</code>, and
 				<code>parse_css</code> work the same way, and the parsers return acorn- and
-				Svelte-compatible JSON ASTs with bundled TS types.
+				Svelte-compatible JSON ASTs with bundled TS types. Their output is checked against
+				acorn-typescript's and Svelte's at corpus scale, but hasn't yet been fed through Svelte's
+				compiler end to end.
 			</p>
 			<p>
 				Every parser also takes an acorn-style options object:
