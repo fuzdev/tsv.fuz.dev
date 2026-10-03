@@ -289,7 +289,10 @@
 
 		<TomeSection>
 			<TomeSectionHeader text={LANGUAGE_SECTION_TITLE} />
-			<p>Support matrix for <strong>P</strong>arsers and <strong>F</strong>ormatters:</p>
+			<p>
+				Support matrix for <strong>P</strong>arsers and <strong>F</strong>ormatters
+				(<strong>bold</strong> is timed on this page, faded is supported but not timed):
+			</p>
 			<BenchmarksTools rows={tool_matrix} />
 		</TomeSection>
 
@@ -368,9 +371,9 @@
 						The dprint entry is
 						<a href="https://dprint.dev/plugins/typescript/">dprint-plugin-typescript</a>, the
 						engine <code>deno fmt</code> runs for TypeScript and JS, loaded in-process as its wasm
-						plugin. It formats only TypeScript and JS, so it has no Svelte row and its CSS slot goes
-						to <a href="https://github.com/g-plane/malva">Malva</a>, a third-party CSS plugin for
-						the same host.
+						plugin. It formats only TypeScript and JS, JSX included, so it has no Svelte row and its
+						CSS slot goes to <a href="https://github.com/g-plane/malva">Malva</a>, a third-party CSS
+						plugin for the same host.
 					</li>
 					<li>
 						<a href="https://github.com/baseballyama/rsvelte" rel="external">rsvelte-fmt</a>, the

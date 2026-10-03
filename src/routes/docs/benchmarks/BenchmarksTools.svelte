@@ -70,8 +70,6 @@
 </div>
 <p>
 	<small>
-		P parses to an AST in JS, F formats; <strong>bold</strong> is timed on this page, faded is
-		supported but not timed here.
 		{#each footnotes as footnote, i (footnote)}
 			<sup>{i + 1}</sup>&nbsp;{TOOL_FOOTNOTES[footnote]}{i < footnotes.length - 1 ? '; ' : '.'}
 		{/each}
