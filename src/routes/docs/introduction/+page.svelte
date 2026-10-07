@@ -10,7 +10,7 @@
 
 	import {
 		format_example,
-		no_locations_example,
+		locations_example,
 		parse_example,
 		usage_example
 	} from './introduction_examples.ts';
@@ -167,11 +167,18 @@
 			</p>
 			<p>
 				Every parser also takes an acorn-style options object:
-				<Code lang="ts" content={'{locations: false}'} inline /> for the span-only AST (below), and
-				for TypeScript <Code lang="ts" content={"{sourceType: 'script' | 'module'}"} inline />
-				(default <Code lang="ts" content="'module'" inline />). <code>format_typescript</code> takes
+				<Code lang="ts" content={'{locations: true}'} inline /> for per-node line and column
+				(below), and for TypeScript
+				<Code lang="ts" content={"{sourceType: 'script' | 'module'}"} inline /> (default
+				<Code lang="ts" content="'module'" inline />). <code>format_typescript</code> takes
 				<code>sourceType</code> too; without it, formatting retries as a script when the module
 				parse fails, so a legacy sloppy script needs no options.
+			</p>
+			<p>
+				A source that doesn't parse throws a <code>SyntaxError</code> from the parsers and
+				formatters alike, carrying <code>start</code> (the UTF-16 offset) and
+				<Code lang="ts" content={'loc: {line, column}'} inline />. A bad argument — a source that
+				isn't a string, an unknown option — throws a <code>TypeError</code>.
 			</p>
 			<p>
 				The native package needs no initialization; the wasm packages work zero-config in Node.js,
@@ -180,46 +187,52 @@
 			</p>
 		</TomeSection>
 		<TomeSection>
-			<TomeSectionHeader text="Span-only parsing" />
+			<TomeSectionHeader text="Line and column" />
 			<p>
-				The parsers have a span-only mode that skips the per-node line/column, making the AST ~46%
-				smaller on TypeScript and faster to hand to JS. You can derive line and column later without
-				re-parsing. Span-only is oxc-parser's default. tsv emits <code>loc</code> by default so that
-				a call with no options is a drop-in for Svelte's parser, though that default may change.
+				The parsers return a span-only AST: every node carries its
+				<code>start</code>/<code>end</code> offsets and no per-node <code>loc</code>, as with
+				acorn's defaults and oxc-parser's. A span-only tree is smaller and faster to hand to JS, and
+				line and column can be derived from the offsets and the source at any time, without
+				re-parsing.
 			</p>
-			<Code lang="ts" content={no_locations_example} />
-			<p>
-				Even when you need line/column, reconstructing it in JS beats the <code>loc</code>-bearing
-				AST end to end, by ~1.7x on TypeScript, as measured by
-				<a
-					href="https://github.com/fuzdev/tsv/blob/v0.5.0/benches/js/diagnostics/reconstruct_vs_materialize.ts"
-				>
-					a diagnostic in tsv's bench harness
-				</a>. <code>reconstruct_locations</code> ships in every package that parses.
-			</p>
+			<Code lang="ts" content={locations_example} />
 			<p>Details:</p>
 			<ul>
 				<li>
-					Span-only drops the per-node <code>loc</code> object (and <code>name_loc</code> on Svelte
-					nodes), mirroring acorn's <Code lang="ts" content={'{locations: false}'} inline />. The
-					rest is unchanged, so every node keeps its <code>start</code>/<code>end</code> offsets.
+					<Code lang="ts" content={'{locations: true}'} inline /> adds <code>loc</code> to every
+					object that has <code>start</code>/<code>end</code>, and <code>name_loc</code> to the
+					Svelte elements, attributes, and directives that carry one. It's computed in JS from the
+					offsets after the parse, so it costs nothing when off.
 				</li>
 				<li>
-					<Code lang="ts" content="reconstruct_locations(ast, source)" inline /> walks the tree and
-					adds <code>loc</code> back, mutating in place — exact for TypeScript, approximate for
-					Svelte, where it throws on the rare input it can't reconstruct rather than guess (parse
-					those with <code>loc</code>).
+					<code>loc</code> has one definition: the line and UTF-16 column of the node's own
+					<code>start</code> and <code>end</code>. For TypeScript that is exactly acorn's
+					<Code lang="ts" content="locations: true" inline />. For Svelte and CSS it covers more
+					nodes than the canonical parsers do (template nodes, comments, and CSS nodes included) and
+					doesn't reproduce the places where Svelte's <code>loc</code> disagrees with its own
+					offsets.
 				</li>
 				<li>
-					For sparse lookups, <Code lang="ts" content="create_locator(source, opts?)" inline />
-					reuses one line table across calls, so you pay for the positions you actually ask for;
-					pass the span-only tree as <Code lang="ts" content={'{ast}'} inline /> for a
-					<code>.svelte</code> document.
+					Lines break on ECMAScript's line terminators in TypeScript, and on <code>\n</code> alone
+					in Svelte and CSS.
 				</li>
 				<li>
-					CSS nodes carry no <code>loc</code> to begin with, so
-					<Code lang="ts" content={'{locations: false}'} inline /> is accepted as an inert no-op
-					there.
+					<Code lang="ts" content="reconstruct_locations(ast, source)" inline /> runs the same walk
+					over a tree you already hold, mutating it in place.
+				</li>
+				<li>
+					For sparse lookups,
+					<Code lang="ts" content={'create_locator(source, {language})'} inline /> builds the line
+					table once, so <code>position_at(offset)</code> and <code>loc_of(node)</code> cost only
+					the positions you ask for.
+				</li>
+				<li>
+					The helpers also ship alone, loading no engine, as the <code>./locations</code> subpath of
+					every package that parses.
+				</li>
+				<li>
+					On the command line, <Code lang="sh" content="tsv parse --locations" inline /> prints the
+					same tree.
 				</li>
 			</ul>
 		</TomeSection>

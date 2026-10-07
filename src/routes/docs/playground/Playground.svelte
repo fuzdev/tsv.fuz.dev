@@ -54,9 +54,10 @@
 
 	// The AST pane trails the editor by an idle beat while the formatted pane stays
 	// live. Formatting is cheap (~1 ms on a 9 KB component), but the AST is parsed,
-	// serialized to JSON, and syntax-highlighted — half a megabyte of it for that
-	// same component — and rebuilding that DOM per keystroke is what a large paste
-	// feels. The default example is small enough that the delay never shows.
+	// serialized to JSON, and syntax-highlighted — many times the source's size,
+	// more again with `locations` on — and rebuilding that DOM per keystroke is what
+	// a large paste feels. The default example is small enough that the delay never
+	// shows.
 	const AST_DEBOUNCE_MS = 150;
 	// seeded from the example, like `source`, so the first render has an AST to show
 	let ast_source = $state(playground_example);
@@ -65,7 +66,12 @@
 		const id = setTimeout(() => (ast_source = next), AST_DEBOUNCE_MS);
 		return () => clearTimeout(id);
 	});
-	const ast = $derived.by(() => run((t) => JSON.stringify(t.parse_svelte(ast_source), null, 2)));
+	// off by default, as in the parsers: the AST is span-only (`start`/`end` offsets)
+	// until `{locations: true}` asks for line and column on every node
+	let locations = $state(false);
+	const ast = $derived.by(() =>
+		run((t) => JSON.stringify(t.parse_svelte(ast_source, { locations }), null, 2))
+	);
 
 	// The top-level error is the LIVE pane's, so it tracks what is in the editor now;
 	// the AST pane renders its own beside its (debounced, possibly still-broken)
@@ -141,6 +147,10 @@
 		<p>formatted:</p>
 		<Code lang="svelte" content={formatted?.value ?? ''} />
 		<p>AST:</p>
+		<label class="row">
+			<input type="checkbox" bind:checked={locations} style:margin-right="var(--space_sm)" />
+			<Code lang="ts" content={'{locations: true}'} inline />
+		</label>
 		{#if ast?.error}
 			<!-- the debounced source can still be the broken one the live pane has
 				already moved past, so this pane carries its own message -->
