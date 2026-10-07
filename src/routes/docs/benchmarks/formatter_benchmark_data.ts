@@ -87,7 +87,7 @@ export const FormatterScenario = z.strictObject({
 	 * don't settle; `0` means a run that turned it off.
 	 */
 	settle_seconds: z.number().nonnegative().optional(),
-	/** Empty in the harness's upstream scenarios, which run no preflight. */
+	/** One row per formatter the scenario checked before timing; empty where it ran no preflight. */
 	preflight: z.array(FormatterPreflight),
 	/**
 	 * How many files the scenario formatted: the count every formatter that reports
