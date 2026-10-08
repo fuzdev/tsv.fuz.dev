@@ -398,8 +398,9 @@
 					span-only AST (<code>start</code>/<code>end</code> offsets, no <code>loc</code>) of Oxc's
 					kind. It is the closest comparison with oxc-parser but not an equal one: Oxc's AST also
 					writes out default-valued fields tsv omits (<code>optional: false</code>,
-					<code>decorators: []</code>, <code>typeAnnotation: null</code>), about 30% more bytes, and
-					its parse also collects comments and module records.
+					<code>decorators: []</code>, <code>typeAnnotation: null</code>), about a third more bytes,
+					and its parse also collects comments and module records. Oxc also has an experimental
+					raw-transfer mode, untimed here, that skips the JSON and may well beat tsv natively.
 				</li>
 				<li>
 					<code>+locations</code> passes <code>{'{locations: true}'}</code>: the same parse with a
@@ -452,8 +453,9 @@
 						acorn-parsed nodes plus <code>name_loc</code>. So <code>rsvelte-parse</code> compares
 						against the <code>+locations</code> entries, whose <code>loc</code> on every node is a
 						superset of it, rather than the span-only default. Its second entry passes rsvelte's own
-						<code>skipExpressionLoc</code>, which drops <code>loc</code> from JS nodes but not
-						template ones, so it sits near tsv's span-only output without matching it.
+						<code>skipExpressionLoc</code>, which drops <code>loc</code> from every JS node but
+						keeps <code>name_loc</code> and the comments' <code>loc</code>, so it sits near tsv's
+						span-only output without matching it.
 						{#if rsvelte_svelte_target && rsvelte_svelte_target !== svelte_version}
 							Its addon targets its own upstream Svelte, {rsvelte_svelte_target}, a release apart
 							from the {svelte_version} the svelte/compiler row runs (both are listed under

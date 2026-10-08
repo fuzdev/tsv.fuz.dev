@@ -168,17 +168,16 @@
 			<p>
 				Each parser has a <code>_json</code> twin (<code>parse_svelte_json</code> and so on) that
 				returns the AST as a JSON string, skipping the <code>JSON.parse</code>, for callers that
-				pass it along rather than walk it.
+				pass it along rather than walk it; it takes every option but <code>locations</code>.
 			</p>
 			<p>
 				The object parsers also take an acorn-style options object:
 				<Code lang="ts" content={'{locations: true}'} inline /> for per-node line and column
 				(below), and for TypeScript
 				<Code lang="ts" content={"{sourceType: 'script' | 'module'}"} inline /> (default
-				<Code lang="ts" content="'module'" inline />). The <code>_json</code> twins take no
-				<code>locations</code>, only <code>parse_typescript_json</code>'s <code>sourceType</code>.
-				<code>format_typescript</code> takes <code>sourceType</code> too; without it, formatting
-				retries as a script when the module parse fails, so a legacy sloppy script needs no options.
+				<Code lang="ts" content="'module'" inline />). <code>format_typescript</code> takes
+				<code>sourceType</code> too; without it, formatting retries as a script when the module
+				parse fails, so a legacy sloppy script needs no options.
 			</p>
 			<p>
 				A source that doesn't parse throws a <code>SyntaxError</code> from the parsers and
@@ -212,15 +211,11 @@
 				</li>
 				<li>
 					<code>loc</code> has one definition: the line and UTF-16 column of the node's own
-					<code>start</code> and <code>end</code>. For TypeScript that is exactly acorn's
-					<Code lang="ts" content="locations: true" inline />. For Svelte and CSS it covers more
-					nodes than the canonical parsers do (template nodes, comments, and CSS nodes included) and
-					doesn't reproduce the places where Svelte's <code>loc</code> disagrees with its own
-					offsets.
-				</li>
-				<li>
-					Lines break on ECMAScript's line terminators in TypeScript, and on <code>\n</code> alone
-					in Svelte and CSS.
+					<code>start</code> and <code>end</code>, breaking lines on ECMAScript's line terminators
+					in TypeScript and on <code>\n</code> alone in Svelte and CSS. For TypeScript that is
+					exactly acorn's <Code lang="ts" content="locations: true" inline />; for Svelte and CSS
+					it's a superset of the canonical parsers' <code>loc</code> that follows the offsets where
+					Svelte's own <code>loc</code> departs from them.
 				</li>
 				<li>
 					<Code lang="ts" content="reconstruct_locations(ast, source)" inline /> runs the same walk
