@@ -12,7 +12,7 @@ const JS_BUNDLE_SUFFIX = '(js bundle)';
 
 /**
  * The color category for a binary-size label — the size table's analog of
- * `categorize_name`, read off the label prefix since size labels carry a
+ * `categorize_row`, read off the label prefix since size labels carry a
  * parenthesized build kind rather than a report row name.
  */
 export const categorize_size = (label: string): ImplementationCategory => {
@@ -23,7 +23,7 @@ export const categorize_size = (label: string): ImplementationCategory => {
 	if (label.startsWith('tsv')) return 'tsv_native';
 	if (label.startsWith('biome')) return 'biome';
 	if (label.startsWith('dprint')) return 'dprint';
-	if (label.startsWith('malva')) return 'dprint'; // dprint's CSS plugin — see `categorize_name`
+	if (label.startsWith('malva')) return 'dprint'; // dprint's CSS plugin — see `categorize_row`
 	// Covers both `rsvelte-fmt (binary)` and `rsvelte compiler (napi)`.
 	if (label.startsWith('rsvelte')) return 'rsvelte';
 	if (label.startsWith('swc')) return 'swc';

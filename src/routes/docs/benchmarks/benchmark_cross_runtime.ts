@@ -3,7 +3,7 @@
 // per-runtime reports it composes live in `benchmark_data.ts`.
 
 import {
-	categorize_name,
+	categorize_row,
 	compare_group_order,
 	parse_group_key,
 	type ImplementationCategory,
@@ -16,6 +16,8 @@ export type BenchmarkRuntime = 'deno' | 'node' | 'bun';
 
 export interface CrossRuntimeRow {
 	group: string;
+	// From combined `version` 16, `tsv` / `tsv-wasm` name the default parse rows as
+	// well as the format ones, so a row is keyed on `group` + `name`, never the name alone.
 	name: string;
 	ops_per_second: Partial<Record<BenchmarkRuntime, number>>;
 	mean_ns: Partial<Record<BenchmarkRuntime, number>>;
@@ -51,16 +53,18 @@ export interface CrossRuntimeReport {
 	// contributes nothing (with nothing recorded, an absent row can't be told from
 	// an unloadable impl). Not rendered, kept for parity.
 	partial_rows: Array<PartialRow>;
-	// Per-runtime deltas smaller than the combined measurement noise (cv) of the two
-	// means they divide — the cells that are NOT runtime effects, despite this
-	// report's subject being exactly those deltas. `[]` when every delta exceeds its
+	// Per-runtime deltas smaller than the combined measurement noise of the two means
+	// they divide — the cells that are NOT runtime effects, despite this report's
+	// subject being exactly those deltas. Each side's noise is the spread of its
+	// row's pass means where the row was timed in several fresh processes (combined
+	// `version` 18+), else its cleaned cv (see `WithinNoiseCell.basis`). `[]` when every delta exceeds its
 	// noise. Unlike every other field here it qualifies a number the report already
 	// prints rather than adding one. Rendered as a `≈` on the ratio cell (see
 	// `is_ratio_within_noise`).
 	within_noise: Array<WithinNoiseCell>;
 	// Per-runtime measurements that were NOT stable — a cleaned cv past 10%, a raw cv
-	// past 10% on a row with fewer than 30 raw timings, or a |drift| past 5% —
-	// collected ahead of `within_noise`'s sample gate, so a
+	// past 10% on a row with fewer than 30 raw timings a pass, a |drift| past 5%, or a
+	// pass spread past 5% — collected ahead of `within_noise`'s sample gate, so a
 	// row measured on five timings that disagree is named rather than silenced.
 	// Every ratio through such a cell is unreadable. `[]` when every measurement was
 	// stable. Rendered as a banner over the cross-runtime tables and a `⚠` on the cell.
@@ -133,15 +137,20 @@ export interface WithinNoiseCell {
 	runtimes: Array<BenchmarkRuntime>;
 	delta: number;
 	noise: number;
-	// The two cleaned timing counts the noise band was taken over, in `runtimes`
-	// order (an array, not a pair, for the same JSON-import reason). Not rendered.
+	// What each side's noise was read from, in `runtimes` order: `passes` (the spread
+	// of the row's pass means) or `sweeps` (its cleaned cv). Absent before combined
+	// `version` 18, where every side was `sweeps`. Not rendered.
+	basis?: Array<'passes' | 'sweeps'>;
+	// Each side's count in its `basis` unit — passes, or cleaned sweeps — in
+	// `runtimes` order (an array, not a pair, for the same JSON-import reason). Not
+	// rendered.
 	samples: Array<number>;
 }
 
 /**
  * One per-runtime measurement that was not stable (see
- * `CrossRuntimeReport.unstable_cells`). `cv`, `cv_raw` and `drift` are fractions;
- * the raw two are `null` on a sibling predating them.
+ * `CrossRuntimeReport.unstable_cells`). `cv`, `cv_raw`, `drift` and `pass_spread`
+ * are fractions; each but `cv` is `null` on a sibling predating it.
  */
 export interface UnstableCell {
 	group: string;
@@ -150,6 +159,9 @@ export interface UnstableCell {
 	cv: number | null;
 	cv_raw: number | null;
 	drift: number | null;
+	// The row's slowest pass mean over its fastest, minus one — each pass a fresh
+	// process. Absent before combined `version` 17.
+	pass_spread?: number | null;
 	/** The cleaned timing count behind the cv (`samples` in the composer's JSON). */
 	samples: number | null;
 }
@@ -234,7 +246,7 @@ export const derive_cross_runtime_groups = (
 		}
 		return {
 			name: row.name,
-			category: categorize_name(row.name),
+			category: categorize_row(row.group, row.name),
 			ops_per_second: row.ops_per_second,
 			mean_ns: row.mean_ns,
 			ratio_vs_base

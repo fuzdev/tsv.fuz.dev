@@ -160,19 +160,25 @@
 			<Code lang="ts" content={parse_example} />
 			<p>
 				<code>format_typescript</code>, <code>format_css</code>, <code>parse_typescript</code>, and
-				<code>parse_css</code> work the same way, and the parsers return acorn- and
-				Svelte-compatible JSON ASTs with bundled TS types. Their output is checked against
+				<code>parse_css</code> work the same way, and the parsers return plain-object ASTs in
+				acorn's and Svelte's shapes, with bundled TS types. Their output is checked against
 				acorn-typescript's and Svelte's at corpus scale, but hasn't yet been fed through Svelte's
 				compiler end to end.
 			</p>
 			<p>
-				Every parser also takes an acorn-style options object:
+				Each parser has a <code>_json</code> twin (<code>parse_svelte_json</code> and so on) that
+				returns the AST as a JSON string, skipping the <code>JSON.parse</code>, for callers that
+				pass it along rather than walk it.
+			</p>
+			<p>
+				The object parsers also take an acorn-style options object:
 				<Code lang="ts" content={'{locations: true}'} inline /> for per-node line and column
 				(below), and for TypeScript
 				<Code lang="ts" content={"{sourceType: 'script' | 'module'}"} inline /> (default
-				<Code lang="ts" content="'module'" inline />). <code>format_typescript</code> takes
-				<code>sourceType</code> too; without it, formatting retries as a script when the module
-				parse fails, so a legacy sloppy script needs no options.
+				<Code lang="ts" content="'module'" inline />). The <code>_json</code> twins take no
+				<code>locations</code>, only <code>parse_typescript_json</code>'s <code>sourceType</code>.
+				<code>format_typescript</code> takes <code>sourceType</code> too; without it, formatting
+				retries as a script when the module parse fails, so a legacy sloppy script needs no options.
 			</p>
 			<p>
 				A source that doesn't parse throws a <code>SyntaxError</code> from the parsers and

@@ -78,6 +78,25 @@ export interface BenchmarkBaseline {
 	// listed with zeroes. Perf surface, intersection mode, timed runs only — absent on
 	// a `BENCH_MODE=union` run and on the conformance surface.
 	omissions?: Array<GroupOmissions>;
+	// How far two fresh processes of the SAME row sat apart, over every pass pair of
+	// every timed row — a process-level A/A, and the bound to read a small ratio
+	// against. `null` on a coverage-only or one-pass run; absent before `version` 21,
+	// when every row was timed once in one shared process.
+	process_noise?: ProcessNoise | null;
+	// The child processes (by label) that wrote their result and then hung in their
+	// own teardown and were killed — their results stand. `[]` when healthy; absent
+	// before `version` 21. Not rendered, kept for parity.
+	exit_hangs?: Array<string>;
+}
+
+// The run's between-process noise (see `BenchmarkBaseline.process_noise`): the
+// slower pass mean over the faster, minus one, over `pairs` (row, pass pair)
+// comparisons. Mirrors the bench's `ProcessNoise`.
+export interface ProcessNoise {
+	pairs: number;
+	median: number;
+	p95: number;
+	max: number;
 }
 
 // One timed group's omissions (see `BenchmarkBaseline.omissions`). Mirrors the
@@ -224,6 +243,10 @@ export const corpus_source_url = (source: CorpusSource): string | undefined =>
 	source.repo ? corpus_repo_ref_url(source.repo) : undefined;
 
 export interface BaselineEntry {
+	// From `version` 20 tsv's parse rows are named for its packages' API: the default
+	// span-only parse is `tsv` / `tsv-wasm` (the format rows' names) and
+	// `{locations: true}` is `tsv+locations` / `tsv-wasm+locations`, so a name
+	// identifies a row only together with its `group`.
 	name: string;
 	group: string;
 	// Timing stats are `null` on a coverage-only report (the conformance surface
@@ -231,6 +254,12 @@ export interface BaselineEntry {
 	// perf report always carries real numbers, and only the perf path
 	// (`derive_benchmark_groups`) reads these, so the nulls are unreachable there
 	// but must be expressed for the shared cast to stay sound.
+	//
+	// From `version` 21 every row is timed in several fresh processes (`passes`) and
+	// pooled: `mean_ns` / `ops_per_second` are the passes' cleaned means weighted
+	// equally; `cv`, `std_dev_ns` and `min_ns` are over every pass's cleaned sweeps,
+	// so `cv` includes the variation between processes; the percentiles, `max_ns`
+	// and `raw_sample_size` are over every raw sweep; `sample_size` is pooled too.
 	mean_ns: number | null;
 	p50_ns: number | null;
 	p75_ns: number | null;
@@ -251,13 +280,27 @@ export interface BaselineEntry {
 	// the protocol the row ran under, and a hash of the timed path set. `null` on an
 	// untimed row.
 	cv_raw: number | null;
+	// From `version` 21: the within-pass drift furthest from zero (a shift BETWEEN
+	// passes is `pass_spread`'s).
 	drift: number | null;
 	raw_sample_size: number | null;
 	outlier_ratio: number | null;
+	// From `version` 21 both are per PASS: a floor-bound row's `raw_sample_size` is
+	// `min_iterations × passes`, and `warmup_iterations` is the fewest any pass ran
+	// (each warms for a count and a wall-time floor).
 	warmup_iterations: number | null;
 	min_iterations: number | null;
-	// The JS heap the row's warmup began from, which shows whether two runs of a row
-	// started from the same place; not rendered. `null` on an untimed row.
+	// How many fresh processes the row was timed in, each one's cleaned mean (the
+	// figures `mean_ns` is the mean of), and how far apart they sat — the slowest
+	// over the fastest, minus one: a level that depends on the process the row was
+	// drawn in, which every in-process reading reports as quiet. `null` on an untimed
+	// row; absent before `version` 21.
+	passes?: number | null;
+	pass_mean_ns?: Array<number> | null;
+	pass_spread?: number | null;
+	// The JS heap the row's warmup began from (from `version` 21 the median over its
+	// passes), which shows whether two runs of a row started from the same place; not
+	// rendered. `null` on an untimed row.
 	settled_heap_bytes: number | null;
 	files_iterated_digest: string | null;
 	// Per-implementation preflight coverage: files this impl processed / the
@@ -273,7 +316,9 @@ export interface BaselineEntry {
 	// nodes (`drop_in_superset`), a `start`/`end`-only tree (`span_only`), the tool's
 	// own dialect or reduction (`own_shape`), or nothing materialized (`none`). Most of a parse row's time is
 	// building that product, so a ratio between two rows integrates it
-	// (`is_payload_matched`). `null` on format rows.
+	// (`is_payload_matched`). Read in the row's group's language from `version` 20
+	// (`parseCss` emits no `loc`, so the CSS reference row is `span_only`). `null` on
+	// format rows.
 	payload: PayloadTier | null;
 	// Matches the report's top-level `runtime`; not rendered, kept for parity.
 	runtime: string;
@@ -391,15 +436,14 @@ const CATEGORY_BY_NAME: Record<string, ImplementationCategory> = {
 	prettier: 'canonical',
 	'svelte/compiler': 'canonical',
 	'acorn-typescript': 'canonical',
+	// `tsv` / `tsv-wasm` name the format rows and the default parse rows alike, so
+	// these are their format-group hues — `categorize_row` moves a parse group's onto
+	// the json ones
 	tsv: 'tsv_native',
-	'tsv-json': 'tsv_native_json',
-	'tsv-json-no-locations': 'tsv_native_json',
-	'tsv-json-no-locations+reconstruct': 'tsv_native_json',
+	'tsv+locations': 'tsv_native_json',
 	'tsv-internal': 'tsv_native',
 	'tsv-wasm': 'tsv_wasm',
-	'tsv-wasm-json': 'tsv_wasm_json',
-	'tsv-wasm-json-no-locations': 'tsv_wasm_json',
-	'tsv-wasm-json-no-locations+reconstruct': 'tsv_wasm_json',
+	'tsv-wasm+locations': 'tsv_wasm_json',
 	'tsv-wasm-internal': 'tsv_wasm',
 	'biome-wasm': 'biome',
 	'dprint-wasm': 'dprint',
@@ -421,8 +465,19 @@ const CATEGORY_BY_NAME: Record<string, ImplementationCategory> = {
 	'yuku-parser-wasm': 'yuku'
 };
 
-export const categorize_name = (name: string): ImplementationCategory =>
-	CATEGORY_BY_NAME[name] ?? 'oxc';
+/**
+ * A row's hue. A name identifies a row only together with its group: tsv's default
+ * parse rows share the format rows' bare names (`tsv`, `tsv-wasm`) but hand JS a
+ * JSON wire, so in a parse group every tsv row but the `-internal` ones takes the
+ * json hue.
+ */
+export const categorize_row = (group: string, name: string): ImplementationCategory => {
+	const category = CATEGORY_BY_NAME[name] ?? 'oxc';
+	if (parse_group_key(group).operation !== 'parse' || name.endsWith('-internal')) return category;
+	if (category === 'tsv_native') return 'tsv_native_json';
+	if (category === 'tsv_wasm') return 'tsv_wasm_json';
+	return category;
+};
 
 // Derivation functions
 
@@ -469,17 +524,17 @@ const TSV_RANK_BASE = Object.keys(CROSS_TOOL_RANK).length;
  * reference first (the default 1.00x anchor), then the cross-tool comparisons
  * (alphabetically: biome, dprint — whose category malva shares — oxc, postcss,
  * rsvelte, swc, yuku), then tsv's JSON-materializing
- * wires (the span-only `no-locations` wire before the `loc`-carrying one — the
- * `+reconstruct` row that adds `loc` in JS, or the older Rust-emitted `-json` wire),
- * then tsv's own engine rows — `tsv`/`tsv-wasm` in the format groups, the
+ * parse rows (the default span-only wire before `+locations`, which adds `loc` in
+ * JS), then tsv's own engine rows — `tsv`/`tsv-wasm` in the format groups, the
  * `-internal` rows in the parse groups.
  */
 const speed_entry_rank = (entry: BenchmarkDisplayEntry): number => {
 	const rank = CROSS_TOOL_RANK[entry.category];
 	if (rank !== undefined) return rank;
-	if (entry.name.endsWith('-no-locations')) return TSV_RANK_BASE; // tsv json, span-only wire
-	if (entry.name.endsWith('+reconstruct')) return TSV_RANK_BASE + 1; // span-only + `loc` in JS
-	if (entry.name.endsWith('-json')) return TSV_RANK_BASE + 1; // tsv json, loc-carrying wire
+	if (entry.category === 'tsv_native_json' || entry.category === 'tsv_wasm_json') {
+		// tsv json: the span-only default, then `+locations`
+		return entry.name.endsWith('+locations') ? TSV_RANK_BASE + 1 : TSV_RANK_BASE;
+	}
 	return TSV_RANK_BASE + 2; // tsv's engine rows: `tsv`/`tsv-wasm` (format), `-internal` (parse, no JS materialization)
 };
 
@@ -540,7 +595,7 @@ export const derive_benchmark_groups = (baseline: BenchmarkBaseline): Array<Benc
 				name: e.name,
 				mean_ns: mean_ns ?? 0,
 				bar_fraction: mean_ns == null || slowest <= 0 ? 0 : mean_ns / slowest,
-				category: categorize_name(e.name),
+				category: categorize_row(e.group, e.name),
 				files_processed: e.files_processed,
 				files_total: e.files_total,
 				...(untimed ? { disabled: true, coverage_only: true } : null)
@@ -606,16 +661,20 @@ export const derive_benchmark_groups = (baseline: BenchmarkBaseline): Array<Benc
 /**
  * The bench's own instability thresholds, restated: a cleaned cv at or past
  * `UNSTABLE_CV_THRESHOLD`, a raw cv at or past it on a row with fewer than
- * `RAW_CV_SAMPLE_CEILING` raw timings, or a |drift| at or past
- * `UNSTABLE_DRIFT_THRESHOLD`, and the row's mean may be neither of two modes it
- * blended. Mirrors `bench.ts`.
+ * `RAW_CV_SAMPLE_CEILING` raw timings a pass, a |drift| at or past
+ * `UNSTABLE_DRIFT_THRESHOLD`, or a pass spread at or past
+ * `UNSTABLE_PASS_SPREAD_THRESHOLD`, and the row's mean may be neither of two levels
+ * it blended. Mirrors `bench.ts`.
  */
 const UNSTABLE_CV_THRESHOLD = 0.1;
 const UNSTABLE_DRIFT_THRESHOLD = 0.05;
+const UNSTABLE_PASS_SPREAD_THRESHOLD = 0.05;
 /**
- * Below this many raw timings the raw cv counts too: with few samples one deviant
- * sweep is a real share of the row; with hundreds it is an isolated pause the
- * cleaner rightly removes, and `drift` (a median-based level shift) is the detector.
+ * Below this many raw timings a pass the raw cv counts too: with few samples one
+ * deviant sweep is a real share of the row; with hundreds it is an isolated pause
+ * the cleaner rightly removes, and `drift` (a median-based level shift) is the
+ * detector. Per pass because it asks about one process's series — a report before
+ * `version` 21 is one pass.
  */
 const RAW_CV_SAMPLE_CEILING = 30;
 
@@ -638,12 +697,15 @@ const to_unstable_readings = (entry: BaselineEntry): Array<number> => {
 		entry.cv_raw != null &&
 		entry.cv_raw >= UNSTABLE_CV_THRESHOLD &&
 		entry.raw_sample_size != null &&
-		entry.raw_sample_size < RAW_CV_SAMPLE_CEILING
+		entry.raw_sample_size / (entry.passes ?? 1) < RAW_CV_SAMPLE_CEILING
 	) {
 		readings.push(entry.cv_raw);
 	}
 	if (entry.drift != null && Math.abs(entry.drift) >= UNSTABLE_DRIFT_THRESHOLD) {
 		readings.push(Math.abs(entry.drift));
+	}
+	if (entry.pass_spread != null && entry.pass_spread >= UNSTABLE_PASS_SPREAD_THRESHOLD) {
+		readings.push(entry.pass_spread);
 	}
 	return readings;
 };
@@ -773,19 +835,20 @@ export const derive_corpus_counts = (baseline: BenchmarkBaseline): CorpusCounts 
  * print `Infinity` mid-sentence.
  */
 export interface SweepStats {
-	/** The bench's lowest per-row sweep floor. */
+	/** The bench's sweep floor per pass — every row's, alike. */
 	floor: number | undefined;
 	/**
-	 * The reference rows' floor — theirs is separate, since every default ratio
-	 * divides by one. Falls back to `floor` when no reference row carries one.
+	 * How many fresh processes each row was timed in — `undefined` on a report from
+	 * before passes (`version` < 21), where every row was timed once in one process.
 	 */
-	canonical_floor: number | undefined;
-	/** The span of cleaned timing counts the report kept per row. */
+	passes: number | undefined;
+	/** The span of cleaned timing counts the report kept per row, pooled over its passes. */
 	sample_size_min: number | undefined;
 	sample_size_max: number | undefined;
 	/**
-	 * The largest level shift any row showed while it was measured (`|drift|`, a
-	 * fraction) — what bounds, loosely, how far a row's timings moved in place.
+	 * The largest level shift any row showed while one process measured it
+	 * (`|drift|`, a fraction) — what bounds, loosely, how far a row's timings moved in
+	 * place.
 	 */
 	drift_max: number | undefined;
 }
@@ -794,15 +857,12 @@ export const derive_sweep_stats = (baseline: BenchmarkBaseline): SweepStats => {
 	const min_of = (values: Array<number>): number | undefined =>
 		values.length ? Math.min(...values) : undefined;
 	const floors = baseline.entries.flatMap((e) => e.min_iterations ?? []);
-	const canonical_floors = baseline.entries.flatMap((e) =>
-		categorize_name(e.name) === 'canonical' ? (e.min_iterations ?? []) : []
-	);
+	const passes = baseline.entries.flatMap((e) => e.passes ?? []);
 	const sample_sizes = baseline.entries.flatMap((e) => e.sample_size ?? []);
 	const drifts = baseline.entries.flatMap((e) => (e.drift == null ? [] : Math.abs(e.drift)));
-	const floor = min_of(floors);
 	return {
-		floor,
-		canonical_floor: min_of(canonical_floors) ?? floor,
+		floor: min_of(floors),
+		passes: min_of(passes),
 		sample_size_min: min_of(sample_sizes),
 		sample_size_max: sample_sizes.length ? Math.max(...sample_sizes) : undefined,
 		drift_max: drifts.length ? Math.max(...drifts) : undefined

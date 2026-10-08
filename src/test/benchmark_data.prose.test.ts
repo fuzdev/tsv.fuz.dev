@@ -26,8 +26,9 @@ import {
 import { derive_unstable_cells } from '$routes/docs/benchmarks/benchmark_cross_runtime.ts';
 import { IN_PROCESS_PAIRS as IN_PROCESS_PAIRS_BY_KEY } from '$routes/docs/benchmarks/benchmarks_prose.ts';
 import {
+	type BaselineEntry,
 	benchmark_speedup,
-	categorize_name,
+	categorize_row,
 	derive_benchmark_groups,
 	derive_corpus_counts,
 	derive_sweep_stats,
@@ -48,6 +49,11 @@ const assert_reads_faster = (ratio: number, label: string): void => {
 	assert.isAbove(ratio, 1, label);
 	assert.notStrictEqual(format_ratio_approx(ratio), '1.0x', `${label} renders as ~1.0x`);
 };
+
+/** Whether a row stopped at the sweep floor in every pass (its raw count is the floor times the passes). */
+const is_at_sweep_floor = (entry: BaselineEntry): boolean =>
+	entry.min_iterations != null &&
+	entry.raw_sample_size === entry.min_iterations * (entry.passes ?? 1);
 
 /** The report's format groups, asserted non-empty so a loop over them can't pass on nothing. */
 const format_groups = () => {
@@ -154,12 +160,12 @@ describe('prose ratios resolve', () => {
 	});
 
 	test('the CSS parse note reads the internal rows it points at', () => {
-		// "the JSON hand-off is ~N% of tsv's time there (the gap between its json and internal entries)",
+		// "the JSON hand-off is ~N% of tsv's time (the gap between its default and internal entries)",
 		// offered as why the JS parsers finish ahead — the wire must cost more than the
 		// engine, or the explanation is wrong
-		const wire_share = benchmark_speedup(benchmarks_json, 'parse/css', 'tsv-json', 'tsv-internal');
+		const wire_share = benchmark_speedup(benchmarks_json, 'parse/css', 'tsv', 'tsv-internal');
 		assert.isDefined(wire_share);
-		assert.isAbove(wire_share, 2, 'tsv-json should cost at least twice tsv-internal on CSS');
+		assert.isAbove(wire_share, 2, 'tsv should cost at least twice tsv-internal on CSS');
 	});
 
 	test('every in-process pair the TLDR quotes was measured stably', () => {
@@ -180,10 +186,10 @@ describe('prose ratios resolve', () => {
 	});
 
 	test('the pairings the copy compares by payload tier share one, and the ones it excludes do not', () => {
-		// The page names four pairings as comparing the same kind of PRODUCT and rules three
-		// out ("swc's AST ... matches neither tsv wire", and the `no-locs` entries, not the
-		// default wire, are "the closest comparison with oxc-parser"). Those are claims about
-		// the report's `payload` tiers, so read them off it rather than trusting prose. A
+		// The page names the pairings that compare the same kind of PRODUCT and rules the
+		// rest out ("swc's AST ... matches neither of tsv's outputs", and the `+locations`
+		// entries carry a superset of Svelte's `loc`, not an equal one). Those are claims
+		// about the report's `payload` tiers, so read them off it rather than trusting prose. A
 		// shared tier is a shape, not a byte count: the copy says Oxc's span-only AST runs
 		// larger than tsv's.
 		const entry = (group: string, name: string) => {
@@ -195,22 +201,28 @@ describe('prose ratios resolve', () => {
 			is_payload_matched(entry(group, a), entry(group, b));
 
 		for (const [group, a, b] of [
-			['parse/typescript', 'tsv-json-no-locations', 'oxc-parser'],
-			['parse/typescript', 'tsv-json-no-locations', 'yuku-parser'],
-			['parse/typescript', 'tsv-wasm-json-no-locations', 'yuku-parser-wasm'],
-			['parse/svelte', 'tsv-json', 'rsvelte-parse']
+			['parse/typescript', 'tsv', 'oxc-parser'],
+			['parse/typescript', 'tsv', 'yuku-parser'],
+			['parse/typescript', 'tsv-wasm', 'yuku-parser-wasm'],
+			// "`{locations: true}` adds acorn's per-node line/column `loc`"
+			['parse/typescript', 'tsv+locations', 'acorn-typescript'],
+			// "Svelte's own `parseCss`, whose AST tsv reproduces" — neither carries a `loc`
+			['parse/css', 'tsv', 'svelte/compiler']
 		] as const) {
 			assert.isTrue(matched(group, a, b), `${group}: ${a} vs ${b} is no longer payload-matched`);
 		}
 
 		for (const [group, a, b] of [
 			// swc's own AST shape, ruled out against both wires
-			['parse/typescript', 'tsv-json', 'swc'],
-			['parse/typescript', 'tsv-json-no-locations', 'swc'],
-			// oxc against tsv's default wire — the pairing the copy says is NOT the matched one
-			['parse/typescript', 'tsv-json', 'oxc-parser'],
-			// rsvelte's reduced wire "sits near tsv's span-only wire without matching it"
-			['parse/svelte', 'tsv-json-no-locations', 'rsvelte-parse-skip-expr-loc']
+			['parse/typescript', 'tsv+locations', 'swc'],
+			['parse/typescript', 'tsv', 'swc'],
+			// "Oxc and swc, whose ASTs carry no `loc`"
+			['parse/typescript', 'tsv+locations', 'oxc-parser'],
+			// a superset of Svelte's `loc`, not an equal one, on Svelte's own wire and rsvelte's
+			['parse/svelte', 'tsv+locations', 'svelte/compiler'],
+			['parse/svelte', 'tsv+locations', 'rsvelte-parse'],
+			// rsvelte's reduced wire "sits near tsv's span-only output without matching it"
+			['parse/svelte', 'tsv', 'rsvelte-parse-skip-expr-loc']
 		] as const) {
 			assert.isFalse(matched(group, a, b), `${group}: ${a} vs ${b} is now payload-matched`);
 		}
@@ -519,17 +531,20 @@ describe('prose ratios resolve', () => {
 		assert.notStrictEqual(versions.oxc_parser_wasm, versions.oxc_parser, 'bindings re-aligned');
 	});
 
-	test('Prettier sits at the sweep floor, as Benchmarking details says', () => {
-		// the disclosure that Prettier, every format chart's default anchor, runs at the bench's per-row floor:
-		// each Prettier format row's raw timing count must be exactly its floor
+	test('Prettier is among the slow rows that stop near the sweep floor, as Benchmarking details says', () => {
+		// the disclosure that Prettier, every format chart's default anchor, is one of the
+		// rows the stability check proves least for: at the per-pass floor, or a sweep or
+		// two past it on the small CSS corpus — well short of twice it
 		const prettier_rows = benchmarks_json.entries.filter(
 			(e) => e.name === 'prettier' && e.group.startsWith('format/')
 		);
 		assert.isNotEmpty(prettier_rows);
 		for (const entry of prettier_rows) {
-			assert.isDefined(entry.min_iterations, entry.group);
-			assert.strictEqual(entry.raw_sample_size, entry.min_iterations, `${entry.group}/prettier`);
+			const floor = (entry.min_iterations ?? 0) * (entry.passes ?? 1);
+			assert.isAbove(floor, 0, entry.group);
+			assert.isBelow(entry.raw_sample_size ?? Infinity, floor * 2, `${entry.group}/prettier`);
 		}
+		assert(prettier_rows.some(is_at_sweep_floor), 'no Prettier row sits at the floor');
 	});
 
 	test('"most of the TypeScript parse rows, tsv\'s included" sit at the sweep floor', () => {
@@ -538,31 +553,32 @@ describe('prose ratios resolve', () => {
 		const rows = benchmarks_json.entries.filter(
 			(e) => e.group === 'parse/typescript' && e.min_iterations != null
 		);
-		const at_floor = rows.filter((e) => e.raw_sample_size === e.min_iterations);
+		const at_floor = rows.filter(is_at_sweep_floor);
 		assert.isAbove(at_floor.length, rows.length / 2);
-		assert(at_floor.some((e) => categorize_name(e.name).startsWith('tsv_')));
+		assert(at_floor.some((e) => categorize_row(e.group, e.name).startsWith('tsv_')));
 	});
 
-	test('the slowest rows have "too few timings" for the cross-runtime noise check', () => {
-		// tsv's report composer judges a delta against noise only where both sides kept
-		// at least 10 cleaned timings, so the Cross-runtime section's caveat holds while
-		// some row here keeps fewer
-		const { sample_size_min } = derive_sweep_stats(benchmarks_json);
-		assert.isDefined(sample_size_min);
-		assert.isBelow(sample_size_min, 10);
+	test('the cross-runtime noise check reads "a row\'s few passes"', () => {
+		// the Cross-runtime section's caveat: each side's noise is the spread of the
+		// row's pass means, a thin estimate, not a sweep-level cv over many timings
+		const { passes } = derive_sweep_stats(benchmarks_json);
+		assert.isDefined(passes);
+		assert.isAtMost(passes, 5);
+		for (const cell of benchmarks_cross_runtime_json.within_noise) {
+			const key = `${cell.group}/${cell.name}`;
+			assert.deepStrictEqual(cell.basis, ['passes', 'passes'], key);
+		}
 	});
 
-	test('the higher sweep floor is "each group\'s reference row"\'s, and only theirs', () => {
-		// Benchmarking details quotes the lowest floor for every row and a second one in
-		// parentheses for the reference rows, so exactly those rows may sit above it
+	test('every row is timed against one floor and one pass count, as Benchmarking details says', () => {
+		// the prose quotes a single per-pass floor and pass count for every row
 		const timed = benchmarks_json.entries.filter((e) => e.min_iterations != null);
-		const floor = Math.min(...timed.map((e) => e.min_iterations!));
+		assert.isNotEmpty(timed);
+		const { floor, passes } = derive_sweep_stats(benchmarks_json);
 		for (const entry of timed) {
-			assert.strictEqual(
-				entry.min_iterations! > floor,
-				categorize_name(entry.name) === 'canonical',
-				`${entry.group}/${entry.name}: floor ${entry.min_iterations}`
-			);
+			const key = `${entry.group}/${entry.name}`;
+			assert.strictEqual(entry.min_iterations, floor, key);
+			assert.strictEqual(entry.passes, passes, key);
 		}
 	});
 

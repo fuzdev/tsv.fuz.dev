@@ -33,8 +33,7 @@ export interface ConformanceGroup {
  * One coverage row per ENGINE, not per binding: the conformance headline is
  * "which files does this parser accept," which is identical across a tool's
  * native/wasm/internal variants at one release — so the `-wasm` and `-internal`
- * duplicates are dropped and `tsv-json` stands in for tsv (relabeled plainly,
- * since the JSON-materialization qualifier is a speed concern, not a coverage one).
+ * duplicates are dropped and the default `tsv` row stands in for tsv.
  *
  * Which binding stands in is therefore arbitrary — except for oxc, whose wasm
  * binding is pinned to an older release, so only the native row is the current
@@ -46,7 +45,7 @@ export interface ConformanceGroup {
 const CONFORMANCE_ENGINE_NAMES: Record<string, string> = {
 	'svelte/compiler': 'svelte/compiler',
 	'acorn-typescript': 'acorn-typescript',
-	'tsv-json': 'tsv',
+	tsv: 'tsv',
 	'oxc-parser': 'oxc-parser',
 	'yuku-parser-wasm': 'yuku-parser',
 	// rsvelte's two parse rows are one engine under two options, so only the

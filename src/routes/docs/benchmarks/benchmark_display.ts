@@ -135,17 +135,25 @@ export const format_coverage_percent = (fraction: number): string =>
 	// (`0.57` floors to `56.99%`). Far above that error, far below a real hundredth.
 	`${(Math.floor(fraction * 10_000 + 1e-9) / 100).toFixed(2)}%`;
 
-/** `cv 47.8%, raw cv 52.0%, drift +38.0%` — the readings behind an unstable row, absent ones omitted. */
+/**
+ * `cv 47.8%, raw cv 52.0%, drift +38.0%, pass spread 6.1%` — the readings behind an
+ * unstable row, absent ones (and a one-pass run's zero spread) omitted.
+ */
 export const format_unstable_readings = (entry: {
 	cv: number | null;
 	cv_raw?: number | null;
 	drift?: number | null;
+	pass_spread?: number | null;
 }): string => {
 	const parts: Array<string> = [];
 	if (entry.cv != null) parts.push(`cv ${(entry.cv * 100).toFixed(1)}%`);
 	if (entry.cv_raw != null) parts.push(`raw cv ${(entry.cv_raw * 100).toFixed(1)}%`);
 	if (entry.drift != null) {
 		parts.push(`drift ${entry.drift >= 0 ? '+' : ''}${(entry.drift * 100).toFixed(1)}%`);
+	}
+	// a one-pass run's spread is exactly 0, and says nothing
+	if (entry.pass_spread != null && entry.pass_spread > 0) {
+		parts.push(`pass spread ${(entry.pass_spread * 100).toFixed(1)}%`);
 	}
 	return parts.join(', ');
 };
@@ -201,7 +209,7 @@ const floor_ratio = (ratio: number): string =>
 
 /**
  * Hyphenated tool and package names that keep their hyphens in display labels —
- * only the suffix after the name is spaced out (`tsv-wasm-json` → `tsv-wasm json`).
+ * only the suffix after the name is spaced out (`tsv-wasm-internal` → `tsv-wasm internal`).
  */
 const HYPHENATED_NAMES = [
 	'acorn-typescript',
@@ -225,15 +233,8 @@ const HYPHENATED_NAMES = [
  */
 const LABEL_OVERRIDES: Record<string, string> = {
 	tsv: 'tsv (node napi)',
-	'tsv-json': 'tsv json (node napi)',
-	// `no-locs` (not `no-locations`) — the full word eats too much column width.
-	'tsv-json-no-locations': 'tsv json no-locs (node napi)',
-	// the one tsv-wasm entry listed here: the generic formatting below would
-	// break the `no-locs` hyphen its native sibling deliberately keeps
-	'tsv-wasm-json-no-locations': 'tsv-wasm json no-locs',
 	// the span-only wire plus `loc` rebuilt in JS — what `{locations: true}` returns
-	'tsv-json-no-locations+reconstruct': 'tsv json no-locs +reconstruct (node napi)',
-	'tsv-wasm-json-no-locations+reconstruct': 'tsv-wasm json no-locs +reconstruct',
+	'tsv+locations': 'tsv+locations (node napi)',
 	'tsv-internal': 'tsv internal (node napi)',
 	'oxc-parser': 'oxc-parser (node napi)',
 	oxfmt: 'oxfmt (node napi)',

@@ -102,8 +102,7 @@ describe('conformance.json shape', () => {
 		// returning, oxc's wasi pin rejoining — would drop an engine from the table
 		// without a type error. Fold each entry to its engine by stripping the
 		// binding/materialization suffixes and hold the row count to that set.
-		const to_engine = (name: string) =>
-			name.replace(/-(wasm|json|no-locations|internal|skip-expr-loc)/g, '');
+		const to_engine = (name: string) => name.replace(/-(wasm|internal|skip-expr-loc)/g, '');
 		const groups = derive_conformance_groups(conformance_json);
 		for (const group of groups) {
 			const engines = new Set(

@@ -17,10 +17,10 @@ describe('derive_conformance_groups', () => {
 		const [group, ...rest] = derive_conformance_groups(
 			create_baseline({
 				entries: [
-					coverage('tsv-json', 'parse/typescript', 90, 100),
+					coverage('tsv', 'parse/typescript', 90, 100),
 					coverage('yuku-parser-wasm', 'parse/typescript', 95, 100),
 					// a second binding of an engine, a format row, and a row without counts all drop
-					coverage('tsv-wasm-json', 'parse/typescript', 90, 100),
+					coverage('tsv-wasm', 'parse/typescript', 90, 100),
 					coverage('prettier', 'format/typescript', 100, 100),
 					coverage('oxc-parser', 'parse/typescript', null, null)
 				]
@@ -43,7 +43,7 @@ describe('derive_conformance_groups', () => {
 	test('an empty corpus is zero coverage, not NaN', () => {
 		const [group] = derive_conformance_groups(
 			create_baseline({
-				entries: [coverage('tsv-json', 'parse/css', 0, 0)]
+				entries: [coverage('tsv', 'parse/css', 0, 0)]
 			})
 		);
 		assert.strictEqual(group?.rows[0]?.coverage_fraction, 0);
@@ -60,8 +60,8 @@ describe('derive_conformance_matrices', () => {
 		create_baseline({
 			corpus: { svelte: 0, typescript: 100, css: 0 },
 			entries: [
-				coverage('tsv-json', 'parse/typescript', 97, 100),
-				coverage('tsv-wasm-json', 'parse/typescript', 97, 100),
+				coverage('tsv', 'parse/typescript', 97, 100),
+				coverage('tsv-wasm', 'parse/typescript', 97, 100),
 				coverage('tsc', 'parse/typescript', 98, 100)
 			],
 			corpus_sources: [
@@ -83,11 +83,11 @@ describe('derive_conformance_matrices', () => {
 		const [matrix, ...rest] = derive_conformance_matrices(
 			typescript_baseline({
 				'../unknown/source': {
-					'tsv-json': cell(27, 30),
-					'tsv-wasm-json': cell(27, 30),
+					tsv: cell(27, 30),
+					'tsv-wasm': cell(27, 30),
 					tsc: cell(29, 30)
 				},
-				[TS_REPO]: { 'tsv-json': cell(59, 60), 'tsv-wasm-json': cell(59, 60), tsc: cell(60, 60) }
+				[TS_REPO]: { tsv: cell(59, 60), 'tsv-wasm': cell(59, 60), tsc: cell(60, 60) }
 			})
 		);
 		assert.isEmpty(rest);
@@ -129,12 +129,12 @@ describe('derive_conformance_matrices', () => {
 	});
 
 	test('two or more sources every engine accepts in full fold into one trailing row', () => {
-		const full = { 'tsv-json': cell(5, 5), tsc: cell(5, 5) };
+		const full = { tsv: cell(5, 5), tsc: cell(5, 5) };
 		const [matrix] = derive_conformance_matrices(
 			typescript_baseline({
 				'../a': full,
-				'../b': { 'tsv-json': cell(20, 20), tsc: cell(20, 20) },
-				'../c': { 'tsv-json': cell(1, 2), tsc: cell(2, 2) }
+				'../b': { tsv: cell(20, 20), tsc: cell(20, 20) },
+				'../c': { tsv: cell(1, 2), tsc: cell(2, 2) }
 			})
 		);
 		assert(matrix);
@@ -157,8 +157,8 @@ describe('derive_conformance_matrices', () => {
 	test('a lone all-accepted source, or one its engine selected, keeps its own row', () => {
 		const [lone] = derive_conformance_matrices(
 			typescript_baseline({
-				'../a': { 'tsv-json': cell(5, 5), tsc: cell(5, 5) },
-				[TS_REPO]: { 'tsv-json': cell(60, 60), tsc: cell(60, 60) }
+				'../a': { tsv: cell(5, 5), tsc: cell(5, 5) },
+				[TS_REPO]: { tsv: cell(60, 60), tsc: cell(60, 60) }
 			})
 		);
 		assert.deepEqual(
@@ -172,10 +172,10 @@ describe('derive_conformance_matrices', () => {
 			create_baseline({
 				entries: [
 					coverage('svelte/compiler', 'parse/svelte', 5, 5),
-					coverage('tsv-json', 'parse/svelte', 4, 5)
+					coverage('tsv', 'parse/svelte', 4, 5)
 				],
 				coverage_by_source: {
-					'parse/svelte': { '../a': { 'svelte/compiler': cell(5, 5), 'tsv-json': cell(4, 5) } }
+					'parse/svelte': { '../a': { 'svelte/compiler': cell(5, 5), tsv: cell(4, 5) } }
 				}
 			})
 		);
@@ -190,7 +190,7 @@ describe('derive_conformance_matrices', () => {
 
 	test('a report without per-source coverage keeps its aggregate', () => {
 		const [matrix] = derive_conformance_matrices(
-			create_baseline({ entries: [coverage('tsv-json', 'parse/css', 4, 5)] })
+			create_baseline({ entries: [coverage('tsv', 'parse/css', 4, 5)] })
 		);
 		assert.isEmpty(matrix?.sources);
 		assert.strictEqual(matrix?.aggregate[0]?.rejected, 1);

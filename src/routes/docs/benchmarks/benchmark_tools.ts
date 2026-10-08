@@ -46,7 +46,10 @@ export interface ToolSupport {
 	languages: Partial<Record<ToolLanguage, Partial<Record<ToolOperation, ToolCapability>>>>;
 	/** Notable languages beyond the columns, as a short list. */
 	other?: string;
-	/** The in-process report rows its timings live under, per operation. */
+	/**
+	 * The in-process report rows its timings live under, per operation — a name
+	 * identifies a row only within its operation's groups (tsv's `tsv` is both).
+	 */
 	rows: Partial<Record<ToolOperation, ReadonlyArray<string>>>;
 	/** Its rows in the CLI report, which times formatting only. */
 	cli_labels?: ReadonlyArray<string>;
@@ -63,11 +66,11 @@ export const TOOL_SUPPORT: ReadonlyArray<ToolSupport> = [
 		},
 		rows: {
 			parse: [
-				'tsv-json',
-				'tsv-json-no-locations',
+				'tsv',
+				'tsv+locations',
 				'tsv-internal',
-				'tsv-wasm-json',
-				'tsv-wasm-json-no-locations',
+				'tsv-wasm',
+				'tsv-wasm+locations',
 				'tsv-wasm-internal'
 			],
 			format: ['tsv', 'tsv-wasm']

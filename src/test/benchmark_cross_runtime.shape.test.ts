@@ -9,7 +9,7 @@ import { derive_cross_runtime_groups } from '$routes/docs/benchmarks/benchmark_c
 // `COMBINED_SCHEMA_VERSION`. Exact rather than a floor, so `npm run
 // update-benchmarks` pulling a newer shape fails here until
 // `benchmark_cross_runtime.ts` mirrors the new fields and this is re-pinned.
-const COMBINED_VERSION = 15;
+const COMBINED_VERSION = 18;
 
 // Shape gate for the committed cross-runtime `benchmarks_cross_runtime.json` (the
 // bench composer's combined `report.json`) — a different, slimmer shape than the
