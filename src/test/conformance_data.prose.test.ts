@@ -44,12 +44,12 @@ describe('conformance prose reads the report', () => {
 
 	test('every corpus source links its upstream, at a commit unless the harness harvested it', () => {
 		// "Each source links its upstream, at the commit the harness pinned where the
-		// report records one" — only the suites harvested into caches lack one
+		// report records one" — a suite harvested into a cache records one only when
+		// upstream has the harvested commit (not a fork's), so only those may lack it
 		const { rows } = derive_corpus_source_table(conformance_json, CONFORMANCE_SOURCE_LABELS);
-		const harvested = rows.filter((row) => row.path.includes('/.cache/'));
 		for (const row of rows) {
 			assert.isDefined(row.url, row.path);
-			assert.strictEqual(row.commit === undefined, harvested.includes(row), row.path);
+			if (!row.path.includes('/.cache/')) assert.isDefined(row.commit, row.path);
 		}
 	});
 
