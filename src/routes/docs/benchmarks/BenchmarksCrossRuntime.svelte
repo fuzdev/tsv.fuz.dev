@@ -97,8 +97,7 @@
 		</ul>
 		Drift is a change in a row's cost while it was being measured (negative: still warming up;
 		positive: degrading); pass spread is how far the row's passes, each a fresh process, sat apart.
-		The cell is marked ⚠ below and its ratio should be read as unmeasured until that runtime is
-		re-run.
+		Each such cell is marked ⚠ below; read its ratio as unmeasured until that runtime is re-run.
 	</aside>
 {/if}
 <p>

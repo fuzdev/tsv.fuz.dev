@@ -12,7 +12,6 @@
 	import {
 		cli_default_anchor_label,
 		cli_ratio_between,
-		cli_settle_seconds,
 		type BenchmarksCliReport,
 		type CliScenario,
 		type CliFormatterResult,
@@ -67,15 +66,6 @@
 			};
 		});
 	};
-	// the section's run-order note quotes the settle every scenario shares, so a table
-	// states its own only where it differs (a plain string, so the leading space
-	// survives Svelte's block-edge trimming)
-	const common_settle = $derived(cli_settle_seconds(report.scenarios));
-	const to_settle_note = (scenario: CliScenario): string =>
-		scenario.settle_seconds && scenario.settle_seconds !== common_settle
-			? ` that follow a ${scenario.settle_seconds} s idle`
-			: '';
-
 	// the anchor's own cells read as the unit they are; an unmeasured side stays a dash
 	const format_cell = (row: Row, ratio: number | undefined, measured: boolean): string =>
 		ratio != null ? format_speedup(ratio) : row.is_anchor && measured ? format_speedup(1) : '—';
@@ -136,7 +126,7 @@
 					: ''}.
 				{#if rows.length > 0 && scenario.benchmark_runs > 0}
 					Each time is the mean of {scenario.benchmark_runs} runs after {scenario.warmup_runs}
-					warmups{to_settle_note(scenario)}.
+					warmups.
 				{/if}
 			</small>
 		</p>

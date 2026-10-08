@@ -163,7 +163,7 @@ export const RSVELTE_LABEL = 'rsvelte-fmt (binary)';
 
 /**
  * Synthesizes oxc's full-toolchain native build by summing its separately-shipped
- * parser (`oxc-parser (napi)`) and formatter (`oxfmt (napi)`) packages — together
+ * parser (`oxc-parser (napi)`) and formatter (`oxfmt (napi)`) addons — together
  * they're the closest equivalent to tsv's single parse+format build, so the entry
  * stands beside `tsv (napi)` in the native full-toolchain group. Returns
  * `undefined` when either half is missing, and sums gzip only when both carry it.
@@ -189,9 +189,8 @@ const synthesize_oxc_full = (sizes: Array<BinarySize>): BinarySize | undefined =
  * the group's largest entry and the ratio anchors on `anchor_label`, so exactly one
  * entry per group reads 1.00x, whichever tool that is. A combined
  * `oxc-parser + oxfmt` entry is synthesized into the native full-toolchain group,
- * since oxc ships parse and format apart. `TSV_NAPI_LABEL` appears in the native
- * formatter group as well as the full one, anchoring both. oxfmt has no wasm build, so the browser
- * formatter group ends with a disabled `oxfmt (wasm)` placeholder, holding its
+ * since oxc ships parse and format apart. `TSV_NAPI_LABEL` appears in every native
+ * group, anchoring each. oxfmt has no wasm build, so the browser formatter group ends with a disabled `oxfmt (wasm)` placeholder, holding its
  * slot rather than omitting it.
  */
 export const derive_size_targets = (
@@ -215,9 +214,9 @@ const to_capability_groups = (
 			(s) => to_size_target(s) === target && categorize_size_capability(s.label) === capability
 		);
 		if (items.length === 0) continue;
-		// tsv publishes no native formatter-only build, so its full addon stands in the
-		// native formatter group too, as the row a reader can install
-		if (target === 'native' && capability === 'formatter') {
+		// tsv publishes no native formatter-only or parse-only build, so its full addon
+		// stands in both native groups too, as the row a reader can install
+		if (target === 'native' && capability !== 'full') {
 			const napi = sizes.find((s) => s.label === TSV_NAPI_LABEL);
 			if (napi) items.push(napi);
 		}

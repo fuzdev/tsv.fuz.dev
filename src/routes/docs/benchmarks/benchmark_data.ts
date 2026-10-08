@@ -337,7 +337,7 @@ export interface BaselineVersions {
 	// two can differ.
 	oxc_parser_wasm?: string;
 	oxfmt?: string;
-	// `yuku-parser` (N-API) and `@yuku-parser/wasm` — one Zig engine behind two
+	// `yuku-parser` (N-API) and `@yuku-core/wasm` — one Zig engine behind two
 	// bindings, versioned in lockstep upstream.
 	yuku_parser?: string;
 	yuku_parser_wasm?: string;
@@ -668,7 +668,8 @@ export const derive_benchmark_groups = (baseline: BenchmarkBaseline): Array<Benc
  */
 const UNSTABLE_CV_THRESHOLD = 0.1;
 const UNSTABLE_DRIFT_THRESHOLD = 0.05;
-const UNSTABLE_PASS_SPREAD_THRESHOLD = 0.05;
+/** The pass spread at or past which a row is flagged unstable — quoted on the benchmarks page. */
+export const UNSTABLE_PASS_SPREAD_THRESHOLD = 0.05;
 /**
  * Below this many raw timings a pass the raw cv counts too: with few samples one
  * deviant sweep is a real share of the row; with hundreds it is an isolated pause

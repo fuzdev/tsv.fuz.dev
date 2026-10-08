@@ -35,7 +35,7 @@ describe('benchmarks.json binary sizes', () => {
 		// nothing about what it does, which is right only for builds that really ship
 		// both operations. The labels in the table are the exceptions, matched by
 		// exact string — a rename upstream misses the lookup and lands silently in
-		// `full`, where `swc (napi)` (a 32 MB parser) would become the flagship group's
+		// `full`, where `swc (napi)` (a whole compiler) would become the flagship group's
 		// `max` and rescale every bar in it.
 		const labels = new Set(benchmarks_json.binary_sizes.map((s) => s.label));
 		for (const label of Object.keys(SIZE_CAPABILITY_BY_LABEL)) {
@@ -61,8 +61,8 @@ describe('benchmarks.json binary sizes', () => {
 				for (const e of group.entries) {
 					// every entry lands in the target and group its kind and capability name
 					assert.strictEqual(to_size_target(e), target, `${e.label} target`);
-					// tsv's full native addon also stands in the native formatter group
-					if (group.capability === 'formatter' && e.label === TSV_NAPI_LABEL) continue;
+					// tsv's full native addon also stands in the other native groups
+					if (e.label === TSV_NAPI_LABEL) continue;
 					assert.strictEqual(categorize_size_capability(e.label), group.capability);
 				}
 				// the smallest real build leads the group — a disabled placeholder must not
@@ -114,11 +114,10 @@ describe('benchmarks.json binary sizes', () => {
 		assert.strictEqual(rsvelte.category, 'rsvelte');
 	});
 
-	test('tsv\'s artifacts are "smaller than theirs too, capability for capability"', () => {
+	test('tsv\'s artifacts are "smaller than theirs too, except against oxc-parser\'s native build"', () => {
 		// The TLDR's size claim against Oxc and Biome, like for like within each target
 		// and capability: tsv's wasm builds against the wasm competitors, its native
-		// builds against the native ones (the ffi build stands in where a group has no
-		// napi build of tsv)
+		// builds against the native ones
 		const targets = derive_size_targets(benchmarks_json.binary_sizes);
 		const bytes = (target: 'browser' | 'native', capability: string, label: string): number => {
 			const entry = targets[target]
@@ -143,6 +142,12 @@ describe('benchmarks.json binary sizes', () => {
 				`${target} ${capability}: ${tsv} vs ${other}`
 			);
 		}
+		// the exception: tsv publishes no native parse-only build, so its full addon
+		// is the installable row beside oxc-parser's
+		assert.isAbove(
+			bytes('native', 'parser', 'tsv (napi)'),
+			bytes('native', 'parser', 'oxc-parser (napi)')
+		);
 	});
 
 	test('the size notes on the js bundles hold: full barely over formatter, and gz flatters them', () => {

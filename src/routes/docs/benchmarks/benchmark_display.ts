@@ -283,7 +283,7 @@ export const VERSION_LABELS: Record<string, string> = {
 	// the oxc-parser wasm row's binding, its own scoped package
 	oxc_parser_wasm: '@oxc-parser/binding-wasm32-wasi',
 	// the wasm binding is its own scoped package, not a hyphenated suffix
-	yuku_parser_wasm: '@yuku-parser/wasm',
+	yuku_parser_wasm: '@yuku-core/wasm',
 	malva: 'dprint-plugin-malva',
 	// the wasm engine's release line, not `@biomejs/js-api`'s separate one
 	biome: '@biomejs/wasm-bundler',
@@ -398,7 +398,7 @@ export const format_group_omissions = (omissions: GroupOmissions): string => {
 	const tools = omissions.by_tool
 		.map((t) => `${format_label(t.name)} ${format_count(t.files)}`)
 		.join(', ');
-	return `${lead}, because rows here fail ${pronoun} in this harness — by row, overlapping: ${tools}.`;
+	return `${lead}, because some rows fail ${pronoun} in this harness (per row, overlapping: ${tools}).`;
 };
 
 /** A commit SHA as the page prints it, abbreviated to one length everywhere. */
