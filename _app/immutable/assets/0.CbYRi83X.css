@@ -508,6 +508,10 @@ body {
 	resize: vertical;
 }
 
+:where(:is(select, option, input[type='color']):not(:disabled)) {
+	cursor: pointer;
+}
+
 :where(option:not(.unstyled)) {
 	color: var(--text_color);
 	background-color: var(--shade_00);
