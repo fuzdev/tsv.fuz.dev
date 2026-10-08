@@ -195,7 +195,7 @@
 		width: auto !important;
 	}
 	.error {
-		color: var(--color_c_50);
+		color: var(--palette_c_50);
 		white-space: pre-wrap;
 	}
 </style>

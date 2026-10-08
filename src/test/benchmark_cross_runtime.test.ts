@@ -244,9 +244,9 @@ describe('format_cross_runtime_label', () => {
 describe('cross_runtime_ratio_background', () => {
 	test('parity is transparent, and alpha saturates at a 20% delta either way', () => {
 		assert.include(cross_runtime_ratio_background(1), ' 0.0%,');
-		assert.include(cross_runtime_ratio_background(1.1), 'var(--color_b_50) 15.0%,');
-		assert.include(cross_runtime_ratio_background(1.2), 'var(--color_b_50) 30.0%,');
-		assert.include(cross_runtime_ratio_background(3), 'var(--color_b_50) 30.0%,');
-		assert.include(cross_runtime_ratio_background(0.5), 'var(--color_c_50) 30.0%,');
+		assert.include(cross_runtime_ratio_background(1.1), 'var(--palette_b_50) 15.0%,');
+		assert.include(cross_runtime_ratio_background(1.2), 'var(--palette_b_50) 30.0%,');
+		assert.include(cross_runtime_ratio_background(3), 'var(--palette_b_50) 30.0%,');
+		assert.include(cross_runtime_ratio_background(0.5), 'var(--palette_c_50) 30.0%,');
 	});
 });

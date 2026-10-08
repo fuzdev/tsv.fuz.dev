@@ -340,8 +340,8 @@ export const format_cross_runtime_label = (name: string): string =>
 	format_label(name).replace(' (node napi)', ' (native)');
 
 /**
- * Cross-runtime ratio cell background: a stable fuz_css red (`color_c`) / green
- * (`color_b`) whose ALPHA varies with distance from parity. Fully transparent at ratio
+ * Cross-runtime ratio cell background: a stable fuz_css red (`palette_c`) / green
+ * (`palette_b`) whose ALPHA varies with distance from parity. Fully transparent at ratio
  * `1.0` (parity recedes), ramping to `0.3` alpha at ratio `0.8` and below (red) or `1.2`
  * and above (green). The hue stays constant — only opacity moves — so it reads
  * consistently in light and dark themes while the cell's text keeps the default color.
@@ -351,6 +351,6 @@ export const format_cross_runtime_label = (name: string): string =>
 export const cross_runtime_ratio_background = (ratio: number): string => {
 	// 0 alpha at ratio 1.0, up to 0.3 at ratio ≤ 0.8 (red) or ≥ 1.2 (green)
 	const alpha = Math.min(1, Math.abs(ratio - 1) / 0.2) * 0.3;
-	const color = ratio < 1 ? 'var(--color_c_50)' : 'var(--color_b_50)';
+	const color = ratio < 1 ? 'var(--palette_c_50)' : 'var(--palette_b_50)';
 	return `color-mix(in srgb, ${color} ${(alpha * 100).toFixed(1)}%, transparent)`;
 };

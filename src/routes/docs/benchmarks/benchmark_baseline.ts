@@ -17,11 +17,11 @@ export const compute_baseline_ratio = (entry_raw: number, anchor_raw: number): n
 
 /** Returns a CSS color variable for a baseline ratio. */
 export const baseline_ratio_color = (ratio: number): string => {
-	if (ratio < 0.5) return 'var(--color_c_50)'; // red — much worse
-	if (ratio < 1) return 'var(--color_h_50)'; // orange — worse
-	if (ratio < 2) return 'var(--color_e_50)'; // yellow — modest
-	if (ratio < 5) return 'var(--color_b_50)'; // green — better
-	return 'var(--color_j_50)'; // teal — exceptional
+	if (ratio < 0.5) return 'var(--palette_c_50)'; // red — much worse
+	if (ratio < 1) return 'var(--palette_h_50)'; // orange — worse
+	if (ratio < 2) return 'var(--palette_e_50)'; // yellow — modest
+	if (ratio < 5) return 'var(--palette_b_50)'; // green — better
+	return 'var(--palette_j_50)'; // teal — exceptional
 };
 
 /**

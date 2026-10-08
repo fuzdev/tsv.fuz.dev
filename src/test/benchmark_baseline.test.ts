@@ -17,9 +17,9 @@ describe('compute_baseline_ratio', () => {
 
 describe('baseline_ratio_color', () => {
 	test('worse than the anchor runs red to orange, better runs yellow to teal', () => {
-		assert.strictEqual(baseline_ratio_color(0.4), 'var(--color_c_50)');
-		assert.strictEqual(baseline_ratio_color(0.9), 'var(--color_h_50)');
-		assert.strictEqual(baseline_ratio_color(10), 'var(--color_j_50)');
+		assert.strictEqual(baseline_ratio_color(0.4), 'var(--palette_c_50)');
+		assert.strictEqual(baseline_ratio_color(0.9), 'var(--palette_h_50)');
+		assert.strictEqual(baseline_ratio_color(10), 'var(--palette_j_50)');
 	});
 
 	test('each band starts at its threshold', () => {

@@ -5,7 +5,7 @@
 /* a warning aside: the red tint over fuz_css's base aside styling, used by the
    page's asides and the cross-runtime section's */
 .benchmarks-warning {
-	border-left-color: var(--color_c_50);
+	border-left-color: var(--palette_c_50);
 }
 
 /* a wide table scrolls in its own container, so the page body never scrolls sideways */

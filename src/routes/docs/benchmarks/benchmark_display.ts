@@ -332,25 +332,25 @@ export const format_row_label = (
 export const category_color = (category: ImplementationCategory): string => {
 	switch (category) {
 		case 'canonical':
-			return 'var(--color_h_40)';
+			return 'var(--palette_h_40)';
 		case 'tsv_native':
-			return 'var(--color_g_40)';
+			return 'var(--palette_g_40)';
 		case 'tsv_native_json':
-			return 'var(--color_e_40)';
+			return 'var(--palette_e_40)';
 		case 'tsv_wasm':
-			return 'var(--color_d_40)';
+			return 'var(--palette_d_40)';
 		case 'tsv_wasm_json':
-			return 'var(--color_f_40)';
+			return 'var(--palette_f_40)';
 		case 'biome':
-			return 'var(--color_a_40)';
+			return 'var(--palette_a_40)';
 		case 'dprint':
-			return 'var(--color_b_40)';
+			return 'var(--palette_b_40)';
 		case 'oxc':
-			return 'var(--color_i_40)';
+			return 'var(--palette_i_40)';
 		case 'rsvelte':
-			return 'var(--color_c_40)';
+			return 'var(--palette_c_40)';
 		case 'yuku':
-			return 'var(--color_j_40)';
+			return 'var(--palette_j_40)';
 		// The palette has ten hues and the categories above spend all ten, so these
 		// two reuse a hue at a lighter shade. The pairing is chosen so a colored
 		// collision can't show up in a speed group: `swc` and `postcss` are
@@ -362,9 +362,9 @@ export const category_color = (category: ImplementationCategory): string => {
 		// parse row (or an swc formatter) would break that, and would need a hue
 		// freed up.
 		case 'swc':
-			return 'var(--color_a_50)'; // biome's hue, lighter
+			return 'var(--palette_a_50)'; // biome's hue, lighter
 		case 'postcss':
-			return 'var(--color_b_50)'; // dprint's hue, lighter
+			return 'var(--palette_b_50)'; // dprint's hue, lighter
 	}
 };
 
