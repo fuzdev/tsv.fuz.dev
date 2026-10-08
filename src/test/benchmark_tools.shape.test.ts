@@ -17,13 +17,15 @@ describe('the language-support matrix reads the reports', () => {
 	const timed_entries = benchmarks_json.entries.filter((e) => e.mean_ns != null && e.mean_ns > 0);
 
 	test('every report row a tool lists is in the report, and every CLI label in a scenario', () => {
-		const names = new Set(benchmarks_json.entries.map((e) => e.name));
+		const names = new Set(benchmarks_json.entries.map((e) => `${e.group.split('/')[0]}:${e.name}`));
 		// a scenario's roster rather than its timed rows: a scenario published
 		// aborted still names the tools it didn't time
 		const cli_labels = new Set(benchmarks_cli.scenarios.flatMap((s) => s.labels));
 		for (const tool of TOOL_SUPPORT) {
-			for (const name of Object.values(tool.rows).flat()) {
-				assert.ok(names.has(name), `${tool.name}: no report row ${name}`);
+			for (const [operation, rows] of Object.entries(tool.rows)) {
+				for (const name of rows) {
+					assert.ok(names.has(`${operation}:${name}`), `${tool.name}: no ${operation} row ${name}`);
+				}
 			}
 			for (const label of tool.cli_labels ?? []) {
 				assert.ok(cli_labels.has(label), `${tool.name}: no CLI row ${label}`);
@@ -32,9 +34,20 @@ describe('the language-support matrix reads the reports', () => {
 	});
 
 	test('every timed report row belongs to a tool in the matrix', () => {
-		const listed = new Set(TOOL_SUPPORT.flatMap((tool) => Object.values(tool.rows).flat()));
+		// keyed on the operation too: tsv's `tsv` names a parse row and a format row
+		const listed = new Set(
+			TOOL_SUPPORT.flatMap((tool) =>
+				Object.entries(tool.rows).flatMap(([operation, rows]) =>
+					rows.map((name) => `${operation}:${name}`)
+				)
+			)
+		);
 		for (const entry of timed_entries) {
-			assert.ok(listed.has(entry.name), `${entry.group}/${entry.name} is in no matrix row`);
+			const [operation] = entry.group.split('/');
+			assert.ok(
+				listed.has(`${operation}:${entry.name}`),
+				`${entry.group}/${entry.name} is in no matrix row`
+			);
 		}
 	});
 
@@ -61,9 +74,11 @@ describe('the language-support matrix reads the reports', () => {
 			for (const [operation, rows] of Object.entries(tool.rows) as Array<
 				[ToolOperation, ReadonlyArray<string>]
 			>) {
-				for (const entry of timed_entries.filter((e) => rows.includes(e.name))) {
-					const [group_operation, language] = entry.group.split('/');
-					assert.strictEqual(group_operation, operation, `${tool.name}: ${entry.group}`);
+				const timed = timed_entries.filter(
+					(e) => e.group.startsWith(`${operation}/`) && rows.includes(e.name)
+				);
+				for (const entry of timed) {
+					const [, language] = entry.group.split('/');
 					assert.include(TOOL_LANGUAGES, language, entry.group);
 					assert.isDefined(
 						tool.languages[language as ToolLanguage]?.[operation],

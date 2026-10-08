@@ -6,17 +6,13 @@ import { benchmarks_formatters_json } from '$routes/docs/benchmarks/benchmarks_f
 import { format_ratio_approx } from '$routes/docs/benchmarks/benchmark_display.ts';
 import {
 	benchmarks_cli,
-	cli_comparison_results,
-	cli_label_is_tsv,
 	cli_memory_ratio_range,
-	cli_scenario_has_memory,
 	cli_scenario_find,
 	cli_ratio_vs_tsv,
 	cli_ratio_vs_tsv_npm,
 	cli_tsv_npm_overhead_ms_range,
 	cli_node_startup_ms,
 	CLI_DELIVERY_KEY,
-	CLI_SCENARIO_KEYS,
 	CLI_SINGLE_FILE_KEY,
 	CLI_SVELTE_KEY,
 	CLI_TS_REPO_KEY,
@@ -26,8 +22,9 @@ import {
 import { derive_unstable_cells } from '$routes/docs/benchmarks/benchmark_cross_runtime.ts';
 import { IN_PROCESS_PAIRS as IN_PROCESS_PAIRS_BY_KEY } from '$routes/docs/benchmarks/benchmarks_prose.ts';
 import {
+	type BaselineEntry,
 	benchmark_speedup,
-	categorize_name,
+	categorize_row,
 	derive_benchmark_groups,
 	derive_corpus_counts,
 	derive_sweep_stats,
@@ -48,6 +45,11 @@ const assert_reads_faster = (ratio: number, label: string): void => {
 	assert.isAbove(ratio, 1, label);
 	assert.notStrictEqual(format_ratio_approx(ratio), '1.0x', `${label} renders as ~1.0x`);
 };
+
+/** Whether a row stopped at the sweep floor in every pass (its raw count is the floor times the passes). */
+const is_at_sweep_floor = (entry: BaselineEntry): boolean =>
+	entry.min_iterations != null &&
+	entry.raw_sample_size === entry.min_iterations * (entry.passes ?? 1);
 
 /** The report's format groups, asserted non-empty so a loop over them can't pass on nothing. */
 const format_groups = () => {
@@ -154,12 +156,12 @@ describe('prose ratios resolve', () => {
 	});
 
 	test('the CSS parse note reads the internal rows it points at', () => {
-		// "the JSON hand-off is ~N% of tsv's time there (the gap between its json and internal entries)",
+		// "the JSON hand-off is ~N% of tsv's time (the gap between its default and internal entries)",
 		// offered as why the JS parsers finish ahead — the wire must cost more than the
 		// engine, or the explanation is wrong
-		const wire_share = benchmark_speedup(benchmarks_json, 'parse/css', 'tsv-json', 'tsv-internal');
+		const wire_share = benchmark_speedup(benchmarks_json, 'parse/css', 'tsv', 'tsv-internal');
 		assert.isDefined(wire_share);
-		assert.isAbove(wire_share, 2, 'tsv-json should cost at least twice tsv-internal on CSS');
+		assert.isAbove(wire_share, 2, 'tsv should cost at least twice tsv-internal on CSS');
 	});
 
 	test('every in-process pair the TLDR quotes was measured stably', () => {
@@ -180,10 +182,10 @@ describe('prose ratios resolve', () => {
 	});
 
 	test('the pairings the copy compares by payload tier share one, and the ones it excludes do not', () => {
-		// The page names four pairings as comparing the same kind of PRODUCT and rules three
-		// out ("swc's AST ... matches neither tsv wire", and the `no-locs` entries, not the
-		// default wire, are "the closest comparison with oxc-parser"). Those are claims about
-		// the report's `payload` tiers, so read them off it rather than trusting prose. A
+		// The page names the pairings that compare the same kind of PRODUCT and rules the
+		// rest out ("swc's AST ... matches neither of tsv's outputs", and the `+locations`
+		// entries carry a superset of Svelte's `loc`, not an equal one). Those are claims
+		// about the report's `payload` tiers, so read them off it rather than trusting prose. A
 		// shared tier is a shape, not a byte count: the copy says Oxc's span-only AST runs
 		// larger than tsv's.
 		const entry = (group: string, name: string) => {
@@ -195,22 +197,28 @@ describe('prose ratios resolve', () => {
 			is_payload_matched(entry(group, a), entry(group, b));
 
 		for (const [group, a, b] of [
-			['parse/typescript', 'tsv-json-no-locations', 'oxc-parser'],
-			['parse/typescript', 'tsv-json-no-locations', 'yuku-parser'],
-			['parse/typescript', 'tsv-wasm-json-no-locations', 'yuku-parser-wasm'],
-			['parse/svelte', 'tsv-json', 'rsvelte-parse']
+			['parse/typescript', 'tsv', 'oxc-parser'],
+			['parse/typescript', 'tsv', 'yuku-parser'],
+			['parse/typescript', 'tsv-wasm', 'yuku-parser-wasm'],
+			// "`{locations: true}` adds acorn's per-node line/column `loc`"
+			['parse/typescript', 'tsv+locations', 'acorn-typescript'],
+			// "Svelte's own `parseCss`, whose AST tsv reproduces" — neither carries a `loc`
+			['parse/css', 'tsv', 'svelte/compiler']
 		] as const) {
 			assert.isTrue(matched(group, a, b), `${group}: ${a} vs ${b} is no longer payload-matched`);
 		}
 
 		for (const [group, a, b] of [
 			// swc's own AST shape, ruled out against both wires
-			['parse/typescript', 'tsv-json', 'swc'],
-			['parse/typescript', 'tsv-json-no-locations', 'swc'],
-			// oxc against tsv's default wire — the pairing the copy says is NOT the matched one
-			['parse/typescript', 'tsv-json', 'oxc-parser'],
-			// rsvelte's reduced wire "sits near tsv's span-only wire without matching it"
-			['parse/svelte', 'tsv-json-no-locations', 'rsvelte-parse-skip-expr-loc']
+			['parse/typescript', 'tsv+locations', 'swc'],
+			['parse/typescript', 'tsv', 'swc'],
+			// "Oxc and swc, whose ASTs carry no `loc`"
+			['parse/typescript', 'tsv+locations', 'oxc-parser'],
+			// a superset of Svelte's `loc`, not an equal one, on Svelte's own wire and rsvelte's
+			['parse/svelte', 'tsv+locations', 'svelte/compiler'],
+			['parse/svelte', 'tsv+locations', 'rsvelte-parse'],
+			// rsvelte's reduced wire "sits near tsv's span-only output without matching it"
+			['parse/svelte', 'tsv', 'rsvelte-parse-skip-expr-loc']
 		] as const) {
 			assert.isFalse(matched(group, a, b), `${group}: ${a} vs ${b} is now payload-matched`);
 		}
@@ -228,43 +236,8 @@ describe('prose ratios resolve', () => {
 		}
 	});
 
-	test('every CLI ratio the prose quotes is present', () => {
-		// (the TypeScript-repo wall/CPU pairs are covered by the CPU-work test below)
-		// the CLI note's "less peak memory than every other tool in every scenario", against the bare
-		// binary and the dispatcher — both read as "less" and both are floored to one
-		// decimal for display, so the LOW end must reach 1.1 or the range would print
-		// "1.0–Nx less memory", a claim of nothing. The sentence is dropped when no
-		// scenario facing other tools published memory (every one aborted), so the
-		// ranges must resolve exactly when one did
-		const memory_published = benchmarks_cli.scenarios.some(
-			(s) => !s.tsv_only && cli_scenario_has_memory(s)
-		);
-		for (const range of [
-			cli_memory_ratio_range(),
-			cli_memory_ratio_range({ baseline_label: CLI_TSV_NPM_LABEL })
-		]) {
-			if (!memory_published) {
-				assert.isUndefined(range);
-				continue;
-			}
-			assert.isDefined(range);
-			assert.isAtLeast(range.min, 1.1);
-		}
-		// the delivery note's three ratios, tsv against its own distributions
-		for (const [label, metric] of [
-			[CLI_TSV_NPM_LABEL, 'wall_ms'],
-			[CLI_TSV_WASM_LABEL, 'wall_ms'],
-			[CLI_TSV_WASM_LABEL, 'memory_mb']
-		] as const) {
-			const ratio = cli_ratio_vs_tsv(CLI_DELIVERY_KEY, label, metric);
-			assert.isDefined(ratio, `${CLI_DELIVERY_KEY}: ${label} ${metric}`);
-			// the copy reads "takes ~Nx as long" / "~Nx the memory", so each must exceed 1
-			assert_reads_faster(ratio, `${CLI_DELIVERY_KEY}: ${label} ${metric}`);
-		}
-	});
-
 	test('the like-for-like dispatcher claims read the way the numbers run', () => {
-		// The TLDR and the CLI note lead with tsv through its Node dispatcher against the
+		// The TLDR leads with tsv through its Node dispatcher against the
 		// other tools' npm bins: "~Nx faster than Oxfmt and ~Mx faster than Biome ...
 		// using less memory than either". The copy has no bare-binary fallback, so
 		// every one must resolve or a sentence prints with a hole in it.
@@ -280,14 +253,7 @@ describe('prose ratios resolve', () => {
 		});
 		assert.isDefined(memory);
 		assert.isAbove(memory.min, 1);
-		// "~Nx the binary's time on the delivery table's one file, but ~Mx on the
-		// TypeScript repo": the dispatcher's own cost must shrink on the repo
-		const repo_cost = cli_ratio_vs_tsv(CLI_TS_REPO_KEY, CLI_TSV_NPM_LABEL, 'wall_ms');
-		const file_cost = cli_ratio_vs_tsv(CLI_DELIVERY_KEY, CLI_TSV_NPM_LABEL, 'wall_ms');
-		assert.isDefined(repo_cost);
-		assert.isDefined(file_cost);
-		assert_reads_faster(repo_cost, `${CLI_TS_REPO_KEY}: dispatcher cost`);
-		assert.isBelow(repo_cost, file_cost, 'the dispatcher cost does not shrink on the repo');
+
 		// the Svelte bullet's like-for-like pair: that scenario may be published
 		// aborted, but the copy quotes the dispatcher ratio wherever it quotes the
 		// bare-binary one, so the two must resolve together
@@ -299,9 +265,9 @@ describe('prose ratios resolve', () => {
 		}
 	});
 
-	test('the dispatcher row "shows Node\'s peak, not the binary\'s"', () => {
-		// the harness reports the largest single process in the tree, so the memory note
-		// holds only while the Node launcher outgrows the binary it spawns
+	test("the dispatcher row's peak is Node's, not the binary's, as the memory note implies", () => {
+		// the harness reports the largest single process in the tree, so the memory note's
+		// "understated" holds for the dispatcher row only while Node outgrows the binary
 		for (const scenario of benchmarks_cli.scenarios) {
 			const npm = scenario.results.find((r) => r.label === CLI_TSV_NPM_LABEL);
 			const tsv = scenario.results.find((r) => r.label === 'tsv');
@@ -310,24 +276,11 @@ describe('prose ratios resolve', () => {
 		}
 	});
 
-	test('the memory note\'s "every other tool" spans every competitor row of the scenarios it names', () => {
-		// the unscoped memory range skips a row without a figure, so a tool missing from
-		// one memory table would narrow the claim silently rather than void it — every
-		// competitor row must carry one. A scenario that published no memory at all is
-		// an abort the note excludes by name ("every scenario that published memory")
-		for (const scenario of benchmarks_cli.scenarios.filter((s) => !s.tsv_only)) {
-			if (!cli_scenario_has_memory(scenario)) continue;
-			for (const r of cli_comparison_results(scenario)) {
-				assert.isNotNull(r.memory_mb, `${scenario.key}: ${r.label} has no memory figure`);
-			}
-		}
-	});
-
 	test('the CLI CPU-work note reads the way the numbers run', () => {
-		// "in CPU time tsv leads Oxfmt ~C through the dispatcher and ~D as the bare binary;
-		// in wall-clock time, ~A and ~B" — the two CPU leads must sit inside the wall-clock span: dispatcher
-		// wall < dispatcher CPU <= bare CPU < bare wall. Any one flipping on a refresh
-		// leaves the note explaining the opposite of what the table shows.
+		// "in CPU time tsv leads Oxfmt ~C through the dispatcher and ~D as the bare binary",
+		// against the TLDR's wall-clock ~A and ~B — the two CPU leads must sit inside the
+		// wall-clock span: dispatcher wall < dispatcher CPU <= bare CPU < bare wall. Any
+		// one flipping on a refresh leaves "adds little CPU" contradicting the table.
 		const defined = (value: number | undefined, name: string): number => {
 			assert.isDefined(value, `${CLI_TS_REPO_KEY}: ${name}`);
 			return value;
@@ -381,7 +334,7 @@ describe('prose ratios resolve', () => {
 		assert.isAbove(floor, overhead.max / 2);
 	});
 
-	test('the dispatcher overhead is the "fixed cost" the delivery note calls it', () => {
+	test('the dispatcher overhead is the "fixed" cost the CLI note calls it', () => {
 		// "tsv's dispatcher adds a fixed ~N ms over the bare binary" — fixed means the
 		// absolute figure barely moves between a one-file run and a repo, so the span
 		// must stay tight around a positive cost
@@ -398,9 +351,9 @@ describe('prose ratios resolve', () => {
 		assert.match(rsvelte_version, /^0\.7\./, 'the Svelte copy names rsvelte-fmt 0.7.x');
 	});
 
-	test('the delivery note places the wasm row among the single-file tools', () => {
-		// "still well ahead of both Prettier rows in the single-file table but behind Oxfmt
-		// and Biome" —
+	test('the delivery caption places the wasm row among the single-file tools', () => {
+		// "still finishes well ahead of both Prettier rows in the single-file table, but
+		// behind Oxfmt and Biome" —
 		// the delivery and single-file scenarios time the same file (the shape test
 		// holds them to one corpus revision), so the wasm row reads against the other
 		// tools' single-file times across the two tables
@@ -442,67 +395,6 @@ describe('prose ratios resolve', () => {
 		);
 	});
 
-	test('the unscoped memory range spans only the scenarios that face other tools', () => {
-		// "less than every other tool in every scenario it faces them" — the tsv-only
-		// delivery rows are tsv's own distributions and must not widen or narrow it
-		const delivery = benchmarks_cli.scenarios.find((s) => s.key === CLI_DELIVERY_KEY);
-		assert(delivery, `no generated scenario has id "${CLI_DELIVERY_KEY}"`);
-		assert.isTrue(delivery.tsv_only);
-		for (const r of delivery.results) {
-			assert.ok(cli_label_is_tsv(r.label), `${CLI_DELIVERY_KEY} carries a non-tsv row: ${r.label}`);
-		}
-		const competitor_keys = benchmarks_cli.scenarios.filter((s) => !s.tsv_only).map((s) => s.key);
-		assert.isNotEmpty(competitor_keys);
-		const ranges = competitor_keys
-			.map((key) => cli_memory_ratio_range({ scenario_key: key }))
-			.filter((r) => r !== undefined);
-		const expected = {
-			min: Math.min(...ranges.map((r) => r.min)),
-			max: Math.max(...ranges.map((r) => r.max))
-		};
-		assert.deepStrictEqual(cli_memory_ratio_range(), expected);
-		// and the delivery scenario, named explicitly, still spans on its own
-		assert.isDefined(cli_memory_ratio_range({ scenario_key: CLI_DELIVERY_KEY }));
-	});
-
-	test('the wasm delivery row is "ahead of both Prettier rows … and behind Oxfmt and Biome"', () => {
-		// the delivery and large-single-file scenarios time the same parser.ts, so
-		// the note's ordering claim is checkable across them
-		const delivery = benchmarks_cli.scenarios.find((s) => s.key === CLI_DELIVERY_KEY);
-		const single = benchmarks_cli.scenarios.find((s) => s.key === CLI_SINGLE_FILE_KEY);
-		assert(delivery && single);
-		const wasm = delivery.results.find((r) => r.label === CLI_TSV_WASM_LABEL);
-		assert(wasm, 'delivery scenario has no tsv-wasm row');
-		for (const label of ['prettier', 'prettier + oxc-parser']) {
-			const js = single.results.find((r) => r.label === label);
-			assert(js, `large-single-file has no ${label} row`);
-			assert.isBelow(wasm.wall_ms, js.wall_ms, `tsv-wasm vs ${label}`);
-		}
-		// the sentence concedes the native-engine rows, so that half must hold too
-		for (const label of ['oxfmt', 'biome']) {
-			const native = single.results.find((r) => r.label === label);
-			assert(native, `large-single-file has no ${label} row`);
-			assert.isAbove(wasm.wall_ms, native.wall_ms, `tsv-wasm vs ${label}`);
-		}
-	});
-
-	test('the run-order note holds: every scenario runs the dispatcher row, then bare tsv, last', () => {
-		// "Every scenario runs tsv's two rows last, the dispatcher row and then the bare
-		// binary" — hyperfine reports commands in the order it ran them,
-		// and the generated timings keep that order. An aborted scenario has no timings
-		// to order, so its preflight rows, which the harness runs in the same order, stand in.
-		for (const key of CLI_SCENARIO_KEYS) {
-			const scenario = benchmarks_formatters_json.scenarios.find((s) => s.id === key);
-			assert(scenario, `no generated scenario has id "${key}"`);
-			const rows = scenario.timings.length ? scenario.timings : scenario.preflight;
-			assert.deepStrictEqual(
-				rows.slice(-2).map((r) => r.name),
-				['tsv-npm', 'tsv'],
-				key
-			);
-		}
-	});
-
 	test('the corpus figures the Corpus section quotes resolve', () => {
 		// the page has no fallback copy for them
 		const counts = derive_corpus_counts(benchmarks_json);
@@ -519,17 +411,34 @@ describe('prose ratios resolve', () => {
 		assert.notStrictEqual(versions.oxc_parser_wasm, versions.oxc_parser, 'bindings re-aligned');
 	});
 
-	test('Prettier sits at the sweep floor, as Benchmarking details says', () => {
-		// the disclosure that Prettier, every format chart's default anchor, runs at the bench's per-row floor:
-		// each Prettier format row's raw timing count must be exactly its floor
+	test("every competing formatter's TypeScript and Svelte rows stop at the sweep floor, as Benchmarking details says", () => {
+		// "every competing formatter's TypeScript and Svelte rows, Prettier ... among them"
+		const competitors = benchmarks_json.entries.filter(
+			(e) =>
+				(e.group === 'format/typescript' || e.group === 'format/svelte') &&
+				e.min_iterations != null &&
+				!categorize_row(e.group, e.name).startsWith('tsv_')
+		);
+		assert.isNotEmpty(competitors);
+		for (const entry of competitors) {
+			assert(is_at_sweep_floor(entry), `${entry.group}/${entry.name} is past the sweep floor`);
+		}
+	});
+
+	test('Prettier is among the slow rows that stop near the sweep floor, as Benchmarking details says', () => {
+		// the disclosure that Prettier, every format chart's default anchor, is one of the
+		// rows the stability check proves least for: at the per-pass floor, or a sweep or
+		// two past it on the small CSS corpus — well short of twice it
 		const prettier_rows = benchmarks_json.entries.filter(
 			(e) => e.name === 'prettier' && e.group.startsWith('format/')
 		);
 		assert.isNotEmpty(prettier_rows);
 		for (const entry of prettier_rows) {
-			assert.isDefined(entry.min_iterations, entry.group);
-			assert.strictEqual(entry.raw_sample_size, entry.min_iterations, `${entry.group}/prettier`);
+			const floor = (entry.min_iterations ?? 0) * (entry.passes ?? 1);
+			assert.isAbove(floor, 0, entry.group);
+			assert.isBelow(entry.raw_sample_size ?? Infinity, floor * 2, `${entry.group}/prettier`);
 		}
+		assert(prettier_rows.some(is_at_sweep_floor), 'no Prettier row sits at the floor');
 	});
 
 	test('"most of the TypeScript parse rows, tsv\'s included" sit at the sweep floor', () => {
@@ -538,31 +447,32 @@ describe('prose ratios resolve', () => {
 		const rows = benchmarks_json.entries.filter(
 			(e) => e.group === 'parse/typescript' && e.min_iterations != null
 		);
-		const at_floor = rows.filter((e) => e.raw_sample_size === e.min_iterations);
+		const at_floor = rows.filter(is_at_sweep_floor);
 		assert.isAbove(at_floor.length, rows.length / 2);
-		assert(at_floor.some((e) => categorize_name(e.name).startsWith('tsv_')));
+		assert(at_floor.some((e) => categorize_row(e.group, e.name).startsWith('tsv_')));
 	});
 
-	test('the slowest rows have "too few timings" for the cross-runtime noise check', () => {
-		// tsv's report composer judges a delta against noise only where both sides kept
-		// at least 10 cleaned timings, so the Cross-runtime section's caveat holds while
-		// some row here keeps fewer
-		const { sample_size_min } = derive_sweep_stats(benchmarks_json);
-		assert.isDefined(sample_size_min);
-		assert.isBelow(sample_size_min, 10);
+	test('the cross-runtime noise check reads "a row\'s few passes"', () => {
+		// the Cross-runtime section's caveat: each side's noise is the spread of the
+		// row's pass means, a thin estimate, not a sweep-level cv over many timings
+		const { passes } = derive_sweep_stats(benchmarks_json);
+		assert.isDefined(passes);
+		assert.isAtMost(passes, 5);
+		for (const cell of benchmarks_cross_runtime_json.within_noise) {
+			const key = `${cell.group}/${cell.name}`;
+			assert.deepStrictEqual(cell.basis, ['passes', 'passes'], key);
+		}
 	});
 
-	test('the higher sweep floor is "each group\'s reference row"\'s, and only theirs', () => {
-		// Benchmarking details quotes the lowest floor for every row and a second one in
-		// parentheses for the reference rows, so exactly those rows may sit above it
+	test('every row is timed against one floor and one pass count, as Benchmarking details says', () => {
+		// the prose quotes a single per-pass floor and pass count for every row
 		const timed = benchmarks_json.entries.filter((e) => e.min_iterations != null);
-		const floor = Math.min(...timed.map((e) => e.min_iterations!));
+		assert.isNotEmpty(timed);
+		const { floor, passes } = derive_sweep_stats(benchmarks_json);
 		for (const entry of timed) {
-			assert.strictEqual(
-				entry.min_iterations! > floor,
-				categorize_name(entry.name) === 'canonical',
-				`${entry.group}/${entry.name}: floor ${entry.min_iterations}`
-			);
+			const key = `${entry.group}/${entry.name}`;
+			assert.strictEqual(entry.min_iterations, floor, key);
+			assert.strictEqual(entry.passes, passes, key);
 		}
 	});
 

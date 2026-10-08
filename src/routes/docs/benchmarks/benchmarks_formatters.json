@@ -1,6 +1,6 @@
 {
-	"timestamp": "2026-10-02T18:38:54.171Z",
-	"git_commit": "b1479e3",
+	"timestamp": "2026-10-07T12:50:51.727Z",
+	"git_commit": "453198a",
 	"git_dirty": false,
 	"machine": {
 		"cpu_model": "AMD Ryzen 5 PRO 7530U with Radeon Graphics",
@@ -9,18 +9,18 @@
 		"arch": "x86_64"
 	},
 	"node_startup": {
-		"mean_ms": 18.751,
-		"stddev_ms": 0.788,
+		"mean_ms": 19.115,
+		"stddev_ms": 0.899,
 		"runs": 20
 	},
 	"versions": {
-		"prettier": "3.9.6",
-		"@prettier/plugin-oxc": "0.2.2",
-		"biome": "2.5.13",
-		"oxfmt": "0.68.0",
-		"rsvelte-fmt": "0.7.23",
-		"tsv": "0.5.0",
-		"tsv-wasm": "0.5.0",
+		"prettier": "3.9.9",
+		"@prettier/plugin-oxc": "0.2.3",
+		"biome": "2.5.15",
+		"oxfmt": "0.72.0",
+		"rsvelte-fmt": "0.7.25",
+		"tsv": "0.6.0",
+		"tsv-wasm": "0.6.0",
 		"node": "24.14.1"
 	},
 	"tsv_binary": {
@@ -78,133 +78,133 @@
 			"timings": [
 				{
 					"name": "prettier",
-					"mean_ms": 1618.284,
-					"stddev_ms": 27.562,
-					"user_ms": 1529.852,
-					"system_ms": 895.321,
-					"min_ms": 1575.127,
-					"max_ms": 1669.828
+					"mean_ms": 1607.88,
+					"stddev_ms": 25.256,
+					"user_ms": 1534.58,
+					"system_ms": 878.86,
+					"min_ms": 1549.59,
+					"max_ms": 1647.255
 				},
 				{
 					"name": "prettier+oxc-parser",
-					"mean_ms": 976.916,
-					"stddev_ms": 12.901,
-					"user_ms": 879.281,
-					"system_ms": 454.203,
-					"min_ms": 939.745,
-					"max_ms": 989.399
+					"mean_ms": 975.877,
+					"stddev_ms": 8.763,
+					"user_ms": 887.704,
+					"system_ms": 445.56,
+					"min_ms": 955.216,
+					"max_ms": 988.928
 				},
 				{
 					"name": "biome",
-					"mean_ms": 108.164,
-					"stddev_ms": 1.424,
-					"user_ms": 80.331,
-					"system_ms": 34.592,
-					"min_ms": 105.296,
-					"max_ms": 112.217
+					"mean_ms": 107.43,
+					"stddev_ms": 1.035,
+					"user_ms": 80.113,
+					"system_ms": 34.213,
+					"min_ms": 105.742,
+					"max_ms": 109.166
 				},
 				{
 					"name": "oxfmt",
-					"mean_ms": 62.008,
-					"stddev_ms": 1.984,
-					"user_ms": 42.341,
-					"system_ms": 52.962,
-					"min_ms": 59.225,
-					"max_ms": 66.285
+					"mean_ms": 60.817,
+					"stddev_ms": 1.286,
+					"user_ms": 46.039,
+					"system_ms": 47.155,
+					"min_ms": 58.821,
+					"max_ms": 64.145
 				},
 				{
 					"name": "tsv-npm",
-					"mean_ms": 46.547,
-					"stddev_ms": 0.853,
-					"user_ms": 29.528,
-					"system_ms": 19.341,
-					"min_ms": 44.822,
-					"max_ms": 47.827
+					"mean_ms": 46.153,
+					"stddev_ms": 0.803,
+					"user_ms": 29.709,
+					"system_ms": 18.823,
+					"min_ms": 45.137,
+					"max_ms": 48.345
 				},
 				{
 					"name": "tsv",
-					"mean_ms": 16.392,
-					"stddev_ms": 0.457,
-					"user_ms": 8.383,
-					"system_ms": 7.934,
-					"min_ms": 15.485,
-					"max_ms": 17.301
+					"mean_ms": 16.375,
+					"stddev_ms": 0.609,
+					"user_ms": 9.207,
+					"system_ms": 7.151,
+					"min_ms": 14.725,
+					"max_ms": 17.409
 				}
 			],
 			"fastest": "tsv",
 			"speedups": [
 				{
 					"name": "tsv-npm",
-					"ratio": 2.8396,
-					"ratio_stddev": 0.0948
+					"ratio": 2.8185,
+					"ratio_stddev": 0.1157
 				},
 				{
 					"name": "oxfmt",
-					"ratio": 3.7828,
-					"ratio_stddev": 0.1606
+					"ratio": 3.714,
+					"ratio_stddev": 0.1588
 				},
 				{
 					"name": "biome",
-					"ratio": 6.5985,
-					"ratio_stddev": 0.2036
+					"ratio": 6.5605,
+					"ratio_stddev": 0.2519
 				},
 				{
 					"name": "prettier+oxc-parser",
-					"ratio": 59.5964,
-					"ratio_stddev": 1.8398
+					"ratio": 59.5948,
+					"ratio_stddev": 2.2786
 				},
 				{
 					"name": "prettier",
-					"ratio": 98.7228,
-					"ratio_stddev": 3.2272
+					"ratio": 98.19,
+					"ratio_stddev": 3.9618
 				}
 			],
 			"memory": [
 				{
 					"name": "prettier",
-					"mean_mb": 306.185,
-					"min_mb": 292.313,
-					"max_mb": 321.359,
-					"ratio": 22.8163,
-					"ratio_stddev": 0.6558
+					"mean_mb": 306,
+					"min_mb": 293.453,
+					"max_mb": 320.227,
+					"ratio": 22.8929,
+					"ratio_stddev": 0.6467
 				},
 				{
 					"name": "prettier+oxc-parser",
-					"mean_mb": 196.988,
-					"min_mb": 195.598,
-					"max_mb": 197.902,
-					"ratio": 14.6792,
-					"ratio_stddev": 0.1336
+					"mean_mb": 196.355,
+					"min_mb": 194.379,
+					"max_mb": 198.574,
+					"ratio": 14.6899,
+					"ratio_stddev": 0.144
 				},
 				{
 					"name": "biome",
-					"mean_mb": 95.887,
-					"min_mb": 92.922,
-					"max_mb": 99.336,
-					"ratio": 7.1454,
-					"ratio_stddev": 0.1574
+					"mean_mb": 96.233,
+					"min_mb": 94.535,
+					"max_mb": 98.445,
+					"ratio": 7.1995,
+					"ratio_stddev": 0.122
 				},
 				{
 					"name": "oxfmt",
-					"mean_mb": 114.071,
-					"min_mb": 113.781,
-					"max_mb": 114.246,
-					"ratio": 8.5004,
-					"ratio_stddev": 0.0717
+					"mean_mb": 111.768,
+					"min_mb": 110.184,
+					"max_mb": 112.203,
+					"ratio": 8.3617,
+					"ratio_stddev": 0.0697
 				},
 				{
 					"name": "tsv-npm",
-					"mean_mb": 49.503,
-					"min_mb": 49.375,
-					"max_mb": 49.617,
-					"ratio": 3.6888,
-					"ratio_stddev": 0.0313
+					"mean_mb": 49.512,
+					"min_mb": 49.313,
+					"max_mb": 49.715,
+					"ratio": 3.7041,
+					"ratio_stddev": 0.0262
 				},
 				{
 					"name": "tsv",
-					"mean_mb": 13.42,
-					"min_mb": 13.121,
-					"max_mb": 13.582
+					"mean_mb": 13.367,
+					"min_mb": 13.191,
+					"max_mb": 13.535
 				}
 			]
 		},
@@ -258,141 +258,141 @@
 			"timings": [
 				{
 					"name": "prettier",
-					"mean_ms": 8344.679,
-					"stddev_ms": 115.551,
-					"user_ms": 13900.409,
-					"system_ms": 916.157,
-					"min_ms": 8210.859,
-					"max_ms": 8551.473
+					"mean_ms": 8389.01,
+					"stddev_ms": 116.758,
+					"user_ms": 13968.569,
+					"system_ms": 931.146,
+					"min_ms": 8236.241,
+					"max_ms": 8574.15
 				},
 				{
 					"name": "prettier+oxc-parser",
-					"mean_ms": 6896.405,
-					"stddev_ms": 87.443,
-					"user_ms": 8823.119,
-					"system_ms": 561.273,
-					"min_ms": 6758.409,
-					"max_ms": 7009.254
+					"mean_ms": 6889.291,
+					"stddev_ms": 81.509,
+					"user_ms": 8834.464,
+					"system_ms": 543.955,
+					"min_ms": 6746.539,
+					"max_ms": 7046.292
 				},
 				{
 					"name": "biome",
-					"mean_ms": 302.747,
-					"stddev_ms": 5.115,
-					"user_ms": 2174.52,
-					"system_ms": 204.662,
-					"min_ms": 298.986,
-					"max_ms": 316.537
+					"mean_ms": 297.575,
+					"stddev_ms": 0.971,
+					"user_ms": 2142.525,
+					"system_ms": 218.843,
+					"min_ms": 296.302,
+					"max_ms": 298.894
 				},
 				{
 					"name": "oxfmt",
-					"mean_ms": 115.428,
-					"stddev_ms": 2.877,
-					"user_ms": 521.131,
-					"system_ms": 276.887,
-					"min_ms": 110.086,
-					"max_ms": 120.525
+					"mean_ms": 117.21,
+					"stddev_ms": 3.076,
+					"user_ms": 549.092,
+					"system_ms": 248.227,
+					"min_ms": 113.612,
+					"max_ms": 122.019
 				},
 				{
 					"name": "tsv-npm",
-					"mean_ms": 74.784,
-					"stddev_ms": 0.966,
-					"user_ms": 281.206,
-					"system_ms": 125.594,
-					"min_ms": 73.441,
-					"max_ms": 76.776
+					"mean_ms": 74.483,
+					"stddev_ms": 1.376,
+					"user_ms": 268.595,
+					"system_ms": 136.653,
+					"min_ms": 73.016,
+					"max_ms": 77.309
 				},
 				{
 					"name": "tsv",
-					"mean_ms": 43.572,
-					"stddev_ms": 0.304,
-					"user_ms": 252.814,
-					"system_ms": 119.224,
-					"min_ms": 43.267,
-					"max_ms": 44.141
+					"mean_ms": 43.785,
+					"stddev_ms": 0.36,
+					"user_ms": 257.042,
+					"system_ms": 115.486,
+					"min_ms": 43.107,
+					"max_ms": 44.505
 				}
 			],
 			"fastest": "tsv",
 			"speedups": [
 				{
 					"name": "tsv-npm",
-					"ratio": 1.7163,
-					"ratio_stddev": 0.0252
+					"ratio": 1.7011,
+					"ratio_stddev": 0.0344
 				},
 				{
 					"name": "oxfmt",
-					"ratio": 2.6491,
-					"ratio_stddev": 0.0686
+					"ratio": 2.6769,
+					"ratio_stddev": 0.0736
 				},
 				{
 					"name": "biome",
-					"ratio": 6.9482,
-					"ratio_stddev": 0.127
+					"ratio": 6.7963,
+					"ratio_stddev": 0.0601
 				},
 				{
 					"name": "prettier+oxc-parser",
-					"ratio": 158.2759,
-					"ratio_stddev": 2.2899
+					"ratio": 157.3436,
+					"ratio_stddev": 2.2666
 				},
 				{
 					"name": "prettier",
-					"ratio": 191.5145,
-					"ratio_stddev": 2.9688
+					"ratio": 191.5954,
+					"ratio_stddev": 3.0968
 				}
 			],
 			"memory": [
 				{
 					"name": "prettier",
-					"mean_mb": 462.523,
-					"min_mb": 388.785,
-					"max_mb": 568.141,
-					"ratio": 22.5196,
-					"ratio_stddev": 2.8072
+					"mean_mb": 453.161,
+					"min_mb": 386.371,
+					"max_mb": 475.125,
+					"ratio": 22.1603,
+					"ratio_stddev": 1.48
 				},
 				{
 					"name": "prettier+oxc-parser",
-					"mean_mb": 306.423,
-					"min_mb": 301.824,
-					"max_mb": 321.785,
-					"ratio": 14.9193,
-					"ratio_stddev": 0.3637
+					"mean_mb": 304.369,
+					"min_mb": 301.301,
+					"max_mb": 308.441,
+					"ratio": 14.8841,
+					"ratio_stddev": 0.4484
 				},
 				{
 					"name": "biome",
-					"mean_mb": 146.014,
-					"min_mb": 142.164,
-					"max_mb": 149.086,
-					"ratio": 7.1092,
-					"ratio_stddev": 0.1494
+					"mean_mb": 145.243,
+					"min_mb": 141.09,
+					"max_mb": 148.688,
+					"ratio": 7.1026,
+					"ratio_stddev": 0.2486
 				},
 				{
 					"name": "oxfmt",
-					"mean_mb": 227.007,
-					"min_mb": 221.559,
-					"max_mb": 236.664,
-					"ratio": 11.0527,
-					"ratio_stddev": 0.2861
+					"mean_mb": 227.3,
+					"min_mb": 221.41,
+					"max_mb": 234.262,
+					"ratio": 11.1153,
+					"ratio_stddev": 0.3836
 				},
 				{
 					"name": "tsv-npm",
-					"mean_mb": 49.642,
-					"min_mb": 49.453,
-					"max_mb": 49.902,
-					"ratio": 2.417,
-					"ratio_stddev": 0.0368
+					"mean_mb": 49.432,
+					"min_mb": 49.027,
+					"max_mb": 49.758,
+					"ratio": 2.4173,
+					"ratio_stddev": 0.0712
 				},
 				{
 					"name": "tsv",
-					"mean_mb": 20.539,
-					"min_mb": 20.117,
-					"max_mb": 21.094
+					"mean_mb": 20.449,
+					"min_mb": 19.477,
+					"max_mb": 21.262
 				}
 			]
 		},
 		{
 			"id": "svelte-tsv-vs-rsvelte-fmt",
 			"name": "Svelte (tsv vs rsvelte-fmt)",
-			"target": "third-party .svelte corpus (kit, svelte.dev, layerchart, svelte-ux, flowbite-svelte, svelte-maplibre, layercake)",
-			"corpus": "fuzdev/corpora@1117b4829309 (collections tree 5f40c547c3ed), snapshot 6214069 2026-09-04",
+			"target": "third-party .svelte corpus (kit, svelte.dev, layerchart, svelte-ux, flowbite-svelte src/lib, svelte-maplibre, layercake)",
+			"corpus": "fuzdev/corpora@63d1790f2473 (collections tree 9b64dd2a4e21), snapshot ce81fe8 2026-10-02",
 			"warmup_runs": 3,
 			"benchmark_runs": 10,
 			"settle_seconds": 10,
@@ -416,71 +416,71 @@
 					"crashed": false
 				}
 			],
-			"files": 2226,
+			"files": 1091,
 			"timings": [
 				{
 					"name": "rsvelte-fmt",
-					"mean_ms": 196.613,
-					"stddev_ms": 6.473,
-					"user_ms": 846.56,
-					"system_ms": 747.482,
-					"min_ms": 185.87,
-					"max_ms": 208.485
+					"mean_ms": 164.641,
+					"stddev_ms": 5.206,
+					"user_ms": 632.721,
+					"system_ms": 647.284,
+					"min_ms": 158.187,
+					"max_ms": 176.842
 				},
 				{
 					"name": "tsv-npm",
-					"mean_ms": 70.26,
-					"stddev_ms": 1.104,
-					"user_ms": 248.034,
-					"system_ms": 125.393,
-					"min_ms": 68.553,
-					"max_ms": 71.43
+					"mean_ms": 55.591,
+					"stddev_ms": 0.823,
+					"user_ms": 165.049,
+					"system_ms": 76.014,
+					"min_ms": 54.153,
+					"max_ms": 56.824
 				},
 				{
 					"name": "tsv",
-					"mean_ms": 39.384,
-					"stddev_ms": 0.29,
-					"user_ms": 211.266,
-					"system_ms": 128.838,
-					"min_ms": 39.006,
-					"max_ms": 39.932
+					"mean_ms": 24.932,
+					"stddev_ms": 0.27,
+					"user_ms": 139.841,
+					"system_ms": 69.385,
+					"min_ms": 24.524,
+					"max_ms": 25.349
 				}
 			],
 			"fastest": "tsv",
 			"speedups": [
 				{
 					"name": "tsv-npm",
-					"ratio": 1.784,
-					"ratio_stddev": 0.031
+					"ratio": 2.2297,
+					"ratio_stddev": 0.0409
 				},
 				{
 					"name": "rsvelte-fmt",
-					"ratio": 4.9922,
-					"ratio_stddev": 0.1684
+					"ratio": 6.6035,
+					"ratio_stddev": 0.2208
 				}
 			],
 			"memory": [
 				{
 					"name": "rsvelte-fmt",
-					"mean_mb": 139.309,
-					"min_mb": 131.297,
-					"max_mb": 145.387,
-					"ratio": 11.0538,
-					"ratio_stddev": 0.4088
+					"mean_mb": 155.203,
+					"min_mb": 145.801,
+					"max_mb": 161.785,
+					"ratio": 12.8737,
+					"ratio_stddev": 0.5792
 				},
 				{
 					"name": "tsv-npm",
-					"mean_mb": 49.552,
-					"min_mb": 49.305,
-					"max_mb": 49.656,
-					"ratio": 3.9318,
-					"ratio_stddev": 0.0721
+					"mean_mb": 49.639,
+					"min_mb": 49.461,
+					"max_mb": 49.785,
+					"ratio": 4.1174,
+					"ratio_stddev": 0.0748
 				},
 				{
 					"name": "tsv",
-					"mean_mb": 12.603,
-					"min_mb": 12.199,
-					"max_mb": 12.855
+					"mean_mb": 12.056,
+					"min_mb": 11.848,
+					"max_mb": 12.527
 				}
 			]
 		},
@@ -516,67 +516,67 @@
 			"timings": [
 				{
 					"name": "tsv-wasm",
-					"mean_ms": 155.705,
-					"stddev_ms": 4.87,
-					"user_ms": 322.058,
-					"system_ms": 57.172,
-					"min_ms": 149.42,
-					"max_ms": 166.457
+					"mean_ms": 157.84,
+					"stddev_ms": 4.329,
+					"user_ms": 394.881,
+					"system_ms": 55.219,
+					"min_ms": 152.413,
+					"max_ms": 171.153
 				},
 				{
 					"name": "tsv-npm",
-					"mean_ms": 47.28,
-					"stddev_ms": 0.624,
-					"user_ms": 32.951,
-					"system_ms": 16.641,
-					"min_ms": 46.253,
-					"max_ms": 48.434
+					"mean_ms": 47.264,
+					"stddev_ms": 0.707,
+					"user_ms": 33.556,
+					"system_ms": 16.085,
+					"min_ms": 46.013,
+					"max_ms": 49.129
 				},
 				{
 					"name": "tsv",
-					"mean_ms": 16.541,
-					"stddev_ms": 0.282,
-					"user_ms": 11.485,
-					"system_ms": 5.044,
-					"min_ms": 16.124,
-					"max_ms": 17.011
+					"mean_ms": 16.536,
+					"stddev_ms": 0.436,
+					"user_ms": 9.646,
+					"system_ms": 6.847,
+					"min_ms": 15.803,
+					"max_ms": 17.288
 				}
 			],
 			"fastest": "tsv",
 			"speedups": [
 				{
 					"name": "tsv-npm",
-					"ratio": 2.8583,
-					"ratio_stddev": 0.0617
+					"ratio": 2.8582,
+					"ratio_stddev": 0.0867
 				},
 				{
 					"name": "tsv-wasm",
-					"ratio": 9.4132,
-					"ratio_stddev": 0.3354
+					"ratio": 9.545,
+					"ratio_stddev": 0.3633
 				}
 			],
 			"memory": [
 				{
 					"name": "tsv-wasm",
-					"mean_mb": 116.667,
-					"min_mb": 110.309,
-					"max_mb": 122.867,
-					"ratio": 8.6796,
-					"ratio_stddev": 0.2647
+					"mean_mb": 121.722,
+					"min_mb": 114.547,
+					"max_mb": 124.441,
+					"ratio": 9.0896,
+					"ratio_stddev": 0.2247
 				},
 				{
 					"name": "tsv-npm",
-					"mean_mb": 49.57,
-					"min_mb": 49.246,
-					"max_mb": 49.73,
-					"ratio": 3.6878,
-					"ratio_stddev": 0.0303
+					"mean_mb": 49.459,
+					"min_mb": 47.516,
+					"max_mb": 49.828,
+					"ratio": 3.6933,
+					"ratio_stddev": 0.0495
 				},
 				{
 					"name": "tsv",
-					"mean_mb": 13.442,
-					"min_mb": 13.266,
-					"max_mb": 13.664
+					"mean_mb": 13.391,
+					"min_mb": 13.16,
+					"max_mb": 13.738
 				}
 			]
 		}

@@ -12,7 +12,7 @@ import { CONFORMANCE_REPORT_VERSION } from './benchmark_test_helpers.ts';
 
 // Shape gate for the committed conformance report `conformance.json`
 // (tsv's `report.conformance.node.json` — the parse-coverage surface over the
-// deliberately-hard fixture suites, disjoint from the perf corpus), consumed by the
+// edge-case test suites, disjoint from the perf corpus), consumed by the
 // conformance page.
 describe('conformance.json shape', () => {
 	test('report is the conformance surface at the current version', () => {
@@ -50,10 +50,6 @@ describe('conformance.json shape', () => {
 		}
 	});
 
-	test('corpus sources disclose the composition', () => {
-		assert.isNotEmpty(conformance_json.corpus_sources ?? []);
-	});
-
 	test('every exclusion cache was applied', () => {
 		// an absent cache (`null`) leaves files every row rejects in the denominators —
 		// a run tsv refuses unless told to tolerate it, and never one to publish
@@ -66,7 +62,6 @@ describe('conformance.json shape', () => {
 
 	test('derives one coverage group per language, each with a tsv row and full coverage data', () => {
 		const groups = derive_conformance_groups(conformance_json);
-		assert.strictEqual(groups.length, 3); // svelte / typescript / css
 		assert.deepEqual(
 			groups.map((g) => g.language),
 			['svelte', 'typescript', 'css']
@@ -75,13 +70,6 @@ describe('conformance.json shape', () => {
 			assert.ok(
 				group.rows.some((r) => r.name === 'tsv'),
 				`${group.language} has a tsv row`
-			);
-			// rows are ordered by coverage, highest first
-			const fractions = group.rows.map((r) => r.coverage_fraction);
-			assert.deepEqual(
-				fractions,
-				[...fractions].toSorted((a, b) => b - a),
-				`${group.language} rows descend by coverage`
 			);
 			for (const row of group.rows) {
 				assert.isAbove(row.files_total, 0, `${group.language}/${row.name} total`);
@@ -102,8 +90,7 @@ describe('conformance.json shape', () => {
 		// returning, oxc's wasi pin rejoining — would drop an engine from the table
 		// without a type error. Fold each entry to its engine by stripping the
 		// binding/materialization suffixes and hold the row count to that set.
-		const to_engine = (name: string) =>
-			name.replace(/-(wasm|json|no-locations|internal|skip-expr-loc)/g, '');
+		const to_engine = (name: string) => name.replace(/-(wasm|internal|skip-expr-loc)/g, '');
 		const groups = derive_conformance_groups(conformance_json);
 		for (const group of groups) {
 			const engines = new Set(
@@ -151,32 +138,38 @@ describe('conformance matrices over the committed report', () => {
 	test('every source row is labeled, linked, and counted as the corpus sources count it', () => {
 		for (const matrix of matrices) {
 			assert.isNotEmpty(matrix.sources, matrix.language);
-			for (const source of matrix.sources) {
-				for (const origin of source.origins) {
-					// a raw cache path must not reach readers
-					assert.isDefined(origin.label, `${matrix.language} ${origin.path} has no label`);
-					assert.isDefined(origin.url, `${matrix.language} ${origin.path} has no link`);
-				}
-				const counted = source.origins.reduce((sum, origin) => {
-					const corpus_source = conformance_json.corpus_sources.find((s) => s.path === origin.path);
-					return sum + (corpus_source?.by_language?.[matrix.language] ?? 0);
-				}, 0);
-				assert.strictEqual(source.files, counted, `${matrix.language} ${source.origins[0]?.path}`);
+			for (const { origin, files } of matrix.sources) {
+				// a raw cache path must not reach readers
+				assert.isDefined(origin.label, `${matrix.language} ${origin.path} has no label`);
+				assert.isDefined(origin.url, `${matrix.language} ${origin.path} has no link`);
+				const corpus_source = conformance_json.corpus_sources.find((s) => s.path === origin.path);
+				assert.strictEqual(
+					files,
+					corpus_source?.by_language?.[matrix.language] ?? 0,
+					`${matrix.language} ${origin.path}`
+				);
 			}
 		}
 	});
 
-	test("each engine's source cells sum to its aggregate", () => {
-		// the rows are the aggregate unblended, so a source the matrix dropped or an
-		// engine keyed to a different binding than the aggregate's shows up here
+	test("each engine's source cells sum to its group total, and its unselected ones to the aggregate", () => {
+		// the rows are the group unblended, so a source the matrix dropped or an engine
+		// keyed to a different binding than the group's shows up here
+		const groups = derive_conformance_groups(conformance_json);
 		for (const matrix of matrices) {
+			const group = groups.find((g) => g.language === matrix.language);
+			assert(group, matrix.language);
 			for (const [i, engine] of matrix.engines.entries()) {
-				const cells = matrix.sources.map((s) => s.cells[i]);
-				const sum = (key: 'processed' | 'total') =>
-					cells.reduce((total, cell) => total + (cell?.[key] ?? NaN), 0);
 				const id = `${matrix.language}/${engine.name}`;
-				assert.strictEqual(sum('processed'), matrix.aggregate[i]?.processed, id);
-				assert.strictEqual(sum('total'), matrix.aggregate[i]?.total, id);
+				const sum = (rows: typeof matrix.sources, key: 'processed' | 'total') =>
+					rows.reduce((total, row) => total + (row.cells[i]?.[key] ?? NaN), 0);
+				const row = group.rows.find((r) => r.name === engine.name);
+				assert.strictEqual(sum(matrix.sources, 'processed'), row?.files_processed, id);
+				assert.strictEqual(sum(matrix.sources, 'total'), row?.files_total, id);
+				if (!matrix.aggregate) continue;
+				const unselected = matrix.sources.filter((s) => !s.cells.some((c) => c?.selected));
+				assert.strictEqual(sum(unselected, 'processed'), matrix.aggregate.cells[i]?.processed, id);
+				assert.strictEqual(sum(unselected, 'total'), matrix.aggregate.cells[i]?.total, id);
 			}
 		}
 	});
@@ -189,9 +182,7 @@ describe('conformance matrices over the committed report', () => {
 				const i = matrix.engines.findIndex((e) => e.name === engine_name);
 				assert.isAtLeast(i, 0, `${group_key}: no ${engine_name} column`);
 				const rows =
-					path === '*'
-						? matrix.sources
-						: matrix.sources.filter((s) => s.origins.some((o) => o.path === path));
+					path === '*' ? matrix.sources : matrix.sources.filter((s) => s.origin.path === path);
 				assert.isNotEmpty(rows, `${group_key}: no ${path} row`);
 				for (const row of rows) {
 					const cell = row.cells[i];
@@ -212,17 +203,5 @@ describe('conformance matrices over the committed report', () => {
 			for (const key of keys) assert.isDefined(conformance_json.versions[key], `${name}: ${key}`);
 		}
 		assert.sameMembers(Object.keys(CONFORMANCE_ENGINE_VERSIONS), [...names], 'a stale entry');
-	});
-
-	test('only the sources every parser accepts in full are folded', () => {
-		// whether the committed report folds at all is the data's to decide (a fold needs
-		// two fully-accepted sources in one matrix), so the fold itself is pinned on
-		// synthetic rows in `conformance_data.test.ts`; this gate holds the invariant
-		// over any fold present
-		const folded = matrices.flatMap((m) => m.sources.filter((s) => s.folded));
-		for (const row of folded) {
-			assert.isNotEmpty(row.cells);
-			for (const cell of row.cells) assert.strictEqual(cell?.rejected, 0);
-		}
 	});
 });

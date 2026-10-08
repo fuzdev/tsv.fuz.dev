@@ -41,12 +41,12 @@ describe('format_row_label', () => {
 
 describe('format_label', () => {
 	test('overrides name the runtime and binding', () => {
-		assert.strictEqual(format_label('tsv-json-no-locations'), 'tsv json no-locs (node napi)');
+		assert.strictEqual(format_label('tsv+locations'), 'tsv+locations (node napi)');
 		assert.strictEqual(format_label('biome-wasm'), 'biome (wasm)');
 	});
 
 	test('hyphenated tool names keep their hyphens, only the suffix is spaced', () => {
-		assert.strictEqual(format_label('tsv-wasm-json'), 'tsv-wasm json');
+		assert.strictEqual(format_label('tsv-wasm-internal'), 'tsv-wasm internal');
 		assert.strictEqual(format_label('acorn-typescript'), 'acorn-typescript');
 		assert.strictEqual(format_label('tsv-format-wasm'), 'tsv-format-wasm');
 	});
@@ -260,6 +260,14 @@ describe('format_unstable_readings', () => {
 		);
 		assert.strictEqual(format_unstable_readings({ cv: null, cv_raw: null, drift: null }), '');
 	});
+
+	test("names a pass spread, and omits a one-pass run's zero", () => {
+		assert.strictEqual(
+			format_unstable_readings({ cv: 0.02, pass_spread: 0.061 }),
+			'cv 2.0%, pass spread 6.1%'
+		);
+		assert.strictEqual(format_unstable_readings({ cv: 0.12, pass_spread: 0 }), 'cv 12.0%');
+	});
 });
 
 describe('format_runtime_display', () => {
@@ -292,7 +300,7 @@ describe('format_group_omissions', () => {
 	test('several files by several rows lists each row, flagging the overlap', () => {
 		assert.strictEqual(
 			format_group_omissions(omissions),
-			"2 of 951 files (11.2% of the group's bytes) are left out of every row, because rows here fail them in this harness — by row, overlapping: biome (wasm) 2, oxfmt (node napi) 1."
+			"2 of 951 files (11.2% of the group's bytes) are left out of every row, because some rows fail them in this harness (per row, overlapping: biome (wasm) 2, oxfmt (node napi) 1)."
 		);
 	});
 

@@ -5,25 +5,18 @@
 
 	import {
 		benchmarks_cli,
-		cli_memory_is_complete,
-		cli_memory_ratio_range,
 		cli_ratio_vs_tsv,
 		cli_ratio_vs_tsv_npm,
 		cli_tsv_npm_overhead_ms_range,
 		cli_node_startup_ms,
-		cli_settle_seconds,
 		CLI_TS_REPO_KEY,
-		CLI_DELIVERY_KEY,
-		CLI_TSV_NPM_LABEL,
-		CLI_TSV_WASM_LABEL,
-		type CliMetric
+		CLI_TSV_NPM_LABEL
 	} from './benchmarks_cli.ts';
 	import {
 		format_commit,
 		format_ms,
 		format_ms_range,
 		format_ratio_approx,
-		format_ratio_range,
 		format_report_date
 	} from './benchmark_display.ts';
 	import BenchmarksCli from './BenchmarksCli.svelte';
@@ -38,43 +31,17 @@
 		details_title: string;
 	} = $props();
 
-	// tsv through its Node dispatcher against the other tools' npm bins — the
-	// like-for-like rows, which the claims lead with; the bare-binary ratios follow
-	// as what the binary does without a Node launcher in front.
-	const npm_ratio = (scenario: string, label: string, metric: CliMetric = 'wall_ms') =>
-		format_ratio_approx(cli_ratio_vs_tsv_npm(scenario, label, metric));
-	const bare_ratio = (scenario: string, label: string, metric: CliMetric = 'wall_ms') =>
-		format_ratio_approx(cli_ratio_vs_tsv(scenario, label, metric));
-	const npm_ts_vs_oxfmt = npm_ratio(CLI_TS_REPO_KEY, 'oxfmt');
-	const npm_ts_cpu_vs_oxfmt = npm_ratio(CLI_TS_REPO_KEY, 'oxfmt', 'cpu_ms');
-	const ts_wall_vs_oxfmt = bare_ratio(CLI_TS_REPO_KEY, 'oxfmt');
-	const ts_cpu_vs_oxfmt = bare_ratio(CLI_TS_REPO_KEY, 'oxfmt', 'cpu_ms');
-	const memory = cli_memory_ratio_range();
-	const npm_memory = cli_memory_ratio_range({ baseline_label: CLI_TSV_NPM_LABEL });
-	// a scenario aborted before its memory pass finished publishes no memory, so the
-	// claim spans only the ones that did and says so
-	const memory_scope = cli_memory_is_complete()
-		? 'every scenario'
-		: 'every scenario that published memory';
+	// tsv's CPU lead over Oxfmt on the TypeScript repo, through its Node dispatcher and
+	// as the bare binary — close together, which is what shows the dispatcher adds little CPU
+	const npm_ts_cpu_vs_oxfmt = format_ratio_approx(
+		cli_ratio_vs_tsv_npm(CLI_TS_REPO_KEY, 'oxfmt', 'cpu_ms')
+	);
+	const ts_cpu_vs_oxfmt = format_ratio_approx(cli_ratio_vs_tsv(CLI_TS_REPO_KEY, 'oxfmt', 'cpu_ms'));
 	// the dispatcher's cost in absolute terms, which is what makes it "fixed": roughly
 	// the same few tens of milliseconds whether the run is one file or a repo
 	const npm_overhead = format_ms_range(cli_tsv_npm_overhead_ms_range());
 	// the machine's bare Node launch, the floor under every npm-bin row
 	const node_startup_ms = cli_node_startup_ms();
-	// the same cost as a share: the delivery table's one file, then the multi-file repo
-	const delivery_npm_wall = bare_ratio(CLI_DELIVERY_KEY, CLI_TSV_NPM_LABEL);
-	const npm_ts_cost = bare_ratio(CLI_TS_REPO_KEY, CLI_TSV_NPM_LABEL);
-	// what the wasm package costs over the native binary, from the tsv-only delivery scenario
-	const wasm_wall = bare_ratio(CLI_DELIVERY_KEY, CLI_TSV_WASM_LABEL);
-	const wasm_memory = bare_ratio(CLI_DELIVERY_KEY, CLI_TSV_WASM_LABEL, 'memory_mb');
-	// the idle before each formatter's warmups, which narrows the run-order drift —
-	// quoted when every scenario records the same one (a plain string, so the leading
-	// space survives Svelte's block-edge trimming)
-	const settle_seconds = cli_settle_seconds();
-	const settle_note =
-		settle_seconds === undefined
-			? ''
-			: `; a ${settle_seconds} s idle before each formatter's warmups narrows that, without removing it`;
 	// The harness records its own machine and tool versions; the shape test holds them
 	// to the ones the details section lists, so only what the harness alone records is
 	// quoted: when and from which revision it ran, the thread count its wall-clock
@@ -96,14 +63,14 @@
 			<code>bench-formatter</code>
 		</a>
 		that <a href="https://github.com/ryanatkn/oxc-bench-formatter" rel="external">adds tsv</a>.
-		Upstream's other scenarios aren't shown: their corpora include JSX, which tsv doesn't parse; one
-		also formats a repo's other languages and embedded code, and one sorts imports and Tailwind
-		classes.
+		Upstream's other scenarios aren't shown: their corpora include JSX, which tsv doesn't parse, and
+		two also format a repo's other languages and embedded code, one sorting imports and Tailwind
+		classes too.
 	</p>
 	<p>
 		As in the charts above, each table's ratios are relative to its highlighted row:
-		<code>{CLI_TSV_NPM_LABEL}</code>, tsv through its npm package's Node bin, where tsv faces other
-		tools, and the bare <code>tsv</code> binary in the tsv-only table.
+		<code>{CLI_TSV_NPM_LABEL}</code> where tsv faces other tools, and the bare <code>tsv</code>
+		binary in the tsv-only table.
 	</p>
 	<BenchmarksCli report={benchmarks_cli} />
 	<aside>
@@ -117,7 +84,7 @@
 				what <code>npx tsv</code> runs once it's installed. That bin is a small Node script, the
 				dispatcher, which launches the native binary, as Biome's and rsvelte-fmt's bins do. The
 				plain <code>tsv</code> row runs the same binary directly from the platform package, skipping
-				Node: what the binary costs on its own, the bare binary.
+				Node: the bare binary.
 			</li>
 			<li>
 				<code>prettier + oxc-parser</code> is Prettier with <code>@prettier/plugin-oxc</code>, which
@@ -136,26 +103,13 @@
 				than formatting, enough that even Prettier's CPU time exceeds its wall-clock time.
 			</li>
 			<li>
-				tsv's dispatcher adds a fixed ~{npm_overhead} over the bare binary. Most of that is Node's
-				own startup (a bare <code>node -e ""</code> takes ~{format_ms(node_startup_ms)} on this
-				machine), which every other npm-bin row pays too. As a share, that makes the dispatcher row
-				~{delivery_npm_wall} the binary's time on the delivery table's one file but ~{npm_ts_cost}
-				on the TypeScript repo. It adds little CPU beside the repo's multi-threaded work: in CPU
-				time tsv leads Oxfmt ~{npm_ts_cpu_vs_oxfmt} through the dispatcher and ~{ts_cpu_vs_oxfmt} as
-				the bare binary; in wall-clock time, ~{npm_ts_vs_oxfmt} and ~{ts_wall_vs_oxfmt}.
+				tsv's dispatcher adds a fixed ~{npm_overhead} over the bare binary, most of it Node's own
+				startup (a bare <code>node -e ""</code> takes ~{format_ms(node_startup_ms)} on this
+				machine), which every other npm-bin row pays too. It adds little CPU beside the TypeScript
+				repo's multi-threaded work: in CPU time tsv leads Oxfmt there ~{npm_ts_cpu_vs_oxfmt} through
+				the dispatcher and ~{ts_cpu_vs_oxfmt} as the bare binary.
 			</li>
 			<li>
-				<a href="https://www.npmjs.com/package/@fuzdev/tsv-wasm"><code>@fuzdev/tsv-wasm</code></a>
-				takes ~{wasm_wall} the binary's time and ~{wasm_memory} its memory on the delivery table's
-				one file. In time that is still well ahead of both Prettier rows in the single-file table
-				but behind Oxfmt and Biome.
-			</li>
-			<li>
-				{#if npm_memory && memory}
-					As the bare binary tsv uses {format_ratio_range(memory)} less peak memory than every other
-					tool in {memory_scope}; through its dispatcher, {format_ratio_range(npm_memory)} less,
-					though that row shows Node's peak, not the binary's.
-				{/if}
 				Peak memory is peak RSS, measured in a separate pass without warmups, with as many runs as
 				the timed one. It is the largest single process in each command's tree, not the sum, so the
 				rows that launch a native binary from Node (Biome, rsvelte-fmt, and tsv through its
@@ -168,15 +122,8 @@
 			</li>
 			<li>
 				Before timing, a preflight run of each tool's check mode asserts that every formatter parses
-				every file, that those reporting a file count report the same one, and that each finds at
-				least one file to change, so a mis-scoped tool formatting nothing can't post an unbeatable
-				time.
-			</li>
-			<li>
-				hyperfine runs commands in the order given, with no interleaving or shuffling, so on a
-				machine that throttles, the later commands run hotter{settle_note}. Every scenario runs
-				tsv's two rows last, the dispatcher row and then the bare binary, so thermal drift counts
-				against tsv, not for it.
+				every file, that those reporting a file count agree, and that each finds at least one file
+				to change, so a mis-scoped tool formatting nothing can't post an unbeatable time.
 			</li>
 		</ul>
 	</aside>

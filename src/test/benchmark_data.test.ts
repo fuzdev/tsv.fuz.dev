@@ -133,6 +133,19 @@ describe('is_entry_unstable', () => {
 		assert.isFalse(is_entry_unstable(entry({ cv_raw: 0.2, raw_sample_size: 30 })));
 	});
 
+	test('the raw-cv sample ceiling is per pass', () => {
+		// three floor-bound passes of 8 pool to 24 raw timings, and so do four of 8 to 32:
+		// the line can't move with the pass count
+		assert.isTrue(is_entry_unstable(entry({ cv_raw: 0.2, raw_sample_size: 32, passes: 4 })));
+		assert.isFalse(is_entry_unstable(entry({ cv_raw: 0.2, raw_sample_size: 90, passes: 3 })));
+	});
+
+	test('a pass spread at the threshold is unstable, below it is not', () => {
+		assert.isTrue(is_entry_unstable(entry({ pass_spread: 0.05 })));
+		assert.isFalse(is_entry_unstable(entry({ pass_spread: 0.049 })));
+		assert.isFalse(is_entry_unstable(entry({ pass_spread: null })));
+	});
+
 	test('drift counts in either direction', () => {
 		assert.isTrue(is_entry_unstable(entry({ drift: -0.05 })));
 		assert.isTrue(is_entry_unstable(entry({ drift: 0.07 })));
@@ -312,23 +325,28 @@ describe('derive_corpus_counts', () => {
 });
 
 describe('derive_sweep_stats', () => {
-	test('the reference rows get a floor of their own', () => {
+	test('the floor, the passes, the kept-timing span and the largest drift', () => {
 		const stats = derive_sweep_stats(
 			create_baseline({
 				entries: [
-					entry({ name: 'prettier', min_iterations: 16, sample_size: 16, drift: 0.004 }),
-					entry({ name: 'tsv', min_iterations: 8, sample_size: 900, drift: -0.012 }),
-					entry({ name: 'biome-wasm', min_iterations: 8, sample_size: 6, drift: null })
+					entry({ name: 'prettier', passes: 3, sample_size: 24, drift: 0.004 }),
+					entry({ name: 'tsv', passes: 3, sample_size: 900, drift: -0.012 }),
+					entry({ name: 'biome-wasm', passes: 3, sample_size: 23, drift: null })
 				]
 			})
 		);
 		assert.deepEqual(stats, {
 			floor: 8,
-			canonical_floor: 16,
-			sample_size_min: 6,
+			passes: 3,
+			sample_size_min: 23,
 			sample_size_max: 900,
 			drift_max: 0.012
 		});
+	});
+
+	test('a report from before passes reads no pass count', () => {
+		const stats = derive_sweep_stats(create_baseline({ entries: [entry({})] }));
+		assert.isUndefined(stats.passes);
 	});
 
 	test('a report with only untimed rows reads as undefined, never Infinity', () => {
@@ -339,7 +357,7 @@ describe('derive_sweep_stats', () => {
 		);
 		assert.deepEqual(stats, {
 			floor: undefined,
-			canonical_floor: undefined,
+			passes: undefined,
 			sample_size_min: undefined,
 			sample_size_max: undefined,
 			drift_max: undefined
@@ -350,21 +368,21 @@ describe('derive_sweep_stats', () => {
 describe('benchmark_time_share_beyond', () => {
 	const baseline: BenchmarkBaseline = create_baseline({
 		entries: [
-			entry({ name: 'tsv-json', group: 'parse/css', mean_ns: 100 }),
+			entry({ name: 'tsv', group: 'parse/css', mean_ns: 100 }),
 			entry({ name: 'tsv-internal', group: 'parse/css', mean_ns: 20 })
 		]
 	});
 
 	test('is what the whole row spends beyond the part', () => {
 		assert.closeTo(
-			benchmark_time_share_beyond(baseline, 'parse/css', 'tsv-json', 'tsv-internal')!,
+			benchmark_time_share_beyond(baseline, 'parse/css', 'tsv', 'tsv-internal')!,
 			0.8,
 			1e-9
 		);
 	});
 
 	test('a missing row has no share', () => {
-		assert.isUndefined(benchmark_time_share_beyond(baseline, 'parse/css', 'tsv-json', 'nope'));
+		assert.isUndefined(benchmark_time_share_beyond(baseline, 'parse/css', 'tsv', 'nope'));
 	});
 });
 
@@ -374,6 +392,14 @@ describe('is_payload_matched', () => {
 		assert.isTrue(is_payload_matched({ payload: 'span_only' }, { payload: 'span_only' }));
 		assert.isFalse(is_payload_matched({ payload: 'drop_in' }, { payload: 'span_only' }));
 		assert.isFalse(is_payload_matched({ payload: 'own_shape' }, { payload: 'own_shape' }));
+	});
+
+	test('a superset matches only another superset — never the exact drop-in', () => {
+		assert.isTrue(
+			is_payload_matched({ payload: 'drop_in_superset' }, { payload: 'drop_in_superset' })
+		);
+		assert.isFalse(is_payload_matched({ payload: 'drop_in_superset' }, { payload: 'drop_in' }));
+		assert.isFalse(is_payload_matched({ payload: 'drop_in_superset' }, { payload: 'span_only' }));
 	});
 
 	test('a row with no tier makes the question unanswerable, not false', () => {

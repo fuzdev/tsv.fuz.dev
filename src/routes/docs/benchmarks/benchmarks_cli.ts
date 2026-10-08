@@ -89,12 +89,6 @@ export interface CliScenario extends CliScenarioCopy {
 	warmup_runs: number;
 	benchmark_runs: number;
 	/**
-	 * Seconds the harness idled before each formatter's warmups, so every row starts
-	 * from a more alike machine despite the fixed command order. Absent when the
-	 * report doesn't record one; `0` is a run that turned it off.
-	 */
-	settle_seconds?: number;
-	/**
 	 * Why the harness stopped early, when it did. Before timing, `results` is
 	 * empty and the sentence names the formatter its preflight faulted; after
 	 * timing (a memory run crashed) `results` carry times but no memory. Either
@@ -177,7 +171,7 @@ const SCENARIO_COPY: Record<string, CliScenarioCopy> = {
 	[CLI_TS_REPO_KEY]: {
 		heading: 'TypeScript repo',
 		description:
-			'Every formatter scoped to the same JSX-free files and pinned to tsv’s fixed style, each at its default parallelism (none, for Prettier).',
+			'Every formatter scoped to the same JSX-free files, each at its default parallelism.',
 		tsv_only: false
 	},
 	[CLI_SINGLE_FILE_KEY]: {
@@ -189,7 +183,7 @@ const SCENARIO_COPY: Record<string, CliScenarioCopy> = {
 	[CLI_SVELTE_KEY]: {
 		heading: 'Svelte corpus',
 		description:
-			'Two Rust-native Svelte formatters head-to-head, with rsvelte-fmt pinned to tsv’s fixed style. rsvelte-fmt’s time includes the Oxfmt it launches for the file types it doesn’t format itself, which walks the corpus and finds none.',
+			'Two Rust-native Svelte formatters head-to-head. rsvelte-fmt’s time includes the Oxfmt it launches for the file types it doesn’t format itself, which walks the corpus and finds none.',
 		crash_context: {
 			name: 'rsvelte-fmt',
 			note: 'rsvelte-fmt 0.7.x can abort when its stdout and stderr share a pipe, and the harness doesn’t retry.'
@@ -199,7 +193,7 @@ const SCENARIO_COPY: Record<string, CliScenarioCopy> = {
 	[CLI_DELIVERY_KEY]: {
 		heading: 'tsv delivery paths',
 		description:
-			'Every row is tsv, delivered three ways: the native binary; the same binary through @fuzdev/tsv’s Node dispatcher; and @fuzdev/tsv-wasm, tsv’s CLI reimplemented in JS over a wasm engine, the package for platforms without a prebuilt binary. The corpus is one file, so the gaps are launch and engine cost, not file parallelism.',
+			'Every row is tsv, delivered three ways: the native binary; the same binary through @fuzdev/tsv’s Node dispatcher; and @fuzdev/tsv-wasm, tsv’s CLI reimplemented in JS over a wasm engine, the package for platforms without a prebuilt binary. The corpus is one file, so the gaps are launch and engine cost, not file parallelism. In time, tsv-wasm still finishes well ahead of both Prettier rows in the single-file table, but behind Oxfmt and Biome.',
 		tsv_only: true
 	}
 };
@@ -294,9 +288,7 @@ export const to_cli_scenarios = (
 						results: to_results(scenario),
 						warmup_runs: scenario.warmup_runs,
 						benchmark_runs: scenario.benchmark_runs,
-						...(scenario.settle_seconds === undefined
-							? null
-							: { settle_seconds: scenario.settle_seconds }),
+
 						...(scenario.aborted === undefined
 							? null
 							: { aborted: to_abort_note(scenario, copy.crash_context) }),
@@ -318,22 +310,6 @@ export const benchmarks_cli: BenchmarksCliReport = {
  * @returns the mean of the report's `node -e ""` runs
  */
 export const cli_node_startup_ms = (): number => benchmarks_cli.node_startup.mean_ms;
-
-/**
- * The idle the harness takes before each formatter's warmups, in seconds — what
- * the prose quotes beside the fixed run order.
- *
- * @param scenarios - the scenarios to read, the rendered ones by default
- * @returns the settle, or `undefined` when no rendered scenario records one, a
- * run turned it off, or the scenarios disagree (the per-table notes still say each)
- */
-export const cli_settle_seconds = (
-	scenarios: Array<CliScenario> = benchmarks_cli.scenarios
-): number | undefined => {
-	const settles = new Set(scenarios.map((s) => s.settle_seconds));
-	const [settle] = settles;
-	return settles.size === 1 && settle ? settle : undefined;
-};
 
 /**
  * One rendered CLI scenario by its id — for prose that needs more than a ratio,
@@ -458,23 +434,12 @@ export const cli_scenario_has_memory = (scenario: Pick<CliScenario, 'results'>):
 	scenario.results.some((r) => r.memory_mb != null);
 
 /**
- * Whether every scenario facing other tools published memory — what lets a claim
- * spanning them say "every scenario" without qualifying it.
- *
- * @param scenarios - the scenarios to read, the rendered ones by default
- */
-export const cli_memory_is_complete = (
-	scenarios: Array<CliScenario> = benchmarks_cli.scenarios
-): boolean => scenarios.filter((s) => !s.tsv_only).every(cli_scenario_has_memory);
-
-/**
  * The span of "times less memory than tsv" across `cli_comparison_results`, over one
- * scenario or every scenario that faces other tools — the range claims the
- * page's prose quotes. Unscoped, it skips the tsv-only scenarios, whose rows are
+ * scenario or every scenario that faces other tools — the range a memory claim
+ * rests on. Unscoped, it skips the tsv-only scenarios, whose rows are
  * tsv's own distributions rather than "every other tool"; name one explicitly to
  * span it. Unscoped and unnamed it also skips a scenario that published no memory
- * at all (an abort), which `cli_memory_is_complete` reports so the sentence can
- * say what it spans. An optional `labels` list narrows the span to just those formatters,
+ * at all (an abort). An optional `labels` list narrows the span to just those formatters,
  * so a sentence naming specific tools quotes a range measured over exactly them
  * — every named tool must resolve in every spanned scenario, or the range is
  * `undefined` rather than quietly narrower than the sentence claims — and

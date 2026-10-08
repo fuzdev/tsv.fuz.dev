@@ -4,10 +4,8 @@ import {
 	cli_comparison_results,
 	cli_default_anchor_label,
 	cli_label_is_tsv,
-	cli_memory_is_complete,
 	cli_memory_ratio_range,
 	cli_ratio_between,
-	cli_settle_seconds,
 	cli_tsv_npm_overhead_ms_range,
 	CLI_TSV_LABEL,
 	CLI_TSV_NPM_LABEL,
@@ -262,15 +260,6 @@ describe('cli claims spanning scenarios', () => {
 		]
 	});
 
-	test('the settle is quoted only when every scenario agrees on a nonzero one', () => {
-		const settled = (settle_seconds?: number) => scenario('s', { settle_seconds });
-		assert.strictEqual(cli_settle_seconds([settled(5), settled(5)]), 5);
-		assert.isUndefined(cli_settle_seconds([settled(5), settled(3)]));
-		assert.isUndefined(cli_settle_seconds([settled(5), settled()]));
-		assert.isUndefined(cli_settle_seconds([settled(0)]));
-		assert.isUndefined(cli_settle_seconds([]));
-	});
-
 	test('the dispatcher overhead spans every scenario that timed both rows', () => {
 		assert.deepEqual(cli_tsv_npm_overhead_ms_range([facing, delivery]), { min: 30, max: 35 });
 		assert.isUndefined(
@@ -295,7 +284,7 @@ describe('cli claims spanning scenarios', () => {
 		assert.isUndefined(cli_memory_ratio_range({}, [facing, no_figure]));
 	});
 
-	test('a scenario that published no memory is skipped unscoped, and reported incomplete', () => {
+	test('a scenario that published no memory is skipped unscoped', () => {
 		// timed, then aborted in its memory pass: rows with no figure at all
 		const memory_aborted = scenario('s', {
 			results: [result(CLI_TSV_LABEL, 20, null), result('oxfmt', 60, null)]
@@ -308,9 +297,6 @@ describe('cli claims spanning scenarios', () => {
 		assert.isUndefined(cli_memory_ratio_range({}, [memory_aborted]));
 		// named, it voids rather than skips
 		assert.isUndefined(cli_memory_ratio_range({ scenario_key: 's' }, [facing, memory_aborted]));
-		assert.isTrue(cli_memory_is_complete([facing, delivery]));
-		assert.isFalse(cli_memory_is_complete([facing, memory_aborted]));
-		assert.isFalse(cli_memory_is_complete([facing, untimed]));
 	});
 
 	test('a tsv-only scenario is spanned only by name', () => {

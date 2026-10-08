@@ -15,10 +15,17 @@ export const parse_example = `import { parse_svelte, type Root } from '@fuzdev/t
 
 const ast: Root = parse_svelte('<script>const x = 1;</script>');`;
 
-export const no_locations_example = `import { parse_typescript, reconstruct_locations } from '@fuzdev/tsv-parse-wasm';
+export const locations_example = `import { parse_typescript, create_locator } from '@fuzdev/tsv-parse-wasm';
 
-// span-only AST: start/end offsets, no per-node loc
-const ast = parse_typescript('const x = 1;', { locations: false });
+const source = 'const x = 1;';
 
-// derive line/column back when you need it, no re-parse
-reconstruct_locations(ast, 'const x = 1;');`;
+// the default AST is span-only: start/end offsets, no per-node loc
+const ast = parse_typescript(source);
+
+// loc on every node, the tree acorn's \`locations: true\` returns
+const located = parse_typescript(source, { locations: true });
+
+// or look up only the positions you need, over one line table
+const locator = create_locator(source, { language: 'typescript' });
+locator.position_at(ast.body[0].start); // {line: 1, column: 0}
+locator.loc_of(ast.body[0]); // {start: {line, column}, end: {line, column}}`;

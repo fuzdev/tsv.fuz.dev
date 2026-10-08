@@ -3,8 +3,7 @@
 	import {
 		format_count,
 		format_coverage_percent,
-		format_language,
-		format_percent
+		format_language
 	} from '../benchmarks/benchmark_display.ts';
 
 	const {
@@ -43,7 +42,7 @@
 				<thead>
 					<tr>
 						<th scope="col">source</th>
-						<th scope="colgroup" colspan="2">files</th>
+						<th scope="col">files</th>
 						{#each matrix.engines as engine (engine.name)}
 							<th scope="col" class="coverage-num">
 								{engine.name}
@@ -53,37 +52,44 @@
 					</tr>
 				</thead>
 				<tbody>
-					<!-- the whole group leads as the sum the source rows break down: it blends
-						sources that answer different questions, so the rows under it are the finding -->
-					<tr>
-						<th scope="row">all sources</th>
-						<td class="coverage-num">{format_count(matrix.files_total)}</td>
-						<td></td>
-						{#each matrix.aggregate as cell, i (matrix.engines[i]?.name)}
-							{@render coverage_cell(cell)}
-						{/each}
-					</tr>
-					{#each matrix.sources as source (source.origins[0]?.path)}
+					<!-- every engine over the same files, leaving out a source an engine selected:
+						its 100% there is construction, which would rank it on files the others had
+						no say in -->
+					{#if matrix.aggregate}
 						<tr>
 							<th scope="row">
-								{#each source.origins as origin, i (origin.path)}
-									{i > 0 ? ', ' : ''}
-									{#if origin.url}
-										<!-- eslint-disable-next-line svelte/no-navigation-without-resolve -->
-										<a href={origin.url} rel="external">
-											{#if origin.label}{origin.label}{:else}<code>{origin.path}</code>{/if}
-										</a>
-									{:else if origin.label}
-										{origin.label}
-									{:else}
-										<code>{origin.path}</code>
-									{/if}
-								{/each}
+								{#if matrix.aggregate.excluded.length}
+									all sources but
+									{matrix.aggregate.excluded.map((o) => o.label ?? o.path).join(', ')}
+								{:else}
+									all sources
+								{/if}
+							</th>
+							<td class="coverage-num">{format_count(matrix.aggregate.files)}</td>
+							{#each matrix.aggregate.cells as cell, i (matrix.engines[i]?.name)}
+								{@render coverage_cell(cell)}
+							{/each}
+						</tr>
+					{/if}
+					{#each matrix.sources as source (source.origin.path)}
+						<tr>
+							<th scope="row">
+								{#if source.origin.url}
+									<!-- eslint-disable-next-line svelte/no-navigation-without-resolve -->
+									<a href={source.origin.url} rel="external">
+										{#if source.origin.label}
+											{source.origin.label}
+										{:else}
+											<code>{source.origin.path}</code>
+										{/if}
+									</a>
+								{:else if source.origin.label}
+									{source.origin.label}
+								{:else}
+									<code>{source.origin.path}</code>
+								{/if}
 							</th>
 							<td class="coverage-num">{format_count(source.files)}</td>
-							<td class="coverage-num text_40">
-								{format_percent(source.files, matrix.files_total)}
-							</td>
 							{#each source.cells as cell, i (matrix.engines[i]?.name)}
 								{@render coverage_cell(cell)}
 							{/each}

@@ -10,8 +10,8 @@ export type InProcessPair = readonly [group: string, slower: string, faster: str
 /**
  * Keyed by the name the page gives each ratio, so the copy reads by key and the
  * test iterates the values. Native-vs-native pairs tsv with oxfmt, wasm-vs-wasm
- * pairs tsv-wasm with biome-wasm; the parse comparisons use tsv's span-only wire,
- * the shape oxc-parser and yuku-parser also emit.
+ * pairs tsv-wasm with biome-wasm; the parse comparisons pair each tsv wire with the
+ * tools whose AST carries the same kind of positions.
  */
 export const IN_PROCESS_PAIRS = {
 	format_ts_vs_oxfmt: ['format/typescript', 'oxfmt', 'tsv'],
@@ -25,27 +25,26 @@ export const IN_PROCESS_PAIRS = {
 	format_css_vs_prettier: ['format/css', 'prettier', 'tsv'],
 	format_css_wasm_vs_prettier: ['format/css', 'prettier', 'tsv-wasm'],
 	format_css_vs_biome: ['format/css', 'biome-wasm', 'tsv-wasm'],
-	parse_ts_vs_oxc: ['parse/typescript', 'oxc-parser', 'tsv-json-no-locations'],
-	// the drop-in comparison: tsv's default `loc`-bearing wire against the reference it can replace
-	parse_ts_vs_acorn: ['parse/typescript', 'acorn-typescript', 'tsv-json'],
-	// "carrying it costs ~Nx the hand-off time" — the loc-bearing wire over the span-only one
-	parse_ts_loc_cost: ['parse/typescript', 'tsv-json', 'tsv-json-no-locations'],
-	// the one entry that leads tsv's span-only wire, quoted in the direction the data runs
-	parse_ts_yuku_vs_tsv: ['parse/typescript', 'tsv-json-no-locations', 'yuku-parser'],
+	// the parse comparisons by payload: tsv's default span-only wire against the
+	// span-only ASTs (oxc-parser, yuku-parser, Svelte's `parseCss`) and PostCSS, and
+	// `+locations` against the parsers that carry a `loc` (acorn-typescript, Svelte's)
+	parse_ts_vs_oxc: ['parse/typescript', 'oxc-parser', 'tsv'],
+	// the drop-in comparison: `{locations: true}` returns acorn's shape, `loc` included
+	parse_ts_vs_acorn: ['parse/typescript', 'acorn-typescript', 'tsv+locations'],
+	// "at ~Nx the default's time" — what `{locations: true}` costs over the span-only wire
+	parse_ts_loc_cost: ['parse/typescript', 'tsv+locations', 'tsv'],
+	// the one entry that leads tsv's default wire, quoted in the direction the data runs
+	parse_ts_yuku_vs_tsv: ['parse/typescript', 'tsv', 'yuku-parser'],
 	// the wasm-vs-wasm pairing runs wider than the native one, so the copy quotes both
-	parse_ts_yuku_wasm_vs_tsv_wasm: [
-		'parse/typescript',
-		'tsv-wasm-json-no-locations',
-		'yuku-parser-wasm'
-	],
-	parse_svelte_vs_compiler: ['parse/svelte', 'svelte/compiler', 'tsv-json'],
-	parse_svelte_vs_rsvelte: ['parse/svelte', 'rsvelte-parse', 'tsv-json'],
-	parse_css_compiler_vs_tsv: ['parse/css', 'tsv-json', 'svelte/compiler'],
-	parse_css_postcss_vs_tsv: ['parse/css', 'tsv-json', 'postcss'],
-	// Gated but not rendered: "tsv's default AST ... puts it behind Oxc" is a composite
-	// of `parse_ts_vs_oxc` and `parse_ts_loc_cost`, true only while the loc cost
-	// outruns tsv's span-only lead, so the sentence is gated as its own pair. Same
-	// for "(and swc ...)" against swc's span-only AST.
-	parse_ts_default_vs_oxc: ['parse/typescript', 'tsv-json', 'oxc-parser'],
-	parse_ts_default_vs_swc: ['parse/typescript', 'tsv-json', 'swc']
+	parse_ts_yuku_wasm_vs_tsv_wasm: ['parse/typescript', 'tsv-wasm', 'yuku-parser-wasm'],
+	parse_svelte_vs_compiler: ['parse/svelte', 'svelte/compiler', 'tsv+locations'],
+	parse_svelte_default_vs_compiler: ['parse/svelte', 'svelte/compiler', 'tsv'],
+	parse_svelte_vs_rsvelte: ['parse/svelte', 'rsvelte-parse', 'tsv+locations'],
+	parse_css_compiler_vs_tsv: ['parse/css', 'tsv', 'svelte/compiler'],
+	parse_css_postcss_vs_tsv: ['parse/css', 'tsv', 'postcss'],
+	// Gated but not rendered: "still ahead of oxc-parser and swc" with `loc` is a
+	// composite of `parse_ts_vs_oxc` and `parse_ts_loc_cost`, true only while tsv's
+	// span-only lead outruns the loc cost, so the sentence is gated as its own pairs.
+	parse_ts_locations_vs_oxc: ['parse/typescript', 'oxc-parser', 'tsv+locations'],
+	parse_ts_locations_vs_swc: ['parse/typescript', 'swc', 'tsv+locations']
 } as const satisfies Record<string, InProcessPair>;

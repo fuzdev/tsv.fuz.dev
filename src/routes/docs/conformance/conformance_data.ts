@@ -33,8 +33,7 @@ export interface ConformanceGroup {
  * One coverage row per ENGINE, not per binding: the conformance headline is
  * "which files does this parser accept," which is identical across a tool's
  * native/wasm/internal variants at one release — so the `-wasm` and `-internal`
- * duplicates are dropped and `tsv-json` stands in for tsv (relabeled plainly,
- * since the JSON-materialization qualifier is a speed concern, not a coverage one).
+ * duplicates are dropped and the default `tsv` row stands in for tsv.
  *
  * Which binding stands in is therefore arbitrary — except for oxc, whose wasm
  * binding is pinned to an older release, so only the native row is the current
@@ -46,7 +45,7 @@ export interface ConformanceGroup {
 const CONFORMANCE_ENGINE_NAMES: Record<string, string> = {
 	'svelte/compiler': 'svelte/compiler',
 	'acorn-typescript': 'acorn-typescript',
-	'tsv-json': 'tsv',
+	tsv: 'tsv',
 	'oxc-parser': 'oxc-parser',
 	'yuku-parser-wasm': 'yuku-parser',
 	// rsvelte's two parse rows are one engine under two options, so only the
@@ -82,8 +81,7 @@ export const CONFORMANCE_ENGINE_VERSIONS: Record<string, Array<keyof BaselineVer
 	tsv: [],
 	'svelte/compiler': ['svelte'],
 	'acorn-typescript': ['acorn', 'acorn_ts'],
-	// both bindings, since the page's notes set the native column against the wasm one
-	'oxc-parser': ['oxc_parser', 'oxc_parser_wasm'],
+	'oxc-parser': ['oxc_parser'],
 	'yuku-parser': ['yuku_parser_wasm'],
 	rsvelte: ['rsvelte_parse', 'rsvelte_parse_svelte_target'],
 	swc: ['swc'],
@@ -198,25 +196,35 @@ export interface ConformanceSourceOrigin {
 }
 
 export interface ConformanceSourceRow {
-	// one origin, or several for the folded row
-	origins: Array<ConformanceSourceOrigin>;
-	// the sources every engine accepts in full, folded into one trailing row
-	folded: boolean;
+	origin: ConformanceSourceOrigin;
 	files: number;
 	// aligned to the matrix's `engines`; `undefined` where the report lacks the cell
+	cells: Array<ConformanceCell | undefined>;
+}
+
+/**
+ * The matrix's leading summary row: every engine over the same files, the sources
+ * no engine selected. A selector's 100% on its own source is construction, so
+ * counting it would rank that engine on files the others had no say in.
+ */
+export interface ConformanceAggregate {
+	// the sources left out because an engine selected them, in row order
+	excluded: Array<ConformanceSourceOrigin>;
+	files: number;
+	// aligned to the matrix's `engines`
 	cells: Array<ConformanceCell | undefined>;
 }
 
 export interface ConformanceMatrix {
 	language: string;
 	files_total: number;
-	// ordered as `derive_conformance_groups` orders its rows
+	// by coverage of the aggregate's files, highest first, falling back to the
+	// group's order (`derive_conformance_groups`) when there is no aggregate
 	engines: Array<ConformanceEngine>;
-	// largest source first, the folded row last; empty when the report lacks
-	// `coverage_by_source`
+	// largest source first; empty when the report lacks `coverage_by_source`
 	sources: Array<ConformanceSourceRow>;
-	// the whole group per engine, aligned to `engines`
-	aggregate: Array<ConformanceCell>;
+	// `undefined` when an engine selected every source (Svelte), leaving nothing to compare
+	aggregate: ConformanceAggregate | undefined;
 }
 
 const to_conformance_cell = (
@@ -231,35 +239,27 @@ const to_conformance_cell = (
 	selected
 });
 
-// a source no engine selected and none rejects any of says nothing a reader can
-// compare, so two or more of them fold into one row; a group with a `*` selector
-// (Svelte) never folds, so its rows keep showing which 100% is by construction
-const is_foldable = (row: ConformanceSourceRow): boolean =>
-	row.cells.some((cell) => cell !== undefined) &&
-	row.cells.every((cell) => cell === undefined || (!cell.selected && cell.rejected === 0));
-
-const fold_conformance_rows = (rows: Array<ConformanceSourceRow>): ConformanceSourceRow => ({
-	origins: rows.flatMap((row) => row.origins),
-	folded: true,
-	files: rows.reduce((sum, row) => sum + row.files, 0),
-	cells: (rows[0]?.cells ?? []).map((_, i) => {
-		const cells = rows.map((row) => row.cells[i]);
-		if (!cells.every((cell) => cell !== undefined)) return undefined;
-		return to_conformance_cell(
-			cells.reduce((sum, cell) => sum + cell.processed, 0),
-			cells.reduce((sum, cell) => sum + cell.total, 0),
-			false
-		);
-	})
-});
+// sums one engine's cells over `rows`, or `undefined` when a row lacks that engine
+const sum_cells = (
+	rows: Array<ConformanceSourceRow>,
+	index: number
+): ConformanceCell | undefined => {
+	const cells = rows.map((row) => row.cells[index]);
+	if (!cells.every((cell) => cell !== undefined)) return undefined;
+	return to_conformance_cell(
+		cells.reduce((sum, cell) => sum + cell.processed, 0),
+		cells.reduce((sum, cell) => sum + cell.total, 0),
+		false
+	);
+};
 
 /**
  * Derives one coverage matrix per language from a conformance report: a row per
- * corpus source and a column per engine, with the group aggregate alongside. The
- * aggregate blends sources that answer different questions, so the rows are the
- * finding — and a cell whose engine selected the source (`CONFORMANCE_SELECTORS`)
- * is flagged rather than left to read as a result. Engines fold and order as in
- * `derive_conformance_groups`.
+ * corpus source and a column per engine, led by the aggregate over the sources no
+ * engine selected (`ConformanceAggregate`). A cell whose engine selected its source
+ * (`CONFORMANCE_SELECTORS`) is flagged rather than left to read as a result. A
+ * report without per-source coverage falls back to the group totals, flagging an
+ * engine that selected the whole group.
  */
 export const derive_conformance_matrices = (
 	baseline: BenchmarkBaseline
@@ -267,7 +267,7 @@ export const derive_conformance_matrices = (
 	derive_conformance_groups(baseline).map((group) => {
 		const group_key = `parse/${group.language}`;
 		const selectors = CONFORMANCE_SELECTORS[group_key];
-		const engines = group.rows.map(({ name, note }): ConformanceEngine => ({ name, note }));
+		const group_engines = group.rows.map(({ name, note }): ConformanceEngine => ({ name, note }));
 
 		const rows = Object.entries(baseline.coverage_by_source?.[group_key] ?? {}).map(
 			([path, by_impl]): ConformanceSourceRow => {
@@ -281,16 +281,13 @@ export const derive_conformance_matrices = (
 				const files = Math.max(0, ...Object.values(by_impl).map((cell) => cell.total));
 				const source = baseline.corpus_sources.find((s) => s.path === path);
 				return {
-					origins: [
-						{
-							path,
-							label: CONFORMANCE_SOURCE_LABELS[path],
-							url: source && corpus_source_url(source)
-						}
-					],
-					folded: false,
+					origin: {
+						path,
+						label: CONFORMANCE_SOURCE_LABELS[path],
+						url: source && corpus_source_url(source)
+					},
 					files,
-					cells: engines.map((engine) => {
+					cells: group_engines.map((engine) => {
 						const cell = by_engine[engine.name];
 						return (
 							cell && to_conformance_cell(cell.processed, cell.total, engine.name === selector)
@@ -299,24 +296,43 @@ export const derive_conformance_matrices = (
 				};
 			}
 		);
-
-		const foldable = rows.filter(is_foldable);
-		const sources = foldable.length > 1 ? rows.filter((row) => !is_foldable(row)) : rows;
 		// largest first, path as a stable tiebreak
-		sources.sort(
-			(a, b) =>
-				b.files - a.files || (a.origins[0]?.path ?? '').localeCompare(b.origins[0]?.path ?? '')
-		);
-		if (foldable.length > 1) sources.push(fold_conformance_rows(foldable));
+		rows.sort((a, b) => b.files - a.files || a.origin.path.localeCompare(b.origin.path));
+
+		let aggregate: ConformanceAggregate | undefined;
+		if (rows.length === 0) {
+			aggregate = {
+				excluded: [],
+				files: group.files_total,
+				cells: group.rows.map((row) =>
+					to_conformance_cell(row.files_processed, row.files_total, row.name === selectors?.['*'])
+				)
+			};
+		} else {
+			const is_selected = (row: ConformanceSourceRow) => row.cells.some((cell) => cell?.selected);
+			const base = rows.filter((row) => !is_selected(row));
+			if (base.length > 0) {
+				aggregate = {
+					excluded: rows.filter(is_selected).map((row) => row.origin),
+					files: base.reduce((sum, row) => sum + row.files, 0),
+					cells: group_engines.map((_, i) => sum_cells(base, i))
+				};
+			}
+		}
+
+		// reorder the columns by the aggregate; a stable sort keeps the group's order on ties
+		const order = group_engines.map((_, i) => i);
+		if (aggregate) {
+			const coverage = (i: number) => aggregate.cells[i]?.coverage_fraction ?? -1;
+			order.sort((a, b) => coverage(b) - coverage(a));
+		}
+		const reorder = <T>(items: Array<T>): Array<T> => order.map((i) => items[i] as T);
 
 		return {
 			language: group.language,
 			files_total: group.files_total,
-			engines,
-			sources,
-			// an engine that selected every source selected the group
-			aggregate: group.rows.map((row) =>
-				to_conformance_cell(row.files_processed, row.files_total, row.name === selectors?.['*'])
-			)
+			engines: reorder(group_engines),
+			sources: rows.map((row) => ({ ...row, cells: reorder(row.cells) })),
+			aggregate: aggregate && { ...aggregate, cells: reorder(aggregate.cells) }
 		};
 	});

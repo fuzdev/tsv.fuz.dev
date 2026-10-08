@@ -125,9 +125,9 @@ describe('derive_cross_runtime_groups', () => {
 		const groups = derive_cross_runtime_groups(
 			create_report({
 				rows: [
-					row('parse/css', 'tsv-json', { node: 1 }),
+					row('parse/css', 'tsv', { node: 1 }),
 					row('format/typescript', 'tsv', { node: 1 }),
-					row('parse/svelte', 'tsv-json', { node: 1 }),
+					row('parse/svelte', 'tsv', { node: 1 }),
 					row('format/svelte', 'tsv', { node: 1 })
 				]
 			})
@@ -235,7 +235,7 @@ describe('derive_runtime_versions', () => {
 
 describe('format_cross_runtime_label', () => {
 	test('neutralizes the node-specific binding suffix, leaving other labels alone', () => {
-		assert.strictEqual(format_cross_runtime_label('tsv-json'), 'tsv json (native)');
+		assert.strictEqual(format_cross_runtime_label('tsv+locations'), 'tsv+locations (native)');
 		assert.strictEqual(format_cross_runtime_label('biome-wasm'), 'biome (wasm)');
 		assert.strictEqual(format_cross_runtime_label('prettier'), 'prettier');
 	});

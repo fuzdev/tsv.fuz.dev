@@ -96,8 +96,8 @@
 			{/each}
 		</ul>
 		Drift is a change in a row's cost while it was being measured (negative: still warming up;
-		positive: degrading); the cell is marked ⚠ below and its ratio should be read as unmeasured
-		until that runtime is re-run.
+		positive: degrading); pass spread is how far the row's passes, each a fresh process, sat apart.
+		Each such cell is marked ⚠ below; read its ratio as unmeasured until that runtime is re-run.
 	</aside>
 {/if}
 <p>
@@ -111,8 +111,9 @@
 </p>
 <p>
 	A <code>≈</code> marks a delta inside the two measurements' combined noise: read it as parity. The
-	check has two limits. The slowest rows have too few timings for it, so an unmarked delta there
-	isn't necessarily an effect. And it can't see variance between whole runs.
+	check has two limits. Each side's noise is the spread of a row's few passes, each a fresh process,
+	which is a thin estimate, so an unmarked delta near it isn't necessarily an effect. And it can't
+	see variance between whole runs.
 </p>
 {#if runtime_versions.length}
 	<ul class="unstyled versions">

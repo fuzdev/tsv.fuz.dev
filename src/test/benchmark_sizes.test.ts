@@ -102,9 +102,10 @@ describe('derive_size_targets', () => {
 		const anchor = (groups: typeof native, capability: string) =>
 			groups.find((g) => g.capability === capability)?.anchor_label;
 		assert.strictEqual(anchor(native, 'full'), 'tsv (napi)'); // not the smaller, unpublished ffi
-		// the full addon stands in the formatter group too: tsv publishes no format-only one
+		// the full addon stands in the other native groups too: tsv publishes no
+		// format-only or parse-only one
 		assert.strictEqual(anchor(native, 'formatter'), 'tsv (napi)');
-		assert.strictEqual(anchor(native, 'parser'), 'tsv parse (ffi)');
+		assert.strictEqual(anchor(native, 'parser'), 'tsv (napi)');
 		assert.strictEqual(anchor(browser, 'full'), 'tsv-wasm');
 	});
 

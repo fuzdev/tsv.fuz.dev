@@ -43,8 +43,8 @@ tsv.fuz.dev is the public face of the tsv tool:
 - Landing page (home) with links to benchmarks and docs
 - Benchmarks page with bar charts and tables, and a language-support matrix of the tools compared
 - Docs section (introduction, playground, benchmarks, conformance)
-- Conformance page with per-corpus-source parse-coverage tables over deliberately hard corpora, and a `Test corpus` section on how each source was chosen
-- Interactive playground (`/docs/playground`) — edit a deliberately-unformatted Svelte example in a syntax-highlighted editor (fuz_code's `CodeTextarea`); the formatted output below it updates live and the parsed AST follows on a short idle; runs `@fuzdev/tsv-wasm` as lazily-loaded wasm
+- Conformance page with per-corpus-source parse-coverage tables over edge-case test suites, and a `Test corpus` section on how each source was chosen
+- Interactive playground (`/docs/playground`) — edit a deliberately-unformatted Svelte example in a syntax-highlighted editor (fuz_code's `CodeTextarea`); the formatted output below it updates live and the parsed AST follows on a short idle, span-only by default with a `{locations: true}` checkbox; runs `@fuzdev/tsv-wasm` as lazily-loaded wasm
 - Theme controls via fuz_ui's `ThemeRoot` in the root layout (no separate about/settings page)
 - Shows install instructions: the `fuzdev.tsv-format` VS Code extension, then the native `@fuzdev/tsv` (prebuilt N-API addon for Node/Bun, ships the `tsv` CLI), then `@fuzdev/tsv-wasm` (universal, same `tsv` CLI) and the format/parse subsets
 
@@ -77,7 +77,7 @@ src/
     ├── benchmark_data.prose.test.ts # gates the ratio, direction, and count claims the benchmarks page's prose quotes
     ├── conformance_data.test.ts     # unit tests for the conformance grouping and per-source matrices
     ├── conformance_data.shape.test.ts # shape gates over the committed conformance report
-    ├── conformance_data.prose.test.ts # gates the claims the conformance page's prose quotes
+    ├── conformance_data.prose.test.ts # gates the data-dependent claims the conformance page's prose makes
     ├── benchmark_sizes.test.ts      # unit tests for the binary-size target and capability grouping
     ├── benchmark_sizes.shape.test.ts # shape gates over the committed report's binary sizes, and the tldr's like-for-like size claim
     ├── benchmark_tools.test.ts      # unit tests for the language-support matrix's timed marks
@@ -146,10 +146,10 @@ time), so refresh the two on the same setup — a one-sided refresh fails there.
 
 The harness is a fork of Oxc's `bench-formatter` that adds tsv, benching it
 against Prettier, Biome, Oxfmt, and (on Svelte) rsvelte-fmt, all timed through
-their npm bins. tsv gets two rows wherever it faces another tool: `tsv-npm`, the
-`@fuzdev/tsv` Node dispatcher — the like-for-like row, never a competitor — and
-the bare `tsv` binary. The page's headline CLI claims lead with the dispatcher
-ratios and have no fallback for a report without that row; the prose test
+their npm bins. tsv gets two rows wherever it faces another tool: `tsv-npm`
+(displayed as `tsv via Node dispatcher`), the `@fuzdev/tsv` Node dispatcher —
+the like-for-like row, never a competitor — and the bare `tsv` binary. The
+page's headline CLI claims lead with the dispatcher ratios and have no fallback for a report without that row; the prose test
 requires them to resolve. A tsv-only delivery scenario (binary vs dispatcher vs
 `@fuzdev/tsv-wasm`) is flagged `tsv_only` so "every other tool" claims skip it.
 A scenario renders only once it has a `SCENARIO_COPY` entry, and prose about the
@@ -163,7 +163,7 @@ in the schema TSDoc in `formatter_benchmark_data.ts`.
 - `BenchmarksCorpus.svelte` — the per-source corpus table both pages' corpus sections render (`Corpus` on the benchmarks page, `Test corpus` on the conformance page), from `benchmark_data.ts`'s `derive_corpus_source_table`; a source no repo names needs a hand label (`CORPUS_SOURCE_LABELS`), and the conformance page hand-labels every source (`CONFORMANCE_SOURCE_LABELS`, which its matrix also reads); the shape test holds both
 - `benchmark_display.ts` — value formatters, row labels, per-category colors; imports only `benchmark_data.ts`'s types
 - `benchmark_tools.ts` + `BenchmarksTools.svelte` — the language-support matrix: each tool's parse and format support per language, stated by hand (`TOOL_SUPPORT`, verified against the tools' docs and installed packages), with the cells the page times derived from the in-process and CLI reports; the shape test holds the two together
-- `benchmark_sizes.ts` (the binary sizes split by target — browser: wasm and JS; native — then grouped by capability), `benchmark_cross_runtime.ts` — one domain each, built on `benchmark_data.ts` (the cross-runtime one on `benchmark_display.ts` too); the conformance page's `conformance_data.ts` does the same from its own directory — a matrix per language (corpus sources × engines, the aggregate as the leading row), with hand-stated maps the report has no field for: the engine names, the row notes, the source labels, `CONFORMANCE_ENGINE_VERSIONS` (the version keys each engine column lists, so the page's meta panel skips the report's formatters), and `CONFORMANCE_SELECTORS`, the engine that selected a source and so reads 100% on it by construction; the shape test holds each to the report
+- `benchmark_sizes.ts` (the binary sizes split by target — browser: wasm and JS; native — then grouped by capability), `benchmark_cross_runtime.ts` — one domain each, built on `benchmark_data.ts` (the cross-runtime one on `benchmark_display.ts` too); the conformance page's `conformance_data.ts` does the same from its own directory — a matrix per language (corpus sources × engines, led by the aggregate over the sources no engine selected, which orders the columns), with hand-stated maps the report has no field for: the engine names, the row notes, the source labels, `CONFORMANCE_ENGINE_VERSIONS` (the version keys each engine column lists, so the page's meta panel skips the report's formatters), and `CONFORMANCE_SELECTORS`, the engine that selected a source and so reads 100% on it by construction; the shape test holds each to the report
 - `benchmark_baseline.ts` + `BenchmarksBaselineGroup.svelte` — hover-to-rebaseline: hovering a row re-anchors that group's ratios, restoring the default anchor on leave; pointer-only by design, and a disabled row never anchors. `BenchmarksCli.svelte`'s tables behave the same way
 - `formatter_benchmark_data.ts` — the harness report's Zod schemas and `parse_formatter_benchmarks`
 - `benchmarks_cli.ts` — shapes the CLI report for `BenchmarksCli.svelte` and owns the per-scenario prose and the `cli_*` claim helpers
@@ -186,7 +186,7 @@ the components' scripts hold no untested reductions.
 - The `/docs` index renders every tome's component through `DocsContent`, so the playground, benchmarks, and conformance tomes check `at_root` (`page.url.pathname === DOCS_PATH`) and render only a one-line link there, keeping the wasm, the charts, and their section ids off the index
 - `library.ts` builds component metadata at runtime from the `virtual:svelte-docinfo` module (provided by the `svelte-docinfo` Vite plugin); the docs index passes it to `DocsContent`
 - The playground (`/docs/playground`) loads `@fuzdev/tsv-wasm` via a browser-only dynamic `import()` inside `Playground.svelte`, so the wasm code-splits into its own chunk fetched only on that route, keeping `/docs` and the prerendered pages wasm-free. `@fuzdev/tsv-wasm` is in `vite.config.ts` `optimizeDeps.exclude` (like `@fuzdev/blake3-wasm`)
-- The playground's formatted pane recomputes on every keystroke (formatting is ~1 ms even on a 9 KB component) while the AST pane trails a ~150 ms idle: the AST is parsed, serialized, and syntax-highlighted — around half a megabyte of it for that same component — and rebuilding that DOM per keystroke is what a large paste feels. The top-level error is the live pane's; the AST pane renders its own, since its debounced source can still be the broken text the editor has moved past
+- The playground's formatted pane recomputes on every keystroke (formatting is ~1 ms even on a 9 KB component) while the AST pane trails a ~150 ms idle: the AST is parsed, serialized, and syntax-highlighted — many times the source's size, more again with `locations` on — and rebuilding that DOM per keystroke is what a large paste feels. The top-level error is the live pane's; the AST pane renders its own, since its debounced source can still be the broken text the editor has moved past
 - The playground's editor is fuz_code's `CodeTextarea` (live syntax highlighting via the experimental CSS Custom Highlight API). It needs `@fuzdev/fuz_code/theme_highlight.css`, imported inside `Playground.svelte` rather than the root layout so it stays on this route only; `supports_css_highlight_api()` drives a graceful-degradation note where the API is unavailable (the editor still works, unstyled)
 
 ## Deployment

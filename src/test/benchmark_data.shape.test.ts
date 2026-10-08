@@ -4,7 +4,7 @@ import { benchmarks_json } from '$routes/docs/benchmarks/benchmarks.ts';
 import { benchmarks_cross_runtime_json } from '$routes/docs/benchmarks/benchmarks_cross_runtime.ts';
 import {
 	CORPUS_SOURCE_LABELS,
-	categorize_name,
+	categorize_row,
 	derive_corpus_source_table,
 	derive_benchmark_groups
 } from '$routes/docs/benchmarks/benchmark_data.ts';
@@ -251,9 +251,8 @@ describe('benchmarks.json shape', () => {
 			if (category === 'rsvelte') return 5;
 			if (category === 'swc') return 6;
 			if (category === 'yuku') return 7;
-			if (name.endsWith('-no-locations')) return 8; // tsv json, span-only wire
-			if (name.endsWith('-json')) return 9; // tsv json, loc-carrying wire
-			return 10; // tsv's engine rows (`tsv`/`tsv-wasm`, `-internal`)
+			if (category.endsWith('_json')) return name.endsWith('+locations') ? 9 : 8; // tsv json: span-only, then `+locations`
+			return 10; // tsv's engine rows (`tsv`/`tsv-wasm` formatting, `-internal`)
 		};
 		for (const group of derive_benchmark_groups(benchmarks_json)) {
 			const key = `${group.operation}/${group.language}`;
@@ -306,12 +305,12 @@ describe('benchmarks.json shape', () => {
 	});
 
 	test('every report row and size label maps to an explicit category', () => {
-		// `categorize_name` and `categorize_size` fall back to `'oxc'` for anything they
+		// `categorize_row` and `categorize_size` fall back to `'oxc'` for anything they
 		// don't recognize, so a new upstream row would silently render in oxc's hue
 		// rather than fail. Only the genuinely-oxc names may land on that fallback.
 		for (const entry of benchmarks_json.entries) {
 			assert.ok(
-				categorize_name(entry.name) !== 'oxc' ||
+				categorize_row(entry.group, entry.name) !== 'oxc' ||
 					entry.name.includes('oxc') ||
 					entry.name === 'oxfmt',
 				`${entry.group}/${entry.name} falls back to the oxc hue`
@@ -319,7 +318,9 @@ describe('benchmarks.json shape', () => {
 		}
 		for (const row of benchmarks_cross_runtime_json.rows) {
 			assert.ok(
-				categorize_name(row.name) !== 'oxc' || row.name.includes('oxc') || row.name === 'oxfmt',
+				categorize_row(row.group, row.name) !== 'oxc' ||
+					row.name.includes('oxc') ||
+					row.name === 'oxfmt',
 				`${row.group}/${row.name} falls back to the oxc hue`
 			);
 		}

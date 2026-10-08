@@ -5,7 +5,6 @@ import { benchmarks_formatters_json } from '$routes/docs/benchmarks/benchmarks_f
 import {
 	benchmarks_cli,
 	cli_default_anchor_label,
-	cli_settle_seconds,
 	CLI_DELIVERY_KEY,
 	CLI_SCENARIO_KEYS,
 	CLI_SINGLE_FILE_KEY,
@@ -164,20 +163,6 @@ describe('benchmarks_cli shape', () => {
 				assert.isFalse(entry.unavailable, `${scenario.id}/${entry.name} never launched`);
 			}
 		}
-	});
-});
-
-describe('cli_settle_seconds', () => {
-	test("the settle the run-order note quotes is every rendered scenario's", () => {
-		// the note says the harness idles before "each formatter's warmups" without
-		// naming a scenario, so one figure has to hold for all of them — read off the
-		// scenarios rather than the helper, which answers only when they already agree.
-		// A published run settles: one that turned it off is a smoke run
-		const settles = new Set(benchmarks_cli.scenarios.map((s) => s.settle_seconds));
-		assert.strictEqual(settles.size, 1, 'the rendered scenarios disagree on the settle');
-		const [settle] = settles;
-		assert(settle !== undefined && settle > 0, 'the rendered scenarios record no settle');
-		assert.strictEqual(cli_settle_seconds(), settle);
 	});
 });
 
