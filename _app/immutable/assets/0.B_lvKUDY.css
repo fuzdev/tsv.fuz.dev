@@ -434,6 +434,13 @@ body {
 		/* margin-top: calc(var(--flow_margin, var(--space_lg)) * 5.28); */
 	}
 
+:where(h2:not(.unstyled)) {
+		--font_size: var(--font_size_xl2);
+		font-weight: var(--heading_font_weight, 400);
+		margin-bottom: calc(var(--flow_margin, var(--space_lg)) * 2.54);
+		margin-top: calc(var(--flow_margin, var(--space_lg)) * 4.15);
+	}
+
 :where(h3:not(.unstyled)) {
 		--font_size: var(--font_size_xl);
 		font-weight: var(--heading_font_weight, 500);
