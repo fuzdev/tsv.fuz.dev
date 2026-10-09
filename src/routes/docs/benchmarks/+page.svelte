@@ -215,9 +215,9 @@
 			<TomeSectionHeader text="tldr" />
 			<p>
 				tsv formats its three languages faster than Oxc and Biome in every in-process pairing here,
-				and its CLI outpaces theirs in every shared scenario. Its artifacts are smaller than theirs
-				too, except against oxc-parser's native build, since tsv publishes no native parse-only
-				build yet.
+				and its CLI outpaces theirs using less memory in every shared scenario. Its artifacts are
+				smaller than theirs too, except against oxc-parser's native build, since tsv publishes no
+				native parse-only build yet.
 			</p>
 			<p>
 				Except in the CLI section, every timing here is in-process and one file at a time, isolating

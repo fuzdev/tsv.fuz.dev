@@ -73,7 +73,7 @@ describe('prose ratios resolve', () => {
 		}
 	});
 
-	test('tsv\'s "CLI outpaces theirs in every shared scenario"', () => {
+	test('tsv\'s "CLI outpaces theirs using less memory in every shared scenario"', () => {
 		// the TLDR's absolute CLI claim spans every scenario Oxfmt or Biome is timed in,
 		// not just the repo it quotes ratios for, through both the dispatcher and the bare binary
 		let compared = 0;
