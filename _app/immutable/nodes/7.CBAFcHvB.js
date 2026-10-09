@@ -1,4 +1,4 @@
-import"../chunks/DsnmJJEf.js";import{p as D,b as E,f as w,a as v,s as e,d as s,c as g,aG as n,r as a}from"../chunks/BAdDP0T7.js";import{a as N,T as O}from"../chunks/DpYm3aOS.js";import{C as t}from"../chunks/EGtkUCLd.js";import{T as k,a as S}from"../chunks/Bk0cRrn2.js";import{i as F}from"../chunks/CvVDrijv.js";import{S as H}from"../chunks/J-RLcwtC.js";import{l as U}from"../chunks/DvzlWKKv.js";const V=`import { format_svelte, parse_svelte, type Root } from '@fuzdev/tsv';
+import"../chunks/DsnmJJEf.js";import{p as D,b as E,f as w,a as v,s as e,d as s,c as g,aG as n,r as a}from"../chunks/BAdDP0T7.js";import{a as N,T as O}from"../chunks/DGsfmB62.js";import{C as t}from"../chunks/x3VOpr3E.js";import{T as k,a as S}from"../chunks/DGJ1FKCa.js";import{i as F}from"../chunks/CFo38ICe.js";import{S as H}from"../chunks/QYHIR5RV.js";import{l as U}from"../chunks/DvzlWKKv.js";const V=`import { format_svelte, parse_svelte, type Root } from '@fuzdev/tsv';
 
 const formatted = format_svelte('<script>\\nconst   x=1\\n<\/script>');
 const ast: Root = parse_svelte('<script>const x = 1;<\/script>');`,q=`import { format_svelte } from '@fuzdev/tsv-format-wasm';
