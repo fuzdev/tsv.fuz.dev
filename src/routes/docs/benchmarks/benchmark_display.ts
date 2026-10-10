@@ -365,16 +365,18 @@ export const category_color = (category: ImplementationCategory): string => {
 	}
 };
 
+/** A runtime's name as prose prints it: `bun` → `Bun`. */
+export const format_runtime_name = (runtime: string): string =>
+	runtime.charAt(0).toUpperCase() + runtime.slice(1);
+
 /**
  * The runtime a per-runtime report was measured under and its major version, for
  * prose: `Node v24`.
  */
 export const format_runtime_display = (
 	baseline: Pick<BenchmarkBaseline, 'runtime' | 'machine'>
-): string => {
-	const name = baseline.runtime.charAt(0).toUpperCase() + baseline.runtime.slice(1);
-	return `${name} v${baseline.machine.runtime_version.split('.')[0]}`;
-};
+): string =>
+	`${format_runtime_name(baseline.runtime)} v${baseline.machine.runtime_version.split('.')[0]}`;
 
 /**
  * The note under a timed group whose intersection left files out. Bytes beside the

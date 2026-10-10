@@ -19,17 +19,20 @@ import {
 	CLI_TSV_NPM_LABEL,
 	CLI_TSV_WASM_LABEL
 } from '$routes/docs/benchmarks/benchmarks_cli.ts';
-import { derive_unstable_cells } from '$routes/docs/benchmarks/benchmark_cross_runtime.ts';
+import {
+	derive_runtime_leads,
+	derive_unstable_cells
+} from '$routes/docs/benchmarks/benchmark_cross_runtime.ts';
 import { IN_PROCESS_PAIRS as IN_PROCESS_PAIRS_BY_KEY } from '$routes/docs/benchmarks/benchmarks_prose.ts';
 import {
-	type BaselineEntry,
 	benchmark_speedup,
-	categorize_row,
 	derive_benchmark_groups,
 	derive_corpus_counts,
+	derive_slow_row_groups,
 	derive_sweep_stats,
 	is_entry_unstable,
-	is_payload_matched
+	is_payload_matched,
+	SLOW_ROW_FLOOR_MULTIPLE
 } from '$routes/docs/benchmarks/benchmark_data.ts';
 
 // The page's prose quotes ratios computed from the reports rather than
@@ -45,11 +48,6 @@ const assert_reads_faster = (ratio: number, label: string): void => {
 	assert.isAbove(ratio, 1, label);
 	assert.notStrictEqual(format_ratio_approx(ratio), '1.0x', `${label} renders as ~1.0x`);
 };
-
-/** Whether a row stopped at the sweep floor in every pass (its raw count is the floor times the passes). */
-const is_at_sweep_floor = (entry: BaselineEntry): boolean =>
-	entry.min_iterations != null &&
-	entry.raw_sample_size === entry.min_iterations * (entry.passes ?? 1);
 
 /** The report's format groups, asserted non-empty so a loop over them can't pass on nothing. */
 const format_groups = () => {
@@ -221,6 +219,32 @@ describe('prose ratios resolve', () => {
 			['parse/svelte', 'tsv', 'rsvelte-parse-skip-expr-loc']
 		] as const) {
 			assert.isFalse(matched(group, a, b), `${group}: ${a} vs ${b} is now payload-matched`);
+		}
+	});
+
+	test('the runtimes where tsv overtakes `parseCss` are read against the Node report the CSS claims quote', () => {
+		// the TLDR and the parse note say "under Node" and quote the per-runtime report,
+		// then name the runtimes `derive_runtime_leads` finds against the combined
+		// report's node column — so that column must be the same measurement
+		assert.strictEqual(benchmarks_json.runtime, 'node');
+		for (const name of ['svelte/compiler', 'tsv']) {
+			const own = benchmarks_json.entries.find((e) => e.group === 'parse/css' && e.name === name);
+			const combined = benchmarks_cross_runtime_json.rows.find(
+				(r) => r.group === 'parse/css' && r.name === name
+			);
+			assert.isDefined(own?.mean_ns, name);
+			assert.strictEqual(combined?.mean_ns.node, own.mean_ns, name);
+		}
+		const leads = derive_runtime_leads(
+			benchmarks_cross_runtime_json,
+			'parse/css',
+			'svelte/compiler',
+			'tsv'
+		);
+		for (const lead of leads) {
+			assert.notStrictEqual(lead.runtime, 'node');
+			// "with parseCss ~Nx slower there than under Node"
+			assert_reads_faster(lead.slower_vs_base, `${lead.runtime}: parseCss vs node`);
 		}
 	});
 
@@ -411,45 +435,19 @@ describe('prose ratios resolve', () => {
 		assert.notStrictEqual(versions.oxc_parser_wasm, versions.oxc_parser, 'bindings re-aligned');
 	});
 
-	test("every competing formatter's TypeScript and Svelte rows stop at the sweep floor, as Benchmarking details says", () => {
-		// "every competing formatter's TypeScript and Svelte rows, Prettier ... among them"
-		const competitors = benchmarks_json.entries.filter(
-			(e) =>
-				(e.group === 'format/typescript' || e.group === 'format/svelte') &&
-				e.min_iterations != null &&
-				!categorize_row(e.group, e.name).startsWith('tsv_')
-		);
-		assert.isNotEmpty(competitors);
-		for (const entry of competitors) {
-			assert(is_at_sweep_floor(entry), `${entry.group}/${entry.name} is past the sweep floor`);
+	test('Prettier is a slow row in every format group, as Benchmarking details says', () => {
+		// "fewer than twice the floor's sweeps. Prettier ... is among them in each format
+		// group" — the list beneath renders from `derive_slow_row_groups`, so only this
+		// lead-in is prose
+		assert.strictEqual(SLOW_ROW_FLOOR_MULTIPLE, 2, 'the copy says "twice"');
+		const slow = derive_slow_row_groups(benchmarks_json);
+		assert.isNotEmpty(slow);
+		const groups = format_groups();
+		for (const group of groups) {
+			const key = `${group.operation}/${group.language}`;
+			const entry = slow.find((g) => g.group === key);
+			assert(entry?.names.includes('prettier'), `${key}: prettier is not a slow row`);
 		}
-	});
-
-	test('Prettier is among the slow rows that stop near the sweep floor, as Benchmarking details says', () => {
-		// the disclosure that Prettier, every format chart's default anchor, is one of the
-		// rows the stability check proves least for: at the per-pass floor, or a sweep or
-		// two past it on the small CSS corpus — well short of twice it
-		const prettier_rows = benchmarks_json.entries.filter(
-			(e) => e.name === 'prettier' && e.group.startsWith('format/')
-		);
-		assert.isNotEmpty(prettier_rows);
-		for (const entry of prettier_rows) {
-			const floor = (entry.min_iterations ?? 0) * (entry.passes ?? 1);
-			assert.isAbove(floor, 0, entry.group);
-			assert.isBelow(entry.raw_sample_size ?? Infinity, floor * 2, `${entry.group}/prettier`);
-		}
-		assert(prettier_rows.some(is_at_sweep_floor), 'no Prettier row sits at the floor');
-	});
-
-	test('"most of the TypeScript parse rows, tsv\'s included" sit at the sweep floor', () => {
-		// Benchmarking details names them beside Prettier as the rows the stability
-		// check proves least for
-		const rows = benchmarks_json.entries.filter(
-			(e) => e.group === 'parse/typescript' && e.min_iterations != null
-		);
-		const at_floor = rows.filter(is_at_sweep_floor);
-		assert.isAbove(at_floor.length, rows.length / 2);
-		assert(at_floor.some((e) => categorize_row(e.group, e.name).startsWith('tsv_')));
 	});
 
 	test('the cross-runtime noise check reads "a row\'s few passes"', () => {

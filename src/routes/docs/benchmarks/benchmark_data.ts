@@ -900,6 +900,46 @@ export const derive_sweep_stats = (baseline: BenchmarkBaseline): SweepStats => {
 	};
 };
 
+/**
+ * A row whose raw timings stay under this multiple of its sweep floor (per pass,
+ * times its passes) counts as slow: the floor, not the time budget, ended its passes
+ * or nearly did, so its stability readings rest on few timings. The benchmarks page
+ * says "twice", which its prose test pins.
+ */
+export const SLOW_ROW_FLOOR_MULTIPLE = 2;
+
+/** The slow rows of one group — see `derive_slow_row_groups`. */
+export interface SlowRowGroup {
+	group: string;
+	/** The slow rows' names, in report order. */
+	names: Array<string>;
+	/** Whether every timed row of the group is slow. */
+	every: boolean;
+}
+
+/**
+ * The timed rows that kept fewer than `SLOW_ROW_FLOOR_MULTIPLE` times their sweep
+ * floor in raw timings, by group in the page's group order — the rows the stability
+ * check proves least for. Groups with no slow row are left out.
+ */
+export const derive_slow_row_groups = (baseline: BenchmarkBaseline): Array<SlowRowGroup> => {
+	// a row missing the counts can't be graded either way, so it sits out of `every` too
+	const timed = baseline.entries.flatMap((e) =>
+		e.mean_ns != null && e.min_iterations != null && e.raw_sample_size != null
+			? [{ ...e, floor: e.min_iterations * (e.passes ?? 1), raw: e.raw_sample_size }]
+			: []
+	);
+	return [...Map.groupBy(timed, (e) => e.group)]
+		.map(([group, entries]) => {
+			const names = entries
+				.filter((e) => e.raw < e.floor * SLOW_ROW_FLOOR_MULTIPLE)
+				.map((e) => e.name);
+			return { group, names, every: names.length === entries.length };
+		})
+		.filter((g) => g.names.length > 0)
+		.sort((a, b) => compare_group_order(parse_group_key(a.group), parse_group_key(b.group)));
+};
+
 // Prose ratios
 
 /**

@@ -5,6 +5,7 @@ import {
 	derive_benchmark_groups,
 	derive_corpus_counts,
 	derive_corpus_source_table,
+	derive_slow_row_groups,
 	derive_sweep_stats,
 	derive_unstable_entries,
 	is_entry_unstable,
@@ -196,6 +197,40 @@ describe('derive_unstable_entries', () => {
 			derived.map((e) => e.name),
 			['cv', 'excused']
 		);
+	});
+});
+
+describe('derive_slow_row_groups', () => {
+	const baseline = (entries: Array<BaselineEntry>): BenchmarkBaseline =>
+		({ entries }) as unknown as BenchmarkBaseline;
+	// a floor of 8 per pass over 3 passes: slow is under 2 × 24 = 48 raw timings
+	const timed = (overrides: Partial<BaselineEntry>) =>
+		entry({ min_iterations: 8, passes: 3, ...overrides });
+
+	test('keeps rows under twice the floor, by group in page order, marking a group all slow', () => {
+		const derived = derive_slow_row_groups(
+			baseline([
+				timed({ group: 'parse/typescript', name: 'fast', raw_sample_size: 48 }),
+				timed({ group: 'parse/typescript', name: 'slow', raw_sample_size: 47 }),
+				timed({ group: 'format/typescript', name: 'a', raw_sample_size: 24 }),
+				timed({ group: 'format/typescript', name: 'b', raw_sample_size: 30 }),
+				timed({ group: 'format/css', name: 'quick', raw_sample_size: 900 })
+			])
+		);
+		assert.deepStrictEqual(derived, [
+			{ group: 'format/typescript', names: ['a', 'b'], every: true },
+			{ group: 'parse/typescript', names: ['slow'], every: false }
+		]);
+	});
+
+	test('skips untimed rows, so a coverage-only row neither counts nor breaks `every`', () => {
+		const derived = derive_slow_row_groups(
+			baseline([
+				timed({ group: 'format/svelte', name: 'slow', raw_sample_size: 24 }),
+				timed({ group: 'format/svelte', name: 'coverage', mean_ns: null, raw_sample_size: 0 })
+			])
+		);
+		assert.deepStrictEqual(derived, [{ group: 'format/svelte', names: ['slow'], every: true }]);
 	});
 });
 

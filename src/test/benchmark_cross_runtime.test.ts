@@ -3,6 +3,7 @@ import { assert, describe, test } from 'vitest';
 import {
 	derive_cross_runtime_groups,
 	cross_runtime_ratio_background,
+	derive_runtime_leads,
 	derive_runtime_versions,
 	derive_unavailable_by_runtime,
 	derive_unstable_cells,
@@ -32,6 +33,36 @@ const create_report = (overrides: Partial<CrossRuntimeReport> = {}): CrossRuntim
 	sources: [],
 	rows: [],
 	...overrides
+});
+
+describe('derive_runtime_leads', () => {
+	const row = (name: string, mean_ns: Partial<Record<BenchmarkRuntime, number>>) => ({
+		group: 'parse/css',
+		name,
+		ops_per_second: {},
+		mean_ns,
+		files_iterated: {}
+	});
+
+	test('names the non-base runtimes where the faster row leads, with the slower row against base', () => {
+		const report = create_report({
+			rows: [
+				row('svelte/compiler', { node: 10, deno: 10, bun: 20 }),
+				row('tsv', { node: 20, deno: 16, bun: 16 })
+			]
+		});
+		assert.deepStrictEqual(derive_runtime_leads(report, 'parse/css', 'svelte/compiler', 'tsv'), [
+			{ runtime: 'bun', ratio: 1.25, slower_vs_base: 2 }
+		]);
+	});
+
+	test('is empty when a row or a runtime time is missing', () => {
+		const report = create_report({
+			rows: [row('svelte/compiler', { node: 10, bun: 20 }), row('tsv', { node: 20 })]
+		});
+		assert.deepStrictEqual(derive_runtime_leads(report, 'parse/css', 'svelte/compiler', 'tsv'), []);
+		assert.deepStrictEqual(derive_runtime_leads(report, 'parse/css', 'absent', 'tsv'), []);
+	});
 });
 
 describe('order_cross_runtime_runtimes', () => {

@@ -14,6 +14,7 @@
 
 	import { benchmarks_json } from './benchmarks.ts';
 	import { benchmarks_cross_runtime_json } from './benchmarks_cross_runtime.ts';
+	import { derive_runtime_leads } from './benchmark_cross_runtime.ts';
 	import {
 		benchmarks_cli,
 		cli_scenario_find,
@@ -31,15 +32,19 @@
 		derive_benchmark_groups,
 		derive_corpus_counts,
 		derive_corpus_source_table,
+		derive_slow_row_groups,
 		derive_sweep_stats,
 		derive_unstable_entries,
+		parse_group_key,
 		UNSTABLE_PASS_SPREAD_THRESHOLD
 	} from './benchmark_data.ts';
 	import {
 		format_count,
 		format_count_maybe,
+		format_group_label,
 		format_ratio_approx,
 		format_runtime_display,
+		format_runtime_name,
 		format_share_approx,
 		format_share_ceil,
 		format_unstable_readings
@@ -110,6 +115,8 @@
 	// (the shape tests require every timed row to carry the fields; the `—`
 	// fallback keeps a report without them readable)
 	const sweeps = derive_sweep_stats(benchmarks_json);
+	// which rows run near that floor, read off the report so the list can't go stale
+	const slow_row_groups = derive_slow_row_groups(benchmarks_json);
 	// how far two fresh processes of one row sat apart — the bound a small ratio is read against
 	const process_noise = benchmarks_json.process_noise ?? undefined;
 
@@ -153,6 +160,18 @@
 	const parse_css_wire_share = format_share_approx(
 		benchmark_time_share_beyond(benchmarks_json, 'parse/css', 'tsv', 'tsv-internal')
 	);
+	// The CSS claims above are the Node report's; where another runtime's `parseCss` is
+	// slow enough that tsv's default parse overtakes it, the copy says so. A lead that
+	// would print as ~1.0x is no lead.
+	const css_runtime_leads = derive_runtime_leads(
+		benchmarks_cross_runtime_json,
+		'parse/css',
+		'svelte/compiler',
+		'tsv'
+	).filter((lead) => format_ratio_approx(lead.ratio) !== '1.0x');
+	const css_lead_runtimes = css_runtime_leads
+		.map((lead) => format_runtime_name(lead.runtime))
+		.join(' and ');
 	// rsvelte's parse addon targets its own upstream Svelte, which can sit a release
 	// apart from the pin the svelte/compiler row runs — said only while the two differ
 	const svelte_version = benchmarks_json.versions.svelte;
@@ -262,6 +281,11 @@
 					reproduces, is ~{parse_css_compiler_vs_tsv} faster than tsv's default parse, and PostCSS
 					~{parse_css_postcss_vs_tsv} faster (see
 					<a href="#{docs_slugify(PARSE_SECTION_TITLE)}">{PARSE_SECTION_TITLE}</a>).
+					{#each css_runtime_leads as lead (lead.runtime)}
+						Under {format_runtime_name(lead.runtime)} it flips: tsv's default parse leads
+						<code>parseCss</code> by ~{format_ratio_approx(lead.ratio)}, with <code>parseCss</code>
+						~{format_ratio_approx(lead.slower_vs_base)} slower there than under Node.
+					{/each}
 				</li>
 				<li>
 					End to end as a CLI, tsv formats the JSX-free subset of a real TypeScript repo
@@ -375,11 +399,12 @@
 						<a href="https://github.com/g-plane/markup_fmt">markup_fmt</a>, Malva's author's markup
 						plugin for the same host, formats Svelte, handing each component's script, style, and
 						template expressions to the dprint and Malva plugins. It isn't timed: it rejects valid
-						Svelte this corpus holds, chiefly markup inside a template literal in an attribute (a
-						code sample passed as a prop, which most docs pages here do) and <code>{'{…}'}</code>
-						inside a quoted <code>style</code>. Every file a timed row rejects leaves every row's
-						timed set, so timing it would drop the largest docs pages from every Svelte number on
-						this page. The harness checks its coverage instead.
+						Svelte this corpus holds, chiefly braces or markup inside a string in a template
+						expression (a code sample passed as a prop, which most docs pages here do, or a literal
+						brace written <code>{"{'{'}"}</code>) and <code>{'{…}'}</code> inside a quoted
+						<code>style</code>. Every file a timed row rejects leaves every row's timed set, so
+						timing it would drop the largest docs pages from every Svelte number on this page. The
+						harness checks its coverage instead.
 					</li>
 					<li>
 						<a href="https://github.com/baseballyama/rsvelte" rel="external">rsvelte-fmt</a>, the
@@ -444,9 +469,17 @@
 						Parsers written in JS skip the Rust-to-JS serialization tsv and Oxc pay for. On CSS the
 						JSON hand-off is ~{parse_css_wire_share} of tsv's time (the gap between its default and
 						<code>internal</code> entries), and Svelte's <code>parseCss</code> and PostCSS both
-						finish ahead of tsv's default entries. The CSS corpus is also the page's weakest sample
-						(see <a href="#{docs_slugify(CORPUS_SECTION_TITLE)}">Corpus</a>), so those ratios are
-						the least representative.
+						finish ahead of tsv's default entries under Node.
+						{#if css_runtime_leads.length}
+							Under {css_lead_runtimes}, tsv overtakes <code>parseCss</code>; the
+							<a href="#{docs_slugify(CROSS_RUNTIME_SECTION_TITLE)}">
+								{CROSS_RUNTIME_SECTION_TITLE}
+							</a>
+							section has the per-runtime numbers.
+						{/if}
+						The CSS corpus is also the page's weakest sample (see
+						<a href="#{docs_slugify(CORPUS_SECTION_TITLE)}">Corpus</a>), so those ratios are the
+						least representative.
 					</li>
 					<li>
 						Biome is grayed out across all three parse groups: its in-process API exposes no parse
@@ -622,9 +655,24 @@
 				{format_count_maybe(sweeps.sample_size_min)} to {format_count_maybe(sweeps.sample_size_max)}
 				timings across their passes. A steady reading over a few dozen sweeps is thinner evidence
 				than one over hundreds, so the harness's check for unstable rows proves less for the slow
-				rows: every competing formatter's TypeScript and Svelte rows, Prettier (the default anchor
-				of every format chart) among them, and most of the TypeScript parse rows, tsv's included.
+				rows, those that ran fewer than twice the floor's sweeps. Prettier, every format chart's
+				default anchor, is among them in each format group:
 			</p>
+			<ul>
+				{#each slow_row_groups as slow (slow.group)}
+					{@const { operation, language } = parse_group_key(slow.group)}
+					<li>
+						{format_group_label(operation, language)}:
+						{#if slow.every}
+							every row
+						{:else}
+							{#each slow.names as name, i (name)}
+								<span><code>{name}</code>{i < slow.names.length - 1 ? ', ' : ''}</span>
+							{/each}
+						{/if}
+					</li>
+				{/each}
+			</ul>
 			<p>
 				Every pass of every row runs in a fresh process that loads that row's tool and nothing else,
 				so no tool's code, garbage, or warmed-up state is shared with the next. Each pass takes a

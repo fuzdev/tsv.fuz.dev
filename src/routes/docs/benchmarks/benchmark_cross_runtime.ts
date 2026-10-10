@@ -197,6 +197,47 @@ export const order_cross_runtime_runtimes = (
 	runtimes: Array<BenchmarkRuntime>
 ): Array<BenchmarkRuntime> => CROSS_RUNTIME_DISPLAY_ORDER.filter((r) => runtimes.includes(r));
 
+/** A runtime where one row of a group leads another — see `derive_runtime_leads`. */
+export interface RuntimeLead {
+	runtime: BenchmarkRuntime;
+	/** How many times faster `faster` is than `slower` under this runtime. */
+	ratio: number;
+	/** How many times slower `slower` runs here than under the base runtime. */
+	slower_vs_base: number;
+}
+
+/**
+ * The runtimes, other than `base`, where `faster` leads `slower` within one group,
+ * in the site's display order — what lets a claim made from the base runtime's
+ * report say where it flips. Empty when either row lacks a time under a runtime.
+ */
+export const derive_runtime_leads = (
+	report: CrossRuntimeReport,
+	group: string,
+	slower: string,
+	faster: string,
+	base: BenchmarkRuntime = 'node'
+): Array<RuntimeLead> => {
+	const find = (name: string) => report.rows.find((r) => r.group === group && r.name === name);
+	const slower_row = find(slower);
+	const faster_row = find(faster);
+	if (!slower_row || !faster_row) return [];
+	const leads: Array<RuntimeLead> = [];
+	for (const runtime of order_cross_runtime_runtimes(report.runtimes)) {
+		if (runtime === base) continue;
+		const slower_ns = slower_row.mean_ns[runtime];
+		const faster_ns = faster_row.mean_ns[runtime];
+		const slower_base_ns = slower_row.mean_ns[base];
+		if (!slower_ns || !faster_ns || !slower_base_ns || slower_ns <= faster_ns) continue;
+		leads.push({
+			runtime,
+			ratio: slower_ns / faster_ns,
+			slower_vs_base: slower_ns / slower_base_ns
+		});
+	}
+	return leads;
+};
+
 /** One runtime's own version string (`node 24.14.1`), for the cross-runtime section. */
 export interface RuntimeVersion {
 	runtime: BenchmarkRuntime;
