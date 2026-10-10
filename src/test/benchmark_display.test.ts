@@ -29,13 +29,18 @@ import {
 } from '$routes/docs/benchmarks/benchmark_display.ts';
 
 describe('format_row_label', () => {
-	test("only biome's disabled placeholder drops its binding suffix", () => {
-		assert.strictEqual(format_row_label('biome-wasm', 'biome', true), 'biome');
-		assert.strictEqual(format_row_label('biome-wasm', 'biome', false), 'biome (wasm)');
-		assert.strictEqual(
-			format_row_label('oxc-parser-wasm', 'oxc', true),
-			format_label('oxc-parser-wasm')
-		);
+	test('a scope-gap placeholder takes the bare tool name; a real row keeps its binding', () => {
+		assert.strictEqual(format_row_label('biome-wasm', true), 'biome');
+		assert.strictEqual(format_row_label('biome-wasm', false), 'biome (wasm)');
+		assert.strictEqual(format_row_label('oxc-parser', true), 'oxc-parser');
+		assert.strictEqual(format_row_label('oxc-parser', false), format_label('oxc-parser'));
+		assert.strictEqual(format_row_label('swc', true), 'swc');
+	});
+
+	test("a disabled row that is no scope gap keeps format_label's name", () => {
+		// the size table's absent-build placeholder, and a coverage-only row
+		assert.strictEqual(format_row_label('oxfmt (wasm)', true), format_label('oxfmt (wasm)'));
+		assert.strictEqual(format_row_label('markup-fmt-wasm', true), 'markup_fmt (wasm)');
 	});
 });
 

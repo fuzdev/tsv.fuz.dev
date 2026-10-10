@@ -29,6 +29,7 @@ export const TOOL_FOOTNOTES = {
 	prettier: 'via the Prettier it bundles, opt-in',
 	experimental: 'experimental, behind a flag',
 	oxc: "with Oxc's formatters",
+	dprint: "with dprint's TypeScript and Malva plugins",
 	option: 'with its jsx option',
 	syntax: 'via a separate syntax package'
 } as const;
@@ -147,7 +148,7 @@ export const TOOL_SUPPORT: ReadonlyArray<ToolSupport> = [
 		name: '@dprint/typescript',
 		url: 'https://dprint.dev/plugins/typescript/',
 		languages: { typescript: { format: true }, jsx: { format: true } },
-		other: "dprint's other plugins add Malva, Svelte markup (markup_fmt), JSON, Markdown, …",
+		other: "dprint's other plugins add JSON, Markdown, …; Malva and markup_fmt are listed below",
 		rows: { format: ['dprint-wasm'] }
 	},
 	{
@@ -156,6 +157,15 @@ export const TOOL_SUPPORT: ReadonlyArray<ToolSupport> = [
 		languages: { css: { format: true }, scss: { format: true } },
 		other: 'Sass',
 		rows: { format: ['malva-wasm'] }
+	},
+	{
+		name: 'markup_fmt',
+		url: 'https://github.com/g-plane/markup_fmt',
+		languages: { svelte: { format: 'dprint' } },
+		other: 'HTML, Vue, Astro, Angular, and template dialects (Jinja, Twig, Vento, …)',
+		// its `markup-fmt-wasm` row is coverage-only, never timed, so it marks no cell —
+		// list it here if it is ever timed
+		rows: {}
 	},
 	{
 		name: 'yuku-parser',

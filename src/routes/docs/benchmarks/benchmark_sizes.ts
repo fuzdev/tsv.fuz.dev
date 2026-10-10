@@ -24,6 +24,7 @@ export const categorize_size = (label: string): ImplementationCategory => {
 	if (label.startsWith('biome')) return 'biome';
 	if (label.startsWith('dprint')) return 'dprint';
 	if (label.startsWith('malva')) return 'dprint'; // dprint's CSS plugin — see `categorize_row`
+	if (label.startsWith('markup_fmt')) return 'dprint'; // dprint's Svelte plugin, likewise
 	// Covers both `rsvelte-fmt (binary)` and `rsvelte compiler (napi)`.
 	if (label.startsWith('rsvelte')) return 'rsvelte';
 	if (label.startsWith('swc')) return 'swc';

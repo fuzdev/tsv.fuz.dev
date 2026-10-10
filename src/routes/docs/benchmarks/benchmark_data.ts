@@ -350,6 +350,8 @@ export interface BaselineVersions {
 	// `dprint-plugin-malva` — dprint's CSS formatter plugin, over the same wasm
 	// host as `dprint` above.
 	malva?: string;
+	// `dprint-plugin-markup` — dprint's Svelte plugin, over the same wasm host
+	markup?: string;
 	// `postcss` — the CSS parser row.
 	postcss?: string;
 	// `@rsvelte/vite-plugin-svelte-native` — the N-API addon behind the Svelte
@@ -421,9 +423,10 @@ export interface BenchmarkDisplayEntry {
 	// rendering for a different reason (see below).
 	disabled?: boolean;
 	// The harness measured this tool's COVERAGE but deliberately never timed it —
-	// it ships no in-process API, so a per-file row would have measured process
-	// spawn rather than format work (`rsvelte-fmt`; see the tsv harness's
-	// §Coverage-only rows). Distinct from a plain `disabled` placeholder: that one
+	// `rsvelte-fmt` ships no in-process API, so a per-file row would have measured
+	// process spawn rather than format work, and `markup-fmt-wasm` rejects valid
+	// Svelte that every timed row's shared file set would then lose (see the tsv
+	// harness's §Coverage-only rows). Distinct from a plain `disabled` placeholder: that one
 	// never ran here at all, while this one ran over the whole corpus and has real
 	// `files_processed`/`files_total` to show. Both render inert; only this one
 	// carries a coverage annotation and needs the page to explain itself.
@@ -451,6 +454,9 @@ const CATEGORY_BY_NAME: Record<string, ImplementationCategory> = {
 	// shares dprint's category rather than claiming a hue of its own — the palette
 	// has ten and all ten are spoken for.
 	'malva-wasm': 'dprint',
+	// markup_fmt is dprint's Svelte plugin, composed with the dprint and malva
+	// plugins over the same host — dprint's category too
+	'markup-fmt-wasm': 'dprint',
 	'oxc-parser': 'oxc',
 	'oxc-parser-wasm': 'oxc',
 	oxfmt: 'oxc',
@@ -555,9 +561,8 @@ const compare_speed_entries = (a: BenchmarkDisplayEntry, b: BenchmarkDisplayEntr
 
 /**
  * A grayed-out, inert row for a group the tool doesn't run in — no bar, no
- * coverage, never an anchor. Built from the name and category alone, so nothing a
- * template row measured (a TypeScript mean ~100x any real CSS row, a
- * `coverage_only` flag) can ride into the group it is mirrored into.
+ * coverage, never an anchor. Built from the name and category alone (a
+ * `PARSE_SCOPE_GAPS` entry), so no timing or `coverage_only` flag can reach it.
  */
 const to_placeholder = (
 	entry: Pick<BenchmarkDisplayEntry, 'name' | 'category'>
@@ -570,6 +575,45 @@ const to_placeholder = (
 	files_total: null,
 	disabled: true
 });
+
+/** A grayed-out slot a parse group holds for a tool that does not run in it. */
+export interface ParseScopeGap {
+	name: string;
+	category: ImplementationCategory;
+	/** The tool as the gray row names it — the tool, not one of its bindings. */
+	label: string;
+	/** The parse groups (by language) the slot appears in. */
+	languages: ReadonlyArray<string>;
+}
+
+/**
+ * The parse groups' grayed-out slots. Each states a SCOPE gap in a broad web
+ * toolchain: the tool covers the group's language elsewhere in its toolchain, but
+ * ships no binding that parses it to JS. One slot per tool, whatever bindings it
+ * has elsewhere, labeled with the bare tool name.
+ *
+ * - Biome's `@biomejs/js-api` exposes only formatting and linting, never a parser,
+ *   so it holds a slot in every parse group.
+ * - Oxc formats CSS (in oxfmt) but `oxc-parser` parses TypeScript/JS only; a Svelte
+ *   parser is nothing Oxc claims, so it holds no Svelte slot.
+ * - swc ships CSS tooling (`@swc/css`), but only `minify`/`transform`, and parses
+ *   no Svelte.
+ *
+ * Nothing narrower is mirrored: not `yuku-parser`, TypeScript/JS-only by design,
+ * and no formatter into a format group it never claimed (`@dprint/typescript` into
+ * Svelte) — an empty slot there would invent a shortfall against a promise the tool
+ * never made.
+ */
+export const PARSE_SCOPE_GAPS: ReadonlyArray<ParseScopeGap> = [
+	{
+		name: 'biome-wasm',
+		category: 'biome',
+		label: 'biome',
+		languages: ['svelte', 'typescript', 'css']
+	},
+	{ name: 'oxc-parser', category: 'oxc', label: 'oxc-parser', languages: ['css'] },
+	{ name: 'swc', category: 'swc', label: 'swc', languages: ['css'] }
+];
 
 export const derive_benchmark_groups = (baseline: BenchmarkBaseline): Array<BenchmarkGroup> => {
 	const result: Array<BenchmarkGroup> = [];
@@ -625,30 +669,16 @@ export const derive_benchmark_groups = (baseline: BenchmarkBaseline): Array<Benc
 
 	result.sort(compare_group_order);
 
-	// Two tools hold a grayed-out slot in parse groups they don't run in. `biome`'s
-	// `@biomejs/js-api` never exposes a parser to JS at all (only formatting and
-	// linting), so no parse group has a real biome entry and every one gets a
-	// placeholder. `oxc-parser` only parses TypeScript/JS; it is mirrored into the css
-	// group alone, since oxc does ship CSS tooling (oxfmt formats it) and a Svelte
-	// parser is nothing it claims. Then re-sort so they fall into their fixed slots
-	// (biome then oxc, right after the canonical row).
-	//
-	// A grayed-out slot states a SCOPE gap in a broad web toolchain, so nothing
-	// narrower is mirrored: not `yuku-parser`, TypeScript/JS-only by design, and not
-	// `@dprint/typescript` into the svelte format group — an empty slot there would
-	// invent a shortfall against a promise the tool never made.
-	const ts_parse = result.find((g) => g.operation === 'parse' && g.language === 'typescript');
-	const oxc_templates = ts_parse?.entries.filter((e) => e.category === 'oxc') ?? [];
+	// The grayed-out scope-gap slots (`PARSE_SCOPE_GAPS`), then a re-sort so they fall
+	// into their fixed slots among the cross-tool rows.
 	for (const group of result) {
 		if (group.operation !== 'parse') continue;
-		// guarded like the others, so a report that grows a real biome parse row
-		// can't produce a second `biome-wasm` entry (the rows are keyed by name)
-		const has = (category: ImplementationCategory) =>
-			group.entries.some((e) => e.category === category);
-		if (!has('biome'))
-			group.entries.push(to_placeholder({ name: 'biome-wasm', category: 'biome' }));
-		if (group.language === 'css' && !has('oxc')) {
-			group.entries.push(...oxc_templates.map(to_placeholder));
+		for (const gap of PARSE_SCOPE_GAPS) {
+			if (!gap.languages.includes(group.language)) continue;
+			// guarded, so a report that grows a real row of this tool here can't
+			// produce a second entry beside it (the rows are keyed by name)
+			if (group.entries.some((e) => e.category === gap.category)) continue;
+			group.entries.push(to_placeholder(gap));
 		}
 		group.entries.sort(compare_speed_entries);
 	}

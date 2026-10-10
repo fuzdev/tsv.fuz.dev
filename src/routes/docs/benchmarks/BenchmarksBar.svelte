@@ -28,8 +28,9 @@
 		// no bar, no value, no ratio, just the label held in its shared slot
 		disabled?: boolean;
 		// inert for a different reason: the tool DID run over the whole corpus but
-		// was deliberately never timed (no in-process API, so a per-file row would
-		// have measured process spawn). Reads `not timed` rather than `n/a`, since
+		// was deliberately never timed (rsvelte-fmt has no in-process API, so a
+		// per-file row would measure process spawn; markup_fmt rejects files every
+		// other row is timed on). Reads `not timed` rather than `n/a`, since
 		// "we chose not to measure this" and "this tool wasn't here" are different
 		// claims and the gray alone can't tell them apart
 		coverage_only?: boolean;
@@ -41,7 +42,7 @@
 		anchor?: boolean;
 	} = $props();
 
-	const display_label = $derived(format_row_label(label, category, disabled));
+	const display_label = $derived(format_row_label(label, disabled));
 </script>
 
 <!-- the grid is a table to assistive tech (its parent is the `role="table"`):

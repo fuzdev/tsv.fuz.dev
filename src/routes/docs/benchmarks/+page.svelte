@@ -205,7 +205,7 @@
 				This page compares tsv to Prettier and the JS parsers it can replace (Svelte's and
 				acorn-typescript), and to Oxc and Biome, similar tools with more features, configurable
 				styles, and wider language support. It also measures rsvelte, yuku-parser, swc, dprint,
-				Malva, and PostCSS;
+				Malva, markup_fmt, and PostCSS;
 				<a href="#{docs_slugify(LANGUAGE_SECTION_TITLE)}">{LANGUAGE_SECTION_TITLE}</a> lays out what
 				each parses and formats.
 			</p>
@@ -367,9 +367,19 @@
 						The dprint entry is
 						<a href="https://dprint.dev/plugins/typescript/">dprint-plugin-typescript</a>, the
 						engine <code>deno fmt</code> runs for TypeScript and JS, loaded in-process as its wasm
-						plugin. It formats only TypeScript and JS, JSX included, so it has no Svelte row and its
-						CSS slot goes to <a href="https://github.com/g-plane/malva">Malva</a>, a third-party CSS
-						plugin for the same host.
+						plugin. It formats only TypeScript and JS, JSX included, so its CSS slot goes to
+						<a href="https://github.com/g-plane/malva">Malva</a>, a third-party CSS plugin for the
+						same host, and its Svelte slot to markup_fmt (next).
+					</li>
+					<li>
+						<a href="https://github.com/g-plane/markup_fmt">markup_fmt</a>, Malva's author's markup
+						plugin for the same host, formats Svelte, handing each component's script, style, and
+						template expressions to the dprint and Malva plugins. It isn't timed: it rejects valid
+						Svelte this corpus holds, chiefly markup inside a template literal in an attribute (a
+						code sample passed as a prop, which most docs pages here do) and <code>{'{…}'}</code>
+						inside a quoted <code>style</code>. Every file a timed row rejects leaves every row's
+						timed set, so timing it would drop the largest docs pages from every Svelte number on
+						this page. The harness checks its coverage instead.
 					</li>
 					<li>
 						<a href="https://github.com/baseballyama/rsvelte" rel="external">rsvelte-fmt</a>, the
@@ -441,8 +451,9 @@
 					<li>
 						Biome is grayed out across all three parse groups: its in-process API exposes no parse
 						call, and the wasm workspace beneath it returns the syntax tree only as strings, not an
-						AST to materialize and time. oxc-parser is grayed out in the CSS group: Oxc formats CSS
-						(in Oxfmt) but ships no CSS parse binding.
+						AST to materialize and time. oxc-parser and swc are grayed out in the CSS group: Oxc
+						formats CSS (in Oxfmt) and swc ships CSS tooling (<code>@swc/css</code>, which minifies
+						and transforms), but neither ships a CSS parse binding.
 					</li>
 					<li>
 						oxc-parser's wasm row runs an older release than its native row, so the wasm-vs-wasm
@@ -505,10 +516,12 @@
 							raw bytes.
 						</li>
 						<li>
-							<code>dprint (wasm)</code> and <code>Malva (wasm)</code> expose no parser, so both sit
-							under Formatter beside tsv's format-only wasm build. That build does Svelte,
-							TypeScript/JS, and CSS in one artifact; Malva formats CSS and its dialects only, and
-							dprint TypeScript/JS and JSX only.
+							<code>dprint (wasm)</code>, <code>Malva (wasm)</code>, and
+							<code>markup_fmt (wasm)</code> expose no parser, so all three sit under Formatter
+							beside tsv's format-only wasm build. That build does Svelte, TypeScript/JS, and CSS in
+							one artifact; Malva formats CSS and its dialects only, dprint TypeScript/JS and JSX
+							only, and markup_fmt the markup of Svelte and other template languages, which needs
+							the other two loaded beside it for a component's script and style.
 						</li>
 						<li>
 							Biome's build carries its whole toolchain: parsers, formatters, and linters across the

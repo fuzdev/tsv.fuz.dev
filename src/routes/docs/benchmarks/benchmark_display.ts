@@ -5,7 +5,8 @@ import {
 	COMMIT_LABEL_LENGTH,
 	type BenchmarkBaseline,
 	type GroupOmissions,
-	type ImplementationCategory
+	type ImplementationCategory,
+	PARSE_SCOPE_GAPS
 } from './benchmark_data.ts';
 
 /** A count with thousands separators (`44,220`), pinned to one locale so prerendered and hydrated output agree. */
@@ -241,6 +242,7 @@ const LABEL_OVERRIDES: Record<string, string> = {
 	'biome-wasm': 'biome (wasm)',
 	'dprint-wasm': 'dprint (wasm)',
 	'malva-wasm': 'malva (wasm)',
+	'markup-fmt-wasm': 'markup_fmt (wasm)',
 	'oxc-parser-wasm': 'oxc-parser (wasm)',
 	'yuku-parser': 'yuku-parser (node napi)',
 	'yuku-parser-wasm': 'yuku-parser (wasm)',
@@ -314,19 +316,14 @@ export const format_label = (name: string): string => {
 };
 
 /**
- * A bar row's label. Biome's disabled placeholder drops the parenthesized binding
- * suffix, which says how a tool ran and biome ships one build, so there is nothing
- * to tell apart; oxc-parser keeps it, since its two placeholder rows (napi and
- * wasm) would otherwise read the same.
+ * A bar row's label. A parse group's grayed-out scope-gap slot (`PARSE_SCOPE_GAPS`)
+ * stands for the whole tool, not one of its bindings, so it takes the bare tool
+ * name; every other row, the size table's absent-build placeholder included, reads
+ * as `format_label` names it.
  */
-export const format_row_label = (
-	name: string,
-	category: ImplementationCategory,
-	disabled: boolean
-): string => {
-	const label = format_label(name);
-	return disabled && category === 'biome' ? label.replace(/ \([^)]*\)$/, '') : label;
-};
+export const format_row_label = (name: string, disabled: boolean): string =>
+	(disabled ? PARSE_SCOPE_GAPS.find((gap) => gap.name === name)?.label : undefined) ??
+	format_label(name);
 
 /** Returns a CSS background color variable for a category. */
 export const category_color = (category: ImplementationCategory): string => {

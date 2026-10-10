@@ -89,7 +89,7 @@ describe('benchmarks.json shape', () => {
 		}
 	});
 
-	test('the css parse group gets disabled oxc placeholders, svelte none, typescript keeps real ones', () => {
+	test('the css parse group gets one disabled oxc placeholder, svelte none, typescript keeps real ones', () => {
 		const groups = derive_benchmark_groups(benchmarks_json);
 		const parse = (language: string) =>
 			groups.find((g) => g.operation === 'parse' && g.language === language);
@@ -103,13 +103,14 @@ describe('benchmarks.json shape', () => {
 		// a Svelte parser is nothing oxc claims, so that group holds no slot for it
 		assert.isEmpty(parse('svelte')?.entries.filter((e) => e.category === 'oxc'));
 
-		// css mirrors those oxc entries in, disabled, in a fixed slot: directly after
-		// the biome placeholder (both lead the cross-tool comparisons, right after the
-		// canonical row), which the tier-order test below holds ahead of tsv's json wires
+		// css holds ONE disabled oxc slot — the tool, whatever bindings it has — in a
+		// fixed slot: directly after the biome placeholder (both lead the cross-tool
+		// comparisons, right after the canonical row), which the tier-order test below
+		// holds ahead of tsv's json wires
 		const group = parse('css');
 		assert.ok(group, `css parse group missing`);
 		const oxc = group.entries.filter((e) => e.category === 'oxc');
-		assert.strictEqual(oxc.length, ts_oxc.length, `css oxc placeholder count`);
+		assert.strictEqual(oxc.length, 1, `css oxc placeholder count`);
 		for (const e of oxc) {
 			assert.ok(e.disabled, `css ${e.name} should be disabled`);
 			assert.strictEqual(e.bar_fraction, 0, `css ${e.name} bar`);
@@ -161,7 +162,7 @@ describe('benchmarks.json shape', () => {
 		}
 	});
 
-	test('typescript keeps dprint and css keeps malva real; svelte gets no dprint slot', () => {
+	test('typescript keeps dprint and css keeps malva real; svelte gets no timed or placeholder dprint row', () => {
 		const groups = derive_benchmark_groups(benchmarks_json);
 		const format = (language: string) =>
 			groups.find((g) => g.operation === 'format' && g.language === language);
@@ -185,8 +186,13 @@ describe('benchmarks.json shape', () => {
 		);
 		for (const e of css_dprint) assert.isNotOk(e.disabled, `${e.name} should be a real entry`);
 
-		// `@dprint/typescript` claims nothing about Svelte, so no slot is mirrored there
-		assert.isEmpty(dprint_rows('svelte'), 'svelte holds no dprint slot');
+		// `@dprint/typescript` claims nothing about Svelte, so no slot is mirrored there;
+		// the one dprint-category row svelte may carry is markup_fmt's, which is
+		// coverage-only (never timed) — present once a report includes it
+		for (const e of dprint_rows('svelte')) {
+			assert.strictEqual(e.name, 'markup-fmt-wasm', `svelte holds no dprint slot but markup_fmt's`);
+			assert.ok(e.coverage_only, `${e.name} should be coverage-only`);
+		}
 
 		// the dprint-category row sits directly after biome in the shared cross-tool
 		// ordering

@@ -254,8 +254,8 @@ describe('derive_benchmark_groups placeholders state a scope gap only', () => {
 		assert.deepEqual(disabled('format', 'svelte'), []);
 	});
 
-	test('oxc-parser holds a slot in the css parse group, never the svelte one', () => {
-		assert.deepEqual(disabled('parse', 'css'), ['biome-wasm', 'oxc-parser']);
+	test('oxc-parser and swc hold one slot each in the css parse group, never the svelte one', () => {
+		assert.deepEqual(disabled('parse', 'css'), ['biome-wasm', 'oxc-parser', 'swc']);
 		assert.deepEqual(disabled('parse', 'svelte'), ['biome-wasm']);
 	});
 
