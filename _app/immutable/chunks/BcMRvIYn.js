@@ -1,0 +1,1 @@
+var e={name:`tsv.fuz.dev`,version:`0.0.1`,description:`website for tsv, precise language tools for TypeScript/JS, CSS, and Svelte in Rust`,glyph:`🪶`,logo:`logo.svg`,logo_alt:`a pixelated orange quill drawing a precise line`,license:`MIT`,homepage:`https://tsv.fuz.dev/`,repository:`https://github.com/fuzdev/tsv.fuz.dev`};export{e as t};
