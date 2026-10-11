@@ -16,8 +16,8 @@ import {
 	CLI_SVELTE_KEY,
 	type CliFormatterResult,
 	type CliScenario
-} from '$routes/docs/benchmarks/benchmarks_cli.ts';
-import type { FormatterScenario } from '$routes/docs/benchmarks/formatter_benchmark_data.ts';
+} from '#routes/docs/benchmarks/benchmarks_cli.ts';
+import type { FormatterScenario } from '#routes/docs/benchmarks/formatter_benchmark_data.ts';
 
 import {
 	create_formatter_preflight,

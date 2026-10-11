@@ -1,14 +1,14 @@
 import { assert, describe, test } from 'vitest';
 
-import { benchmarks_json } from '$routes/docs/benchmarks/benchmarks.ts';
-import { benchmarks_cli, cli_label_is_tsv } from '$routes/docs/benchmarks/benchmarks_cli.ts';
+import { benchmarks_json } from '#routes/docs/benchmarks/benchmarks.ts';
+import { benchmarks_cli, cli_label_is_tsv } from '#routes/docs/benchmarks/benchmarks_cli.ts';
 import {
 	CLI_SCENARIO_LANGUAGES,
 	TOOL_LANGUAGES,
 	TOOL_SUPPORT,
 	type ToolLanguage,
 	type ToolOperation
-} from '$routes/docs/benchmarks/benchmark_tools.ts';
+} from '#routes/docs/benchmarks/benchmark_tools.ts';
 
 // The matrix's capabilities are hand-stated and its timed marks read the reports,
 // so these hold the two together: a renamed or added report row can't leave the

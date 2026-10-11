@@ -27,14 +27,12 @@ gro sync      # regenerate files and run svelte-kit sync
 - fuz_code (`@fuzdev/fuz_code`) - syntax highlighting
 - Gro (`@fuzdev/gro`) - build system and task runner
 - tsv (via Gro) - code formatting
-- mdz (`@fuzdev/mdz`) - markdown preprocessor wired into `svelte.config.js`
+- mdz (`@fuzdev/mdz`) - markdown preprocessor wired into the `sveltekit({...})` plugin options in `vite.config.ts`
 - `@fuzdev/tsv-wasm` - tsv's formatter + parser as wasm; powers the playground, loaded lazily in the browser
 
 Note: `@fuzdev/tsv-wasm` is loaded only on `/docs/playground` via a browser-only dynamic `import()`, so the ~1MB-gzipped wasm (~2.5MB decoded) never weighs down `/docs` or the prerendered pages.
 
 Note: several devDependencies — `@webref/css` (CSS spec data), `zimmerframe` (AST traversal), `@sveltejs/acorn-typescript`, `zod`, and `@fuzdev/blake3-wasm` — are *optional peer dependencies* of `@fuzdev/fuz_css`'s `vite_plugin_fuz_css`, declared here so its build-time CSS generation resolves them (e.g. `css_literal.ts` imports `@webref/css`, `css_class_extractor.ts` walks ASTs with `zimmerframe`). Of those only `zod` is imported by this app's own source — `formatter_benchmark_data.ts`'s schemas, read at gen and test time and as erased types by the page, so it never reaches the client bundle — so don't mistake the rest for dead deps. Likewise `esm-env`, `@types/estree`, and `@types/node` are peers of `@fuzdev/fuz_util` (the latter two optional), and `esm-env` and `@types/estree` optional peers of `@fuzdev/mdz` and `esm-env` of `@fuzdev/fuz_ui`, and `tslib` backs `tsconfig.json`'s `importHelpers` — none is imported here directly either.
-
-Note: `vite` is deliberately held at 7.x (with `@sveltejs/vite-plugin-svelte` 6.x) — vite 8 + plugin-svelte 7 was buggy with this app or SvelteKit's integration. Don't upgrade to vite 8 without deliberately re-verifying the site works.
 
 ## Scope
 
@@ -182,7 +180,8 @@ the components' scripts hold no untested reductions.
 - Uses fuz_ui tome system for docs navigation
 - `docs/tomes.ts` defines the doc sections: introduction, playground, benchmarks, conformance
 - Benchmark data, modules, and the refresh workflow: see [Benchmarks](#benchmarks)
-- Tests import route modules through the `$routes` alias (`svelte.config.js`), not a `#routes/*` subpath import — this repo has no `package.json` `imports` map; routes import each other relatively
+- SvelteKit config lives in `vite.config.ts` as the `sveltekit({...})` plugin options (no `svelte.config.js`)
+- Tests import route modules through the `#routes/*` subpath import (`package.json` `imports`); there's no `src/lib`, so no `#lib/*`. Routes import each other relatively, except the docs layout's `#routes/library.ts`
 - The `/docs` index renders every tome's component through `DocsContent`, so the playground, benchmarks, and conformance tomes check `at_root` (`page.url.pathname === DOCS_PATH`) and render only a one-line link there, keeping the wasm, the charts, and their section ids off the index
 - `library.ts` builds component metadata at runtime from the `virtual:svelte-docinfo` module (provided by the `svelte-docinfo` Vite plugin); the docs index passes it to `DocsContent`
 - The playground (`/docs/playground`) loads `@fuzdev/tsv-wasm` via a browser-only dynamic `import()` inside `Playground.svelte`, so the wasm code-splits into its own chunk fetched only on that route, keeping `/docs` and the prerendered pages wasm-free. `@fuzdev/tsv-wasm` is in `vite.config.ts` `optimizeDeps.exclude` (like `@fuzdev/blake3-wasm`)

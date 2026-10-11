@@ -7,8 +7,8 @@ import {
 	OXC_FULL_LABEL,
 	OXFMT_WASM_LABEL,
 	type SizeCapability
-} from '$routes/docs/benchmarks/benchmark_sizes.ts';
-import type { BinarySize } from '$routes/docs/benchmarks/benchmark_data.ts';
+} from '#routes/docs/benchmarks/benchmark_sizes.ts';
+import type { BinarySize } from '#routes/docs/benchmarks/benchmark_data.ts';
 
 // Binary-size capability grouping. The heuristic reads the tool's NAME, so the
 // tools not named after their job are the ones that can silently land under a

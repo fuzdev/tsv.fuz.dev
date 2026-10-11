@@ -15,7 +15,7 @@ import {
 	type BenchmarkRuntime,
 	type CrossRuntimeReport,
 	type UnstableCell
-} from '$routes/docs/benchmarks/benchmark_cross_runtime.ts';
+} from '#routes/docs/benchmarks/benchmark_cross_runtime.ts';
 
 // a minimal healthy combined report, which each suite overrides the one field it reads
 const create_report = (overrides: Partial<CrossRuntimeReport> = {}): CrossRuntimeReport => ({

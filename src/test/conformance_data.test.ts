@@ -3,7 +3,7 @@ import { assert, describe, test } from 'vitest';
 import {
 	derive_conformance_groups,
 	derive_conformance_matrices
-} from '$routes/docs/conformance/conformance_data.ts';
+} from '#routes/docs/conformance/conformance_data.ts';
 
 import { create_baseline, create_baseline_entry } from './benchmark_test_helpers.ts';
 

@@ -1,6 +1,6 @@
 import { assert, describe, test } from 'vitest';
 
-import { benchmarks_json } from '$routes/docs/benchmarks/benchmarks.ts';
+import { benchmarks_json } from '#routes/docs/benchmarks/benchmarks.ts';
 import {
 	categorize_size_capability,
 	derive_size_targets,
@@ -10,7 +10,7 @@ import {
 	RSVELTE_LABEL,
 	SIZE_CAPABILITY_BY_LABEL,
 	TSV_NAPI_LABEL
-} from '$routes/docs/benchmarks/benchmark_sizes.ts';
+} from '#routes/docs/benchmarks/benchmark_sizes.ts';
 
 // Shape gate for the binary-size half of the committed benchmarks.json: the size
 // table's COMPOSITION varies with what the producing machine built, so these pin the

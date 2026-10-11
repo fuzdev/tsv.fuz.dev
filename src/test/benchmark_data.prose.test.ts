@@ -1,9 +1,9 @@
 import { assert, describe, test } from 'vitest';
 
-import { benchmarks_json } from '$routes/docs/benchmarks/benchmarks.ts';
-import { benchmarks_cross_runtime_json } from '$routes/docs/benchmarks/benchmarks_cross_runtime.ts';
-import { benchmarks_formatters_json } from '$routes/docs/benchmarks/benchmarks_formatters.ts';
-import { format_ratio_approx } from '$routes/docs/benchmarks/benchmark_display.ts';
+import { benchmarks_json } from '#routes/docs/benchmarks/benchmarks.ts';
+import { benchmarks_cross_runtime_json } from '#routes/docs/benchmarks/benchmarks_cross_runtime.ts';
+import { benchmarks_formatters_json } from '#routes/docs/benchmarks/benchmarks_formatters.ts';
+import { format_ratio_approx } from '#routes/docs/benchmarks/benchmark_display.ts';
 import {
 	benchmarks_cli,
 	cli_memory_ratio_range,
@@ -18,12 +18,12 @@ import {
 	CLI_TS_REPO_KEY,
 	CLI_TSV_NPM_LABEL,
 	CLI_TSV_WASM_LABEL
-} from '$routes/docs/benchmarks/benchmarks_cli.ts';
+} from '#routes/docs/benchmarks/benchmarks_cli.ts';
 import {
 	derive_runtime_leads,
 	derive_unstable_cells
-} from '$routes/docs/benchmarks/benchmark_cross_runtime.ts';
-import { IN_PROCESS_PAIRS as IN_PROCESS_PAIRS_BY_KEY } from '$routes/docs/benchmarks/benchmarks_prose.ts';
+} from '#routes/docs/benchmarks/benchmark_cross_runtime.ts';
+import { IN_PROCESS_PAIRS as IN_PROCESS_PAIRS_BY_KEY } from '#routes/docs/benchmarks/benchmarks_prose.ts';
 import {
 	benchmark_speedup,
 	derive_benchmark_groups,
@@ -33,7 +33,7 @@ import {
 	is_entry_unstable,
 	is_payload_matched,
 	SLOW_ROW_FLOOR_MULTIPLE
-} from '$routes/docs/benchmarks/benchmark_data.ts';
+} from '#routes/docs/benchmarks/benchmark_data.ts';
 
 // The page's prose quotes ratios computed from the reports rather than
 // hand-written numbers, so a renamed entry or a dropped scenario would render

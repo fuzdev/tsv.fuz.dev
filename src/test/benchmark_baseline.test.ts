@@ -4,7 +4,7 @@ import {
 	baseline_ratio_color,
 	compute_baseline_ratio,
 	to_baseline_key
-} from '$routes/docs/benchmarks/benchmark_baseline.ts';
+} from '#routes/docs/benchmarks/benchmark_baseline.ts';
 
 describe('compute_baseline_ratio', () => {
 	test('reads the anchor as the reference — a lower measurement exceeds 1', () => {

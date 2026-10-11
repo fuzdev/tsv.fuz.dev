@@ -26,7 +26,7 @@ import {
 	format_runtime_display,
 	format_unstable_readings,
 	format_version_label
-} from '$routes/docs/benchmarks/benchmark_display.ts';
+} from '#routes/docs/benchmarks/benchmark_display.ts';
 
 describe('format_row_label', () => {
 	test('a scope-gap placeholder takes the bare tool name; a real row keeps its binding', () => {

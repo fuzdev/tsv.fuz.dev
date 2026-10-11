@@ -1,9 +1,9 @@
-import type { BaselineEntry, BenchmarkBaseline } from '$routes/docs/benchmarks/benchmark_data.ts';
+import type { BaselineEntry, BenchmarkBaseline } from '#routes/docs/benchmarks/benchmark_data.ts';
 import type {
 	FormatterPreflight,
 	FormatterScenario,
 	FormatterTiming
-} from '$routes/docs/benchmarks/formatter_benchmark_data.ts';
+} from '#routes/docs/benchmarks/formatter_benchmark_data.ts';
 
 /**
  * The report shape version the committed perf copy (`benchmarks.json`) is pinned to —

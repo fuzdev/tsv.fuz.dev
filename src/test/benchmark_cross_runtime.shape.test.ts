@@ -1,9 +1,9 @@
 import { assert, describe, test } from 'vitest';
 
-import { benchmarks_json } from '$routes/docs/benchmarks/benchmarks.ts';
-import { conformance_json } from '$routes/docs/conformance/conformance.ts';
-import { benchmarks_cross_runtime_json } from '$routes/docs/benchmarks/benchmarks_cross_runtime.ts';
-import { derive_cross_runtime_groups } from '$routes/docs/benchmarks/benchmark_cross_runtime.ts';
+import { benchmarks_json } from '#routes/docs/benchmarks/benchmarks.ts';
+import { conformance_json } from '#routes/docs/conformance/conformance.ts';
+import { benchmarks_cross_runtime_json } from '#routes/docs/benchmarks/benchmarks_cross_runtime.ts';
+import { derive_cross_runtime_groups } from '#routes/docs/benchmarks/benchmark_cross_runtime.ts';
 
 // The combined report shape the committed copy is pinned to — tsv's composer's
 // `COMBINED_SCHEMA_VERSION`. Exact rather than a floor, so `npm run

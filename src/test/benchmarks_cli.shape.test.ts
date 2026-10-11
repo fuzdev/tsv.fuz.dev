@@ -1,7 +1,7 @@
 import { assert, describe, test } from 'vitest';
 
-import { benchmarks_json } from '$routes/docs/benchmarks/benchmarks.ts';
-import { benchmarks_formatters_json } from '$routes/docs/benchmarks/benchmarks_formatters.ts';
+import { benchmarks_json } from '#routes/docs/benchmarks/benchmarks.ts';
+import { benchmarks_formatters_json } from '#routes/docs/benchmarks/benchmarks_formatters.ts';
 import {
 	benchmarks_cli,
 	cli_default_anchor_label,
@@ -10,7 +10,7 @@ import {
 	CLI_SINGLE_FILE_KEY,
 	CLI_TSV_LABEL,
 	CLI_TSV_NPM_LABEL
-} from '$routes/docs/benchmarks/benchmarks_cli.ts';
+} from '#routes/docs/benchmarks/benchmarks_cli.ts';
 
 // Shape gate for the CLI report `benchmarks_cli.ts` derives from the generated
 // `benchmarks_formatters.json`. The generator validates the harness's report

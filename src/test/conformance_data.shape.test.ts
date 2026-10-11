@@ -1,12 +1,12 @@
 import { assert, describe, test } from 'vitest';
 
-import { conformance_json } from '$routes/docs/conformance/conformance.ts';
+import { conformance_json } from '#routes/docs/conformance/conformance.ts';
 import {
 	CONFORMANCE_ENGINE_VERSIONS,
 	CONFORMANCE_SELECTORS,
 	derive_conformance_groups,
 	derive_conformance_matrices
-} from '$routes/docs/conformance/conformance_data.ts';
+} from '#routes/docs/conformance/conformance_data.ts';
 
 import { CONFORMANCE_REPORT_VERSION } from './benchmark_test_helpers.ts';
 

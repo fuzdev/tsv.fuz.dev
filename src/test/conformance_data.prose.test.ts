@@ -1,13 +1,13 @@
 import { assert, describe, test } from 'vitest';
 
-import { conformance_json } from '$routes/docs/conformance/conformance.ts';
-import { derive_corpus_source_table } from '$routes/docs/benchmarks/benchmark_data.ts';
+import { conformance_json } from '#routes/docs/conformance/conformance.ts';
+import { derive_corpus_source_table } from '#routes/docs/benchmarks/benchmark_data.ts';
 import {
 	CONFORMANCE_SELECTORS,
 	CONFORMANCE_SOURCE_LABELS,
 	derive_conformance_groups,
 	derive_conformance_matrices
-} from '$routes/docs/conformance/conformance_data.ts';
+} from '#routes/docs/conformance/conformance_data.ts';
 
 // Gates the claims the conformance page's prose makes about the committed report,
 // as `benchmark_data.prose.test.ts` does for the benchmarks page.

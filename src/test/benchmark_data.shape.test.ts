@@ -1,17 +1,17 @@
 import { assert, describe, test } from 'vitest';
 
-import { benchmarks_json } from '$routes/docs/benchmarks/benchmarks.ts';
-import { benchmarks_cross_runtime_json } from '$routes/docs/benchmarks/benchmarks_cross_runtime.ts';
+import { benchmarks_json } from '#routes/docs/benchmarks/benchmarks.ts';
+import { benchmarks_cross_runtime_json } from '#routes/docs/benchmarks/benchmarks_cross_runtime.ts';
 import {
 	CORPUS_SOURCE_LABELS,
 	categorize_row,
 	derive_corpus_source_table,
 	derive_benchmark_groups
-} from '$routes/docs/benchmarks/benchmark_data.ts';
-import { VERSION_LABELS } from '$routes/docs/benchmarks/benchmark_display.ts';
-import { conformance_json } from '$routes/docs/conformance/conformance.ts';
-import { CONFORMANCE_SOURCE_LABELS } from '$routes/docs/conformance/conformance_data.ts';
-import { categorize_size } from '$routes/docs/benchmarks/benchmark_sizes.ts';
+} from '#routes/docs/benchmarks/benchmark_data.ts';
+import { VERSION_LABELS } from '#routes/docs/benchmarks/benchmark_display.ts';
+import { conformance_json } from '#routes/docs/conformance/conformance.ts';
+import { CONFORMANCE_SOURCE_LABELS } from '#routes/docs/conformance/conformance_data.ts';
+import { categorize_size } from '#routes/docs/benchmarks/benchmark_sizes.ts';
 
 import { REPORT_VERSION } from './benchmark_test_helpers.ts';
 

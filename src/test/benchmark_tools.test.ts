@@ -5,12 +5,12 @@ import {
 	derive_tool_matrix,
 	is_tool_cell_timed,
 	type ToolSupport
-} from '$routes/docs/benchmarks/benchmark_tools.ts';
+} from '#routes/docs/benchmarks/benchmark_tools.ts';
 import {
 	CLI_DELIVERY_KEY,
 	CLI_SVELTE_KEY,
 	type CliScenario
-} from '$routes/docs/benchmarks/benchmarks_cli.ts';
+} from '#routes/docs/benchmarks/benchmarks_cli.ts';
 import { create_baseline_entry } from './benchmark_test_helpers.ts';
 
 const scenario = (key: string, labels: Array<string>, tsv_only = false): CliScenario => ({

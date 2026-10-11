@@ -1,11 +1,11 @@
 import { assert, describe, test } from 'vitest';
 
-import { benchmarks_formatters_json } from '$routes/docs/benchmarks/benchmarks_formatters.ts';
+import { benchmarks_formatters_json } from '#routes/docs/benchmarks/benchmarks_formatters.ts';
 import {
 	parse_formatter_benchmarks,
 	type FormatterBenchmarks,
 	type FormatterScenario
-} from '$routes/docs/benchmarks/formatter_benchmark_data.ts';
+} from '#routes/docs/benchmarks/formatter_benchmark_data.ts';
 
 import {
 	create_formatter_preflight,

@@ -13,7 +13,7 @@ import {
 	parse_group_key,
 	type BaselineEntry,
 	type BenchmarkBaseline
-} from '$routes/docs/benchmarks/benchmark_data.ts';
+} from '#routes/docs/benchmarks/benchmark_data.ts';
 
 import { create_baseline, create_baseline_entry } from './benchmark_test_helpers.ts';
 
