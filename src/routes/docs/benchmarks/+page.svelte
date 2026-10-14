@@ -212,9 +212,10 @@
 	{:else}
 		<section>
 			<p>
-				tsv is a Rust toolchain for parsing and formatting TypeScript/JS, CSS, and Svelte. Its
-				formatter closely follows <a href="https://prettier.io/">Prettier</a> and borrows its
-				architectural patterns, and we're grateful for the hard work of Prettier's
+				tsv is a Rust toolchain for parsing and formatting TypeScript/JS, CSS, and Svelte
+				(<a href="https://github.com/fuzdev/tsv">source code</a>). Its formatter closely follows
+				<a href="https://prettier.io/">Prettier</a> and borrows its architectural patterns, and
+				we're grateful for the hard work of Prettier's
 				<a href="https://github.com/prettier/prettier/graphs/contributors">contributors</a>. After
 				correctness, tsv prioritizes performance and efficiency: this page measures its speed and
 				size on real-world code, and the <TomeLink slug="conformance" /> page compares parser
