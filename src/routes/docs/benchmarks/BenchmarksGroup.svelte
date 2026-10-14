@@ -6,7 +6,8 @@
 		format_group_label,
 		format_group_omissions,
 		format_language,
-		format_ns
+		format_ns,
+		format_untimed_reason
 	} from './benchmark_display.ts';
 	import BenchmarksBaselineGroup from './BenchmarksBaselineGroup.svelte';
 
@@ -31,7 +32,7 @@
 			raw: e.mean_ns,
 			annotation: undefined,
 			disabled: e.disabled ?? false,
-			coverage_only: e.coverage_only ?? false
+			placeholder: e.coverage_only ? format_untimed_reason(e.name) : undefined
 		}))
 	);
 </script>

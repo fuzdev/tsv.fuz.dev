@@ -12,7 +12,6 @@
 		annotation,
 		disabled = false,
 		placeholder = 'no API',
-		coverage_only = false,
 		baseline_key,
 		anchor = false
 	}: {
@@ -29,15 +28,9 @@
 		// no bar, no value, no ratio, just the label held in its shared slot
 		disabled?: boolean;
 		// what a `disabled` row reads in its value cell: why the tool is absent
-		// (a parse slot's tool has no parser API; the size table's slot, no wasm build)
+		// (a parse slot's tool has no parser API; the size table's slot, no wasm
+		// build) or, on a coverage-only row, why it ran but went untimed
 		placeholder?: string;
-		// inert for a different reason: the tool DID run over the whole corpus but
-		// was deliberately never timed (rsvelte-fmt has no in-process API, so a
-		// per-file row would measure process spawn; markup_fmt rejects files every
-		// other row is timed on). Reads `not timed` rather than the placeholder, since
-		// "we chose not to measure this" and "this tool wasn't here" are different
-		// claims and the gray alone can't tell them apart
-		coverage_only?: boolean;
 		// hover-to-rebaseline: the key the group's delegated `pointerover` reads off
 		// this row to adopt it as the ratio anchor. Omitted on inert placeholders,
 		// which publish no key and so can never become the anchor.
@@ -67,7 +60,7 @@
 	</div>
 	<span class="bar-value" role="cell">
 		{#if disabled}
-			{coverage_only ? 'not timed' : placeholder}
+			{placeholder}
 		{:else}
 			{value.value} {value.unit}
 		{/if}

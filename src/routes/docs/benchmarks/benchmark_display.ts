@@ -325,6 +325,21 @@ export const format_row_label = (name: string, disabled: boolean): string =>
 	(disabled ? PARSE_SCOPE_GAPS.find((gap) => gap.name === name)?.label : undefined) ??
 	format_label(name);
 
+/**
+ * Why each coverage-only row (`BenchmarkDisplayEntry.coverage_only`) went untimed,
+ * as its grayed-out bar reads it — the report has no field for it, so it's stated
+ * here and the shape test requires one per such row.
+ */
+export const UNTIMED_REASONS: Record<string, string> = {
+	// a binary only: a process per file would time spawn, not formatting
+	'rsvelte-fmt': 'no API',
+	// rejects valid Svelte the corpus holds, which would shrink every row's timed set
+	'markup-fmt-wasm': 'rejects files'
+};
+
+/** What a coverage-only row reads in place of a value. */
+export const format_untimed_reason = (name: string): string => UNTIMED_REASONS[name] ?? 'not timed';
+
 /** Returns a CSS background color variable for a category. */
 export const category_color = (category: ImplementationCategory): string => {
 	switch (category) {

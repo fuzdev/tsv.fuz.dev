@@ -25,6 +25,7 @@ import {
 	format_row_label,
 	format_runtime_display,
 	format_unstable_readings,
+	format_untimed_reason,
 	format_version_label
 } from '#routes/docs/benchmarks/benchmark_display.ts';
 
@@ -373,5 +374,15 @@ describe('format_cli_corpus', () => {
 
 	test('an unrecognized line passes through', () => {
 		assert.strictEqual(format_cli_corpus('unknown (ENOENT)'), 'unknown (ENOENT)');
+	});
+});
+
+describe('format_untimed_reason', () => {
+	test('a stated reason', () => {
+		assert.strictEqual(format_untimed_reason('rsvelte-fmt'), 'no API');
+	});
+
+	test('falls back to not timed', () => {
+		assert.strictEqual(format_untimed_reason('unknown-tool'), 'not timed');
 	});
 });

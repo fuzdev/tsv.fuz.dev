@@ -8,7 +8,7 @@ import {
 	derive_corpus_source_table,
 	derive_benchmark_groups
 } from '#routes/docs/benchmarks/benchmark_data.ts';
-import { VERSION_LABELS } from '#routes/docs/benchmarks/benchmark_display.ts';
+import { UNTIMED_REASONS, VERSION_LABELS } from '#routes/docs/benchmarks/benchmark_display.ts';
 import { conformance_json } from '#routes/docs/conformance/conformance.ts';
 import { CONFORMANCE_SOURCE_LABELS } from '#routes/docs/conformance/conformance_data.ts';
 import { categorize_size } from '#routes/docs/benchmarks/benchmark_sizes.ts';
@@ -222,7 +222,6 @@ describe('benchmarks.json shape', () => {
 		assert.strictEqual(rsvelte.bar_fraction, 0, 'rsvelte-fmt bar');
 
 		// ...but unlike a plain placeholder it DID run, so its coverage is real.
-		// This is the distinction the page renders as `not timed` rather than `no API`.
 		assert.isNumber(rsvelte.files_processed, 'rsvelte-fmt coverage should be present');
 		assert.isNumber(rsvelte.files_total, 'rsvelte-fmt total should be present');
 
@@ -242,6 +241,20 @@ describe('benchmarks.json shape', () => {
 				group.entries.filter((e) => e.name === 'rsvelte-fmt'),
 				`${group.operation}/${group.language} should carry no rsvelte-fmt row`
 			);
+		}
+	});
+
+	test('every coverage-only row states why it went untimed', () => {
+		const untimed = derive_benchmark_groups(benchmarks_json)
+			.flatMap((g) => g.entries)
+			.filter((e) => e.coverage_only)
+			.map((e) => e.name);
+		for (const name of untimed) {
+			assert.ok(name in UNTIMED_REASONS, `${name} needs an UNTIMED_REASONS entry`);
+		}
+		// and no reason outlives its row
+		for (const name of Object.keys(UNTIMED_REASONS)) {
+			assert.include(untimed, name, `UNTIMED_REASONS names ${name}, no coverage-only row`);
 		}
 	});
 
