@@ -255,7 +255,7 @@
 				<li>
 					Formatting Svelte, tsv is ~{format_svelte_vs_prettier} faster than Prettier
 					(~{format_svelte_wasm_vs_prettier} as wasm) and ~{format_svelte_vs_biome} faster than
-					Biome (wasm-vs-wasm).
+					Biome (wasm-vs-wasm), and rsvelte currently has no in-process API.
 				</li>
 				<li>
 					Formatting CSS, tsv is ~{format_css_vs_oxfmt} faster than Oxfmt (native-vs-native),
@@ -278,8 +278,9 @@
 					span-only AST is ~{parse_svelte_default_vs_compiler} faster than svelte/compiler.
 				</li>
 				<li>
-					Parsing CSS runs the other way: Svelte's own <code>parseCss</code>, whose AST tsv
-					reproduces, is ~{parse_css_compiler_vs_tsv} faster than tsv's default parse, and PostCSS
+					Parsing CSS runs the other way, largely because Svelte has a lower fidelity CSS AST which
+					tsv parses to more spec-faithful granularity: Svelte's own <code>parseCss</code> is
+					~{parse_css_compiler_vs_tsv} faster than tsv's default parse, and PostCSS
 					~{parse_css_postcss_vs_tsv} faster (see
 					<a href="#{docs_slugify(PARSE_SECTION_TITLE)}">{PARSE_SECTION_TITLE}</a>).
 					{#each css_runtime_leads as lead (lead.runtime)}
