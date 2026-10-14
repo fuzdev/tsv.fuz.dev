@@ -1,4 +1,4 @@
-import{$ as e,F as t,N as n,_t as r,dt as i,et as a,ft as o,gt as s,nt as c}from"./DOkK6z1E.js";import{n as l}from"./C_P3y5DQ.js";import{n as u}from"./DGul0cF0.js";import{t as d}from"./DbS3OIWv.js";import{i as f,t as p}from"./BJ09zfND.js";import{t as m}from"./DSAB4Ico.js";import{n as h,t as g}from"./aqhmu7ZV.js";var _=`import { format_svelte, parse_svelte, type Root } from '@fuzdev/tsv';
+import{$ as e,F as t,N as n,_t as r,dt as i,et as a,ft as o,gt as s,nt as c}from"./DOkK6z1E.js";import{n as l}from"./C_P3y5DQ.js";import{n as u}from"./DGul0cF0.js";import{t as d}from"./DbS3OIWv.js";import{i as f,t as p}from"./BJ09zfND.js";import{t as m}from"./DDyXxpG-.js";import{n as h,t as g}from"./aqhmu7ZV.js";var _=`import { format_svelte, parse_svelte, type Root } from '@fuzdev/tsv';
 
 const formatted = format_svelte('<script>\\nconst   x=1\\n<\/script>');
 const ast: Root = parse_svelte('<script>const x = 1;<\/script>');`,v=`import { format_svelte } from '@fuzdev/tsv-format-wasm';
