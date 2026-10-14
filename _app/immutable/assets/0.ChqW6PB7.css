@@ -288,7 +288,7 @@
 	--selection_color: oklch(var(--palette_lightness_80) calc(var(--palette_chroma_80) * var(--chroma_scale, 1) * var(--accent_chroma_scale, 1)) var(--hue_accent) / 40%);
 	--shade_lightness_00: 0.171;
 	--shade_lightness_100: 0.97;
-	--shade_lightness_curve: 0.92;
+	--shade_lightness_curve: 1.05;
 	--shade_max: #fff;
 	--shadow_alpha_30: calc(37% * var(--shadow_alpha_scale));
 	--shadow_alpha_40: calc(47% * var(--shadow_alpha_scale));
