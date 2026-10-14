@@ -222,7 +222,7 @@ describe('benchmarks.json shape', () => {
 		assert.strictEqual(rsvelte.bar_fraction, 0, 'rsvelte-fmt bar');
 
 		// ...but unlike a plain placeholder it DID run, so its coverage is real.
-		// This is the distinction the page renders as `not timed` rather than `n/a`.
+		// This is the distinction the page renders as `not timed` rather than `no API`.
 		assert.isNumber(rsvelte.files_processed, 'rsvelte-fmt coverage should be present');
 		assert.isNumber(rsvelte.files_total, 'rsvelte-fmt total should be present');
 

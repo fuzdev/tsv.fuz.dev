@@ -13,7 +13,7 @@
 
 	// an enabled row the report gave no gzip size reads 'n/a' when its group's other
 	// entries carry one, so the gap is stated rather than blank; a disabled
-	// placeholder (e.g. oxfmt's absent wasm build) already reads 'n/a' as its value
+	// placeholder (oxfmt's absent wasm build) reads 'no wasm build' as its value
 	const to_rows = (group: SizeCapabilityGroup): Array<BaselineRow> => {
 		const group_has_gzip = group.entries.some((e) => e.gzip_bytes != null);
 		return group.entries.map((s) => ({
@@ -26,7 +26,8 @@
 			annotation: s.disabled
 				? undefined
 				: (format_gzip_size(s.gzip_bytes) ?? (group_has_gzip ? 'n/a' : undefined)),
-			disabled: s.disabled ?? false
+			disabled: s.disabled ?? false,
+			placeholder: s.disabled ? 'no wasm build' : undefined
 		}));
 	};
 </script>

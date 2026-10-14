@@ -66,6 +66,7 @@
 			value={row.value}
 			annotation={row.annotation}
 			disabled={row.disabled}
+			placeholder={row.placeholder}
 			coverage_only={row.coverage_only}
 			ratio_text={format_speedup(ratio ?? 1)}
 			ratio_color={ratio != null ? baseline_ratio_color(ratio) : 'var(--text_40)'}

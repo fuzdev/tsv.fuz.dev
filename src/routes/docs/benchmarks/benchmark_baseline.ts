@@ -60,8 +60,10 @@ export interface BaselineRow {
 	annotation: string | undefined;
 	// grayed-out, inert placeholder — never an anchor, no hover highlight
 	disabled: boolean;
+	// what a disabled row reads instead of a value; the bar defaults it to `no API`
+	placeholder?: string;
 	// inert because the tool was measured for COVERAGE but deliberately never
 	// timed, not because it sat the group out — the bar reads `not timed` instead
-	// of `n/a` so the two aren't conflated. See `BenchmarkDisplayEntry.coverage_only`.
+	// of its placeholder so the two aren't conflated. See `BenchmarkDisplayEntry.coverage_only`.
 	coverage_only?: boolean;
 }
