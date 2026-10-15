@@ -14,4 +14,4 @@ This repo has only the website, the code is at [fuzdev/tsv](https://github.com/f
 
 ## License [🐦](https://wikipedia.org/wiki/Free_and_open-source_software)
 
-[MIT](LICENSE)
+[0BSD](LICENSE)

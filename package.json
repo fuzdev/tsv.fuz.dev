@@ -5,7 +5,7 @@
   "glyph": "🪶",
   "logo": "logo.svg",
   "logo_alt": "a pixelated orange quill drawing a precise line",
-  "license": "MIT",
+  "license": "0BSD",
   "homepage": "https://tsv.fuz.dev/",
   "repository": "https://github.com/fuzdev/tsv.fuz.dev",
   "scripts": {
