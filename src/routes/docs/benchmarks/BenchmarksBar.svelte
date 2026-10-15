@@ -92,8 +92,8 @@
 	 * whichever enabled row is hovered (driven in JS) — marked as the CLI tables mark
 	 * theirs */
 	.bar-row.anchor {
-		background-color: var(--fg_05);
-		box-shadow: inset var(--border_width_3) 0 0 var(--fg_50);
+		background-color: var(--ink_05);
+		box-shadow: inset var(--border_width_3) 0 0 var(--ink_50);
 	}
 	.bar-label,
 	.bar-value,
@@ -109,7 +109,7 @@
 		grid-column: track;
 		height: 1.2rem;
 		border-radius: var(--border_radius_xs);
-		background: var(--fg_05);
+		background: var(--ink_05);
 	}
 	.bar-fill {
 		height: 100%;

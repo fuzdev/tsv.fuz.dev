@@ -164,10 +164,10 @@
 	   background means nothing else here, so the base `tr:hover` tint is matched to it */
 	tr.anchor,
 	tbody tr:hover {
-		background-color: var(--fg_05);
+		background-color: var(--ink_05);
 	}
 	tr.anchor .formatter {
-		box-shadow: inset var(--border_width_3) 0 0 var(--fg_50);
+		box-shadow: inset var(--border_width_3) 0 0 var(--ink_50);
 	}
 	tr.anchor .speedup {
 		color: var(--text_40);
