@@ -5,121 +5,136 @@
 // This module validates that report and keeps the scenarios tsv runs in;
 // `benchmarks_formatters.gen.json.ts` writes the result out.
 
-import { z } from 'zod';
+import * as s from '@fuzdev/fuz_schema/schema.ts';
+
+const NonEmptyString = s.pipe(s.string, s.min_length(1));
+const Positive = s.pipe(
+	s.number,
+	s.check((v: number) => v > 0, '> 0')
+);
+const NonNegative = s.pipe(s.number, s.min_value(0));
+// Zod's `int()` is a safe integer
+const Count = s.pipe(s.number, s.safe_integer, s.min_value(0));
+const PositiveCount = s.pipe(s.number, s.safe_integer, s.min_value(1));
+
+// the pattern of Zod's `z.iso.datetime()`: a UTC `Z` time, seconds and their fraction optional
+const DATETIME =
+	/^(?:(?:\d\d[2468][048]|\d\d[13579][26]|\d\d0[48]|[02468][048]00|[13579][26]00)-02-29|\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\d|30)|(?:02)-(?:0[1-9]|1\d|2[0-8])))T(?:(?:[01]\d|2[0-3]):[0-5]\d(?::[0-5]\d(?:\.\d+)?)?Z)$/;
+const Datetime = s.pipe(s.string, s.regex(DATETIME, 'an ISO datetime'));
 
 /** A single formatter's timing in one scenario. All durations in milliseconds. */
-export const FormatterTiming = z.strictObject({
-	name: z.string().min(1),
-	mean_ms: z.number().positive(),
+export const FormatterTiming = s.object({
+	name: NonEmptyString,
+	mean_ms: Positive,
 	/** Zero for a lone run, which has no spread. */
-	stddev_ms: z.number().nonnegative(),
-	user_ms: z.number().nonnegative(),
-	system_ms: z.number().nonnegative(),
-	min_ms: z.number().positive(),
-	max_ms: z.number().positive()
+	stddev_ms: NonNegative,
+	user_ms: NonNegative,
+	system_ms: NonNegative,
+	min_ms: Positive,
+	max_ms: Positive
 });
-export type FormatterTiming = z.infer<typeof FormatterTiming>;
+export type FormatterTiming = s.Infer<typeof FormatterTiming>;
 
 /**
  * A single formatter's peak-RSS measurement in one scenario. The harness's `_mb`
  * are GNU time's KiB over 1024 — MiB, which is how the page labels them.
  */
-export const FormatterMemory = z.strictObject({
-	name: z.string().min(1),
-	mean_mb: z.number().positive(),
-	min_mb: z.number().positive(),
-	max_mb: z.number().positive(),
+export const FormatterMemory = s.object({
+	name: NonEmptyString,
+	mean_mb: Positive,
+	min_mb: Positive,
+	max_mb: Positive,
 	/**
 	 * Ratio to the scenario's baseline formatter (tsv wherever tsv runs); absent on
 	 * that row. Below 1 means less memory than the baseline.
 	 */
-	ratio: z.number().positive().optional(),
-	ratio_stddev: z.number().nonnegative().optional()
+	ratio: s.optional(Positive),
+	ratio_stddev: s.optional(NonNegative)
 });
-export type FormatterMemory = z.infer<typeof FormatterMemory>;
+export type FormatterMemory = s.Infer<typeof FormatterMemory>;
 
 /** How a scenario's fastest formatter compares to one of the others. */
-export const FormatterSpeedup = z.strictObject({
-	name: z.string().min(1),
-	ratio: z.number().positive(),
-	ratio_stddev: z.number().nonnegative()
+export const FormatterSpeedup = s.object({
+	name: NonEmptyString,
+	ratio: Positive,
+	ratio_stddev: NonNegative
 });
-export type FormatterSpeedup = z.infer<typeof FormatterSpeedup>;
+export type FormatterSpeedup = s.Infer<typeof FormatterSpeedup>;
 
 /**
  * A formatter's parse-check result over the scenario's corpus. The harness runs
  * this before timing so a tool that rejects files isn't credited for skipping
  * them.
  */
-export const FormatterPreflight = z.strictObject({
-	name: z.string().min(1),
+export const FormatterPreflight = s.object({
+	name: NonEmptyString,
 	/** Files the formatter refused to parse. */
-	rejected: z.number().int().nonnegative(),
+	rejected: Count,
 	/** The formatter's binary never launched, so its timing row is meaningless. */
-	unavailable: z.boolean(),
+	unavailable: s.boolean,
 	/** The check pass crashed partway (exit ≥ 128), so its coverage is unknown. */
-	crashed: z.boolean()
+	crashed: s.boolean
 });
-export type FormatterPreflight = z.infer<typeof FormatterPreflight>;
+export type FormatterPreflight = s.Infer<typeof FormatterPreflight>;
 
 /** One benchmark scenario — a corpus benched across every formatter that supports it. */
-export const FormatterScenario = z.strictObject({
+export const FormatterScenario = s.object({
 	/** Slug of `name`, e.g. `large-single-file` — what the page keys its copy on. */
-	id: z.string().min(1),
-	name: z.string().min(1),
+	id: NonEmptyString,
+	name: NonEmptyString,
 	/** The corpus, as the harness describes it. */
-	target: z.string().min(1),
+	target: NonEmptyString,
 	/**
 	 * Which revision of that corpus these numbers came from — a commit and date, or
 	 * a size and content hash for a single downloaded file. It is how a published
 	 * run says which pin of each corpus it ran at, so two runs can be told apart.
 	 */
-	corpus: z.string().min(1),
+	corpus: NonEmptyString,
 	/**
 	 * The counts the scenario resolved, recorded before anything can abort it. 0 only
 	 * in the harness's upstream scenarios when hyperfine itself failed.
 	 */
-	warmup_runs: z.number().int().nonnegative(),
-	benchmark_runs: z.number().int().nonnegative(),
+	warmup_runs: Count,
+	benchmark_runs: Count,
 	/**
 	 * Seconds the harness idled before each formatter's warmups, to even out the
 	 * thermal drift its fixed command order creates. Absent from the scenarios that
 	 * don't settle; `0` means a run that turned it off.
 	 */
-	settle_seconds: z.number().nonnegative().optional(),
+	settle_seconds: s.optional(NonNegative),
 	/** One row per formatter the scenario checked before timing; empty where it ran no preflight. */
-	preflight: z.array(FormatterPreflight),
+	preflight: s.array(FormatterPreflight),
 	/**
 	 * How many files the scenario formatted: the count every formatter that reports
 	 * one agreed on in preflight. Absent where none reports one, and from reports
 	 * that predate the field.
 	 */
-	files: z.number().int().positive().optional(),
+	files: s.optional(PositiveCount),
 	/**
 	 * Why the harness stopped early. Before timing (preflight failed) there are no
 	 * timings, speedups, or memory rows and the `preflight` entries say which
 	 * formatter caused it; after timing (a memory run crashed) timings and speedups
 	 * are present and only `memory` is empty.
 	 */
-	aborted: z.string().min(1).optional(),
+	aborted: s.optional(NonEmptyString),
 	/**
 	 * tsv's Node-launched rows that ran as `node <script>` because the harness had
 	 * no pnpm bin shim to copy for them — so they skipped the few milliseconds of
 	 * shell shim every other tool's row pays. Absent when every row was shimmed.
 	 */
-	unshimmed: z.array(z.string().min(1)).min(1).optional(),
-	timings: z.array(FormatterTiming),
+	unshimmed: s.optional(s.pipe(s.array(NonEmptyString), s.min_length(1))),
+	timings: s.array(FormatterTiming),
 	/**
 	 * The fastest timed formatter, and its margin over each other one; absent when
 	 * nothing was timed. Not the memory rows' anchor, which the harness fixes per
 	 * scenario and marks by leaving that row without a `ratio`.
 	 */
-	fastest: z.string().min(1).optional(),
-	speedups: z.array(FormatterSpeedup),
+	fastest: s.optional(NonEmptyString),
+	speedups: s.array(FormatterSpeedup),
 	/** Empty without GNU time, and when an abort kept the memory pass from finishing. */
-	memory: z.array(FormatterMemory)
+	memory: s.array(FormatterMemory)
 });
-export type FormatterScenario = z.infer<typeof FormatterScenario>;
+export type FormatterScenario = s.Infer<typeof FormatterScenario>;
 
 /**
  * The formatter comparison, as the harness publishes it and as this site commits
@@ -127,26 +142,26 @@ export type FormatterScenario = z.infer<typeof FormatterScenario>;
  * JSX/TSX parser, so the harness runs it on the JSX-free corpora only and the
  * other scenarios have no tsv row to compare against.
  */
-export const FormatterBenchmarks = z.strictObject({
+export const FormatterBenchmarks = s.object({
 	/** When the run started. */
-	timestamp: z.iso.datetime(),
+	timestamp: Datetime,
 	/** The harness revision that ran, abbreviated as `git rev-parse --short` prints it. */
-	git_commit: z.string().min(1),
+	git_commit: NonEmptyString,
 	/**
 	 * Whether the harness tree had uncommitted changes when the run started — its
 	 * numbers then came from code `git_commit` doesn't hold.
 	 */
-	git_dirty: z.boolean(),
+	git_dirty: s.boolean,
 	/**
 	 * The machine the numbers came from. The ratios move with it — Biome, Oxfmt,
 	 * and tsv scale across cores while Prettier formats files one at a time. `arch`
 	 * is `uname -m`'s naming (`x86_64`), as tsv's own reports write it.
 	 */
-	machine: z.strictObject({
-		cpu_model: z.string().min(1),
-		threads: z.number().int().positive(),
-		os: z.string().min(1),
-		arch: z.string().min(1)
+	machine: s.object({
+		cpu_model: NonEmptyString,
+		threads: PositiveCount,
+		os: NonEmptyString,
+		arch: NonEmptyString
 	}),
 	/**
 	 * A bare `node -e ""` timed under hyperfine on the same machine, with the PATH
@@ -154,28 +169,42 @@ export const FormatterBenchmarks = z.strictObject({
 	 * before its formatter runs. A machine property beside `machine`, never a row,
 	 * so it can't be folded into an "every other tool" range.
 	 */
-	node_startup: z.strictObject({
-		mean_ms: z.number().positive(),
-		stddev_ms: z.number().nonnegative(),
-		runs: z.number().int().positive()
+	node_startup: s.object({
+		mean_ms: Positive,
+		stddev_ms: NonNegative,
+		runs: PositiveCount
 	}),
 	/**
 	 * Formatter name to version string, e.g. `prettier` to `3.9.1`, plus `node` —
 	 * not a formatter, but what every row except the bare `tsv` binary launches first.
 	 */
-	versions: z.record(z.string(), z.string().min(1)),
+	versions: s.record(NonEmptyString),
 	/**
 	 * Where the native tsv rows' binary came from: the platform package
 	 * `@fuzdev/tsv` installs, or a local build through `TSV_BIN`, dated by its
 	 * mtime (`null` when it couldn't be read).
 	 */
-	tsv_binary: z.discriminatedUnion('source', [
-		z.strictObject({ source: z.literal('package'), package: z.string().min(1) }),
-		z.strictObject({ source: z.literal('TSV_BIN'), built: z.string().min(1).nullable() })
+	tsv_binary: s.variant('source', [
+		s.object({ source: s.literal('package'), package: NonEmptyString }),
+		s.object({ source: s.literal('TSV_BIN'), built: s.nullable(NonEmptyString) })
 	]),
-	scenarios: z.array(FormatterScenario)
+	scenarios: s.array(FormatterScenario)
 });
-export type FormatterBenchmarks = z.infer<typeof FormatterBenchmarks>;
+export type FormatterBenchmarks = s.Infer<typeof FormatterBenchmarks>;
+
+/**
+ * Copies `value` with its keys in the order of `schema`'s entries. An `object`
+ * schema returns its input as it is, and the harness writes some keys in an
+ * order of its own, so this keeps the committed report in the schema's order
+ * whatever order a run wrote.
+ */
+const in_schema_order = <T extends object>(schema: { def: object }, value: T): T => {
+	const ordered: Record<string, unknown> = {};
+	for (const key of Object.keys(schema.def)) {
+		if (key in value) ordered[key] = value[key as keyof T];
+	}
+	return ordered as T;
+};
 
 /** Whether tsv was one of a scenario's formatters, timed or only checked. */
 const scenario_has_tsv = (scenario: FormatterScenario): boolean =>
@@ -197,11 +226,11 @@ const scenario_has_tsv = (scenario: FormatterScenario): boolean =>
  * scenario timed tsv, or the versions list lacks tsv
  */
 export const parse_formatter_benchmarks = (results: unknown): FormatterBenchmarks => {
-	const parsed = FormatterBenchmarks.safeParse(results);
-	if (!parsed.success) {
-		throw new Error(`formatter benchmarks: ${z.prettifyError(parsed.error)}`);
+	const parsed = s.parse(FormatterBenchmarks, results);
+	if (!parsed.ok) {
+		throw new Error(`formatter benchmarks: ${parsed.issues.map(s.format_issue).join('\n')}`);
 	}
-	const { scenarios: all_scenarios, ...report } = parsed.data;
+	const { scenarios: all_scenarios, ...report } = parsed.value;
 
 	for (const scenario of all_scenarios) {
 		// A scenario with no timings either aborted before hyperfine ran — it says so,
@@ -220,11 +249,19 @@ export const parse_formatter_benchmarks = (results: unknown): FormatterBenchmark
 	// tsv has no JSX/TSX parser, so it sits out some scenarios by design — but if it
 	// was timed in NONE of them, either the harness stopped benching tsv or its row
 	// was renamed, and the site would render a comparison without its subject.
-	const scenarios = all_scenarios.filter(scenario_has_tsv);
+	const scenarios = all_scenarios.filter(scenario_has_tsv).map((scenario) =>
+		in_schema_order(FormatterScenario, {
+			...scenario,
+			preflight: scenario.preflight.map((row) => in_schema_order(FormatterPreflight, row)),
+			timings: scenario.timings.map((row) => in_schema_order(FormatterTiming, row)),
+			speedups: scenario.speedups.map((row) => in_schema_order(FormatterSpeedup, row)),
+			memory: scenario.memory.map((row) => in_schema_order(FormatterMemory, row))
+		})
+	);
 	if (!scenarios.some((scenario) => scenario.timings.some((timing) => timing.name === 'tsv'))) {
 		throw new Error(
 			`formatter benchmarks: no scenario includes a tsv row (found ${all_scenarios
-				.map((s) => s.id)
+				.map((scenario) => scenario.id)
 				.join(', ')})`
 		);
 	}
@@ -233,5 +270,14 @@ export const parse_formatter_benchmarks = (results: unknown): FormatterBenchmark
 		throw new Error('formatter benchmarks: no tsv version in the report');
 	}
 
-	return { ...report, scenarios };
+	// the variant key first, as the schema has it
+	const { source, ...tsv_binary_rest } = report.tsv_binary;
+	const tsv_binary = { source, ...tsv_binary_rest } as typeof report.tsv_binary;
+	return in_schema_order(FormatterBenchmarks, {
+		...report,
+		machine: in_schema_order(FormatterBenchmarks.def.machine, report.machine),
+		node_startup: in_schema_order(FormatterBenchmarks.def.node_startup, report.node_startup),
+		tsv_binary,
+		scenarios
+	});
 };

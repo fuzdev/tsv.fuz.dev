@@ -32,7 +32,7 @@ gro sync      # regenerate files and run svelte-kit sync
 
 Note: `@fuzdev/tsv-wasm` is loaded only on `/docs/playground` via a browser-only dynamic `import()`, so the ~1MB-gzipped wasm (~2.5MB decoded) never weighs down `/docs` or the prerendered pages.
 
-Note: `zod` is an optional peer of `@fuzdev/fuz_css` and is imported by this app's own source — `formatter_benchmark_data.ts`'s schemas, read at gen and test time and as erased types by the page, so it never reaches the client bundle. `@webref/css`, `zimmerframe`, and `@sveltejs/acorn-typescript` are regular dependencies of `@fuzdev/fuz_css`, so their devDeps here are redundant. `@fuzdev/blake3-wasm`, `@fuzdev/fuz_schema`, `esm-env`, `@types/estree`, and `@types/node` are peers of `@fuzdev/fuz_util` (`@fuzdev/fuz_schema` and `esm-env` required, the rest optional), and gro needs `@fuzdev/fuz_schema` too; `esm-env` and `@types/estree` are optional peers of `@fuzdev/mdz` and `esm-env` of `@fuzdev/fuz_ui`, and `tslib` backs `tsconfig.json`'s `importHelpers` — none is imported here directly.
+Note: `@webref/css`, `zimmerframe`, and `@sveltejs/acorn-typescript` are regular dependencies of `@fuzdev/fuz_css`, so their devDeps here are redundant. `@fuzdev/blake3-wasm`, `@fuzdev/fuz_schema`, `esm-env`, `@types/estree`, and `@types/node` are peers of `@fuzdev/fuz_util` (`@fuzdev/fuz_schema` and `esm-env` required, the rest optional), and gro requires `@fuzdev/fuz_schema` too; `esm-env` and `@types/estree` are optional peers of `@fuzdev/mdz` and `esm-env` of `@fuzdev/fuz_ui`, and `tslib` backs `tsconfig.json`'s `importHelpers` — of these only `@fuzdev/fuz_schema` is imported here directly, for `formatter_benchmark_data.ts`'s schemas, read at gen and test time and as erased types by the page.
 
 ## Scope
 
@@ -126,7 +126,7 @@ Those tests pin each report's `version` exactly, so the types in
 only — re-pin and update the types together on a bump.
 
 `benchmarks_formatters.gen.json.ts` validates the harness's `results.json`
-against `formatter_benchmark_data.ts`'s Zod schemas and keeps only the scenarios
+against `formatter_benchmark_data.ts`'s fuz_schema schemas and keeps only the scenarios
 tsv participates in (it has no JSX/TSX parser). A **missing** sibling checkout is
 the one tolerated case — generation is skipped and the committed JSON stands, so
 `gro gen --check` passes on CI, which never checks out the harness. A report
@@ -163,7 +163,7 @@ in the schema TSDoc in `formatter_benchmark_data.ts`.
 - `benchmark_tools.ts` + `BenchmarksTools.svelte` — the language-support matrix: each tool's parse and format support per language, stated by hand (`TOOL_SUPPORT`, verified against the tools' docs and installed packages), with the cells the page times derived from the in-process and CLI reports; the shape test holds the two together
 - `benchmark_sizes.ts` (the binary sizes split by target — browser: wasm and JS; native — then grouped by capability), `benchmark_cross_runtime.ts` — one domain each, built on `benchmark_data.ts` (the cross-runtime one on `benchmark_display.ts` too); the conformance page's `conformance_data.ts` does the same from its own directory — a matrix per language (corpus sources × engines, led by the aggregate over the sources no engine selected, which orders the columns), with hand-stated maps the report has no field for: the engine names, the row notes, the source labels, `CONFORMANCE_ENGINE_VERSIONS` (the version keys each engine column lists, so the page's meta panel skips the report's formatters), and `CONFORMANCE_SELECTORS`, the engine that selected a source and so reads 100% on it by construction; the shape test holds each to the report
 - `benchmark_baseline.ts` + `BenchmarksBaselineGroup.svelte` — hover-to-rebaseline: hovering a row re-anchors that group's ratios, restoring the default anchor on leave; pointer-only by design, and a disabled row never anchors. `BenchmarksCli.svelte`'s tables behave the same way
-- `formatter_benchmark_data.ts` — the harness report's Zod schemas and `parse_formatter_benchmarks`
+- `formatter_benchmark_data.ts` — the harness report's fuz_schema schemas and `parse_formatter_benchmarks`
 - `benchmarks_cli.ts` — shapes the CLI report for `BenchmarksCli.svelte` and owns the per-scenario prose and the `cli_*` claim helpers
 - `benchmarks_prose.ts` — `IN_PROCESS_PAIRS`, the in-process pairings the copy names; the page reads it by key and the prose test iterates it, so a pairing added to the copy is gated by construction
 - `benchmarks.ts`, `benchmarks_cross_runtime.ts`, `benchmarks_formatters.ts` (and the conformance page's `conformance.ts`) — re-export the JSON with types
