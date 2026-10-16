@@ -18,7 +18,7 @@
 <TomeContent {tome}>
 	{#if at_root}
 		<section>
-			<p>Try tsv's formatter and parser live in the <TomeLink slug="playground" />.</p>
+			<p>Try tsv's formatter and parser in the browser <TomeLink slug="playground" />.</p>
 		</section>
 	{:else}
 		<section>
