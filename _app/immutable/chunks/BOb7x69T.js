@@ -1,1 +1,0 @@
-import{a as e,i as t}from"./D9sYpCc-.js";import{a as n}from"./RRGC_qtY.js";var r=n=>t(e(e(n,`https://`),`www.`),`/`);n();export{r as t};

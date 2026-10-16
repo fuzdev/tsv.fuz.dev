@@ -1,4 +1,4 @@
-import{$ as e,F as t,N as n,_t as r,dt as i,et as a,ft as o,gt as s,nt as c}from"./DOkK6z1E.js";import{n as l}from"./C_P3y5DQ.js";import{n as u}from"./DGul0cF0.js";import{t as d}from"./DbS3OIWv.js";import{i as f,t as p}from"./BJ09zfND.js";import{t as m}from"./DDyXxpG-.js";import{n as h,t as g}from"./aqhmu7ZV.js";var _=`import { format_svelte, parse_svelte, type Root } from '@fuzdev/tsv';
+import{$ as e,F as t,N as n,_t as r,dt as i,et as a,ft as o,gt as s,nt as c}from"./DOkK6z1E.js";import{n as l}from"./C_P3y5DQ.js";import{n as u}from"./D6xHBEYi.js";import{t as d}from"./DbS3OIWv.js";import{i as f,t as p}from"./CV_oYweD.js";import{t as m}from"./CG9fjYIS.js";import{n as h,t as g}from"./K3K_iwnx.js";var _=`import { format_svelte, parse_svelte, type Root } from '@fuzdev/tsv';
 
 const formatted = format_svelte('<script>\\nconst   x=1\\n<\/script>');
 const ast: Root = parse_svelte('<script>const x = 1;<\/script>');`,v=`import { format_svelte } from '@fuzdev/tsv-format-wasm';
@@ -64,8 +64,7 @@ locator.loc_of(ast.body[0]); // {start: {line, column}, end: {line, column}}`,x=
 			TS/JS/CSS parsers instead of using Oxc. rsvelte also ships a Svelte compiler and
 			linter/typechecker integration; tsv has experimental work in that direction that may never
 			ship.</p> <p>tsv prioritizes, in order:</p> <ol><li>correctness (spec conformance for JS/CSS, planned for HTML/JSON; fidelity to Svelte and
-				TypeScript)</li> <li>speed</li> <li>binary size and memory usage</li> <li>extensibility, modularity, reusability</li></ol> <p>Staying simple is an overarching goal, and is sometimes at odds with flexibility. Feedback is
-			welcome to help navigate these tradeoffs.</p> <p>See the <!> for measurements. Compared to Oxc/Oxfmt and Biome, tsv
+				TypeScript)</li> <li>speed</li> <li>binary size and memory usage</li> <li>extensibility, modularity, reusability</li></ol> <p>Staying simple is an overarching goal. Feedback is welcome to help navigate these tradeoffs.</p> <p>See the <!> for measurements. Compared to Oxc/Oxfmt and Biome, tsv
 			is generally faster and smaller, but lacks their features, extensibility, and broad language
 			support. One reason for tsv to exist is to help find the performance left on the table in the
 			Web's implementations.</p> <p>tsv is near production-ready, with a long tail of rare bugs, and APIs may still change.
