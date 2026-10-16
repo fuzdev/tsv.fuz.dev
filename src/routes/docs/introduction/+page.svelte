@@ -64,9 +64,9 @@
 		</p>
 		<p>
 			See the <TomeLink slug="benchmarks" /> for measurements. Compared to Oxc/Oxfmt and Biome, tsv
-			is generally faster and smaller, but lacks their features, extensibility, and broad language
-			support. One reason for tsv to exist is to help find the performance left on the table in the
-			Web's implementations.
+			is faster and smaller and uses less memory, but lacks their features, extensibility, and broad
+			language support. One reason for tsv to exist is to help find the performance left on the
+			table in the Web's implementations.
 		</p>
 		<p>
 			tsv is near production-ready, with a long tail of rare bugs, and APIs may still change.
