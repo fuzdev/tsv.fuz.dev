@@ -60,8 +60,7 @@
 			<li>extensibility, modularity, reusability</li>
 		</ol>
 		<p>
-			Staying simple is an overarching goal, and is sometimes at odds with flexibility. Feedback is
-			welcome to help navigate these tradeoffs.
+			Staying simple is an overarching goal. Feedback is welcome to help navigate these tradeoffs.
 		</p>
 		<p>
 			See the <TomeLink slug="benchmarks" /> for measurements. Compared to Oxc/Oxfmt and Biome, tsv
