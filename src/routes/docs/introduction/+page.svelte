@@ -72,7 +72,7 @@
 			table in the Web's implementations.
 		</p>
 		<p>
-			tsv is near production-ready, with a long tail of rare bugs, and APIs may still change.
+			tsv's formatters are near production-ready, with a long tail of rare bugs, and APIs may still change.
 			Reports and opinions are appreciated. See the
 			<a href="https://github.com/fuzdev/tsv/issues">issues</a> and
 			<a href="https://github.com/fuzdev/tsv/discussions">discussions</a>.
