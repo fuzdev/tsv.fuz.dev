@@ -15,6 +15,15 @@ export const parse_example = `import { parse_svelte, type Root } from '@fuzdev/t
 
 const ast: Root = parse_svelte('<script>const x = 1;</script>');`;
 
+export const strip_example = `import { strip_typescript } from '@fuzdev/tsv';
+
+const result = strip_typescript('let x: number = 1;');
+if (result.ok) {
+	result.code; // 'let x         = 1;'
+} else {
+	result.error.kind; // 'parse' or 'unsupported'
+}`;
+
 export const locations_example = `import { parse_typescript, create_locator } from '@fuzdev/tsv-parse-wasm';
 
 const source = 'const x = 1;';

@@ -12,6 +12,7 @@
 		format_example,
 		locations_example,
 		parse_example,
+		strip_example,
 		usage_example
 	} from './introduction_examples.ts';
 
@@ -29,7 +30,9 @@
 			<a href="https://github.com/sveltejs/prettier-plugin-svelte">prettier-plugin-svelte</a>, and a
 			drop-in for <a href="https://svelte.dev/">Svelte</a>'s parser +
 			<a href="https://github.com/acornjs/acorn">acorn</a> +
-			<a href="https://github.com/sveltejs/acorn-typescript">acorn-typescript</a>.
+			<a href="https://github.com/sveltejs/acorn-typescript">acorn-typescript</a>, plus a type
+			stripper that turns TypeScript into JS by blanking its types to whitespace, so every line and
+			column stays put.
 		</p>
 		<p>
 			tsv aims to simplify its covered domains and stay lean, and so it makes opinionated choices.
@@ -107,7 +110,7 @@
 			</p>
 			<Code
 				lang="sh"
-				content={'npm i -D @fuzdev/tsv\nnpx tsv format src\nnpx tsv format --check src\nnpx tsv parse src/foo.svelte'}
+				content={'npm i -D @fuzdev/tsv\nnpx tsv format src\nnpx tsv format --check src\nnpx tsv parse src/foo.svelte\nnpx tsv strip src/foo.ts'}
 			/>
 			<p>
 				<code>tsv format</code> writes changed files in place; <code>--check</code> writes nothing
@@ -148,9 +151,10 @@
 		<TomeSection>
 			<TomeSectionHeader text="Usage" />
 			<p>
-				All four packages share one API — the same function names, options, and errors — so
-				<code>@fuzdev/tsv</code> and <code>@fuzdev/tsv-wasm</code> are drop-in swaps for each other.
-				Both export the formatter and parser together:
+				All four packages share one API — the same function names, options, and errors, the solo
+				packages carrying their half — so <code>@fuzdev/tsv</code> and <code>@fuzdev/tsv-wasm</code>
+				are drop-in swaps for each other. Both export the formatter, the parser, and the type
+				stripper together:
 			</p>
 			<Code lang="ts" content={usage_example} />
 			<p>The formatter alone:</p>
@@ -188,6 +192,23 @@
 				The native package needs no initialization; the wasm packages work zero-config in Node.js,
 				Bun, and Deno (sync auto-init); in browsers and bundlers, call
 				<Code lang="ts" content="await init()" inline /> once first.
+			</p>
+		</TomeSection>
+		<TomeSection>
+			<TomeSectionHeader text="Type stripping" />
+			<p>
+				<code>strip_typescript</code>, in <code>@fuzdev/tsv</code> and
+				<code>@fuzdev/tsv-wasm</code>, blanks every type to whitespace, so the JS keeps the
+				TypeScript's lines and columns and needs no source map. TypeScript that blanking can't
+				erase, like an <code>enum</code> or a parameter property, is refused rather than
+				transformed. It returns a result object instead of throwing:
+			</p>
+			<Code lang="ts" content={strip_example} />
+			<p>
+				<code>tsv strip</code> does the same for one file, <code>--content</code>, or
+				<code>--stdin</code>, printing the JS to stdout; it exits 1 on a refusal. See
+				<a href="https://github.com/fuzdev/tsv/blob/main/docs/strip.md">docs/strip.md</a> for the
+				details.
 			</p>
 		</TomeSection>
 		<TomeSection>
