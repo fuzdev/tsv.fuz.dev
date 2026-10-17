@@ -427,6 +427,14 @@
 		<TomeSection>
 			<TomeSectionHeader text={PARSE_SECTION_TITLE} />
 			<p>
+				The parsers here don't return the same output, so each ratio compares different amounts of
+				work. They differ in how much position data each node carries (offsets only, or
+				<code>loc</code> too), in how finely they break down CSS (<code>parseCss</code> and PostCSS
+				keep more of it coarse than tsv does), and in what they collect beyond the tree (Oxc also
+				gathers comments and module records). Each tool is compared against tsv's closest output,
+				and the notes cover what still differs.
+			</p>
+			<p>
 				tsv and <a href="https://oxc.rs/docs/guide/usage/parser">oxc-parser</a>, in its default
 				mode, share a mechanism: both serialize the AST to JSON in Rust and hand it to the JS
 				engine's <code>JSON.parse</code>, native and wasm alike. tsv is timed three ways:
