@@ -115,7 +115,8 @@
 			<p>
 				<code>tsv format</code> writes changed files in place; <code>--check</code> writes nothing
 				and exits 1 if any file would change. Inside a git repo, discovery honors
-				<code>.gitignore</code>, <code>.prettierignore</code>, and <code>.formatignore</code>.
+				<code>.gitignore</code>, <code>.formatignore</code>, and <code>.prettierignore</code>;
+				outside one, only <code>.formatignore</code>.
 			</p>
 			<p>
 				The native package covers Linux (x64 gnu and musl, arm64 gnu), macOS (arm64 and x64), and
@@ -151,8 +152,8 @@
 		<TomeSection>
 			<TomeSectionHeader text="Usage" />
 			<p>
-				All four packages share one API — the same function names, options, and errors, the solo
-				packages carrying their half — so <code>@fuzdev/tsv</code> and <code>@fuzdev/tsv-wasm</code>
+				All four packages share one API — the same function names, options, and errors, each solo
+				package carrying its part — so <code>@fuzdev/tsv</code> and <code>@fuzdev/tsv-wasm</code>
 				are drop-in swaps for each other. Both export the formatter, the parser, and the type
 				stripper together:
 			</p>
@@ -179,8 +180,8 @@
 				(below), and for TypeScript
 				<Code lang="ts" content={"{sourceType: 'script' | 'module'}"} inline /> (default
 				<Code lang="ts" content="'module'" inline />). <code>format_typescript</code> takes
-				<code>sourceType</code> too; without it, formatting retries as a script when the module
-				parse fails, so a legacy sloppy script needs no options.
+				<code>sourceType</code> too, as does <code>strip_typescript</code>; without it, they retry
+				as a script when the module parse fails, so a legacy sloppy script needs no options.
 			</p>
 			<p>
 				A source that doesn't parse throws a <code>SyntaxError</code> from the parsers and
@@ -201,12 +202,15 @@
 				<code>@fuzdev/tsv-wasm</code>, blanks every type to whitespace, so the JS keeps the
 				TypeScript's lines and columns and needs no source map. TypeScript that blanking can't
 				erase, like an <code>enum</code> or a parameter property, is refused rather than
-				transformed. It returns a result object instead of throwing:
+				transformed. For what it finds in the source, it returns a result object rather than
+				throwing:
 			</p>
 			<Code lang="ts" content={strip_example} />
 			<p>
-				<code>tsv strip</code> does the same for one file, <code>--content</code>, or
-				<code>--stdin</code>, printing the JS to stdout; it exits 1 on a refusal. See
+				<code>tsv strip</code> does the same for one TypeScript file (<code>.ts</code>,
+				<code>.mts</code>, or <code>.cts</code>), <code>--content</code>, or <code>--stdin</code>,
+				printing the JS to stdout; it exits 1 on a refusal and 2 on a parse error, and
+				<code>--check</code> prints nothing and keeps those exit codes. See
 				<a href="https://github.com/fuzdev/tsv/blob/main/docs/strip.md">docs/strip.md</a> for the
 				details.
 			</p>
@@ -262,7 +266,7 @@
 			<ul>
 				<li>
 					<a href="https://github.com/fuzdev/tsv">github.com/fuzdev/tsv</a> — the formatter, parser,
-					wasm bindings, CLI, etc.
+					type stripper, wasm bindings, CLI, etc.
 				</li>
 				<li>
 					<a href="https://github.com/fuzdev/tsv.fuz.dev">github.com/fuzdev/tsv.fuz.dev</a> — this

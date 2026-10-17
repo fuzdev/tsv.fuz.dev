@@ -28,7 +28,7 @@ gro sync      # regenerate files and run svelte-kit sync
 - Gro (`@fuzdev/gro`) - build system and task runner
 - tsv (via Gro) - code formatting
 - mdz (`@fuzdev/mdz`) - markdown preprocessor wired into the `sveltekit({...})` plugin options in `vite.config.ts`
-- `@fuzdev/tsv-wasm` - tsv's formatter + parser as wasm; powers the playground, loaded lazily in the browser
+- `@fuzdev/tsv-wasm` - tsv's formatter, parser, and type stripper as wasm; powers the playground, loaded lazily in the browser
 
 Note: `@fuzdev/tsv-wasm` is loaded only on `/docs/playground` via a browser-only dynamic `import()`, so the ~1MB-gzipped wasm (~2.5MB decoded) never weighs down `/docs` or the prerendered pages.
 
