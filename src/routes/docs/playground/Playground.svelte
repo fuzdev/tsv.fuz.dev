@@ -23,20 +23,28 @@
 
 	const ready = $derived(tsv !== null);
 
-	// A tsv call's outcome: its string result, or the thrown error's message.
+	// A tsv call's outcome: its string result, or its error's message.
 	type Outcome = { value: string; error: null } | { value: null; error: string };
+
+	// A returned error as the CLI prints it: the one-line message, then the excerpt
+	// and caret.
+	const to_outcome_error = (error: { message: string; frame: string }): Outcome => ({
+		value: null,
+		error: `${error.message}\n${error.frame}`
+	});
 
 	// Input nested past the wasm stack traps with this message, and unlike a parse
 	// error the trap poisons the instance: every later call throws the same thing.
 	const WASM_TRAP_MESSAGE = 'memory access out of bounds';
 
 	// Run a tsv call, capturing a thrown error as a message; `null` until the wasm
-	// loads. Lets `formatted` and `ast` share one shape and recompute as `source` changes
-	// — no blur or button.
-	const run = (fn: (t: NonNullable<typeof tsv>) => string): Outcome | null => {
+	// loads. A parse error comes back in the call's result, so only an engine failure
+	// like the trap throws. Lets `formatted` and `ast` share one shape and recompute
+	// as `source` changes — no blur or button.
+	const run = (fn: (t: NonNullable<typeof tsv>) => Outcome): Outcome | null => {
 		if (!tsv) return null;
 		try {
-			return { value: fn(tsv), error: null };
+			return fn(tsv);
 		} catch (err) {
 			const message = to_error_message(err);
 			if (!message.includes(WASM_TRAP_MESSAGE)) return { value: null, error: message };
@@ -50,7 +58,12 @@
 		}
 	};
 
-	const formatted = $derived.by(() => run((t) => t.format_svelte(source)));
+	const formatted = $derived.by(() =>
+		run((t) => {
+			const result = t.format_svelte(source);
+			return result.ok ? { value: result.code, error: null } : to_outcome_error(result.error);
+		})
+	);
 
 	// The AST pane trails the editor by an idle beat while the formatted pane stays
 	// live. Formatting is cheap (~1 ms on a 9 KB component), but the AST is parsed,
@@ -70,7 +83,12 @@
 	// until `{locations: true}` asks for line and column on every node
 	let locations = $state(false);
 	const ast = $derived.by(() =>
-		run((t) => JSON.stringify(t.parse_svelte(ast_source, { locations }), null, 2))
+		run((t) => {
+			const result = t.parse_svelte(ast_source, { locations });
+			return result.ok
+				? { value: JSON.stringify(result.ast, null, 2), error: null }
+				: to_outcome_error(result.error);
+		})
 	);
 
 	// The top-level error is the LIVE pane's, so it tracks what is in the editor now;

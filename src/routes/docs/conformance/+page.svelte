@@ -63,14 +63,14 @@
 				<p>Notes:</p>
 				<ul>
 					<li>
-						A parser accepts a file when it reports no error, meaning it doesn't throw or, for the
-						error-recovering parsers (oxc-parser, <code>tsc</code>, yuku-parser), returns no error
-						diagnostic. The dimmed <code>−n</code> beside a percentage is the number of files
-						rejected. A dimmed <code>100%</code> marks a parser that was used to select the source's
-						files, so its 100% is by construction, not a result: svelte/compiler on the Svelte set
-						and <code>tsc</code> on the TypeScript compiler's cases. The leading row leaves such a
-						source out, so every parser there is measured on the same files and none by
-						construction.
+						A parser accepts a file when it reports no error, meaning it doesn't throw or return one
+						(tsv returns an <code>{'{ok: false}'}</code> result) or, for the error-recovering
+						parsers (oxc-parser, <code>tsc</code>, yuku-parser), returns no error diagnostic. The
+						dimmed <code>−n</code> beside a percentage is the number of files rejected. A dimmed
+						<code>100%</code> marks a parser that was used to select the source's files, so its 100%
+						is by construction, not a result: svelte/compiler on the Svelte set and <code>tsc</code>
+						on the TypeScript compiler's cases. The leading row leaves such a source out, so every
+						parser there is measured on the same files and none by construction.
 					</li>
 					<li>
 						Coverage has two blind spots. Accepting a file says nothing about producing the

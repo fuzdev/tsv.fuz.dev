@@ -28,6 +28,7 @@ import {
 	benchmark_speedup,
 	derive_benchmark_groups,
 	derive_corpus_counts,
+	derive_corpus_origin_shares,
 	derive_slow_row_groups,
 	derive_sweep_stats,
 	is_entry_unstable,
@@ -489,27 +490,15 @@ describe('prose ratios resolve', () => {
 		);
 	});
 
-	test('the corpus is "the author\'s own and Svelte\'s", as the tldr and Corpus section say', () => {
-		// every source is one of the author's repos or Svelte's, or the `<style>` harvest
-		// drawn from their components, which carries no repo — named by path, so a new
-		// repo-less cache has to be checked against the claim before it passes
-		const sources = benchmarks_json.corpus_sources ?? [];
-		assert.isNotEmpty(sources);
-		for (const source of sources) {
-			const slug = source.repo?.slug;
-			if (!slug) {
-				assert.strictEqual(
-					source.path,
-					'benches/js/.cache/svelte_styles',
-					'unknown repo-less source'
-				);
-				continue;
-			}
-			assert.match(
-				slug,
-				/^(fuzdev|ryanatkn|sveltejs)\//,
-				`${slug} is neither the author's nor Svelte's`
-			);
+	test("the corpus mixes the author's code with third-party code, as the tldr and Corpus section say", () => {
+		// the Corpus section quotes each language's third-party share, so every language
+		// the report times needs some of each
+		const shares = derive_corpus_origin_shares(benchmarks_json);
+		assert.ok(shares, 'the report records no corpus_by_origin');
+		assert.isNotEmpty(shares);
+		for (const { language, third_party_share } of shares) {
+			assert.isAbove(third_party_share, 0, `${language} has no third-party code`);
+			assert.isBelow(third_party_share, 1, `${language} has none of the author's code`);
 		}
 	});
 });

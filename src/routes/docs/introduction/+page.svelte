@@ -9,6 +9,7 @@
 	import { logo_tsv } from '@fuzdev/fuz_ui/logos.ts';
 
 	import {
+		error_example,
 		format_example,
 		locations_example,
 		parse_example,
@@ -72,8 +73,8 @@
 			table in the Web's implementations.
 		</p>
 		<p>
-			tsv's formatters are near production-ready, with a long tail of rare bugs, and APIs may still change.
-			Reports and opinions are appreciated. See the
+			tsv's formatters are near production-ready, with a long tail of rare bugs, and APIs may still
+			change. Reports and opinions are appreciated. See the
 			<a href="https://github.com/fuzdev/tsv/issues">issues</a> and
 			<a href="https://github.com/fuzdev/tsv/discussions">discussions</a>.
 		</p>
@@ -164,15 +165,19 @@
 			<Code lang="ts" content={parse_example} />
 			<p>
 				<code>format_typescript</code>, <code>format_css</code>, <code>parse_typescript</code>, and
-				<code>parse_css</code> work the same way, and the parsers return plain-object ASTs in
-				acorn's and Svelte's shapes, with bundled TS types. Their output is checked against
-				acorn-typescript's and Svelte's at corpus scale, but hasn't yet been fed through Svelte's
-				compiler end to end.
+				<code>parse_css</code> work the same way. Every export returns a result object rather than
+				throwing for what it finds in the source:
+				<Code lang="ts" content={'{ok: true, code}'} inline /> from the formatters and
+				<Code lang="ts" content={'{ok: true, ast}'} inline /> from the parsers, whose ASTs are plain
+				objects in acorn's and Svelte's shapes, with bundled TS types. Their output is checked
+				against acorn-typescript's and Svelte's at corpus scale, but hasn't yet been fed through
+				Svelte's compiler end to end.
 			</p>
 			<p>
 				Each parser has a <code>_json</code> twin (<code>parse_svelte_json</code> and so on) that
-				returns the AST as a JSON string, skipping the <code>JSON.parse</code>, for callers that
-				pass it along rather than walk it; it takes every option but <code>locations</code>.
+				returns the AST as a JSON string, <Code lang="ts" content={'{ok: true, json}'} inline />,
+				skipping the <code>JSON.parse</code>, for callers that pass it along rather than walk it; it
+				takes every option but <code>locations</code>.
 			</p>
 			<p>
 				The object parsers also take an acorn-style options object:
@@ -184,10 +189,18 @@
 				as a script when the module parse fails, so a legacy sloppy script needs no options.
 			</p>
 			<p>
-				A source that doesn't parse throws a <code>SyntaxError</code> from the parsers and
-				formatters alike, carrying <code>start</code> (the UTF-16 offset) and
-				<Code lang="ts" content={'loc: {line, column}'} inline />. A bad argument — a source that
-				isn't a string, an unknown option — throws a <code>TypeError</code>.
+				A source that doesn't parse returns <Code lang="ts" content={'{ok: false, error}'} inline />
+				from the parsers, formatters, and type stripper alike. The <code>error</code> is a plain
+				object shaped like an AST node: <code>kind</code>, a one-line <code>message</code>, a
+				<code>frame</code> with the excerpt and caret, its <code>start</code>/<code>end</code>
+				UTF-16 offsets, and their <code>loc</code>:
+			</p>
+			<Code lang="ts" content={error_example} />
+			<p>
+				Its type is <code>TsvParseError</code>, and every error type extends <code>TsvError</code>.
+				A bad argument — a source that isn't a string, an unknown option — still throws a
+				<code>TypeError</code>, and an engine failure with no position in the source, like an input
+				over the size cap or a wasm trap, still throws as itself.
 			</p>
 			<p>
 				The native package needs no initialization; the wasm packages work zero-config in Node.js,
@@ -202,8 +215,8 @@
 				<code>@fuzdev/tsv-wasm</code>, blanks every type to whitespace, so the JS keeps the
 				TypeScript's lines and columns and needs no source map. TypeScript that blanking can't
 				erase, like an <code>enum</code> or a parameter property, is refused rather than
-				transformed. For what it finds in the source, it returns a result object rather than
-				throwing:
+				transformed, returned as an error with
+				<Code lang="ts" content="kind: 'unsupported'" inline />:
 			</p>
 			<Code lang="ts" content={strip_example} />
 			<p>

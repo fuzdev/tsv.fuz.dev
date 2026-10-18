@@ -107,10 +107,8 @@
 		? corpus_repo_ref_url(corpus_snapshot)
 		: 'https://github.com/fuzdev/corpora';
 	const corpus_snapshot_commit = corpus_snapshot && corpus_repo_ref_commit(corpus_snapshot);
-	// Reports from `version` 22 time third-party code too and record what each mixed
-	// headline blends, by who wrote the code (the shape test requires the field there);
-	// older ones timed the author's code plus Svelte's, and keep that prose.
-	const corpus_has_third_party = benchmarks_json.version >= 22;
+	// what share of each language's corpus the author didn't write (the shape test
+	// requires the field)
 	const corpus_origin_shares = derive_corpus_origin_shares(benchmarks_json);
 	const corpus_third_party_shares =
 		corpus_origin_shares &&
@@ -257,10 +255,8 @@
 			<p>
 				Except in the CLI section, every timing here is in-process and one file at a time, isolating
 				engine speed from multi-core parallelism. The corpus is {format_count(corpus_counts.files)}
-				files of real-world code,
-				{corpus_has_third_party
-					? "the author's own plus framework source, third-party libraries, and widely benchmarked TypeScript"
-					: "the author's own and Svelte's"} (see
+				files of real-world code, the author's own plus framework source, third-party libraries, and
+				widely benchmarked TypeScript (see
 				<a href="#{docs_slugify(CORPUS_SECTION_TITLE)}">Corpus</a>), timed under {node_display}.
 			</p>
 			<ul>
@@ -736,19 +732,13 @@
 					fuzdev/corpora{corpus_snapshot_commit ? `@${corpus_snapshot_commit}` : ''}
 				</a> snapshot so one clone reproduces it. They're the author's libraries, apps, and sites
 				(the fuz.dev ecosystem plus personal SvelteKit projects), and upstream framework source
-				(Svelte, SvelteKit, and the svelte.dev site){#if corpus_has_third_party}
-					, community Svelte libraries and tooling (Flowbite Svelte's components, LayerChart, Layer
-					Cake, Svelte UX, svelte-maplibre, and Svelte's language tools), and TypeScript other
-					formatter benchmarks compare on (TypeScript's own parser, Storybook, and Continue)
-				{/if}.
+				(Svelte, SvelteKit, and the svelte.dev site), community Svelte libraries and tooling
+				(Flowbite Svelte's components, LayerChart, Layer Cake, Svelte UX, svelte-maplibre, and
+				Svelte's language tools), and TypeScript other formatter benchmarks compare on (TypeScript's
+				own parser, Storybook, and Continue). By bytes, code the author didn't write is
+				{corpus_third_party_shares}.
 			</p>
 			<ul>
-				{#if !corpus_has_third_party}
-					<li>
-						The snapshot's community Svelte libraries and tooling are left out: they would dominate
-						the Svelte set. The CLI section's Svelte corpus draws on them.
-					</li>
-				{/if}
 				<li>
 					Test files count as real code and stay in. Fixture files (formatter test suites, and
 					fixture subtrees inside the measured repos) are out: deliberately tricky edge cases
@@ -764,26 +754,19 @@
 						: ''}. Even so, CSS is the weakest sample, with just
 					{format_count_maybe(corpus_counts.standalone_css)} standalone files.
 				</li>
-				<li>
-					{#if corpus_has_third_party}
-						By bytes, code the author didn't write is {corpus_third_party_shares}, and it is mostly
-						Prettier-formatted. The rest is the author's own, the same code tsv is developed and
-						tested against and mostly tsv-formatted already. Each language is timed as one mixed
-						set, so every ratio blends the two, and input already in a tool's own style may format
-						faster: the author's share may favor tsv, the rest Prettier and the tools that match it.
-						Read every ratio here as "on this corpus", not as a universal figure.
-					{:else}
-						The corpus is the author's own code plus Svelte's, the same code tsv is developed and
-						tested against and mostly tsv-formatted already. Input already in a tool's own style may
-						format faster, which would favor tsv. Read every ratio here as "on this corpus", not as
-						a universal figure.
-					{/if}
-				</li>
+				<li>Read every ratio here as "on this corpus", not as a universal figure.</li>
 			</ul>
 			<Details eager summary="By source">
 				<p>Each source links its upstream at the commit the snapshot vendored.</p>
 				<BenchmarksCorpus table={corpus_source_table} />
 			</Details>
 		</TomeSection>
+
+		<section>
+			<p>
+				tsv's numbers here are from builds without profile-guided optimization (PGO). PGO would make
+				tsv faster but its binaries larger, and that size tradeoff has it on hold.
+			</p>
+		</section>
 	{/if}
 </TomeContent>

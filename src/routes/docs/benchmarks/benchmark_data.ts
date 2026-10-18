@@ -35,9 +35,8 @@ export interface BenchmarkBaseline {
 	// sources were present on the machine that produced the report.
 	corpus_sources: Array<CorpusSource>;
 	// The corpus by who wrote it — files and bytes per manifest `origin` (`own`, the
-	// author's code tsv is developed against, or `third_party`) and language. Each group
-	// times one mixed set, so this discloses what a headline blends. Perf reports only;
-	// absent before `version` 22.
+	// author's code, or `third_party`) and language. Perf reports only; absent before
+	// `version` 22.
 	corpus_by_origin?: Record<CorpusOrigin, Record<string, { files: number; bytes: number }>>;
 	// The exclusion caches the conformance view applied, by label, each its size —
 	// `null` for an absent one, which only a tolerated (`BENCH_ALLOW_MISSING=1`),
