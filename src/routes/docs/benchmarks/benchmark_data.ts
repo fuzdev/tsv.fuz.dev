@@ -34,6 +34,11 @@ export interface BenchmarkBaseline {
 	// Per-entry corpus composition (path + loaded file count) — discloses which
 	// sources were present on the machine that produced the report.
 	corpus_sources: Array<CorpusSource>;
+	// The corpus by who wrote it — files and bytes per manifest `origin` (`own`, the
+	// author's code tsv is developed against, or `third_party`) and language. Each group
+	// times one mixed set, so this discloses what a headline blends. Perf reports only;
+	// absent before `version` 22.
+	corpus_by_origin?: Record<CorpusOrigin, Record<string, { files: number; bytes: number }>>;
 	// The exclusion caches the conformance view applied, by label, each its size —
 	// `null` for an absent one, which only a tolerated (`BENCH_ALLOW_MISSING=1`),
 	// not-comparable run publishes. Conformance reports only; not rendered, the
@@ -829,6 +834,41 @@ export const derive_corpus_source_table = (
 		}),
 		totals: { files: by_language.reduce((sum, n) => sum + n, 0), by_language }
 	};
+};
+
+/** A snapshot collection's manifest `origin`. */
+export type CorpusOrigin = 'own' | 'third_party';
+
+/** One language's corpus split by origin — see `derive_corpus_origin_shares`. */
+export interface CorpusOriginShare {
+	language: string;
+	/** The third-party share of the language's bytes, 0–1. */
+	third_party_share: number;
+	third_party: { files: number; bytes: number };
+	own: { files: number; bytes: number };
+}
+
+/**
+ * Per language, how much of the corpus is third-party code by bytes — the page's
+ * statement of what each mixed headline blends. `null` for a report that doesn't record
+ * origins (before `version` 22), whose prose keeps the older single-origin caveat;
+ * languages with no bytes are left out.
+ *
+ * @param baseline - the perf report
+ */
+export const derive_corpus_origin_shares = (
+	baseline: BenchmarkBaseline
+): Array<CorpusOriginShare> | null => {
+	const by_origin = baseline.corpus_by_origin;
+	if (!by_origin) return null;
+	return Object.keys(baseline.corpus).flatMap((language) => {
+		const own = by_origin.own[language] ?? { files: 0, bytes: 0 };
+		const third_party = by_origin.third_party[language] ?? { files: 0, bytes: 0 };
+		const bytes = own.bytes + third_party.bytes;
+		return bytes === 0
+			? []
+			: [{ language, third_party_share: third_party.bytes / bytes, third_party, own }];
+	});
 };
 
 // Prose counts

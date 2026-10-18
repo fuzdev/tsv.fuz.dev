@@ -416,6 +416,11 @@ describe('corpus source tables over the committed reports', () => {
 		}
 		assert.isDefined(benchmarks_json.corpus_snapshot);
 	});
+
+	test('a perf report from version 22 records its corpus by origin', () => {
+		// the Corpus section's origin prose renders from it, keyed on the version
+		if (benchmarks_json.version >= 22) assert.isDefined(benchmarks_json.corpus_by_origin);
+	});
 });
 
 describe('VERSION_LABELS', () => {

@@ -31,6 +31,7 @@
 		CORPUS_SOURCE_LABELS,
 		derive_benchmark_groups,
 		derive_corpus_counts,
+		derive_corpus_origin_shares,
 		derive_corpus_source_table,
 		derive_slow_row_groups,
 		derive_sweep_stats,
@@ -42,6 +43,8 @@
 		format_count,
 		format_count_maybe,
 		format_group_label,
+		format_language,
+		format_list_and,
 		format_ratio_approx,
 		format_runtime_display,
 		format_runtime_name,
@@ -104,6 +107,18 @@
 		? corpus_repo_ref_url(corpus_snapshot)
 		: 'https://github.com/fuzdev/corpora';
 	const corpus_snapshot_commit = corpus_snapshot && corpus_repo_ref_commit(corpus_snapshot);
+	// Reports from `version` 22 time third-party code too and record what each mixed
+	// headline blends, by who wrote the code (the shape test requires the field there);
+	// older ones timed the author's code plus Svelte's, and keep that prose.
+	const corpus_has_third_party = benchmarks_json.version >= 22;
+	const corpus_origin_shares = derive_corpus_origin_shares(benchmarks_json);
+	const corpus_third_party_shares =
+		corpus_origin_shares &&
+		format_list_and(
+			corpus_origin_shares.map(
+				(s) => `~${format_share_approx(s.third_party_share)} of the ${format_language(s.language)}`
+			)
+		);
 	// The rows the report itself flagged as unstable (see `is_entry_unstable`) —
 	// disclosed above the format charts, since every ratio through one divides its mean.
 	const unstable_entries = derive_unstable_entries(benchmarks_json);
@@ -242,7 +257,10 @@
 			<p>
 				Except in the CLI section, every timing here is in-process and one file at a time, isolating
 				engine speed from multi-core parallelism. The corpus is {format_count(corpus_counts.files)}
-				files of real-world code, the author's own and Svelte's (see
+				files of real-world code,
+				{corpus_has_third_party
+					? "the author's own plus framework source, third-party libraries, and widely benchmarked TypeScript"
+					: "the author's own and Svelte's"} (see
 				<a href="#{docs_slugify(CORPUS_SECTION_TITLE)}">Corpus</a>), timed under {node_display}.
 			</p>
 			<ul>
@@ -718,13 +736,19 @@
 					fuzdev/corpora{corpus_snapshot_commit ? `@${corpus_snapshot_commit}` : ''}
 				</a> snapshot so one clone reproduces it. They're the author's libraries, apps, and sites
 				(the fuz.dev ecosystem plus personal SvelteKit projects), and upstream framework source
-				(Svelte, SvelteKit, and the svelte.dev site).
+				(Svelte, SvelteKit, and the svelte.dev site){#if corpus_has_third_party}
+					, community Svelte libraries and tooling (Flowbite Svelte's components, LayerChart, Layer
+					Cake, Svelte UX, svelte-maplibre, and Svelte's language tools), and TypeScript other
+					formatter benchmarks compare on (TypeScript's own parser, Storybook, and Continue)
+				{/if}.
 			</p>
 			<ul>
-				<li>
-					The snapshot's community Svelte libraries and tooling are left out: they would dominate
-					the Svelte set. The CLI section's Svelte corpus draws on them.
-				</li>
+				{#if !corpus_has_third_party}
+					<li>
+						The snapshot's community Svelte libraries and tooling are left out: they would dominate
+						the Svelte set. The CLI section's Svelte corpus draws on them.
+					</li>
+				{/if}
 				<li>
 					Test files count as real code and stay in. Fixture files (formatter test suites, and
 					fixture subtrees inside the measured repos) are out: deliberately tricky edge cases
@@ -741,10 +765,19 @@
 					{format_count_maybe(corpus_counts.standalone_css)} standalone files.
 				</li>
 				<li>
-					The corpus is the author's own code plus Svelte's, the same code tsv is developed and
-					tested against and mostly tsv-formatted already. Input already in a tool's own style may
-					format faster, which would favor tsv. Read every ratio here as "on this corpus", not as a
-					universal figure.
+					{#if corpus_has_third_party}
+						By bytes, code the author didn't write is {corpus_third_party_shares}, and it is mostly
+						Prettier-formatted. The rest is the author's own, the same code tsv is developed and
+						tested against and mostly tsv-formatted already. Each language is timed as one mixed
+						set, so every ratio blends the two, and input already in a tool's own style may format
+						faster: the author's share may favor tsv, the rest Prettier and the tools that match it.
+						Read every ratio here as "on this corpus", not as a universal figure.
+					{:else}
+						The corpus is the author's own code plus Svelte's, the same code tsv is developed and
+						tested against and mostly tsv-formatted already. Input already in a tool's own style may
+						format faster, which would favor tsv. Read every ratio here as "on this corpus", not as
+						a universal figure.
+					{/if}
 				</li>
 			</ul>
 			<Details eager summary="By source">

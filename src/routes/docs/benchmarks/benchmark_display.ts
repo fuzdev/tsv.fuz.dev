@@ -160,6 +160,14 @@ export const format_unstable_readings = (entry: {
 };
 
 /**
+ * Items joined as prose: `a`, `a and b`, `a, b, and c`.
+ */
+export const format_list_and = (items: Array<string>): string =>
+	items.length <= 2
+		? items.join(' and ')
+		: `${items.slice(0, -1).join(', ')}, and ${items[items.length - 1]}`;
+
+/**
  * A fraction as a whole-number percentage for prose (`38%`), always paired with
  * a `~` in the copy; `—` for a missing one, as `format_ratio_approx`.
  */

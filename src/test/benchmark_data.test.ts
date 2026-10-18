@@ -4,6 +4,7 @@ import {
 	benchmark_time_share_beyond,
 	derive_benchmark_groups,
 	derive_corpus_counts,
+	derive_corpus_origin_shares,
 	derive_corpus_source_table,
 	derive_slow_row_groups,
 	derive_sweep_stats,
@@ -16,6 +17,40 @@ import {
 } from '#routes/docs/benchmarks/benchmark_data.ts';
 
 import { create_baseline, create_baseline_entry } from './benchmark_test_helpers.ts';
+
+describe('derive_corpus_origin_shares', () => {
+	test('is null for a report that records no origins', () => {
+		assert.isNull(derive_corpus_origin_shares(create_baseline()));
+	});
+
+	test('gives each language its third-party byte share, leaving empty languages out', () => {
+		const baseline: BenchmarkBaseline = {
+			...create_baseline(),
+			corpus: { svelte: 3, typescript: 2, css: 0 },
+			corpus_by_origin: {
+				own: {
+					svelte: { files: 2, bytes: 300 },
+					typescript: { files: 1, bytes: 0 },
+					css: { files: 0, bytes: 0 }
+				},
+				third_party: {
+					svelte: { files: 1, bytes: 100 },
+					typescript: { files: 1, bytes: 50 },
+					css: { files: 0, bytes: 0 }
+				}
+			}
+		};
+		const shares = derive_corpus_origin_shares(baseline);
+		assert.deepEqual(
+			shares?.map((s) => [s.language, s.third_party_share]),
+			[
+				['svelte', 0.25],
+				['typescript', 1]
+			]
+		);
+		assert.deepEqual(shares?.[0]?.own, { files: 2, bytes: 300 });
+	});
+});
 
 describe('derive_corpus_source_table', () => {
 	const ref = (

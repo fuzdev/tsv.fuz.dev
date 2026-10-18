@@ -9,6 +9,7 @@ import {
 	format_coverage_percent,
 	format_label,
 	format_percent,
+	format_list_and,
 	format_share_approx,
 	format_share_ceil,
 	format_speedup,
@@ -184,6 +185,14 @@ describe('format_percent', () => {
 		assert.strictEqual(format_percent(0, 3000), '0%');
 		assert.strictEqual(format_percent(5, 5), '100%');
 		assert.strictEqual(format_percent(0, 0), '0%');
+	});
+});
+
+describe('format_list_and', () => {
+	test('joins one, two, and three or more items as prose', () => {
+		assert.strictEqual(format_list_and(['a']), 'a');
+		assert.strictEqual(format_list_and(['a', 'b']), 'a and b');
+		assert.strictEqual(format_list_and(['a', 'b', 'c']), 'a, b, and c');
 	});
 });
 
