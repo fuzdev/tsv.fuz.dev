@@ -126,7 +126,7 @@
 			<p>
 				The same CLI binaries are also attached to each
 				<a href="https://github.com/fuzdev/tsv/releases">GitHub Release</a> with a
-				<code>SHA256SUMS</code> and a build provenance attestation, for use without npm.
+				<code>SHA512SUMS</code> and a build provenance attestation, for use without npm.
 			</p>
 			<p>
 				tsv also ships as wasm, which runs everywhere including browsers and Deno, and provides the
