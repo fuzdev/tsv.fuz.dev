@@ -1,4 +1,4 @@
-import{$ as e,F as t,N as n,_t as r,dt as i,et as a,ft as o,gt as s,nt as c}from"./DOkK6z1E.js";import{n as l}from"./C_P3y5DQ.js";import{n as u}from"./D6xHBEYi.js";import{t as d}from"./DbS3OIWv.js";import{i as f,t as p}from"./CV_oYweD.js";import{t as m}from"./CG9fjYIS.js";import{n as h,t as g}from"./K3K_iwnx.js";var _=`import { format_svelte, parse_svelte, strip_typescript, type Root } from '@fuzdev/tsv';
+import{$ as e,F as t,N as n,_t as r,dt as i,et as a,ft as o,gt as s,nt as c}from"./DOkK6z1E.js";import{n as l}from"./CRoEIyQu.js";import{n as u}from"./D6xHBEYi.js";import{t as d}from"./DbS3OIWv.js";import{i as f,t as p}from"./CV_oYweD.js";import{t as m}from"./BH-UAClQ.js";import{n as h,t as g}from"./K3K_iwnx.js";var _=`import { format_svelte, parse_svelte, strip_typescript, type Root } from '@fuzdev/tsv';
 
 const formatted = format_svelte('<script>\\nconst   x=1\\n<\/script>');
 if (formatted.ok) console.log(formatted.code);
@@ -46,7 +46,7 @@ if (parsed.ok) {
 				binaries:</p> <!> <p><code>tsv format</code> writes changed files in place; <code>--check</code> writes nothing
 				and exits 1 if any file would change. Inside a git repo, discovery honors <code>.gitignore</code>, <code>.formatignore</code>, and <code>.prettierignore</code>;
 				outside one, only <code>.formatignore</code>.</p> <p>The native package covers Linux (x64 gnu and musl, arm64 gnu), macOS (arm64 and x64), and
-				Windows x64 - for other platforms use the wasm build below.</p> <p>The same CLI binaries are also attached to each <a href="https://github.com/fuzdev/tsv/releases">GitHub Release</a> with a <code>SHA256SUMS</code> and a build provenance attestation, for use without npm.</p> <p>tsv also ships as wasm, which runs everywhere including browsers and Deno, and provides the
+				Windows x64 - for other platforms use the wasm build below.</p> <p>The same CLI binaries are also attached to each <a href="https://github.com/fuzdev/tsv/releases">GitHub Release</a> with a <code>SHA512SUMS</code> and a build provenance attestation, for use without npm.</p> <p>tsv also ships as wasm, which runs everywhere including browsers and Deno, and provides the
 				same <code>tsv</code> command:</p> <!> <p>Both packages claim the <code>tsv</code> bin name. (TBD if the wasm package needs a
 				different name)</p> <p>For smaller builds, the formatter and parser also ship solo:</p> <!> <p>Optimally-sized builds for parsing and formatting individual languages may be added upon
 				request. (open an issue)</p> <p>See the <!> for size and performance details.</p>`,1),w=t(`<!> <p>All four packages share one API — the same function names, options, and errors, each solo
