@@ -32,7 +32,7 @@ gro sync      # regenerate files and run svelte-kit sync
 
 Note: `@fuzdev/tsv-wasm` is loaded only on `/docs/playground` via a browser-only dynamic `import()`, so the ~1MB-gzipped wasm (~2.5MB decoded) never weighs down `/docs` or the prerendered pages.
 
-Note: `@webref/css`, `zimmerframe`, and `@sveltejs/acorn-typescript` are regular dependencies of `@fuzdev/fuz_css`, so their devDeps here are redundant. `@fuzdev/blake3-wasm`, `@fuzdev/fuz_schema`, `esm-env`, `@types/estree`, and `@types/node` are peers of `@fuzdev/fuz_util` (`@fuzdev/fuz_schema` and `esm-env` required, the rest optional), and gro requires `@fuzdev/fuz_schema` too; `esm-env` and `@types/estree` are optional peers of `@fuzdev/mdz` and `esm-env` of `@fuzdev/fuz_ui`, and `tslib` backs `tsconfig.json`'s `importHelpers` — of these only `@fuzdev/fuz_schema` is imported here directly, for `formatter_benchmark_data.ts`'s schemas, read at gen and test time and as erased types by the page.
+Note: `@webref/css`, `zimmerframe`, and `@sveltejs/acorn-typescript` come in through `@fuzdev/fuz_css`'s `dependencies`, so they aren't listed here. `@fuzdev/blake3-wasm`, `@fuzdev/fuz_schema`, `esm-env`, `@types/estree`, and `@types/node` are peers of `@fuzdev/fuz_util` (`@fuzdev/fuz_schema` and `esm-env` required, the rest optional), and gro requires `@fuzdev/fuz_schema` too; `esm-env` and `@types/estree` are optional peers of `@fuzdev/mdz` and `esm-env` of `@fuzdev/fuz_ui`, and `tslib` backs `tsconfig.json`'s `importHelpers` — of these only `@fuzdev/fuz_schema` is imported here directly, for `formatter_benchmark_data.ts`'s schemas, read at gen and test time and as erased types by the page.
 
 ## Scope
 
