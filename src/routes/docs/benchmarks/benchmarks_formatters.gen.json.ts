@@ -47,5 +47,6 @@ export const gen: Gen = {
 		// the output is committed exactly as returned, tab-indented like the copied reports
 		return JSON.stringify(benchmarks, null, '\t') + '\n';
 	},
-	dependencies: { files: [RESULTS_PATH] }
+	// outside the root and `watch.dir`, so `gro dev` doesn't rerun on a change to it
+	inputs: { files: [RESULTS_PATH] }
 };
