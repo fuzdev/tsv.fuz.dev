@@ -129,6 +129,20 @@
 				<code>SHA512SUMS</code> and a build provenance attestation, for use without npm.
 			</p>
 			<p>
+				The CLI is also on crates.io as
+				<a href="https://crates.io/crates/tsv_cli"><code>tsv_cli</code></a>:
+				<code>cargo binstall tsv_cli</code> fetches the same prebuilt binary, and
+				<code>cargo install --locked tsv_cli</code> builds it from source (without the release profile,
+				so it runs slower). The libraries are crates too, one per language:
+				<a href="https://docs.rs/tsv_ts"><code>tsv_ts</code></a>,
+				<a href="https://docs.rs/tsv_css"><code>tsv_css</code></a>, and
+				<a href="https://docs.rs/tsv_svelte"><code>tsv_svelte</code></a>. Also published:
+				<a href="https://docs.rs/tsv_ignore"><code>tsv_ignore</code></a>, the gitignore-faithful
+				matcher behind discovery, and
+				<a href="https://docs.rs/tsv_html"><code>tsv_html</code></a>, the WHATWG named character
+				references; <code>tsv_lang</code> and <code>tsv_discover</code> are support crates.
+			</p>
+			<p>
 				tsv also ships as wasm, which runs everywhere including browsers and Deno, and provides the
 				same <code>tsv</code> command:
 			</p>
