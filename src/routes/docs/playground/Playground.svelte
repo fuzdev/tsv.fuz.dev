@@ -33,8 +33,9 @@
 		error: `${error.message}\n${error.frame}`
 	});
 
-	// Input nested past the wasm stack traps with this message, and unlike a parse
-	// error the trap poisons the instance: every later call throws the same thing.
+	// An out-of-bounds engine trap throws this message, and unlike a parse error it can
+	// poison the instance: later calls may throw the same thing. Deep nesting no
+	// longer reaches it — the parsers refuse it as an ordinary error.
 	const WASM_TRAP_MESSAGE = 'memory access out of bounds';
 
 	// Run a tsv call, capturing a thrown error as a message; `null` until the wasm
@@ -49,12 +50,18 @@
 			const message = to_error_message(err);
 			if (!message.includes(WASM_TRAP_MESSAGE)) return { value: null, error: message };
 			// swap in a fresh instance, or the editor stays dead until a reload
+			let reloaded = true;
 			try {
 				tsv.reinstantiate();
 			} catch {
-				// the trap message below still says what happened
+				reloaded = false;
 			}
-			return { value: null, error: 'This input is nested too deeply for the wasm build.' };
+			return {
+				value: null,
+				error: reloaded
+					? "tsv's wasm engine trapped on this input and was reloaded."
+					: "tsv's wasm engine trapped on this input and could not be reloaded; refresh the page."
+			};
 		}
 	};
 

@@ -35,7 +35,7 @@
     "@fuzdev/fuz_util": "^0.79.0",
     "@fuzdev/gro": "^0.224.0",
     "@fuzdev/mdz": "^0.7.0",
-    "@fuzdev/tsv-wasm": "^0.7.1",
+    "@fuzdev/tsv-wasm": "^0.8.0",
     "@ryanatkn/eslint-config": "^0.13.1",
     "@sveltejs/adapter-static": "^4.0.0",
     "@sveltejs/kit": "^3.0.1",
