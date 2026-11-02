@@ -103,10 +103,11 @@ if (parsed.ok) {
 			TS/JS/CSS parsers instead of using Oxc. rsvelte also ships a Svelte compiler and
 			linter/typechecker integration; tsv has experimental work in that direction that may never
 			ship.</p> <p>tsv prioritizes, in order:</p> <ol><li>correctness (spec conformance for JS/CSS, planned for HTML/JSON; fidelity to Svelte and
-				TypeScript)</li> <li>speed</li> <li>binary size and memory usage</li> <li>extensibility, modularity, reusability</li></ol> <p>Staying simple is an overarching goal. Feedback is welcome to help navigate these tradeoffs.</p> <p>See the <!> for measurements. Compared to Oxc/Oxfmt and Biome, tsv
-			is faster and smaller and uses less memory, but lacks their features, extensibility, and broad
-			language support. One reason for tsv to exist is to help find the performance left on the
-			table in the Web's implementations.</p> <p>tsv's formatters are near production-ready, with a long tail of rare bugs, and APIs may still
+				TypeScript)</li> <li>speed</li> <li>binary size and memory usage</li> <li>extensibility, modularity, reusability</li></ol> <p>Staying simple is an overarching goal. Feedback is welcome to help navigate these tradeoffs.</p> <p>See the <!> for measurements. Compared to Oxfmt and Biome, tsv
+			formats faster with smaller artifacts and less memory; parsing into JS is mixed, since Oxc's
+			raw transfer and Yuku hand over their trees faster than tsv's JSON. tsv lacks their features,
+			extensibility, and broad language support. One reason for tsv to exist is to help find the
+			performance left on the table in the Web's implementations.</p> <p>tsv's formatters are near production-ready, with a long tail of rare bugs, and APIs may still
 			change. Reports and opinions are appreciated. See the <a href="https://github.com/fuzdev/tsv/issues">issues</a> and <a href="https://github.com/fuzdev/tsv/discussions">discussions</a>.</p> <p>AI disclosure: this codebase is LLM-generated. It's a high-effort project that prioritizes
 			quality.</p> <p>These docs are a work in progress. There are more design details in the <a href="https://github.com/fuzdev/tsv#about">readme</a>.</p> <!> <!> <!> <!> <!></section>`);function k(t,k){o(k,!0);let A=u(`introduction`);p(t,{get tome(){return A},children:(t,i)=>{var o=O(),u=e(o);d(u,{get data(){return l},size:`var(--icon_size_xl2)`,class:`float:right ml_lg mb_lg`});var p=c(u,16),k=c(e(p));f(k,{slug:`benchmarks`}),s(),r(p);var A=c(p,8);h(A,{children:(t,i)=>{var o=C(),l=a(o);g(l,{text:`Install`});var u=c(l,8);m(u,{lang:`sh`,content:`npm i -D @fuzdev/tsv
 npx tsv format src
