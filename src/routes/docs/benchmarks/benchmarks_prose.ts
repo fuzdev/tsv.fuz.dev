@@ -33,8 +33,10 @@ export const IN_PROCESS_PAIRS = {
 	parse_ts_vs_acorn: ['parse/typescript', 'acorn-typescript', 'tsv+locations'],
 	// "at ~Nx the default's time" — what `{locations: true}` costs over the span-only wire
 	parse_ts_loc_cost: ['parse/typescript', 'tsv+locations', 'tsv'],
-	// the one entry that leads tsv's default wire, quoted in the direction the data runs
+	// the entries that lead tsv's default wire, quoted in the direction the data runs:
+	// yuku-parser, and oxc-parser over its raw transfer (no JSON hand-off)
 	parse_ts_yuku_vs_tsv: ['parse/typescript', 'tsv', 'yuku-parser'],
+	parse_ts_oxc_raw_vs_tsv: ['parse/typescript', 'tsv', 'oxc-parser-raw'],
 	// the wasm-vs-wasm pairing runs wider than the native one, so the copy quotes both
 	parse_ts_yuku_wasm_vs_tsv_wasm: ['parse/typescript', 'tsv-wasm', 'yuku-parser-wasm'],
 	parse_svelte_vs_compiler: ['parse/svelte', 'svelte/compiler', 'tsv+locations'],
@@ -42,9 +44,27 @@ export const IN_PROCESS_PAIRS = {
 	parse_svelte_vs_rsvelte: ['parse/svelte', 'rsvelte-parse', 'tsv+locations'],
 	parse_css_compiler_vs_tsv: ['parse/css', 'tsv', 'svelte/compiler'],
 	parse_css_postcss_vs_tsv: ['parse/css', 'tsv', 'postcss'],
-	// Gated but not rendered: "still ahead of oxc-parser and swc" with `loc` is a
-	// composite of `parse_ts_vs_oxc` and `parse_ts_loc_cost`, true only while tsv's
+	// Gated but not rendered: "still ahead of oxc-parser's JSON path and swc" with `loc`
+	// is a composite of `parse_ts_vs_oxc` and `parse_ts_loc_cost`, true only while tsv's
 	// span-only lead outruns the loc cost, so the sentence is gated as its own pairs.
 	parse_ts_locations_vs_oxc: ['parse/typescript', 'oxc-parser', 'tsv+locations'],
 	parse_ts_locations_vs_swc: ['parse/typescript', 'swc', 'tsv+locations']
 } as const satisfies Record<string, InProcessPair>;
+
+export type InProcessPairKey = keyof typeof IN_PROCESS_PAIRS;
+
+/** The pairs the copy gates without printing a ratio, so no instability note can attach. */
+export const UNRENDERED_PAIRS: ReadonlySet<InProcessPairKey> = new Set([
+	'parse_ts_locations_vs_oxc',
+	'parse_ts_locations_vs_swc'
+]);
+
+/**
+ * The rendered pairs whose copy carries an instability note slot (`(N% instability)`,
+ * empty while both rows are stable). The prose test fails when a rendered pair reads
+ * unstable without one, so a refresh that destabilizes a row prompts a slot here and
+ * in the copy.
+ */
+export const INSTABILITY_NOTED: ReadonlySet<InProcessPairKey> = new Set([
+	'parse_ts_oxc_raw_vs_tsv'
+]);

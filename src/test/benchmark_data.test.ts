@@ -9,6 +9,7 @@ import {
 	derive_slow_row_groups,
 	derive_sweep_stats,
 	derive_unstable_entries,
+	entry_instability,
 	is_entry_unstable,
 	is_payload_matched,
 	parse_group_key,
@@ -154,6 +155,17 @@ describe('derive_corpus_source_table', () => {
 });
 
 const entry = create_baseline_entry;
+
+describe('entry_instability', () => {
+	test('is undefined for a stable row', () => {
+		assert.isUndefined(entry_instability(entry({})));
+	});
+
+	test('is the worst reading past its threshold', () => {
+		assert.strictEqual(entry_instability(entry({ drift: -0.06, pass_spread: 0.08 })), 0.08);
+		assert.strictEqual(entry_instability(entry({ drift: -0.06, pass_spread: 0.01 })), 0.06);
+	});
+});
 
 describe('is_entry_unstable', () => {
 	test('a clean row is stable', () => {

@@ -23,7 +23,12 @@ import {
 	derive_runtime_leads,
 	derive_unstable_cells
 } from '#routes/docs/benchmarks/benchmark_cross_runtime.ts';
-import { IN_PROCESS_PAIRS as IN_PROCESS_PAIRS_BY_KEY } from '#routes/docs/benchmarks/benchmarks_prose.ts';
+import {
+	INSTABILITY_NOTED,
+	IN_PROCESS_PAIRS as IN_PROCESS_PAIRS_BY_KEY,
+	type InProcessPairKey,
+	UNRENDERED_PAIRS
+} from '#routes/docs/benchmarks/benchmarks_prose.ts';
 import {
 	benchmark_speedup,
 	derive_benchmark_groups,
@@ -31,7 +36,7 @@ import {
 	derive_corpus_origin_shares,
 	derive_slow_row_groups,
 	derive_sweep_stats,
-	is_entry_unstable,
+	entry_instability,
 	is_payload_matched,
 	SLOW_ROW_FLOOR_MULTIPLE
 } from '#routes/docs/benchmarks/benchmark_data.ts';
@@ -163,21 +168,32 @@ describe('prose ratios resolve', () => {
 		assert.isAbove(wire_share, 2, 'tsv should cost at least twice tsv-internal on CSS');
 	});
 
-	test('every in-process pair the TLDR quotes was measured stably', () => {
-		// a headline ratio divides two means, and an unstable row's mean may sit between
-		// two modes (see `is_entry_unstable`) — re-run the runtime
-		// (`deno task bench:node:run && deno task bench:compose`) and re-publish
-		for (const [group, slower, faster] of IN_PROCESS_PAIRS) {
-			for (const name of [slower, faster]) {
+	test('every in-process pair over an unstable row clears its noise and is noted', () => {
+		// A headline ratio divides two means, and an unstable row's mean may sit between
+		// two levels (see `is_entry_unstable`). The copy may still quote it when the
+		// ratio's lead outruns both rows' worst readings combined, so the direction holds
+		// at the noise bound, and a printed ratio must carry its `(N% instability)` note.
+		// Otherwise re-run the runtime (`deno task bench:node:run && deno task bench:compose`).
+		for (const [key, [group, slower, faster]] of Object.entries(IN_PROCESS_PAIRS_BY_KEY)) {
+			const readings = [slower, faster].map((name) => {
 				const entry = benchmarks_json.entries.find((e) => e.group === group && e.name === name);
 				assert(entry, `${group}/${name} is missing`);
-				assert.isFalse(
-					is_entry_unstable(entry),
-					`${group}/${name} was not measured stably (cv ${entry.cv}, raw cv ${entry.cv_raw}, ` +
-						`drift ${entry.drift}, n=${entry.sample_size}) — re-run before publishing`
-				);
+				return entry_instability(entry) ?? 0;
+			});
+			const noise = readings[0]! + readings[1]!;
+			if (noise === 0) continue;
+			const ratio = benchmark_speedup(benchmarks_json, group, slower, faster);
+			assert.isDefined(ratio);
+			assert.isAbove(ratio - 1, noise, `${key}: the lead is inside the rows' instability`);
+			const pair_key = key as InProcessPairKey;
+			if (!UNRENDERED_PAIRS.has(pair_key)) {
+				assert.isTrue(INSTABILITY_NOTED.has(pair_key), `${key} prints a ratio with no note`);
 			}
 		}
+	});
+
+	test('every noted pair is rendered', () => {
+		for (const key of INSTABILITY_NOTED) assert.isFalse(UNRENDERED_PAIRS.has(key), key);
 	});
 
 	test('the pairings the copy compares by payload tier share one, and the ones it excludes do not', () => {

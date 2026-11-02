@@ -722,6 +722,16 @@ const RAW_CV_SAMPLE_CEILING = 30;
 export const is_entry_unstable = (entry: BaselineEntry): boolean =>
 	to_unstable_readings(entry).length > 0;
 
+/**
+ * A timed row's worst instability reading — the largest of its cv, raw cv, |drift|,
+ * and pass spread past their thresholds — or `undefined` for a stable or untimed row.
+ * The page quotes it beside a ratio that divides such a row.
+ */
+export const entry_instability = (entry: BaselineEntry): number | undefined => {
+	const readings = to_unstable_readings(entry);
+	return readings.length ? Math.max(...readings) : undefined;
+};
+
 // the readings past their threshold — empty for a stable or an untimed row
 const to_unstable_readings = (entry: BaselineEntry): Array<number> => {
 	// untimed is `mean_ns`, not `cv` — a timed row missing its cleaned cv still

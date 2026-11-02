@@ -89,8 +89,8 @@ describe('conformance.json shape', () => {
 		// so a harness that renames or re-picks a binding — yuku's native row
 		// returning, oxc's wasi pin rejoining — would drop an engine from the table
 		// without a type error. Fold each entry to its engine by stripping the
-		// binding/materialization suffixes and hold the row count to that set.
-		const to_engine = (name: string) => name.replace(/-(wasm|internal|skip-expr-loc)/g, '');
+		// binding/materialization/transfer suffixes and hold the row count to that set.
+		const to_engine = (name: string) => name.replace(/-(wasm|internal|skip-expr-loc|raw)/g, '');
 		const groups = derive_conformance_groups(conformance_json);
 		for (const group of groups) {
 			const engines = new Set(

@@ -36,6 +36,7 @@
 		derive_slow_row_groups,
 		derive_sweep_stats,
 		derive_unstable_entries,
+		entry_instability,
 		parse_group_key,
 		UNSTABLE_PASS_SPREAD_THRESHOLD
 	} from './benchmark_data.ts';
@@ -61,7 +62,7 @@
 		RSVELTE_LABEL
 	} from './benchmark_sizes.ts';
 	import { derive_tool_matrix } from './benchmark_tools.ts';
-	import { IN_PROCESS_PAIRS } from './benchmarks_prose.ts';
+	import { IN_PROCESS_PAIRS, type InProcessPairKey } from './benchmarks_prose.ts';
 	import BenchmarksGroup from './BenchmarksGroup.svelte';
 	import BenchmarksSizes from './BenchmarksSizes.svelte';
 	import BenchmarksMeta from './BenchmarksMeta.svelte';
@@ -136,9 +137,23 @@
 	// Every ratio the TLDR and the section notes quote, computed from the same
 	// reports the charts render so the prose can't drift from them. The pairings and
 	// their directions live in `benchmarks_prose.ts`, which the prose test gates.
-	const speedup = (key: keyof typeof IN_PROCESS_PAIRS) => {
+	const speedup = (key: InProcessPairKey) => {
 		const [group, slower, faster] = IN_PROCESS_PAIRS[key];
 		return format_ratio_approx(benchmark_speedup(benchmarks_json, group, slower, faster));
+	};
+	// ` (N% instability)` beside a ratio that divides an unstable row, the worst
+	// reading of its two; empty while both are stable. Only the pairs in
+	// `INSTABILITY_NOTED` carry a slot, which the prose test enforces.
+	const instability_note = (key: InProcessPairKey): string => {
+		const [group, ...names] = IN_PROCESS_PAIRS[key];
+		const worst = Math.max(
+			0,
+			...names.map((name) => {
+				const entry = benchmarks_json.entries.find((e) => e.group === group && e.name === name);
+				return (entry && entry_instability(entry)) ?? 0;
+			})
+		);
+		return worst > 0 ? ` (${format_share_ceil(worst)} instability)` : '';
 	};
 	const format_ts_vs_oxfmt = speedup('format_ts_vs_oxfmt');
 	const format_ts_vs_prettier = speedup('format_ts_vs_prettier');
@@ -158,6 +173,7 @@
 	// What `{locations: true}` costs over the default span-only wire, same engine.
 	const parse_ts_loc_cost = speedup('parse_ts_loc_cost');
 	const parse_ts_yuku_vs_tsv = speedup('parse_ts_yuku_vs_tsv');
+	const parse_ts_oxc_raw_vs_tsv = speedup('parse_ts_oxc_raw_vs_tsv');
 	const parse_ts_yuku_wasm_vs_tsv_wasm = speedup('parse_ts_yuku_wasm_vs_tsv_wasm');
 	// Svelte pairs `{locations: true}`, whose `loc` is a superset of Svelte's own, with
 	// the parsers that carry one (Svelte's, and rsvelte's, which emits the same wire);
@@ -278,12 +294,14 @@
 				</li>
 				<li>
 					Parsing TypeScript to its default span-only AST (offsets only, like Oxc's), tsv is
-					natively ~{parse_ts_vs_oxc} faster than oxc-parser (see
-					<a href="#{docs_slugify(PARSE_SECTION_TITLE)}">{PARSE_SECTION_TITLE}</a>) and
-					~{parse_ts_yuku_vs_tsv} slower than yuku-parser (~{parse_ts_yuku_wasm_vs_tsv_wasm} as
-					wasm). With <code>{'{locations: true}'}</code>, which adds acorn's per-node line/column
+					natively ~{parse_ts_vs_oxc} faster than oxc-parser's default JSON transfer, but
+					~{parse_ts_oxc_raw_vs_tsv} slower than its raw
+					transfer{instability_note('parse_ts_oxc_raw_vs_tsv')} and ~{parse_ts_yuku_vs_tsv} slower
+					than yuku-parser (~{parse_ts_yuku_wasm_vs_tsv_wasm} as wasm; see
+					<a href="#{docs_slugify(PARSE_SECTION_TITLE)}">{PARSE_SECTION_TITLE}</a>). With
+					<code>{'{locations: true}'}</code>, which adds acorn's per-node line/column
 					<code>loc</code>, it is ~{parse_ts_vs_acorn} faster than acorn-typescript, the parser it
-					can replace, and still ahead of Oxc and swc, whose ASTs carry none.
+					can replace, and still ahead of oxc-parser's JSON path and swc, whose ASTs carry none.
 				</li>
 				<li>
 					Parsing Svelte with <code>{'{locations: true}'}</code>, whose <code>loc</code> is a
@@ -460,8 +478,7 @@
 					kind. It is the closest comparison with oxc-parser but not an equal one: Oxc's AST also
 					writes out default-valued fields tsv omits (<code>optional: false</code>,
 					<code>decorators: []</code>, <code>typeAnnotation: null</code>), about a third more bytes,
-					and its parse also collects comments and module records. Oxc also has an experimental
-					raw-transfer mode, untimed here, that skips the JSON and may well beat tsv natively.
+					and its parse also collects comments and module records.
 				</li>
 				<li>
 					<code>+locations</code> passes <code>{'{locations: true}'}</code>: the same parse with a
@@ -476,6 +493,12 @@
 					is what serializing and handing off costs tsv, not a cross-tool comparison.
 				</li>
 			</ul>
+			<p>
+				<code>oxc-parser-raw</code> is the same native Oxc parse and the same tree, handed to JS
+				through Oxc's experimental raw transfer instead: a shared buffer that generated JS
+				deserializes into objects before the call returns, skipping the JSON. tsv ships no such
+				path. Oxc supports it natively only, and not under Bun.
+			</p>
 			<p>
 				yuku-parser, a JS/TS parser written in Zig, emits the same span-only AST as Oxc, so it too
 				compares against tsv's default entries. It hands JS a compact binary buffer that decodes

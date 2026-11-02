@@ -165,7 +165,7 @@ in the schema TSDoc in `formatter_benchmark_data.ts`.
 - `benchmark_baseline.ts` + `BenchmarksBaselineGroup.svelte` — hover-to-rebaseline: hovering a row re-anchors that group's ratios, restoring the default anchor on leave; pointer-only by design, and a disabled row never anchors. `BenchmarksCli.svelte`'s tables behave the same way
 - `formatter_benchmark_data.ts` — the harness report's fuz_schema schemas and `parse_formatter_benchmarks`
 - `benchmarks_cli.ts` — shapes the CLI report for `BenchmarksCli.svelte` and owns the per-scenario prose and the `cli_*` claim helpers
-- `benchmarks_prose.ts` — `IN_PROCESS_PAIRS`, the in-process pairings the copy names; the page reads it by key and the prose test iterates it, so a pairing added to the copy is gated by construction
+- `benchmarks_prose.ts` — `IN_PROCESS_PAIRS`, the in-process pairings the copy names; the page reads it by key and the prose test iterates it, so a pairing added to the copy is gated by construction. A pair over an unstable row passes only while its lead clears both rows' instability, and a printed one must be in `INSTABILITY_NOTED`, whose copy carries an `(N% instability)` slot
 - `benchmarks.ts`, `benchmarks_cross_runtime.ts`, `benchmarks_formatters.ts` (and the conformance page's `conformance.ts`) — re-export the JSON with types
 - `BenchmarksCliSection.svelte` — the CLI section's prose and its claims; the other `Benchmarks*.svelte` are visualizations
 - `benchmarks.css` — classes the components share, imported by the benchmarks and conformance `+page.svelte`s rather than the root stylesheet so they ship with those routes only
