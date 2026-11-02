@@ -114,7 +114,7 @@ export const TOOL_SUPPORT: ReadonlyArray<ToolSupport> = [
 			svelte: { format: 'prettier' }
 		},
 		other: 'JSON, TOML, YAML, GraphQL, Markdown; MDX, HTML, Vue, … via Prettier',
-		rows: { parse: ['oxc-parser', 'oxc-parser-wasm'], format: ['oxfmt'] },
+		rows: { parse: ['oxc-parser', 'oxc-parser-raw', 'oxc-parser-wasm'], format: ['oxfmt'] },
 		cli_labels: ['oxfmt']
 	},
 	{

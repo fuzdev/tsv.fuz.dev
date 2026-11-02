@@ -246,6 +246,8 @@ const LABEL_OVERRIDES: Record<string, string> = {
 	'tsv+locations': 'tsv+locations (node napi)',
 	'tsv-internal': 'tsv internal (node napi)',
 	'oxc-parser': 'oxc-parser (node napi)',
+	// the same napi parse over oxc's raw transfer (a shared buffer, no JSON string)
+	'oxc-parser-raw': 'oxc-parser raw (node napi)',
 	oxfmt: 'oxfmt (node napi)',
 	'biome-wasm': 'biome (wasm)',
 	'dprint-wasm': 'dprint (wasm)',

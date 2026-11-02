@@ -462,6 +462,7 @@ const CATEGORY_BY_NAME: Record<string, ImplementationCategory> = {
 	// plugins over the same host — dprint's category too
 	'markup-fmt-wasm': 'dprint',
 	'oxc-parser': 'oxc',
+	'oxc-parser-raw': 'oxc',
 	'oxc-parser-wasm': 'oxc',
 	oxfmt: 'oxc',
 	postcss: 'postcss',
