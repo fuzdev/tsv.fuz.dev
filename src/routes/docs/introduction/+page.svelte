@@ -67,10 +67,11 @@
 			Staying simple is an overarching goal. Feedback is welcome to help navigate these tradeoffs.
 		</p>
 		<p>
-			See the <TomeLink slug="benchmarks" /> for measurements. Compared to Oxc/Oxfmt and Biome, tsv
-			is faster and smaller and uses less memory, but lacks their features, extensibility, and broad
-			language support. One reason for tsv to exist is to help find the performance left on the
-			table in the Web's implementations.
+			See the <TomeLink slug="benchmarks" /> for measurements. Compared to Oxfmt and Biome, tsv
+			formats faster with smaller artifacts and less memory; parsing into JS is mixed, since Oxc's
+			raw transfer and Yuku hand over their trees faster than tsv's JSON. tsv lacks their features,
+			extensibility, and broad language support. One reason for tsv to exist is to help find the
+			performance left on the table in the Web's implementations.
 		</p>
 		<p>
 			tsv's formatters are near production-ready, with a long tail of rare bugs, and APIs may still

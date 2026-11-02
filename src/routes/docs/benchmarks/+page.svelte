@@ -513,10 +513,10 @@
 				<p>Notes:</p>
 				<ul>
 					<li>
-						Parsers written in JS skip the Rust-to-JS serialization tsv and Oxc pay for. On CSS the
-						JSON hand-off is ~{parse_css_wire_share} of tsv's time (the gap between its default and
-						<code>internal</code> entries), and Svelte's <code>parseCss</code> and PostCSS both
-						finish ahead of tsv's default entries under Node.
+						Parsers written in JS skip the Rust-to-JS serialization that tsv and oxc-parser's
+						default JSON path pay for. On CSS the JSON hand-off is ~{parse_css_wire_share} of tsv's
+						time (the gap between its default and <code>internal</code> entries), and Svelte's
+						<code>parseCss</code> and PostCSS both finish ahead of tsv's default entries under Node.
 						{#if css_runtime_leads.length}
 							Under {css_lead_runtimes}, tsv overtakes <code>parseCss</code>; the
 							<a href="#{docs_slugify(CROSS_RUNTIME_SECTION_TITLE)}">
