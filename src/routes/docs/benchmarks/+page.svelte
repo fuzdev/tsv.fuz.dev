@@ -769,12 +769,34 @@
 					covers them.
 				</li>
 				<li>
-					Standalone CSS files are rare in this ecosystem, so the CSS set adds the
-					<code>&lt;style&gt;</code> blocks of the corpus's Svelte components, concatenated per
-					corpus
+					Standalone CSS files are rare in this ecosystem — most of its CSS lives in Svelte
+					components — so the CSS set is the standalone <code>.css</code> files plus the
+					<code>&lt;style&gt;</code> CSS of every measured <code>.svelte</code> file, harvested into
+					one stylesheet per corpus
 					collection{corpus_counts.harvested_css && corpus.css
 						? ` — ${format_count(corpus_counts.harvested_css)} of its ${format_count(corpus.css)} entries`
-						: ''}. Even so, CSS is the weakest sample, with just
+						: ''}:
+					<ul>
+						<li>
+							each component's top-level <code>&lt;style&gt;</code> block is taken verbatim —
+							<code>:global(…)</code> and all — minus the indent it carried inside the tag; empty
+							blocks and non-CSS <code>lang</code>s (SCSS, PostCSS) are skipped
+						</li>
+						<li>
+							a collection's blocks are joined into one file, so its size is however much CSS that
+							repo wrote — large files that measure throughput more than per-call overhead
+						</li>
+						<li>
+							nothing is filtered for validity: like every perf file, each tool must take each
+							stylesheet, and one a tool rejects leaves every row's timed set (Biome refuses the
+							ones carrying Svelte's leading-combinator <code>:global(&gt; …)</code>)
+						</li>
+						<li>
+							the same bytes are timed again inside the Svelte rows — rows are never summed, so
+							nothing counts twice
+						</li>
+					</ul>
+					Even so, CSS is the weakest sample, with just
 					{format_count_maybe(corpus_counts.standalone_css)} standalone files.
 				</li>
 				<li>Read every ratio here as "on this corpus", not as a universal figure.</li>
