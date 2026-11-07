@@ -47,7 +47,8 @@ if (parsed.ok) {
 				and exits 1 if any file would change. Inside a git repo, discovery honors <code>.gitignore</code>, <code>.formatignore</code>, and <code>.prettierignore</code>;
 				outside one, only <code>.formatignore</code>.</p> <p>The native package covers Linux (x64 gnu and musl, arm64 gnu), macOS (arm64 and x64), and
 				Windows x64 - for other platforms use the wasm build below.</p> <p>The same CLI binaries are also attached to each <a href="https://github.com/fuzdev/tsv/releases">GitHub Release</a> with a <code>SHA512SUMS</code> and a build provenance attestation, for use without npm.</p> <p>The CLI is also on crates.io as <a href="https://crates.io/crates/tsv_cli"><code>tsv_cli</code></a>: <code>cargo binstall tsv_cli</code> fetches the same prebuilt binary, and <code>cargo install --locked tsv_cli</code> builds it from source (without the release
-				profile, so it runs slower). The libraries are crates too, one per language: <a href="https://docs.rs/tsv_ts"><code>tsv_ts</code></a>, <a href="https://docs.rs/tsv_css"><code>tsv_css</code></a>, and <a href="https://docs.rs/tsv_svelte"><code>tsv_svelte</code></a>. Also published: <a href="https://docs.rs/tsv_ignore"><code>tsv_ignore</code></a>, the gitignore-faithful
+				profile or profile-guided optimization, so it runs slower). The libraries are crates too,
+				one per language: <a href="https://docs.rs/tsv_ts"><code>tsv_ts</code></a>, <a href="https://docs.rs/tsv_css"><code>tsv_css</code></a>, and <a href="https://docs.rs/tsv_svelte"><code>tsv_svelte</code></a>. Also published: <a href="https://docs.rs/tsv_ignore"><code>tsv_ignore</code></a>, the gitignore-faithful
 				matcher behind discovery, and <a href="https://docs.rs/tsv_html"><code>tsv_html</code></a>,
 				the WHATWG named character references; <code>tsv_lang</code> and <code>tsv_discover</code> are support crates.</p> <p>tsv also ships as wasm, which runs everywhere including browsers and Deno, and provides the
 				same <code>tsv</code> command:</p> <!> <p>Both packages claim the <code>tsv</code> bin name. (TBD if the wasm package needs a
@@ -96,7 +97,7 @@ if (parsed.ok) {
 			column stays put.</p> <p>tsv aims to simplify its covered domains and stay lean, and so it makes opinionated choices.
 			The formatter has a single non-configurable style, using Svelte's Prettier config. Among other
 			benefits, this means tsv doesn't depend on a JS runtime, which it would need in order to
-			resolve configs the way Prettier does.</p> <p>Compared to Oxc, Biome, and swc, tsv is a set of focused tools, not an extensible language
+			resolve configs the way Prettier does, avoiding complexity and performance costs.</p> <p>Compared to Oxc, Biome, and swc, tsv is a set of focused tools, not an extensible language
 			platform, so it targets Web standards + TS + Svelte and there's no support for JSX/SCSS/etc.
 			tsv's extensibility story is currently limited to using its Rust crates as libraries (or
 			forking); bridging to JS or wasm plugins is an open question (leaning against).</p> <p>Compared to <a href="https://github.com/baseballyama/rsvelte">rsvelte</a>, tsv has its own
@@ -104,12 +105,12 @@ if (parsed.ok) {
 			linter/typechecker integration; tsv has experimental work in that direction that may never
 			ship.</p> <p>tsv prioritizes, in order:</p> <ol><li>correctness (spec conformance for JS/CSS, planned for HTML/JSON; fidelity to Svelte and
 				TypeScript)</li> <li>speed</li> <li>binary size and memory usage</li> <li>extensibility, modularity, reusability</li></ol> <p>Staying simple is an overarching goal. Feedback is welcome to help navigate these tradeoffs.</p> <p>See the <!> for measurements. Compared to Oxfmt and Biome, tsv
-			formats faster with smaller artifacts and less memory; parsing into JS is mixed, since Oxc's
-			raw transfer and Yuku hand over their trees faster than tsv's JSON. tsv lacks their features,
-			extensibility, and broad language support. One reason for tsv to exist is to help find the
-			performance left on the table in the Web's implementations.</p> <p>tsv's formatters are near production-ready, with a long tail of rare bugs, and APIs may still
-			change. Reports and opinions are appreciated. See the <a href="https://github.com/fuzdev/tsv/issues">issues</a> and <a href="https://github.com/fuzdev/tsv/discussions">discussions</a>.</p> <p>AI disclosure: this codebase is LLM-generated. It's a high-effort project that prioritizes
-			quality.</p> <p>These docs are a work in progress. There are more design details in the <a href="https://github.com/fuzdev/tsv#about">readme</a>.</p> <!> <!> <!> <!> <!></section>`);function k(t,k){o(k,!0);let A=u(`introduction`);p(t,{get tome(){return A},children:(t,i)=>{var o=O(),u=e(o);d(u,{get data(){return l},size:`var(--icon_size_xl2)`,class:`float:right ml_lg mb_lg`});var p=c(u,16),k=c(e(p));f(k,{slug:`benchmarks`}),s(),r(p);var A=c(p,8);h(A,{children:(t,i)=>{var o=C(),l=a(o);g(l,{text:`Install`});var u=c(l,8);m(u,{lang:`sh`,content:`npm i -D @fuzdev/tsv
+			formats faster with smaller artifacts and less memory, but lacks their features,
+			extensibility, and broad language support. Parsing into JS is mixed, since Oxc's raw transfer
+			and Yuku hand over their trees faster than tsv's JSON. One reason for tsv to exist is to help
+			find the performance left on the table in the Web's implementations.</p> <p>tsv's formatters are near production-ready, with a long tail of rare bugs, and APIs may still
+			change. Reports and opinions are appreciated. See the <a href="https://github.com/fuzdev/tsv/issues">issues</a> and <a href="https://github.com/fuzdev/tsv/discussions">discussions</a>.</p> <p>AI disclosure: this codebase is LLM-generated using Claude Code. It's a high-effort project
+			that prioritizes quality.</p> <p>These docs are a work in progress. There are more design details in the <a href="https://github.com/fuzdev/tsv#about">readme</a>.</p> <!> <!> <!> <!> <!></section>`);function k(t,k){o(k,!0);let A=u(`introduction`);p(t,{get tome(){return A},children:(t,i)=>{var o=O(),u=e(o);d(u,{get data(){return l},size:`var(--icon_size_xl2)`,class:`float:right ml_lg mb_lg`});var p=c(u,16),k=c(e(p));f(k,{slug:`benchmarks`}),s(),r(p);var A=c(p,8);h(A,{children:(t,i)=>{var o=C(),l=a(o);g(l,{text:`Install`});var u=c(l,8);m(u,{lang:`sh`,content:`npm i -D @fuzdev/tsv
 npx tsv format src
 npx tsv format --check src
 npx tsv parse src/foo.svelte

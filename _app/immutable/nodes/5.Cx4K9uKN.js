@@ -1,0 +1,1 @@
+export{t as component}from"../chunks/2aVIzDl2.js";
