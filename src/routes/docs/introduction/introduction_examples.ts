@@ -36,8 +36,21 @@ export const strip_example = `import { strip_typescript } from '@fuzdev/tsv';
 const result = strip_typescript('let x: number = 1;');
 if (result.ok) {
 	result.code; // 'let x         = 1;'
-} else {
-	result.error.kind; // 'parse' or 'unsupported'
+}
+
+const refused = strip_typescript('enum Color { Red }');
+if (!refused.ok && refused.error.kind === 'unsupported') {
+	refused.error.construct; // 'enum'
+}`;
+
+export const imports_example = `import { parse_imports_svelte } from '@fuzdev/tsv';
+
+const result = parse_imports_svelte('<script>\\n\\timport Button from "./Button.svelte";\\n</script>');
+if (result.ok) {
+	result.hasModuleSyntax; // true
+	result.imports[0]?.kind; // 'static'
+	result.imports[0]?.specifier?.value; // './Button.svelte'
+	result.imports[0]?.typeOnly; // null, or 'statement' / 'specifiers' for a type-only request
 }`;
 
 export const locations_example = `import { parse_typescript, create_locator } from '@fuzdev/tsv-parse-wasm';

@@ -11,6 +11,7 @@
 	import {
 		error_example,
 		format_example,
+		imports_example,
 		locations_example,
 		parse_example,
 		strip_example,
@@ -28,12 +29,12 @@
 		<p>
 			tsv is a Rust toolchain for TypeScript/JS, CSS, and Svelte (and planned HTML/JSON). Today it
 			ships a formatter that closely follows <a href="https://prettier.io/">Prettier</a> +
-			<a href="https://github.com/sveltejs/prettier-plugin-svelte">prettier-plugin-svelte</a>, and a
-			drop-in for <a href="https://svelte.dev/">Svelte</a>'s parser +
-			<a href="https://github.com/acornjs/acorn">acorn</a> +
-			<a href="https://github.com/sveltejs/acorn-typescript">acorn-typescript</a>, plus a type
-			stripper that turns TypeScript into JS by blanking its types to whitespace, so every line and
-			column stays put.
+			<a href="https://github.com/sveltejs/prettier-plugin-svelte">prettier-plugin-svelte</a>, a
+			parser that can output an AST compatible with <a href="https://svelte.dev/">Svelte</a>'s
+			parser + <a href="https://github.com/acornjs/acorn">acorn</a> +
+			<a href="https://github.com/sveltejs/acorn-typescript">acorn-typescript</a>, a type stripper
+			that turns TypeScript into JS by blanking its types to whitespace, so every line and column
+			stays put, and an import lister that reports every module a source requests.
 		</p>
 		<p>
 			tsv aims to simplify its covered domains and stay lean, and so it makes opinionated choices.
@@ -85,7 +86,7 @@
 		</p>
 		<p>
 			These docs are a work in progress. There are more design details in the
-			<a href="https://github.com/fuzdev/tsv#about">readme</a>.
+			<a href="https://github.com/fuzdev/tsv#design">readme</a>.
 		</p>
 		<TomeSection>
 			<TomeSectionHeader text="Install" />
@@ -116,13 +117,24 @@
 			/>
 			<p>
 				<code>tsv format</code> writes changed files in place; <code>--check</code> writes nothing
-				and exits 1 if any file would change. Inside a git repo, discovery honors
-				<code>.gitignore</code>, <code>.formatignore</code>, and <code>.prettierignore</code>;
-				outside one, only <code>.formatignore</code>.
+				and only reports, and <code>--list</code> prints the files it would touch. Inside a git
+				repo, discovery honors <code>.gitignore</code>, <code>.formatignore</code>, and
+				<code>.prettierignore</code>; outside one, only <code>.formatignore</code>. Files format in
+				parallel (<code>--jobs N</code> sets the count). <code>--content</code> or
+				<code>--stdin</code> with <code>--parser svelte|typescript|css</code> formats or parses a
+				string to stdout.
 			</p>
 			<p>
-				The native package covers Linux (x64 gnu and musl, arm64 gnu), macOS (arm64 and x64), and
-				Windows x64 - for other platforms use the wasm build below.
+				Exit codes: <code>format</code> exits 0 when clean, 1 when <code>--check</code> finds a
+				change, and 2 on errors; <code>parse</code> exits 0 when parsed, 1 when the input doesn't
+				parse, and 2 on a usage or read error. See
+				<a href="https://github.com/fuzdev/tsv/blob/main/docs/cli.md">docs/cli.md</a> for the full
+				CLI.
+			</p>
+			<p>
+				The npm packages need Node.js 22+ or Bun. The native package covers Linux (x64 gnu and musl,
+				arm64 gnu), macOS (arm64 and x64), and Windows x64 - for other platforms use the wasm build
+				below.
 			</p>
 			<p>
 				The same CLI binaries are also attached to each
@@ -141,7 +153,9 @@
 				<a href="https://docs.rs/tsv_ignore"><code>tsv_ignore</code></a>, the gitignore-faithful
 				matcher behind discovery, and <a href="https://docs.rs/tsv_html"><code>tsv_html</code></a>,
 				the WHATWG named character references; <code>tsv_lang</code> and <code>tsv_discover</code>
-				are support crates.
+				are support crates. See the readme's
+				<a href="https://github.com/fuzdev/tsv#rust">Rust section</a> for examples and how the npm
+				API maps to the crates.
 			</p>
 			<p>
 				tsv also ships as wasm, which runs everywhere including browsers and Deno, and provides the
@@ -170,8 +184,8 @@
 			<p>
 				All four packages share one API — the same function names, options, and errors, each solo
 				package carrying its part — so <code>@fuzdev/tsv</code> and <code>@fuzdev/tsv-wasm</code>
-				are drop-in swaps for each other. Both export the formatter, the parser, and the type
-				stripper together:
+				are drop-in swaps for each other. Both export the formatter, the parser, the type stripper,
+				and the import lister together:
 			</p>
 			<Code lang="ts" content={usage_example} />
 			<p>The formatter alone:</p>
@@ -200,8 +214,15 @@
 				(below), and for TypeScript
 				<Code lang="ts" content={"{sourceType: 'script' | 'module'}"} inline /> (default
 				<Code lang="ts" content="'module'" inline />). <code>format_typescript</code> takes
-				<code>sourceType</code> too, as does <code>strip_typescript</code>; without it, they retry
-				as a script when the module parse fails, so a legacy sloppy script needs no options.
+				<code>sourceType</code> too, as do <code>strip_typescript</code> and
+				<code>parse_imports_typescript</code>; without it, they retry as a script when the module
+				parse fails, so a legacy sloppy script needs no options.
+			</p>
+			<p>
+				The second argument must be an options object, so write
+				<Code lang="ts" content="sources.map((s) => format_typescript(s))" inline />, not
+				<Code lang="ts" content="sources.map(format_typescript)" inline />, which passes the array
+				index and throws.
 			</p>
 			<p>
 				A source that doesn't parse returns <Code lang="ts" content={'{ok: false, error}'} inline />
@@ -213,14 +234,37 @@
 			<Code lang="ts" content={error_example} />
 			<p>
 				Its type is <code>TsvParseError</code>, and every error type extends <code>TsvError</code>.
-				A bad argument — a source that isn't a string, an unknown option — still throws a
-				<code>TypeError</code>, and an engine failure with no position in the source, like an input
-				over the size cap or a wasm trap, still throws as itself.
+				Two other kinds share its shape: the type stripper's
+				<Code lang="ts" content="kind: 'unsupported'" inline /> (below), and
+				<Code lang="ts" content="kind: 'refused'" inline /> (<code>FormatRefusedError</code>), which
+				<code>format_svelte</code> returns for a rare source it parses but can't format without
+				changing its meaning.
 			</p>
 			<p>
-				The native package needs no initialization; the wasm packages work zero-config in Node.js,
-				Bun, and Deno (sync auto-init); in browsers and bundlers, call
-				<Code lang="ts" content="await init()" inline /> once first.
+				A bad argument — a source that isn't a string, an unknown option — still throws a
+				<code>TypeError</code>, and an engine failure with no position in the source, like an input
+				over the size cap or a wasm trap, still throws as itself. A wasm trap, a stack overflow on a
+				stack smaller than tsv's depth limits assume, also breaks the instance, so every later call
+				throws too; <Code lang="ts" content="reinstantiate()" inline /> swaps in a fresh one from
+				the already-compiled module.
+			</p>
+			<p>
+				The packages are ESM; a CommonJS host loads them with
+				<Code lang="ts" content="await import('@fuzdev/tsv')" inline />. The native package needs no
+				initialization; the wasm packages work zero-config in Node.js, Bun, and Deno (sync
+				auto-init); in browsers and bundlers, call <Code lang="ts" content="await init()" inline />
+				once first. To run a wasm package across worker threads without recompiling, hand its
+				exported <code>wasm_module</code> to each worker, which imports the <code>/worker</code>
+				subpath and calls <Code lang="ts" content={'init_sync({module: wasm_module})'} inline />;
+				the
+				<a href="https://www.npmjs.com/package/@fuzdev/tsv-format-wasm">
+					<code>@fuzdev/tsv-format-wasm</code> readme
+				</a> shows the pattern.
+			</p>
+			<p>
+				<code>IgnoreStack</code>, exported by <code>@fuzdev/tsv</code> and the format-capable wasm
+				packages, is the matcher and discovery policy behind <code>tsv format</code>, for tooling
+				that needs to reproduce exactly which files it touches.
 			</p>
 		</TomeSection>
 		<TomeSection>
@@ -231,7 +275,8 @@
 				TypeScript's lines and columns and needs no source map. TypeScript that blanking can't
 				erase, like an <code>enum</code> or a parameter property, is refused rather than
 				transformed, returned as an error with
-				<Code lang="ts" content="kind: 'unsupported'" inline />:
+				<Code lang="ts" content="kind: 'unsupported'" inline /> and the refused
+				<code>construct</code>:
 			</p>
 			<Code lang="ts" content={strip_example} />
 			<p>
@@ -241,6 +286,29 @@
 				<code>--check</code> prints nothing and keeps those exit codes. See
 				<a href="https://github.com/fuzdev/tsv/blob/main/docs/strip.md">docs/strip.md</a> for the
 				details.
+			</p>
+		</TomeSection>
+		<TomeSection>
+			<TomeSectionHeader text="Import records" />
+			<p>
+				<code>parse_imports_typescript</code> and <code>parse_imports_svelte</code>, in
+				<code>@fuzdev/tsv</code> and <code>@fuzdev/tsv-wasm</code>, list the modules a source
+				requests without handing over an AST: every static <code>import</code>, re-export, dynamic
+				<code>import()</code>, and <code>import x = require()</code>, in source order. Each is a
+				full parse, not a scan, so strings, regexes, and comments that look like imports aren't
+				mistaken for them:
+			</p>
+			<Code lang="ts" content={imports_example} />
+			<p>
+				Each record carries its <code>kind</code>, its <code>start</code>/<code>end</code>, the
+				decoded <code>specifier</code> with its own span (<code>null</code> for a computed
+				<code>import(x)</code>), <code>typeOnly</code>, <code>phase</code> for source-phase and
+				deferred imports, and the span of its <code>attributes</code>, all in UTF-16 offsets.
+				<code>hasModuleSyntax</code> says whether the source uses syntax only a module parses. A
+				source that doesn't parse returns <Code lang="ts" content={'{ok: false, error}'} inline />
+				as the parsers do. See
+				<a href="https://github.com/fuzdev/tsv/blob/main/docs/imports.md">docs/imports.md</a> for
+				the details.
 			</p>
 		</TomeSection>
 		<TomeSection>
