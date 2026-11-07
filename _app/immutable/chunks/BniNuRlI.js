@@ -1,4 +1,4 @@
-import{F as e,N as t,_t as n,et as r,ft as i,pt as a,rt as o,tt as s,vt as c}from"./CcCt9sBg.js";import{n as l}from"./CRoEIyQu.js";import{n as u}from"./MOxfhW-Z.js";import{t as d}from"./BKuse8TM.js";import{i as f,t as p}from"./CUwmKFIE.js";import{t as m}from"./BvBR_YQH.js";import{n as h,t as g}from"./vomWeSbd.js";var _=`import { format_svelte, parse_svelte, strip_typescript, type Root } from '@fuzdev/tsv';
+import{F as e,N as t,_t as n,et as r,ft as i,pt as a,rt as o,tt as s,vt as c}from"./CcCt9sBg.js";import{n as l}from"./CRoEIyQu.js";import{n as u}from"./MOxfhW-Z.js";import{t as d}from"./BKuse8TM.js";import{i as f,t as p}from"./DoLmIRyS.js";import{t as m}from"./BvBR_YQH.js";import{n as h,t as g}from"./xui8qSUr.js";var _=`import { format_svelte, parse_svelte, strip_typescript, type Root } from '@fuzdev/tsv';
 
 const formatted = format_svelte('<script>\\nconst   x=1\\n<\/script>');
 if (formatted.ok) console.log(formatted.code);
@@ -126,11 +126,10 @@ if (parsed.ok) {
 					same tree.</li></ul>`,1),k=e(`<!> <ul><li><a href="https://github.com/fuzdev/tsv">github.com/fuzdev/tsv</a> — the formatter, parser,
 					type stripper, wasm bindings, CLI, etc.</li> <li><a href="https://github.com/fuzdev/tsv.fuz.dev">github.com/fuzdev/tsv.fuz.dev</a> — this
 					website</li></ul>`,1),A=e(`<section><!> <p>tsv is a Rust toolchain for TypeScript/JS, CSS, and Svelte (and planned HTML/JSON). Today it
-			ships a formatter that closely follows <a href="https://prettier.io/">Prettier</a> + <a href="https://github.com/sveltejs/prettier-plugin-svelte">prettier-plugin-svelte</a>, a
+			ships a formatter that closely follows <a href="https://prettier.io/">Prettier</a> + <a href="https://github.com/sveltejs/prettier-plugin-svelte">prettier-plugin-svelte</a> and a
 			parser that can output an AST compatible with <a href="https://svelte.dev/">Svelte</a>'s
-			parser + <a href="https://github.com/acornjs/acorn">acorn</a> + <a href="https://github.com/sveltejs/acorn-typescript">acorn-typescript</a>, a type stripper
-			that turns TypeScript into JS by blanking its types to whitespace, so every line and column
-			stays put, and an import lister that reports every module a source requests.</p> <p>tsv aims to simplify its covered domains and stay lean, and so it makes opinionated choices.
+			parser + <a href="https://github.com/acornjs/acorn">acorn</a> + <a href="https://github.com/sveltejs/acorn-typescript">acorn-typescript</a>. Alongside them
+			are a position-preserving type stripper and an import lister.</p> <p>tsv aims to simplify its covered domains and stay lean, and so it makes opinionated choices.
 			The formatter has a single non-configurable style, using Svelte's Prettier config. Among other
 			benefits, this means tsv doesn't depend on a JS runtime, which it would need in order to
 			resolve configs the way Prettier does, avoiding complexity and performance costs.</p> <p>Compared to Oxc, Biome, and swc, tsv is a set of focused tools, not an extensible language
