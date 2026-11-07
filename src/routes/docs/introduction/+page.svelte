@@ -29,12 +29,11 @@
 		<p>
 			tsv is a Rust toolchain for TypeScript/JS, CSS, and Svelte (and planned HTML/JSON). Today it
 			ships a formatter that closely follows <a href="https://prettier.io/">Prettier</a> +
-			<a href="https://github.com/sveltejs/prettier-plugin-svelte">prettier-plugin-svelte</a>, a
+			<a href="https://github.com/sveltejs/prettier-plugin-svelte">prettier-plugin-svelte</a> and a
 			parser that can output an AST compatible with <a href="https://svelte.dev/">Svelte</a>'s
 			parser + <a href="https://github.com/acornjs/acorn">acorn</a> +
-			<a href="https://github.com/sveltejs/acorn-typescript">acorn-typescript</a>, a type stripper
-			that turns TypeScript into JS by blanking its types to whitespace, so every line and column
-			stays put, and an import lister that reports every module a source requests.
+			<a href="https://github.com/sveltejs/acorn-typescript">acorn-typescript</a>. Alongside them
+			are a position-preserving type stripper and an import lister.
 		</p>
 		<p>
 			tsv aims to simplify its covered domains and stay lean, and so it makes opinionated choices.
