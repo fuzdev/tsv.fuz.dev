@@ -1,4 +1,8 @@
-import type { BaselineEntry, BenchmarkBaseline } from '#routes/docs/benchmarks/benchmark_data.ts';
+import type {
+	BaselineEntry,
+	BenchmarkBaseline,
+	NativeBuild
+} from '#routes/docs/benchmarks/benchmark_data.ts';
 import type {
 	FormatterPreflight,
 	FormatterScenario,
@@ -11,14 +15,14 @@ import type {
  * floor, so `npm run update-benchmarks` pulling a newer shape fails the shape tests
  * until `benchmark_data.ts` mirrors the new fields and this is re-pinned.
  */
-export const REPORT_VERSION = 22;
+export const REPORT_VERSION = 23;
 
 /**
  * `REPORT_VERSION` for the conformance copy (`conformance.json`). A separate pin
  * because the two copies come from separate runs: a field only the conformance
  * report carries moves tsv's version with no reason to re-run the perf bench.
  */
-export const CONFORMANCE_REPORT_VERSION = 22;
+export const CONFORMANCE_REPORT_VERSION = 23;
 
 /** A stable, timed `BaselineEntry`, which each test overrides the fields it reads. */
 export const create_baseline_entry = (overrides: Partial<BaselineEntry> = {}): BaselineEntry => ({
@@ -82,6 +86,25 @@ export const create_baseline = (overrides: Partial<BenchmarkBaseline> = {}): Ben
 	output_digest_ungraded: {},
 	...overrides
 });
+
+/**
+ * `create_baseline` with a profile-guided `native_build` trained on the `own` collections and
+ * disjoint from the timed corpus, which each test overrides the fields it reads.
+ */
+export const create_native_build_baseline = (
+	overrides: Partial<NativeBuild> = {}
+): BenchmarkBaseline =>
+	create_baseline({
+		native_build: {
+			build: 'pgo',
+			loaded: { binding: 'napi', path: '.pgo/bench/libtsv_napi.so', sha256: 'x' },
+			bindings: null,
+			training: { origin: 'own', collections: ['zzz'], snapshot_tree: 't' },
+			disjoint_from_timed_corpus: true,
+			staged: null,
+			...overrides
+		}
+	});
 
 // A trimmed stand-in for the bench harness's `results.json`, built from factories
 // so each test states only what it changes.

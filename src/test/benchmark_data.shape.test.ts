@@ -418,8 +418,16 @@ describe('corpus source tables over the committed reports', () => {
 	});
 
 	test('the perf report records its corpus by origin', () => {
-		// the Corpus section's third-party shares render from it
+		// the Corpus section's held-out statement reads it
 		assert.isDefined(benchmarks_json.corpus_by_origin);
+	});
+
+	test('the native build names its library by a checkout-relative path', () => {
+		// the report is published as-is, so an absolute path would ship the producing
+		// machine's home directory
+		const native_build = benchmarks_json.native_build;
+		assert.isDefined(native_build);
+		assert.isFalse(native_build.loaded.path.startsWith('/'), native_build.loaded.path);
 	});
 });
 

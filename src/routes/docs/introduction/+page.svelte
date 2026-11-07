@@ -39,7 +39,7 @@
 			tsv aims to simplify its covered domains and stay lean, and so it makes opinionated choices.
 			The formatter has a single non-configurable style, using Svelte's Prettier config. Among other
 			benefits, this means tsv doesn't depend on a JS runtime, which it would need in order to
-			resolve configs the way Prettier does.
+			resolve configs the way Prettier does, avoiding complexity and performance costs.
 		</p>
 		<p>
 			Compared to Oxc, Biome, and swc, tsv is a set of focused tools, not an extensible language
@@ -68,10 +68,10 @@
 		</p>
 		<p>
 			See the <TomeLink slug="benchmarks" /> for measurements. Compared to Oxfmt and Biome, tsv
-			formats faster with smaller artifacts and less memory; parsing into JS is mixed, since Oxc's
-			raw transfer and Yuku hand over their trees faster than tsv's JSON. tsv lacks their features,
-			extensibility, and broad language support. One reason for tsv to exist is to help find the
-			performance left on the table in the Web's implementations.
+			formats faster with smaller artifacts and less memory, but lacks their features,
+			extensibility, and broad language support. Parsing into JS is mixed, since Oxc's raw transfer
+			and Yuku hand over their trees faster than tsv's JSON. One reason for tsv to exist is to help
+			find the performance left on the table in the Web's implementations.
 		</p>
 		<p>
 			tsv's formatters are near production-ready, with a long tail of rare bugs, and APIs may still
@@ -80,8 +80,8 @@
 			<a href="https://github.com/fuzdev/tsv/discussions">discussions</a>.
 		</p>
 		<p>
-			AI disclosure: this codebase is LLM-generated. It's a high-effort project that prioritizes
-			quality.
+			AI disclosure: this codebase is LLM-generated using Claude Code. It's a high-effort project
+			that prioritizes quality.
 		</p>
 		<p>
 			These docs are a work in progress. There are more design details in the
@@ -134,8 +134,8 @@
 				<a href="https://crates.io/crates/tsv_cli"><code>tsv_cli</code></a>:
 				<code>cargo binstall tsv_cli</code> fetches the same prebuilt binary, and
 				<code>cargo install --locked tsv_cli</code> builds it from source (without the release
-				profile, so it runs slower). The libraries are crates too, one per language:
-				<a href="https://docs.rs/tsv_ts"><code>tsv_ts</code></a>,
+				profile or profile-guided optimization, so it runs slower). The libraries are crates too,
+				one per language: <a href="https://docs.rs/tsv_ts"><code>tsv_ts</code></a>,
 				<a href="https://docs.rs/tsv_css"><code>tsv_css</code></a>, and
 				<a href="https://docs.rs/tsv_svelte"><code>tsv_svelte</code></a>. Also published:
 				<a href="https://docs.rs/tsv_ignore"><code>tsv_ignore</code></a>, the gitignore-faithful

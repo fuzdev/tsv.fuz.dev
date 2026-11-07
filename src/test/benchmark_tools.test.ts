@@ -16,6 +16,7 @@ import { create_baseline_entry } from './benchmark_test_helpers.ts';
 const scenario = (key: string, labels: Array<string>, tsv_only = false): CliScenario => ({
 	key,
 	heading: key,
+	prose_name: key,
 	description: '',
 	tsv_only,
 	target: '',

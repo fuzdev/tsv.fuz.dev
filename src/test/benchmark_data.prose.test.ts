@@ -6,12 +6,14 @@ import { benchmarks_formatters_json } from '#routes/docs/benchmarks/benchmarks_f
 import { format_ratio_approx } from '#routes/docs/benchmarks/benchmark_display.ts';
 import {
 	benchmarks_cli,
+	cli_bare_readings,
 	cli_memory_ratio_range,
 	cli_scenario_find,
 	cli_ratio_vs_tsv,
 	cli_ratio_vs_tsv_npm,
 	cli_tsv_npm_overhead_ms_range,
 	cli_node_startup_ms,
+	CLI_BUN_FMT_LABEL,
 	CLI_DELIVERY_KEY,
 	CLI_SINGLE_FILE_KEY,
 	CLI_SVELTE_KEY,
@@ -33,10 +35,11 @@ import {
 	benchmark_speedup,
 	derive_benchmark_groups,
 	derive_corpus_counts,
-	derive_corpus_origin_shares,
 	derive_slow_row_groups,
 	derive_sweep_stats,
 	entry_instability,
+	is_native_build_profile_guided,
+	is_own_code_held_out,
 	is_payload_matched,
 	SLOW_ROW_FLOOR_MULTIPLE
 } from '#routes/docs/benchmarks/benchmark_data.ts';
@@ -306,6 +309,22 @@ describe('prose ratios resolve', () => {
 		}
 	});
 
+	test("Bun's formatter is read against the bare binary in every scenario facing other tools", () => {
+		// the tldr bullet and the CLI note quote one reading per shared scenario; a scenario
+		// that dropped the row would shrink the sentence without a word, so every one must resolve
+		// timed, that is: a scenario aborted in its memory pass keeps its times and its reading
+		const shared = benchmarks_cli.scenarios.filter((s) => !s.tsv_only && s.results.length > 0);
+		const readings = cli_bare_readings(CLI_BUN_FMT_LABEL);
+		assert.deepEqual(
+			readings.map((r) => r.key),
+			shared.map((s) => s.key)
+		);
+		// the CLI note says tsv uses less memory than it in each
+		const memory = cli_memory_ratio_range({ labels: [CLI_BUN_FMT_LABEL] });
+		assert.isDefined(memory);
+		assert.isAbove(memory.min, 1);
+	});
+
 	test("the dispatcher row's peak is Node's, not the binary's, as the memory note implies", () => {
 		// the harness reports the largest single process in the tree, so the memory note's
 		// "understated" holds for the dispatcher row only while Node outgrows the binary
@@ -394,7 +413,7 @@ describe('prose ratios resolve', () => {
 
 	test('the delivery caption places the wasm row among the single-file tools', () => {
 		// "still finishes well ahead of both Prettier rows in the single-file table, but
-		// behind Oxfmt and Biome" —
+		// behind Oxfmt, Biome, and Bun’s formatter" —
 		// the delivery and single-file scenarios time the same file (the shape test
 		// holds them to one corpus revision), so the wasm row reads against the other
 		// tools' single-file times across the two tables
@@ -416,7 +435,7 @@ describe('prose ratios resolve', () => {
 				`${label}: the wasm row is no longer well ahead`
 			);
 		}
-		for (const label of ['oxfmt', 'biome']) {
+		for (const label of ['oxfmt', 'biome', 'bun-fmt']) {
 			assert.isBelow(wall(label), wasm.wall_ms, `${label}: the wasm row is no longer behind`);
 		}
 	});
@@ -492,29 +511,58 @@ describe('prose ratios resolve', () => {
 	});
 
 	test('the corpus repos the Corpus section names are present', () => {
-		// "the fuz.dev ecosystem ... and upstream framework source (Svelte, SvelteKit, and
-		// the svelte.dev site)" — gate the names so the sentence can't outlive the corpus
+		// the Corpus section names every upstream by project — gate each so the sentence
+		// can't outlive the corpus, and the reverse, so a new collection gets named
+		const named = [
+			'sveltejs/svelte',
+			'sveltejs/kit',
+			'sveltejs/svelte.dev',
+			'sveltejs/language-tools',
+			'huntabyte/bits-ui',
+			'huntabyte/shadcn-svelte',
+			'skeletonlabs/skeleton',
+			'themesberg/flowbite-svelte',
+			'xyflow/xyflow',
+			'threlte/threlte',
+			'svecosystem/runed',
+			'techniq/layerchart',
+			'mhkeller/layercake',
+			'techniq/svelte-ux',
+			'dimfeld/svelte-maplibre',
+			'saadeghi/daisyui',
+			'argyleink/open-props',
+			'microsoft/TypeScript',
+			'storybookjs/storybook',
+			'continuedev/continue'
+		];
 		const slugs = new Set(
 			(benchmarks_json.corpus_sources ?? []).map((s) => s.repo?.slug).filter(Boolean)
 		);
-		for (const slug of ['sveltejs/svelte', 'sveltejs/kit', 'sveltejs/svelte.dev']) {
+		for (const slug of named) {
 			assert.ok(slugs.has(slug), `the page names ${slug} but the corpus lacks it`);
 		}
-		assert.ok(
-			[...slugs].some((slug) => slug?.startsWith('fuzdev/')),
-			'the page names the fuz.dev repos but the corpus has none'
-		);
+		for (const slug of slugs) {
+			assert.include(
+				named,
+				slug,
+				`the corpus holds ${slug} but the Corpus section doesn't name it`
+			);
+		}
 	});
 
-	test("the corpus mixes the author's code with third-party code, as the tldr and Corpus section say", () => {
-		// the Corpus section quotes each language's third-party share, so every language
-		// the report times needs some of each
-		const shares = derive_corpus_origin_shares(benchmarks_json);
-		assert.ok(shares, 'the report records no corpus_by_origin');
-		assert.isNotEmpty(shares);
-		for (const { language, third_party_share } of shares) {
-			assert.isAbove(third_party_share, 0, `${language} has no third-party code`);
-			assert.isBelow(third_party_share, 1, `${language} has none of the author's code`);
-		}
+	test("the corpus holds none of the author's code, as the tldr and Corpus section say", () => {
+		// "real-world third-party code" (tldr) and the held-out paragraph, which renders only
+		// when the profile-guided build's training is the own collections the run left out
+		assert.isTrue(is_own_code_held_out(benchmarks_json));
+	});
+
+	test('the native rows time the profile-guided build, as Benchmarking details and the size notes say', () => {
+		assert.isTrue(is_native_build_profile_guided(benchmarks_json));
+		// the size notes: the full native entries are the PGO builds, the ffi subsets plain
+		const builds = new Map(benchmarks_json.binary_sizes.map((s) => [s.label, s.build]));
+		assert.strictEqual(builds.get('tsv (napi)'), 'pgo');
+		assert.strictEqual(builds.get('tsv (ffi)'), 'pgo');
+		assert.strictEqual(builds.get('tsv format (ffi)'), 'plain');
+		assert.strictEqual(builds.get('tsv parse (ffi)'), 'plain');
 	});
 });

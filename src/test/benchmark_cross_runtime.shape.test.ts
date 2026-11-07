@@ -12,7 +12,7 @@ import {
 // `COMBINED_SCHEMA_VERSION`. Exact rather than a floor, so `npm run
 // update-benchmarks` pulling a newer shape fails here until
 // `benchmark_cross_runtime.ts` mirrors the new fields and this is re-pinned.
-const COMBINED_VERSION = 18;
+const COMBINED_VERSION = 19;
 
 // Shape gate for the committed cross-runtime `benchmarks_cross_runtime.json` (the
 // bench composer's combined `report.json`) — a different, slimmer shape than the
@@ -47,6 +47,18 @@ describe('benchmarks_cross_runtime.json shape', () => {
 		assert.strictEqual(node.git_commit, benchmarks_json.git_commit);
 		assert.strictEqual(node.timestamp, benchmarks_json.timestamp);
 		assert.strictEqual(node.tsv, benchmarks_json.versions.tsv);
+	});
+
+	test('every runtime measured the one profile-guided build', () => {
+		// the cross-runtime section reads per-runtime deltas as engine and binding effects,
+		// which a sibling on a different native build would confound
+		assert.notStrictEqual(benchmarks_cross_runtime_json.mixed_native_build, true);
+		for (const source of benchmarks_cross_runtime_json.sources) {
+			const { native_build } = source;
+			assert.isOk(native_build, source.runtime);
+			assert.strictEqual(native_build.build, 'pgo', source.runtime);
+			assert.isFalse(native_build.loaded.path.startsWith('/'), source.runtime);
+		}
 	});
 
 	test('runtimes include the flagship and its cross-runtime peers', () => {

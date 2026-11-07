@@ -1,6 +1,8 @@
 import { assert, describe, test } from 'vitest';
 
+import { derive_runtime_versions } from '#routes/docs/benchmarks/benchmark_cross_runtime.ts';
 import { benchmarks_json } from '#routes/docs/benchmarks/benchmarks.ts';
+import { benchmarks_cross_runtime_json } from '#routes/docs/benchmarks/benchmarks_cross_runtime.ts';
 import { benchmarks_formatters_json } from '#routes/docs/benchmarks/benchmarks_formatters.ts';
 import {
 	benchmarks_cli,
@@ -216,6 +218,16 @@ describe('the CLI report matches the in-process one', () => {
 		for (const { name, cli, in_process } of shared) {
 			assert.strictEqual(cli, in_process, `${name}: ${REFRESH}`);
 		}
+	});
+
+	test('same Bun as the cross-runtime report', () => {
+		// the bun-fmt row runs the harness's pinned Bun, which must be the one the
+		// cross-runtime section lists
+		const bun = derive_runtime_versions(benchmarks_cross_runtime_json).find(
+			(v) => v.runtime === 'bun'
+		);
+		assert(bun, 'the cross-runtime report has no bun source');
+		assert.strictEqual(benchmarks_cli.versions.bun, bun.version, REFRESH);
 	});
 
 	test('the harness-only facts the details section quotes resolve', () => {

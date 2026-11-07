@@ -17,11 +17,14 @@
 	import { derive_runtime_leads } from './benchmark_cross_runtime.ts';
 	import {
 		benchmarks_cli,
+		cli_bare_readings,
 		cli_scenario_find,
 		cli_ratio_vs_tsv,
 		cli_ratio_vs_tsv_npm,
+		CLI_BUN_FMT_LABEL,
 		CLI_TS_REPO_KEY,
-		CLI_SVELTE_KEY
+		CLI_SVELTE_KEY,
+		format_cli_bare_readings
 	} from './benchmarks_cli.ts';
 	import {
 		benchmark_speedup,
@@ -31,12 +34,13 @@
 		CORPUS_SOURCE_LABELS,
 		derive_benchmark_groups,
 		derive_corpus_counts,
-		derive_corpus_origin_shares,
 		derive_corpus_source_table,
 		derive_slow_row_groups,
 		derive_sweep_stats,
 		derive_unstable_entries,
 		entry_instability,
+		is_native_build_profile_guided,
+		is_own_code_held_out,
 		parse_group_key,
 		UNSTABLE_PASS_SPREAD_THRESHOLD
 	} from './benchmark_data.ts';
@@ -44,8 +48,6 @@
 		format_count,
 		format_count_maybe,
 		format_group_label,
-		format_language,
-		format_list_and,
 		format_ratio_approx,
 		format_runtime_display,
 		format_runtime_name,
@@ -108,16 +110,10 @@
 		? corpus_repo_ref_url(corpus_snapshot)
 		: 'https://github.com/fuzdev/corpora';
 	const corpus_snapshot_commit = corpus_snapshot && corpus_repo_ref_commit(corpus_snapshot);
-	// what share of each language's corpus the author didn't write (the shape test
-	// requires the field)
-	const corpus_origin_shares = derive_corpus_origin_shares(benchmarks_json);
-	const corpus_third_party_shares =
-		corpus_origin_shares &&
-		format_list_and(
-			corpus_origin_shares.map(
-				(s) => `~${format_share_approx(s.third_party_share)} of the ${format_language(s.language)}`
-			)
-		);
+	// the native rows' build and the corpus it was trained on, which the timed corpus leaves
+	// out (the prose test requires both)
+	const native_profile_guided = is_native_build_profile_guided(benchmarks_json);
+	const own_code_held_out = is_own_code_held_out(benchmarks_json);
 	// The rows the report itself flagged as unstable (see `is_entry_unstable`) —
 	// disclosed above the format charts, since every ratio through one divides its mean.
 	const unstable_entries = derive_unstable_entries(benchmarks_json);
@@ -228,6 +224,9 @@
 	const cli_svelte_npm_ratio = cli_ratio_vs_tsv_npm(CLI_SVELTE_KEY, 'rsvelte-fmt', 'wall_ms');
 	const cli_svelte_timed = cli_svelte_npm_ratio !== undefined;
 	const cli_svelte_npm_wall = format_ratio_approx(cli_svelte_npm_ratio);
+	// Bun's formatter is a native executable run directly, so it faces the bare binary,
+	// one reading per scenario, since the readings can point both ways
+	const cli_bun_readings = format_cli_bare_readings(cli_bare_readings(CLI_BUN_FMT_LABEL));
 </script>
 
 <TomeContent {tome}>
@@ -253,8 +252,9 @@
 			<p>
 				This page compares tsv to Prettier and the JS parsers it can replace (Svelte's and
 				acorn-typescript), and to Oxc and Biome, similar tools with more features, configurable
-				styles, and wider language support. It also measures rsvelte, yuku-parser, swc, dprint,
-				Malva, markup_fmt, and PostCSS;
+				styles, and wider language support, and, as a CLI only, Bun's built-in formatter
+				(<code>bun fmt</code>). It also measures rsvelte, yuku-parser, swc, dprint, Malva,
+				markup_fmt, and PostCSS;
 				<a href="#{docs_slugify(LANGUAGE_SECTION_TITLE)}">{LANGUAGE_SECTION_TITLE}</a> lays out what
 				each parses and formats.
 			</p>
@@ -271,8 +271,8 @@
 			<p>
 				Except in the CLI section, every timing here is in-process and one file at a time, isolating
 				engine speed from multi-core parallelism. The corpus is {format_count(corpus_counts.files)}
-				files of real-world code, the author's own plus framework source, third-party libraries, and
-				widely benchmarked TypeScript (see
+				files of real-world third-party code: framework source, community libraries, CSS frameworks,
+				and widely benchmarked TypeScript (see
 				<a href="#{docs_slugify(CORPUS_SECTION_TITLE)}">Corpus</a>), timed under {node_display}.
 			</p>
 			<ul>
@@ -333,6 +333,12 @@
 					<li>
 						On a third-party Svelte corpus, tsv's CLI, again through its Node bin, is
 						~{cli_svelte_npm_wall} faster than rsvelte-fmt, another Rust Svelte formatter.
+					</li>
+				{/if}
+				{#if cli_bun_readings}
+					<li>
+						Bun's built-in formatter runs as a native executable with no Node in front, so it faces
+						the bare binary: {cli_bun_readings}.
 					</li>
 				{/if}
 			</ul>
@@ -433,12 +439,11 @@
 						<a href="https://github.com/g-plane/markup_fmt">markup_fmt</a>, Malva's author's markup
 						plugin for the same host, formats Svelte, handing each component's script, style, and
 						template expressions to the dprint and Malva plugins. It isn't timed: it rejects valid
-						Svelte this corpus holds, chiefly braces or markup inside a string in a template
-						expression (a code sample passed as a prop, which most docs pages here do, or a literal
-						brace written <code>{"{'{'}"}</code>) and <code>{'{…}'}</code> inside a quoted
-						<code>style</code>. Every file a timed row rejects leaves every row's timed set, so
-						timing it would drop the largest docs pages from every Svelte number on this page. The
-						harness checks its coverage instead.
+						Svelte this corpus holds, chiefly a quoted <code>style</code> attribute whose value
+						isn't a declaration list (a map component's <code>style</code> prop holding a URL, which
+						it parses as CSS) and some inline arrow-function event handlers. Every file a timed row
+						rejects leaves every row's timed set, so timing it would drop whole example and docs
+						pages from every Svelte number on this page. The harness checks its coverage instead.
 					</li>
 					<li>
 						<a href="https://github.com/baseballyama/rsvelte" rel="external">rsvelte-fmt</a>, the
@@ -629,6 +634,12 @@
 							<code>tsv</code> CLI binary. Installed, both are about twice their entries here.
 						</li>
 						<li>
+							The full <code>tsv (ffi)</code> and <code>tsv (napi)</code> entries are the
+							profile-guided builds the native rows time, which PGO makes larger than plain builds
+							would be; the <code>(ffi)</code> format and parse subsets are plain builds, sized
+							only.
+						</li>
+						<li>
 							The <code>(ffi)</code> entries are tsv's C-ABI build, which isn't published: natively,
 							tsv ships only its full N-API addon, which is why <code>tsv (napi)</code> also stands
 							under Formatter and Parser. Read them as what the engine costs in that configuration,
@@ -695,6 +706,18 @@
 				call pays more. Each native or wasm call also pays a string encode across the binding
 				boundary, and a decode wherever it hands back text or JSON, which the JS tools skip.
 			</p>
+			{#if native_profile_guided}
+				<p>
+					tsv's native rows time the build it ships: profile-guided (PGO), trained by running the
+					build itself over the author's own
+					code{own_code_held_out ? ', which the timed corpus leaves out' : ''}. Its wasm rows are
+					not profile-guided.
+				</p>
+			{:else}
+				<p>
+					tsv's native rows here time a plain build, not the profile-guided one it ships natively.
+				</p>
+			{/if}
 			<p>
 				Each row is timed in {format_count_maybe(sweeps.passes)} passes, and each pass runs until it
 				has both a few seconds of sweeps and at least {format_count_maybe(sweeps.floor)} sweeps, so
@@ -753,14 +776,21 @@
 				<!-- eslint-disable-next-line svelte/no-navigation-without-resolve -->
 				<a href={corpus_snapshot_url}>
 					fuzdev/corpora{corpus_snapshot_commit ? `@${corpus_snapshot_commit}` : ''}
-				</a> snapshot so one clone reproduces it. They're the author's libraries, apps, and sites
-				(the fuz.dev ecosystem plus personal SvelteKit projects), and upstream framework source
-				(Svelte, SvelteKit, and the svelte.dev site), community Svelte libraries and tooling
-				(Flowbite Svelte's components, LayerChart, Layer Cake, Svelte UX, svelte-maplibre, and
-				Svelte's language tools), and TypeScript other formatter benchmarks compare on (TypeScript's
-				own parser, Storybook, and Continue). By bytes, code the author didn't write is
-				{corpus_third_party_shares}.
+				</a> snapshot so one clone reproduces it. They're upstream framework source (Svelte,
+				SvelteKit, and the svelte.dev site), community Svelte libraries and tooling (Bits UI,
+				shadcn-svelte, Skeleton, Flowbite Svelte, Svelte Flow, Threlte, Runed, LayerChart, Layer
+				Cake, Svelte UX, svelte-maplibre, and Svelte's language tools), CSS frameworks (daisyUI and
+				Open Props), and TypeScript other formatter benchmarks compare on (TypeScript's own parser,
+				Storybook, and Continue).
 			</p>
+			{#if own_code_held_out}
+				<p>
+					None of it is the author's own code. The snapshot vendors that too, but tsv's native
+					builds are profile-guided, trained on exactly those collections (see
+					<a href="#{docs_slugify(DETAILS_SECTION_TITLE)}">{DETAILS_SECTION_TITLE}</a>), so it's
+					held out of every timing here rather than flattering them.
+				</p>
+			{/if}
 			<ul>
 				<li>
 					Test files count as real code and stay in. Fixture files (formatter test suites, and
@@ -769,10 +799,9 @@
 					covers them.
 				</li>
 				<li>
-					Standalone CSS files are rare in this ecosystem — most of its CSS lives in Svelte
-					components — so the CSS set is the standalone <code>.css</code> files plus the
-					<code>&lt;style&gt;</code> CSS of every measured <code>.svelte</code> file, harvested into
-					one stylesheet per corpus
+					Standalone CSS files are rare in Svelte code — most of its CSS lives in components — so
+					the CSS set is the standalone <code>.css</code> files plus the <code>&lt;style&gt;</code>
+					CSS of every measured <code>.svelte</code> file, harvested into one stylesheet per corpus
 					collection{corpus_counts.harvested_css && corpus.css
 						? ` — ${format_count(corpus_counts.harvested_css)} of its ${format_count(corpus.css)} entries`
 						: ''}:
@@ -806,12 +835,5 @@
 				<BenchmarksCorpus table={corpus_source_table} />
 			</Details>
 		</TomeSection>
-
-		<section>
-			<p>
-				tsv's numbers here are from builds without profile-guided optimization (PGO). PGO would make
-				tsv faster but its binaries larger, and that size tradeoff has it on hold.
-			</p>
-		</section>
 	{/if}
 </TomeContent>

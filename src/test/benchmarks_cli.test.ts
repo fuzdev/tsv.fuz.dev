@@ -1,6 +1,7 @@
 import { assert, describe, test } from 'vitest';
 
 import {
+	cli_bare_readings,
 	cli_comparison_results,
 	cli_default_anchor_label,
 	cli_label_is_tsv,
@@ -10,6 +11,8 @@ import {
 	CLI_TSV_LABEL,
 	CLI_TSV_NPM_LABEL,
 	CLI_TSV_WASM_LABEL,
+	format_cli_bare_readings,
+	format_cli_lead,
 	to_abort_note,
 	to_cli_scenarios,
 	to_unshimmed_note,
@@ -233,6 +236,7 @@ describe('cli claims spanning scenarios', () => {
 	const scenario = (key: string, overrides: Partial<CliScenario> = {}): CliScenario => ({
 		key,
 		heading: key,
+		prose_name: key,
 		description: '',
 		tsv_only: false,
 		target: '',
@@ -312,6 +316,73 @@ describe('to_unshimmed_note', () => {
 		assert.strictEqual(
 			to_unshimmed_note(['tsv-npm', 'tsv-wasm']),
 			'tsv via Node dispatcher and tsv-wasm ran as a bare Node script, skipping the few milliseconds of pnpm bin shim the other tools’ rows go through.'
+		);
+	});
+});
+
+describe('readings against the bare binary', () => {
+	const scenario = (key: string, walls: Record<string, number>, tsv_only = false): CliScenario => ({
+		key,
+		heading: key,
+		prose_name: `the ${key}`,
+		description: '',
+		tsv_only,
+		target: '',
+		corpus: '',
+		labels: Object.keys(walls),
+		results: Object.entries(walls).map(([label, wall_ms]) => ({
+			label,
+			wall_ms,
+			cpu_ms: wall_ms,
+			memory_mb: null
+		})),
+		warmup_runs: 3,
+		benchmark_runs: 10
+	});
+
+	test('cli_bare_readings takes each shared scenario that timed both rows, in order', () => {
+		const readings = cli_bare_readings('bun-fmt', [
+			scenario('repo', { tsv: 10, 'bun-fmt': 17 }),
+			scenario('single', { tsv: 10 }),
+			scenario('delivery', { tsv: 10, 'bun-fmt': 5 }, true),
+			scenario('svelte', { tsv: 10, 'bun-fmt': 9.9 })
+		]);
+		assert.deepEqual(
+			readings.map((r) => [r.key, r.prose_name]),
+			[
+				['repo', 'the repo'],
+				['svelte', 'the svelte']
+			]
+		);
+		assert.closeTo(readings[0]!.wall_ratio, 1.7, 1e-9);
+	});
+
+	test('format_cli_lead never prints a near-tie as a lead', () => {
+		assert.strictEqual(format_cli_lead(1.7), '~1.7x faster');
+		assert.strictEqual(format_cli_lead(0.5), '~2.0x slower');
+		assert.strictEqual(format_cli_lead(0.99), 'about even');
+		assert.strictEqual(format_cli_lead(1.04), 'about even');
+		assert.strictEqual(format_cli_lead(1 / 1.04), 'about even');
+		assert.strictEqual(format_cli_lead(1.05), '~1.1x faster');
+	});
+});
+
+describe('format_cli_bare_readings', () => {
+	test('joins each reading as a clause from tsv’s side', () => {
+		assert.strictEqual(format_cli_bare_readings([]), '');
+		assert.strictEqual(
+			format_cli_bare_readings([
+				{ key: 'a', prose_name: 'the repo', wall_ratio: 1.7 },
+				{ key: 'b', prose_name: 'the file', wall_ratio: 0.99 }
+			]),
+			'tsv is ~1.7x faster on the repo and about even on the file'
+		);
+		assert.strictEqual(
+			format_cli_bare_readings([{ key: 'a', prose_name: 'the repo', wall_ratio: 1.7 }], {
+				min: 1.6,
+				max: 4.1
+			}),
+			'tsv is ~1.7x faster on the repo, using ~1.6x–4.1x less memory'
 		);
 	});
 });

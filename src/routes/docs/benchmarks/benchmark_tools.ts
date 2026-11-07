@@ -5,6 +5,7 @@
 
 import type { BenchmarkBaseline } from './benchmark_data.ts';
 import {
+	CLI_BUN_FMT_LABEL,
 	CLI_SINGLE_FILE_KEY,
 	CLI_SVELTE_KEY,
 	CLI_TS_REPO_KEY,
@@ -129,6 +130,22 @@ export const TOOL_SUPPORT: ReadonlyArray<ToolSupport> = [
 		other: 'JSON, GraphQL, GritQL, HTML (opt-in), and experimental Vue, Astro',
 		rows: { format: ['biome-wasm'] },
 		cli_labels: ['biome']
+	},
+	{
+		// format-only: Bun's JS API exposes no AST to callers, and `bun fmt` has no
+		// in-process entry, so only the CLI section times it
+		name: 'Bun',
+		url: 'https://bun.com/docs/format',
+		languages: {
+			typescript: { format: true },
+			jsx: { format: true },
+			css: { format: true },
+			scss: { format: true },
+			svelte: { format: true }
+		},
+		other: 'JSON, YAML, Markdown, HTML, Vue, …',
+		rows: {},
+		cli_labels: [CLI_BUN_FMT_LABEL]
 	},
 	{
 		name: 'rsvelte',

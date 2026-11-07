@@ -36,7 +36,7 @@ export interface BenchmarkBaseline {
 	corpus_sources: Array<CorpusSource>;
 	// The corpus by who wrote it — files and bytes per manifest `origin` (`own`, the
 	// author's code, or `third_party`) and language. Perf reports only; absent before
-	// `version` 22.
+	// `version` 22. Read by `is_own_code_held_out`.
 	corpus_by_origin?: Record<CorpusOrigin, Record<string, { files: number; bytes: number }>>;
 	// The exclusion caches the conformance view applied, by label, each its size —
 	// `null` for an absent one, which only a tolerated (`BENCH_ALLOW_MISSING=1`),
@@ -91,6 +91,31 @@ export interface BenchmarkBaseline {
 	// own teardown and were killed — their results stand. `[]` when healthy; absent
 	// before `version` 21. Not rendered, kept for parity.
 	exit_hangs?: Array<string>;
+	// The build the native tsv rows measured — see `NativeBuild`. Absent before `version` 23.
+	native_build?: NativeBuild;
+}
+
+/**
+ * The bench's disclosure of the native rows' build (mirrors its `NativeBuild`): the library
+ * those rows loaded (the N-API addon in the Node report), hashed, and called profile-guided
+ * (`pgo`) only when the bench's PGO stamp names those exact bytes — `plain` when the stamp
+ * names other bytes, `null` with no stamp. WASM rows are never profile-guided.
+ */
+export interface NativeBuild {
+	build: 'pgo' | 'plain' | null;
+	loaded: { binding: 'ffi' | 'napi'; path: string; sha256: string };
+	// What the stamp names per binding; `null` with no stamp. Not rendered.
+	bindings: Record<
+		'ffi' | 'napi',
+		{ sha256: string; profile_sha256: string; trained_through: string }
+	> | null;
+	// The corpus the profiles were trained on — the snapshot collections of one manifest
+	// `origin` — or `null` with no stamp.
+	training: { origin: CorpusOrigin; collections: Array<string>; snapshot_tree: string } | null;
+	// Whether no training collection is one this run's corpus loaded (the held-out
+	// guarantee); `null` when it can't be computed.
+	disjoint_from_timed_corpus: boolean | null;
+	staged: string | null;
 }
 
 // The run's between-process noise (see `BenchmarkBaseline.process_noise`): the
@@ -382,6 +407,9 @@ export interface BinarySize {
 	// Gzipped on-disk size (≈ npm-tarball wire size); `null` when `gzip` was
 	// unavailable on the machine that generated the baseline.
 	gzip_bytes: number | null;
+	// tsv's own native rows only, from `version` 23: `pgo` for the profile-guided library the
+	// native rows time, `plain` for the subset builds sized but never timed. Not rendered.
+	build?: 'pgo' | 'plain';
 }
 
 // Display types
@@ -849,36 +877,34 @@ export const derive_corpus_source_table = (
 /** A snapshot collection's manifest `origin`. */
 export type CorpusOrigin = 'own' | 'third_party';
 
-/** One language's corpus split by origin — see `derive_corpus_origin_shares`. */
-export interface CorpusOriginShare {
-	language: string;
-	/** The third-party share of the language's bytes, 0–1. */
-	third_party_share: number;
-	third_party: { files: number; bytes: number };
-	own: { files: number; bytes: number };
-}
-
 /**
- * Per language, how much of the corpus is third-party code by bytes — the page's
- * statement of what each mixed headline blends. `null` for a report that doesn't record
- * origins (before `version` 22), whose prose keeps the older single-origin caveat;
- * languages with no bytes are left out.
+ * Whether the native tsv rows time a profile-guided build — the build tsv ships natively.
+ * False for a report without `native_build` (before `version` 23) or whose native rows
+ * loaded bytes the bench's PGO stamp doesn't name.
  *
  * @param baseline - the perf report
  */
-export const derive_corpus_origin_shares = (
-	baseline: BenchmarkBaseline
-): Array<CorpusOriginShare> | null => {
+export const is_native_build_profile_guided = (baseline: BenchmarkBaseline): boolean =>
+	baseline.native_build?.build === 'pgo';
+
+/**
+ * Whether the timed corpus leaves out the author's own code because the profile-guided
+ * native builds trained on it — the Corpus section's held-out statement. True only when the
+ * report records origins with no `own` bytes in any language, and its `native_build` was
+ * trained on the `own` collections, none of which the run loaded.
+ *
+ * @param baseline - the perf report
+ */
+export const is_own_code_held_out = (baseline: BenchmarkBaseline): boolean => {
 	const by_origin = baseline.corpus_by_origin;
-	if (!by_origin) return null;
-	return Object.keys(baseline.corpus).flatMap((language) => {
-		const own = by_origin.own[language] ?? { files: 0, bytes: 0 };
-		const third_party = by_origin.third_party[language] ?? { files: 0, bytes: 0 };
-		const bytes = own.bytes + third_party.bytes;
-		return bytes === 0
-			? []
-			: [{ language, third_party_share: third_party.bytes / bytes, third_party, own }];
-	});
+	const native_build = baseline.native_build;
+	if (!by_origin || !native_build?.training) return false;
+	const own_bytes = Object.values(by_origin.own).reduce((sum, c) => sum + c.bytes, 0);
+	return (
+		own_bytes === 0 &&
+		native_build.training.origin === 'own' &&
+		native_build.disjoint_from_timed_corpus === true
+	);
 };
 
 // Prose counts

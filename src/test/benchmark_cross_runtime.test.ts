@@ -246,7 +246,8 @@ describe('derive_runtime_versions', () => {
 			tsv: null,
 			corpus_snapshot: null,
 			machine: m,
-			unavailable: null
+			unavailable: null,
+			native_build: null
 		});
 		const versions = derive_runtime_versions(
 			create_report({

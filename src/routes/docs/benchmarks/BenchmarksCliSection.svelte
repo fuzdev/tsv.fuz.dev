@@ -5,12 +5,16 @@
 
 	import {
 		benchmarks_cli,
+		cli_bare_readings,
+		cli_memory_ratio_range,
 		cli_ratio_vs_tsv,
 		cli_ratio_vs_tsv_npm,
 		cli_tsv_npm_overhead_ms_range,
 		cli_node_startup_ms,
+		CLI_BUN_FMT_LABEL,
 		CLI_TS_REPO_KEY,
-		CLI_TSV_NPM_LABEL
+		CLI_TSV_NPM_LABEL,
+		format_cli_bare_readings
 	} from './benchmarks_cli.ts';
 	import {
 		format_commit,
@@ -42,6 +46,10 @@
 	const npm_overhead = format_ms_range(cli_tsv_npm_overhead_ms_range());
 	// the machine's bare Node launch, the floor under every npm-bin row
 	const node_startup_ms = cli_node_startup_ms();
+	// Bun's formatter runs with no Node in front, so it is read against the bare binary,
+	// one reading per scenario rather than a range, since the readings can point both ways
+	const bun_readings = cli_bare_readings(CLI_BUN_FMT_LABEL);
+	const bun_memory = cli_memory_ratio_range({ labels: [CLI_BUN_FMT_LABEL] });
 	// The harness records its own machine and tool versions; the shape test holds them
 	// to the ones the details section lists, so only what the harness alone records is
 	// quoted: when and from which revision it ran, the thread count its wall-clock
@@ -62,39 +70,50 @@
 		<a href="https://github.com/oxc-project/bench-formatter" rel="external">
 			<code>bench-formatter</code>
 		</a>
-		that <a href="https://github.com/ryanatkn/oxc-bench-formatter" rel="external">adds tsv</a>.
-		Upstream's other scenarios aren't shown: their corpora include JSX, which tsv doesn't parse, and
-		two also format a repo's other languages and embedded code, one sorting imports and Tailwind
-		classes too.
+		that <a href="https://github.com/ryanatkn/oxc-bench-formatter" rel="external">adds tsv</a>,
+		along with Bun's built-in formatter and, on Svelte, rsvelte-fmt. Upstream's other scenarios
+		aren't shown: their corpora include JSX, which tsv doesn't parse, and two also format a repo's
+		other languages and embedded code, one sorting imports and Tailwind classes too.
 	</p>
 	<p>
 		As in the charts above, each table's ratios are relative to its highlighted row:
 		<code>{CLI_TSV_NPM_LABEL}</code> where tsv faces other tools, and the bare <code>tsv</code>
-		binary in the tsv-only table.
+		binary in the tsv-only table. Bun's formatter is the one row to read against the bare binary
+		instead (see the notes): hover the <code>tsv</code> row to compare against it.
 	</p>
 	<BenchmarksCli report={benchmarks_cli} />
 	<aside>
 		<p>Notes:</p>
 		<ul>
 			<li>
-				Every formatter is installed from npm, pinned by the fork's lockfile. The other tools are
-				timed through their packages' Node bins, so tsv has two rows wherever it faces them.
-				<code>{CLI_TSV_NPM_LABEL}</code> is the like-for-like row: the Node bin of
+				Every formatter is installed from npm, pinned by the fork's lockfile. Every other tool
+				except Bun's formatter is timed through its package's Node bin, so tsv has two rows wherever
+				it faces them. <code>{CLI_TSV_NPM_LABEL}</code> is the like-for-like row: the Node bin of
 				<a href="https://www.npmjs.com/package/@fuzdev/tsv"><code>@fuzdev/tsv</code></a>, which is
 				what <code>npx tsv</code> runs once it's installed. That bin is a small Node script, the
 				dispatcher, which launches the native binary, as Biome's and rsvelte-fmt's bins do. The
 				plain <code>tsv</code> row runs the same binary directly from the platform package, skipping
 				Node: the bare binary.
 			</li>
+			{#if bun_readings.length}
+				<li>
+					<code>{CLI_BUN_FMT_LABEL}</code> is Bun's built-in formatter, <code>bun fmt</code>,
+					configured from the Prettier row's config. It runs as the Bun executable itself, with no
+					Node in front, so its counterpart is the bare <code>tsv</code> binary rather than the
+					dispatcher row the tables highlight. Against the bare binary,
+					{format_cli_bare_readings(bun_readings, bun_memory)}.
+				</li>
+			{/if}
 			<li>
 				<code>prettier + oxc-parser</code> is Prettier with <code>@prettier/plugin-oxc</code>, which
 				swaps in Oxc's Rust parser while printing stays in JS.
 			</li>
 			<li>
-				tsv, Oxfmt, Biome, and rsvelte-fmt parallelize across files; Prettier's stable CLI formats
-				them one at a time (its worker pool comes with <code>--experimental-cli</code>, which the
-				harness leaves off). No tool's thread count is pinned, so the wall-clock ratios bake in each
-				tool's parallelism, scale with core count, and mean little apart from this machine.
+				tsv, Oxfmt, Biome, rsvelte-fmt, and Bun's formatter parallelize across files; Prettier's
+				stable CLI formats them one at a time (its worker pool comes with
+				<code>--experimental-cli</code>, which the harness leaves off). No tool's thread count is
+				pinned, so the wall-clock ratios bake in each tool's parallelism, scale with core count, and
+				mean little apart from this machine.
 			</li>
 			<li>
 				The CPU ratio column compares <a href="https://github.com/sharkdp/hyperfine">hyperfine</a>'s

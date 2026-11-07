@@ -8,6 +8,7 @@ import {
 	parse_group_key,
 	type ImplementationCategory,
 	type Machine,
+	type NativeBuild,
 	type UnavailableImpl
 } from './benchmark_data.ts';
 import { format_label } from './benchmark_display.ts';
@@ -91,7 +92,14 @@ export interface CrossRuntimeReport {
 		// That sibling's own load failures, with reasons; `null` when the sibling
 		// predates the field. `unavailable_by_runtime` above is the folded view.
 		unavailable: Array<UnavailableImpl> | null;
+		// That sibling's `native_build`; `null` when the sibling predates it. Not rendered.
+		native_build: NativeBuild | null;
 	}>;
+	// The build the native rows measured (the first sibling's `native_build`), and whether
+	// the siblings disagree — not every one loaded the same stamp's profile-guided library.
+	// Absent before combined `version` 19; the shape tests forbid a mixed committed report.
+	native_build?: NativeBuild | null;
+	mixed_native_build?: boolean;
 	rows: Array<CrossRuntimeRow>;
 }
 

@@ -143,8 +143,12 @@ time), so refresh the two on the same setup — a one-sided refresh fails there.
 ### The CLI comparison
 
 The harness is a fork of Oxc's `bench-formatter` that adds tsv, benching it
-against Prettier, Biome, Oxfmt, and (on Svelte) rsvelte-fmt, all timed through
-their npm bins. tsv gets two rows wherever it faces another tool: `tsv-npm`
+against Prettier, Biome, Oxfmt, Bun's `bun fmt`, and (on Svelte) rsvelte-fmt,
+all timed through their npm bins except `bun fmt`, which runs as the Bun executable
+itself. The page reads that `bun-fmt` row against the bare binary, one reading per
+scenario (`cli_bare_readings`), never against the dispatcher row.
+
+tsv gets two rows wherever it faces another tool: `tsv-npm`
 (displayed as `tsv via Node dispatcher`), the `@fuzdev/tsv` Node dispatcher —
 the like-for-like row, never a competitor — and the bare `tsv` binary. The
 page's headline CLI claims lead with the dispatcher ratios and have no fallback for a report without that row; the prose test

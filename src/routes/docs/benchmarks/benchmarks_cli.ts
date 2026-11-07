@@ -5,11 +5,12 @@
 // neither tsv nor this analysis). Unlike the in-process, single-threaded numbers
 // elsewhere on this page, it measures the WHOLE CLI: process spawn, file
 // discovery, I/O, and each tool's default multi-file parallelism. tsv, oxfmt, biome,
-// and rsvelte-fmt parallelize across files while prettier formats them one at a time, so
+// rsvelte-fmt and `bun fmt` parallelize across files while prettier formats them one at a time, so
 // the wall-clock ratios scale with core count and are machine-dependent — the
 // parallelism-neutral view is CPU work (hyperfine's `User` + `System` time). tsv runs only in
-// the JSX-free scenarios (it has no JSX/TSX parser); the Svelte scenario benches
-// it against rsvelte-fmt (`@rsvelte/fmt`), another Rust Svelte-native formatter,
+// the JSX-free scenarios (it has no JSX/TSX parser). Bun's formatter (`bun fmt`, the
+// `bun-fmt` row) runs in all three where tsv faces other tools. The Svelte scenario also
+// benches tsv against rsvelte-fmt (`@rsvelte/fmt`), another Rust Svelte-native formatter,
 // and the delivery scenario benches tsv against itself — the native binary, the
 // same binary through `@fuzdev/tsv`'s Node dispatcher, and `@fuzdev/tsv-wasm`.
 //
@@ -20,6 +21,7 @@
 
 import { plural } from '@fuzdev/fuz_util/string.ts';
 
+import { format_list_and, format_ratio_approx } from './benchmark_display.ts';
 import { benchmarks_formatters_json } from './benchmarks_formatters.ts';
 import type { FormatterBenchmarks, FormatterScenario } from './formatter_benchmark_data.ts';
 
@@ -45,6 +47,8 @@ export type CliMetric = keyof Omit<CliFormatterResult, 'label'>;
 /** The authored half of a scenario — what `SCENARIO_COPY` holds; the rest is generated. */
 export interface CliScenarioCopy {
 	heading: string;
+	/** What prose calls the scenario mid-sentence (`the TypeScript repo`). */
+	prose_name: string;
 	/** One-line description of what makes the comparison fair. */
 	description: string;
 	/**
@@ -145,6 +149,13 @@ export const CLI_DELIVERY_KEY = 'tsv-delivery-paths';
  */
 export const CLI_TSV_NPM_LABEL = 'tsv via Node dispatcher';
 
+/**
+ * Bun's own formatter (`bun fmt`), as displayed. Unlike every other tool's row it
+ * is a native executable run directly, with no Node in front, so its like-for-like
+ * counterpart is the bare `tsv` binary, not the dispatcher row the tables anchor on.
+ */
+export const CLI_BUN_FMT_LABEL = 'bun-fmt';
+
 /** The delivery scenario's wasm row, as displayed. */
 export const CLI_TSV_WASM_LABEL = 'tsv-wasm';
 
@@ -170,20 +181,23 @@ export const cli_label_is_tsv = (label: string): boolean =>
 const SCENARIO_COPY: Record<string, CliScenarioCopy> = {
 	[CLI_TS_REPO_KEY]: {
 		heading: 'TypeScript repo',
+		prose_name: 'the TypeScript repo',
 		description:
 			'Every formatter scoped to the same JSX-free files, each at its default parallelism.',
 		tsv_only: false
 	},
 	[CLI_SINGLE_FILE_KEY]: {
 		heading: 'Large single file',
+		prose_name: 'the large single file',
 		description:
-			'With one input, no formatter can parallelize across files, so wall-clock time comes nearer to engine speed plus startup. Startup is each tool’s own process and thread-pool setup, plus Node’s for every row but the bare tsv binary: a fixed cost that weighs most on the fastest rows.',
+			'With one input, no formatter can parallelize across files, so wall-clock time comes nearer to engine speed plus startup. Startup is each tool’s own process and thread-pool setup, plus Node’s for every row but the two native executables run directly, the bare tsv binary and Bun’s formatter: a fixed cost that weighs most on the fastest rows.',
 		tsv_only: false
 	},
 	[CLI_SVELTE_KEY]: {
 		heading: 'Svelte corpus',
+		prose_name: 'the Svelte corpus',
 		description:
-			'Two Rust-native Svelte formatters head-to-head. rsvelte-fmt’s time includes the Oxfmt it launches for the file types it doesn’t format itself, which walks the corpus and finds none.',
+			'tsv against two other native Svelte formatters, rsvelte-fmt (in Rust) and Bun’s. rsvelte-fmt’s time includes the Oxfmt it launches for the file types it doesn’t format itself, which walks the corpus and finds none.',
 		crash_context: {
 			name: 'rsvelte-fmt',
 			note: 'rsvelte-fmt 0.7.x can abort when its stdout and stderr share a pipe, and the harness doesn’t retry.'
@@ -192,8 +206,9 @@ const SCENARIO_COPY: Record<string, CliScenarioCopy> = {
 	},
 	[CLI_DELIVERY_KEY]: {
 		heading: 'tsv delivery paths',
+		prose_name: 'the delivery paths',
 		description:
-			'Every row is tsv, delivered three ways: the native binary; the same binary through @fuzdev/tsv’s Node dispatcher; and @fuzdev/tsv-wasm, tsv’s CLI reimplemented in JS over a wasm engine, the package for platforms without a prebuilt binary. The corpus is one file, so the gaps are launch and engine cost, not file parallelism. In time, tsv-wasm still finishes well ahead of both Prettier rows in the single-file table, but behind Oxfmt and Biome.',
+			'Every row is tsv, delivered three ways: the native binary; the same binary through @fuzdev/tsv’s Node dispatcher; and @fuzdev/tsv-wasm, tsv’s CLI reimplemented in JS over a wasm engine, the package for platforms without a prebuilt binary. The two JS entries also run on Bun (the -bun rows), as bunx --bun tsv runs them. The corpus is one file, so the gaps are launch and engine cost, not file parallelism. In time, tsv-wasm still finishes well ahead of both Prettier rows in the single-file table, but behind Oxfmt, Biome, and Bun’s formatter.',
 		tsv_only: true
 	}
 };
@@ -478,3 +493,64 @@ export const cli_memory_ratio_range = (
 	if (ratios.length === 0) return undefined;
 	return { min: Math.min(...ratios), max: Math.max(...ratios) };
 };
+
+/** One scenario's reading of a tool against the bare tsv binary, for prose that spans scenarios. */
+export interface CliBareReading {
+	key: string;
+	prose_name: string;
+	/** The tool's wall-clock mean over native tsv's: above 1, tsv is faster. */
+	wall_ratio: number;
+}
+
+/**
+ * `label`'s wall-clock against the bare tsv binary in every scenario facing other
+ * tools that timed both, in page order — what a sentence about a tool whose
+ * counterpart is the bare binary (Bun's formatter) quotes per scenario.
+ *
+ * @param scenarios - the scenarios to read, the rendered ones by default
+ * @returns one reading per scenario that timed both rows
+ */
+export const cli_bare_readings = (
+	label: string,
+	scenarios: Array<CliScenario> = benchmarks_cli.scenarios
+): Array<CliBareReading> =>
+	scenarios.flatMap((s) => {
+		if (s.tsv_only) return [];
+		const wall_ratio = cli_ratio_between(s.results, label, CLI_TSV_LABEL, 'wall_ms');
+		return wall_ratio === undefined ? [] : [{ key: s.key, prose_name: s.prose_name, wall_ratio }];
+	});
+
+/**
+ * How a reading reads in prose, from tsv's side: `about even` when the ratio
+ * rounds to `1.0x` either way, else which side leads and by how much — so a
+ * near-tie never prints as a lead in either direction.
+ *
+ * @param wall_ratio - the other tool's time over tsv's
+ * @returns a phrase completing "tsv is …"
+ */
+export const format_cli_lead = (wall_ratio: number): string => {
+	const lead = format_ratio_approx(wall_ratio >= 1 ? wall_ratio : 1 / wall_ratio);
+	if (lead === '1.0x') return 'about even';
+	return wall_ratio > 1 ? `~${lead} faster` : `~${lead} slower`;
+};
+
+/**
+ * Readings as one clause from tsv's side: `tsv is ~1.7x faster on the TypeScript
+ * repo and about even on the large single file`, optionally followed by the span of
+ * how many times more memory the other tool peaks at.
+ *
+ * @param readings - from `cli_bare_readings`
+ * @param memory - from `cli_memory_ratio_range` over the same tool, if quoted
+ * @returns the clause, empty when there are no readings
+ */
+export const format_cli_bare_readings = (
+	readings: Array<CliBareReading>,
+	memory?: { min: number; max: number }
+): string =>
+	readings.length
+		? `tsv is ${format_list_and(readings.map((r) => `${format_cli_lead(r.wall_ratio)} on ${r.prose_name}`))}${
+				memory
+					? `, using ~${format_ratio_approx(memory.min)}–${format_ratio_approx(memory.max)} less memory`
+					: ''
+			}`
+		: '';

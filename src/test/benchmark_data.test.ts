@@ -4,52 +4,67 @@ import {
 	benchmark_time_share_beyond,
 	derive_benchmark_groups,
 	derive_corpus_counts,
-	derive_corpus_origin_shares,
 	derive_corpus_source_table,
 	derive_slow_row_groups,
 	derive_sweep_stats,
 	derive_unstable_entries,
 	entry_instability,
 	is_entry_unstable,
+	is_native_build_profile_guided,
+	is_own_code_held_out,
 	is_payload_matched,
 	parse_group_key,
 	type BaselineEntry,
 	type BenchmarkBaseline
 } from '#routes/docs/benchmarks/benchmark_data.ts';
 
-import { create_baseline, create_baseline_entry } from './benchmark_test_helpers.ts';
+import {
+	create_baseline,
+	create_baseline_entry,
+	create_native_build_baseline
+} from './benchmark_test_helpers.ts';
 
-describe('derive_corpus_origin_shares', () => {
-	test('is null for a report that records no origins', () => {
-		assert.isNull(derive_corpus_origin_shares(create_baseline()));
+describe('is_native_build_profile_guided', () => {
+	test('reads the native build the report recorded', () => {
+		assert.isFalse(is_native_build_profile_guided(create_baseline()));
+		assert.isTrue(is_native_build_profile_guided(create_native_build_baseline({ build: 'pgo' })));
+		assert.isFalse(
+			is_native_build_profile_guided(create_native_build_baseline({ build: 'plain' }))
+		);
+	});
+});
+
+describe('is_own_code_held_out', () => {
+	const origins = (own_bytes: number): BenchmarkBaseline['corpus_by_origin'] => ({
+		own: { svelte: { files: own_bytes ? 1 : 0, bytes: own_bytes } },
+		third_party: { svelte: { files: 1, bytes: 100 } }
 	});
 
-	test('gives each language its third-party byte share, leaving empty languages out', () => {
-		const baseline: BenchmarkBaseline = {
-			...create_baseline(),
-			corpus: { svelte: 3, typescript: 2, css: 0 },
-			corpus_by_origin: {
-				own: {
-					svelte: { files: 2, bytes: 300 },
-					typescript: { files: 1, bytes: 0 },
-					css: { files: 0, bytes: 0 }
-				},
-				third_party: {
-					svelte: { files: 1, bytes: 100 },
-					typescript: { files: 1, bytes: 50 },
-					css: { files: 0, bytes: 0 }
-				}
-			}
-		};
-		const shares = derive_corpus_origin_shares(baseline);
-		assert.deepEqual(
-			shares?.map((s) => [s.language, s.third_party_share]),
-			[
-				['svelte', 0.25],
-				['typescript', 1]
-			]
+	test('is false without origins or a training record', () => {
+		assert.isFalse(is_own_code_held_out(create_baseline()));
+		assert.isFalse(is_own_code_held_out({ ...create_baseline(), corpus_by_origin: origins(0) }));
+	});
+
+	test('holds only with no own bytes, own-origin training, and a disjoint run', () => {
+		const held_out = { ...create_native_build_baseline({}), corpus_by_origin: origins(0) };
+		assert.isTrue(is_own_code_held_out(held_out));
+		assert.isFalse(
+			is_own_code_held_out({ ...create_native_build_baseline({}), corpus_by_origin: origins(10) })
 		);
-		assert.deepEqual(shares?.[0]?.own, { files: 2, bytes: 300 });
+		assert.isFalse(
+			is_own_code_held_out({
+				...create_native_build_baseline({ disjoint_from_timed_corpus: null }),
+				corpus_by_origin: origins(0)
+			})
+		);
+		assert.isFalse(
+			is_own_code_held_out({
+				...create_native_build_baseline({
+					training: { origin: 'third_party', collections: ['x'], snapshot_tree: 't' }
+				}),
+				corpus_by_origin: origins(0)
+			})
+		);
 	});
 });
 
