@@ -75,7 +75,8 @@
 		</p>
 		<p>
 			tsv's formatters are near production-ready, with a long tail of rare bugs, and APIs may still
-			change. Reports and opinions are appreciated. See the
+			change. The parsers have good <TomeLink slug="conformance" /> on valid code, but negative
+			cases (rejecting invalid code) are unfinished. Reports and opinions are appreciated. See the
 			<a href="https://github.com/fuzdev/tsv/issues">issues</a> and
 			<a href="https://github.com/fuzdev/tsv/discussions">discussions</a>.
 		</p>
