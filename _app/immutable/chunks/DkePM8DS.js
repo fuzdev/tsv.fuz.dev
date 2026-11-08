@@ -16,8 +16,8 @@ import{A as e,B as t,D as n,F as r,L as i,N as a,P as o,R as s,S as c,U as l,X a
 					configured from the Prettier row's config. It runs as the Bun executable itself, with no
 					Node in front, so its counterpart is the bare <code>tsv</code> </li>`),Fn=r(`its native tsv rows run the <code> </code> binary,`,1),In=r(`<!> <p>The numbers above time tsv's engine in-process, one file at a time. This section times the whole
 		CLI end to end, on real code, as you'd experience it from the command line: process spawn, file
-		discovery, I/O, and each tool's default multi-file parallelism, plus peak memory. It comes from
-		a fork of Oxc's own <a href="https://github.com/oxc-project/bench-formatter" rel="external"><code>bench-formatter</code></a> that <a href="https://github.com/ryanatkn/oxc-bench-formatter" rel="external">adds tsv</a>,
+		discovery, I/O, and each tool's default multi-file parallelism, plus peak memory. Data is from a
+		fork of Oxc's own <a href="https://github.com/oxc-project/bench-formatter" rel="external"><code>bench-formatter</code></a> that <a href="https://github.com/ryanatkn/oxc-bench-formatter" rel="external">adds tsv</a>,
 		along with Bun's built-in formatter and, on Svelte, rsvelte-fmt. Upstream's other scenarios
 		aren't shown: their corpora include JSX, which tsv doesn't parse, and two also format a repo's
 		other languages and embedded code, one sorting imports and Tailwind classes too.</p> <p>As in the charts above, each table's ratios are relative to its highlighted row: <code> </code> where tsv faces other tools, and the bare <code>tsv</code> binary in the tsv-only table. Bun's formatter is the one row to read against the bare binary
@@ -201,11 +201,10 @@ import{A as e,B as t,D as n,F as r,L as i,N as a,P as o,R as s,S as c,U as l,X a
 							stylesheet, and one a tool rejects leaves every row's timed set (Biome refuses the
 							ones carrying Svelte's leading-combinator <code>:global(&gt; …)</code>)</li> <li>the same bytes are timed again inside the Svelte rows — rows are never summed, so
 							nothing counts twice</li></ul> </li> <li>Read every ratio here as "on this corpus", not as a universal figure.</li></ul> <!>`,1),vr=r(`<section><p>tsv is a Rust toolchain for parsing and formatting TypeScript/JS, CSS, and Svelte
-				(<a href="https://github.com/fuzdev/tsv">source code</a>). Its formatter closely follows <a href="https://prettier.io/">Prettier</a> and borrows its architectural patterns, and
-				we're grateful for the hard work of Prettier's <a href="https://github.com/prettier/prettier/graphs/contributors">contributors</a>. After
-				correctness, tsv prioritizes performance and efficiency: this page measures its speed and
-				size on real-world code, and the <!> page compares parser
-				coverage on edge-case test suites.</p> <p>This page compares tsv to Prettier and the JS parsers it can replace (Svelte's and
+				(<a href="https://github.com/fuzdev/tsv">source code</a>). Its formatter closely follows <a href="https://prettier.io/">Prettier</a> and borrows its architectural patterns,
+				gratitude and credit to the <a href="https://github.com/prettier/prettier/graphs/contributors">Prettier contributors</a>. After correctness, tsv prioritizes performance and efficiency: this page measures its
+				speed and size on real-world code, and the <!> page compares
+				parser coverage on edge-case test suites.</p> <p>This page compares tsv to Prettier and the JS parsers it can replace (Svelte's and
 				acorn-typescript), and to Oxc and Biome, similar tools with more features, configurable
 				styles, and wider language support, and, as a CLI only, Bun's built-in formatter
 				(<code>bun fmt</code>). It also measures rsvelte, yuku-parser, swc, dprint, Malva,
