@@ -65,8 +65,8 @@
 	<p>
 		The numbers above time tsv's engine in-process, one file at a time. This section times the whole
 		CLI end to end, on real code, as you'd experience it from the command line: process spawn, file
-		discovery, I/O, and each tool's default multi-file parallelism, plus peak memory. It comes from
-		a fork of Oxc's own
+		discovery, I/O, and each tool's default multi-file parallelism, plus peak memory. Data is from a
+		fork of Oxc's own
 		<a href="https://github.com/oxc-project/bench-formatter" rel="external">
 			<code>bench-formatter</code>
 		</a>
