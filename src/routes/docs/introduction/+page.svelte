@@ -158,8 +158,8 @@
 				API maps to the crates.
 			</p>
 			<p>
-				tsv also ships as wasm, which runs everywhere including browsers and Deno, and provides the
-				same <code>tsv</code> command:
+				tsv also ships as wasm, which runs everywhere including browsers, and provides the same
+				<code>tsv</code> command:
 			</p>
 			<Code lang="sh" content={'npm i -D @fuzdev/tsv-wasm\nnpx tsv format src'} />
 			<p>
@@ -251,12 +251,11 @@
 			<p>
 				The packages are ESM; a CommonJS host loads them with
 				<Code lang="ts" content="await import('@fuzdev/tsv')" inline />. The native package needs no
-				initialization; the wasm packages work zero-config in Node.js, Bun, and Deno (sync
-				auto-init); in browsers and bundlers, call <Code lang="ts" content="await init()" inline />
-				once first. To run a wasm package across worker threads without recompiling, hand its
-				exported <code>wasm_module</code> to each worker, which imports the <code>/worker</code>
-				subpath and calls <Code lang="ts" content={'init_sync({module: wasm_module})'} inline />;
-				the
+				initialization; the wasm packages work zero-config in Node.js and Bun (sync auto-init); in
+				browsers and bundlers, call <Code lang="ts" content="await init()" inline /> once first. To
+				run a wasm package across worker threads without recompiling, hand its exported
+				<code>wasm_module</code> to each worker, which imports the <code>/worker</code> subpath and
+				calls <Code lang="ts" content={'init_sync({module: wasm_module})'} inline />; the
 				<a href="https://www.npmjs.com/package/@fuzdev/tsv-format-wasm">
 					<code>@fuzdev/tsv-format-wasm</code> readme
 				</a> shows the pattern.
